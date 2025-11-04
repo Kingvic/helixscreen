@@ -320,6 +320,8 @@ static bool parse_command_line_args(int argc, char** argv,
             theme_requested = true;
         } else if (strcmp(argv[i], "--test") == 0) {
             g_runtime_config.test_mode = true;
+        } else if (strcmp(argv[i], "--skip-splash") == 0) {
+            g_runtime_config.skip_splash = true;
         } else if (strcmp(argv[i], "--real-wifi") == 0) {
             g_runtime_config.use_real_wifi = true;
         } else if (strcmp(argv[i], "--real-ethernet") == 0) {
@@ -354,6 +356,7 @@ static bool parse_command_line_args(int argc, char** argv,
             printf("  -t, --timeout <sec>  Auto-quit after specified seconds (1-3600)\n");
             printf("  --dark               Use dark theme (default)\n");
             printf("  --light              Use light theme\n");
+            printf("  --skip-splash        Skip splash screen on startup\n");
             printf("  -v, --verbose        Increase verbosity (-v=info, -vv=debug, -vvv=trace)\n");
             printf("  -h, --help           Show this help message\n");
             printf("\nTest Mode Options:\n");
@@ -958,8 +961,8 @@ int main(int argc, char** argv) {
         spdlog::info("Display DPI: {} (from LV_DPI_DEF)", lv_display_get_dpi(display));
     }
 
-    // Show splash screen (skip in test mode for faster automation)
-    if (!g_runtime_config.test_mode) {
+    // Show splash screen (skip if requested via --skip-splash or --test)
+    if (!g_runtime_config.should_skip_splash()) {
         show_splash_screen();
     }
 

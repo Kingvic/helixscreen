@@ -32,6 +32,9 @@ struct RuntimeConfig {
     // Master test mode flag (--test)
     bool test_mode = false;
 
+    // UI/automation flags (independent of test mode)
+    bool skip_splash = false;         // --skip-splash
+
     // Individual component overrides (require --test to be set)
     bool use_real_wifi = false;       // --real-wifi
     bool use_real_ethernet = false;   // --real-ethernet
@@ -76,6 +79,14 @@ struct RuntimeConfig {
      */
     bool is_test_mode() const {
         return test_mode;
+    }
+
+    /**
+     * @brief Check if splash screen should be skipped
+     * @return true if --skip-splash flag set or test mode enabled
+     */
+    bool should_skip_splash() const {
+        return skip_splash || test_mode;
     }
 };
 
