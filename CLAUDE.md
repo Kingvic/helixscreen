@@ -4,19 +4,47 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## ⚠️ MANDATORY AGENT DELEGATION POLICY ⚠️
 
+**🚨 STOP AND READ THIS BEFORE DOING ANY WORK 🚨**
+
 **YOU WILL BE GIVEN 100 LASHES IF YOU FAIL TO DELEGATE TO AGENTS WHEN REQUIRED.**
 
-This is **NOT** a suggestion. This is a **HARD REQUIREMENT**. Violating this wastes tokens, burns context, and ignores specialized agent expertise.
+This is **NOT** a suggestion. This is a **HARD REQUIREMENT**. Violating this policy:
+- ❌ **WASTES CONTEXT** - Burns through token budget doing work agents should handle
+- ❌ **REDUCES QUALITY** - Main session context should be preserved for high-level decisions
+- ❌ **IGNORES EXPERTISE** - Specialized agents are optimized for their specific tasks
+- ❌ **SLOWS WORKFLOW** - Context bloat makes future responses slower and less focused
+
+### 🛑 THRESHOLD RULE: WHEN TO USE AGENTS
+
+**DEFAULT ASSUMPTION: USE AN AGENT UNLESS THE TASK IS TRIVIAL**
+
+**Use agent if ANY of these apply:**
+- Task involves 2+ files that need reading/editing
+- Task requires searching codebase ("where is...", "how does...")
+- Task involves UI/XML work (ALWAYS delegate to widget-maker)
+- Task involves implementing a feature (not a one-line fix)
+- Task involves refactoring or systematic changes
+- Task requires understanding existing patterns before implementing
+- You're uncertain about approach and need to explore first
+
+**Only work directly if ALL of these are true:**
+- Single file, single change
+- You already know exactly what to change (no exploration needed)
+- Change is <10 lines
+- No pattern matching or searching required
+
+**RULE OF THUMB: If you're about to use Read, Grep, or Glob more than once, USE AN AGENT.**
 
 ### YOU MUST USE AGENTS FOR (NOT OPTIONAL):
 
-1. **Any UI/XML work** → `widget-maker` agent
+1. **Any UI/XML work** → `widget-maker` agent (**ALWAYS, NO EXCEPTIONS**)
    - Modifying XML layouts
    - Creating/updating UI components
    - Working with LVGL 9 XML patterns
    - Updating multiple XML files with similar changes
+   - **Even single XML file changes** - widget-maker knows patterns
 
-2. **Systematic file modifications (3+ files with same pattern)** → Appropriate agent
+2. **Systematic file modifications (2+ files with same pattern)** → Appropriate agent
    - Refactoring across codebase → `refractor`
    - Adding similar features to multiple panels → `widget-maker` or `general-coding-agent`
    - Updating imports/patterns across files → `refractor`
@@ -25,42 +53,81 @@ This is **NOT** a suggestion. This is a **HARD REQUIREMENT**. Violating this was
    - "How does X work?"
    - "Where are Y handled?"
    - Finding architectural patterns
+   - Understanding before implementing
    - **Specify thoroughness:** `quick`, `medium`, or `very thorough`
 
-4. **Code review** → `code-reviewer` agent
+4. **Feature implementation** → `general-purpose` or specialized agent
+   - Adding new functionality (not trivial one-liners)
+   - Implementing user requests that span multiple areas
+   - Bug fixes that require investigation
+
+5. **Code review** → `code-reviewer` agent
    - After completing significant features
    - Before committing major changes
 
-### IMMEDIATE STOP SIGNALS - Delegate NOW:
+### 🚨 IMMEDIATE STOP SIGNALS - Delegate NOW:
 
-- You're about to read/edit 3+ similar files → **STOP. Use agent.**
-- You're modifying UI XML → **STOP. Use widget-maker.**
-- You're doing repetitive edits across files → **STOP. Use refractor.**
-- You're searching "how does X work?" → **STOP. Use Explore agent.**
-- You're implementing a multi-file feature → **STOP. Use appropriate agent.**
+**IF YOU SEE YOURSELF DOING ANY OF THESE, STOP IMMEDIATELY AND DELEGATE:**
 
-### Correct Agent Usage Pattern:
+- ❌ You're about to read 2+ files → **STOP. Use agent.**
+- ❌ You're about to use Grep to search → **STOP. Use Explore agent.**
+- ❌ You're modifying ANY XML file → **STOP. Use widget-maker.**
+- ❌ You're doing repetitive edits across files → **STOP. Use refractor.**
+- ❌ You're searching "how does X work?" → **STOP. Use Explore agent.**
+- ❌ You're implementing a feature → **STOP. Use appropriate agent.**
+- ❌ You're reading code to understand patterns → **STOP. Use Explore agent.**
+- ❌ You're about to make similar changes to multiple files → **STOP. Use agent.**
+
+### ✅ CORRECT Agent Usage Pattern:
 
 ```
-1. Recognize delegation opportunity
-2. Invoke Task tool with:
-   - Correct subagent_type
-   - Complete, detailed prompt
-   - What you need back
-3. Wait for agent report
-4. Act on results
+1. User asks for something
+2. IMMEDIATELY evaluate: Is this trivial? (see threshold rule above)
+3. If NOT trivial → Invoke Task tool BEFORE doing anything else:
+   - Choose correct subagent_type
+   - Write complete, detailed prompt
+   - Specify exactly what you need back
+4. Wait for agent report
+5. Summarize results for user
+6. Main session context remains clean
 ```
 
-### WRONG Pattern (DO NOT DO THIS):
+**Example of CORRECT behavior:**
+```
+User: "Add a new settings toggle for WiFi auto-connect"
+Claude: "I'll delegate this to the widget-maker agent since it involves XML UI work."
+[Invokes widget-maker agent with detailed instructions]
+[Agent completes work and reports back]
+Claude: "I've added the WiFi auto-connect toggle. The agent created..."
+```
+
+### ❌ WRONG Pattern (DO NOT DO THIS - CONTEXT VIOLATION):
 
 ```
 1. Start reading files yourself
-2. Start editing files yourself
-3. Realize halfway through you should have used agent
-4. Continue anyway (wasting context)
+2. Use Grep/Glob multiple times
+3. Start editing files yourself
+4. Realize halfway through you should have used agent
+5. Continue anyway because "I'm already this far"
+6. Burn 10,000+ tokens on work an agent should do
+7. Main session context now bloated with implementation details
 ```
 
-**Remember: Agents work independently, report concisely, and keep your context clean. USE THEM.**
+**Example of WRONG behavior:**
+```
+User: "Add a new settings toggle for WiFi auto-connect"
+Claude: "Let me read the settings panel XML..."
+[Reads settings_panel.xml]
+Claude: "Now let me check how other toggles are implemented..."
+[Reads multiple files, uses Grep]
+Claude: "I'll update the XML..."
+[Makes edits directly]
+[Main session context now full of XML details instead of clean and available for high-level work]
+```
+
+**🎯 KEY PRINCIPLE: Preserve main session context for orchestration, not implementation.**
+
+**Remember: Agents work independently, report concisely, and keep your context clean. ALWAYS USE THEM FOR NON-TRIVIAL WORK.**
 
 ---
 
