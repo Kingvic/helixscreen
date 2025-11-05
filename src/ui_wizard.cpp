@@ -49,7 +49,7 @@ static char wizard_progress_buffer[32];
 static char wizard_next_button_text_buffer[16];
 
 // Wizard container instance
-static lv_obj_t* wizard_root = nullptr;
+static lv_obj_t* wizard_container = nullptr;
 
 // Forward declarations
 static void on_back_clicked(lv_event_t* e);
@@ -227,9 +227,9 @@ lv_obj_t* ui_wizard_create(lv_obj_t* parent) {
     spdlog::debug("[Wizard] Creating wizard container");
 
     // Create wizard from XML (constants already registered)
-    wizard_root = (lv_obj_t*)lv_xml_create(parent, "wizard_container", nullptr);
+    wizard_container = (lv_obj_t*)lv_xml_create(parent, "wizard_container", nullptr);
 
-    if (!wizard_root) {
+    if (!wizard_container) {
         spdlog::error("[Wizard] Failed to create wizard_container from XML");
         return nullptr;
     }
@@ -238,10 +238,10 @@ lv_obj_t* ui_wizard_create(lv_obj_t* parent) {
     // No explicit styling needed - theme patching in ui_theme.cpp handles this
 
     // Update layout to ensure SIZE_CONTENT calculates correctly
-    lv_obj_update_layout(wizard_root);
+    lv_obj_update_layout(wizard_container);
 
     spdlog::info("[Wizard] Wizard container created successfully");
-    return wizard_root;
+    return wizard_container;
 }
 
 void ui_wizard_navigate_to_step(int step) {
@@ -271,8 +271,8 @@ void ui_wizard_navigate_to_step(int step) {
     ui_wizard_load_screen(step);
 
     // Force layout update on entire wizard after screen is loaded
-    if (wizard_root) {
-        lv_obj_update_layout(wizard_root);
+    if (wizard_container) {
+        lv_obj_update_layout(wizard_container);
     }
 
     spdlog::debug("[Wizard] Updated to step {}/{}, button: {}",
@@ -297,7 +297,7 @@ static void ui_wizard_load_screen(int step) {
     spdlog::debug("[Wizard] Loading screen for step {}", step);
 
     // Find wizard_content container
-    lv_obj_t* content = lv_obj_find_by_name(wizard_root, "wizard_content");
+    lv_obj_t* content = lv_obj_find_by_name(wizard_container, "wizard_content");
     if (!content) {
         spdlog::error("[Wizard] wizard_content container not found");
         return;
