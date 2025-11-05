@@ -19,13 +19,113 @@
  */
 
 #include "ui_keyboard.h"
+#include "config.h"
 #include <spdlog/spdlog.h>
 
 // Global keyboard instance
 static lv_obj_t* g_keyboard = NULL;
+static bool g_number_row_enabled = false;
+static bool g_number_row_user_preference = true;  // User's saved preference
+static lv_obj_t* g_context_textarea = NULL;       // Currently focused textarea
+
+//=============================================================================
+// IMPROVED KEYBOARD LAYOUTS
+//=============================================================================
+
+// Macro for keyboard buttons with popover support (C++ requires explicit cast)
+#define LV_KEYBOARD_CTRL_BUTTON_FLAGS (LV_BUTTONMATRIX_CTRL_NO_REPEAT | LV_BUTTONMATRIX_CTRL_CLICK_TRIG | LV_BUTTONMATRIX_CTRL_CHECKED)
+#define LV_KB_BTN(width) static_cast<lv_buttonmatrix_ctrl_t>(LV_BUTTONMATRIX_CTRL_POPOVER | (width))
+
+// Lowercase with number row (Android-style)
+static const char * const kb_map_lc_numrow[] = {
+    "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", LV_SYMBOL_BACKSPACE, "\n",
+    "q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "\n",
+    "a", "s", "d", "f", "g", "h", "j", "k", "l", LV_SYMBOL_NEW_LINE, "\n",
+    "ABC", "z", "x", "c", "v", "b", "n", "m", ".", ",", "1#", "\n",
+    LV_SYMBOL_KEYBOARD, LV_SYMBOL_LEFT, " ", LV_SYMBOL_RIGHT, LV_SYMBOL_OK, ""
+};
+
+static const lv_buttonmatrix_ctrl_t kb_ctrl_lc_numrow[] = {
+    // Row 1: Numbers 1-0 + backspace
+    LV_KB_BTN(3), LV_KB_BTN(3), LV_KB_BTN(3), LV_KB_BTN(3), LV_KB_BTN(3),
+    LV_KB_BTN(3), LV_KB_BTN(3), LV_KB_BTN(3), LV_KB_BTN(3), LV_KB_BTN(3),
+    static_cast<lv_buttonmatrix_ctrl_t>(LV_BUTTONMATRIX_CTRL_CHECKED | 7),
+    // Row 2: q-p
+    LV_KB_BTN(4), LV_KB_BTN(4), LV_KB_BTN(4), LV_KB_BTN(4), LV_KB_BTN(4),
+    LV_KB_BTN(4), LV_KB_BTN(4), LV_KB_BTN(4), LV_KB_BTN(4), LV_KB_BTN(4),
+    // Row 3: a-l + enter
+    LV_KB_BTN(4), LV_KB_BTN(4), LV_KB_BTN(4), LV_KB_BTN(4), LV_KB_BTN(4),
+    LV_KB_BTN(4), LV_KB_BTN(4), LV_KB_BTN(4), LV_KB_BTN(4),
+    static_cast<lv_buttonmatrix_ctrl_t>(LV_BUTTONMATRIX_CTRL_CHECKED | 8),
+    // Row 4: shift + z-m + period/comma + special
+    static_cast<lv_buttonmatrix_ctrl_t>(LV_KEYBOARD_CTRL_BUTTON_FLAGS | 5),
+    LV_KB_BTN(3), LV_KB_BTN(3), LV_KB_BTN(3), LV_KB_BTN(3),
+    LV_KB_BTN(3), LV_KB_BTN(3), LV_KB_BTN(3), LV_KB_BTN(3), LV_KB_BTN(3),
+    static_cast<lv_buttonmatrix_ctrl_t>(LV_KEYBOARD_CTRL_BUTTON_FLAGS | 5),
+    // Row 5: keyboard/left/space/right/ok
+    static_cast<lv_buttonmatrix_ctrl_t>(LV_KEYBOARD_CTRL_BUTTON_FLAGS | 2),
+    static_cast<lv_buttonmatrix_ctrl_t>(LV_BUTTONMATRIX_CTRL_CHECKED | 2),
+    static_cast<lv_buttonmatrix_ctrl_t>(6),
+    static_cast<lv_buttonmatrix_ctrl_t>(LV_BUTTONMATRIX_CTRL_CHECKED | 2),
+    static_cast<lv_buttonmatrix_ctrl_t>(LV_KEYBOARD_CTRL_BUTTON_FLAGS | 2)
+};
+
+// Uppercase with number row
+static const char * const kb_map_uc_numrow[] = {
+    "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", LV_SYMBOL_BACKSPACE, "\n",
+    "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "\n",
+    "A", "S", "D", "F", "G", "H", "J", "K", "L", LV_SYMBOL_NEW_LINE, "\n",
+    "abc", "Z", "X", "C", "V", "B", "N", "M", ".", ",", "1#", "\n",
+    LV_SYMBOL_KEYBOARD, LV_SYMBOL_LEFT, " ", LV_SYMBOL_RIGHT, LV_SYMBOL_OK, ""
+};
+
+static const lv_buttonmatrix_ctrl_t kb_ctrl_uc_numrow[] = {
+    // Row 1: Numbers 1-0 + backspace
+    LV_KB_BTN(3), LV_KB_BTN(3), LV_KB_BTN(3), LV_KB_BTN(3), LV_KB_BTN(3),
+    LV_KB_BTN(3), LV_KB_BTN(3), LV_KB_BTN(3), LV_KB_BTN(3), LV_KB_BTN(3),
+    static_cast<lv_buttonmatrix_ctrl_t>(LV_BUTTONMATRIX_CTRL_CHECKED | 7),
+    // Row 2: Q-P
+    LV_KB_BTN(4), LV_KB_BTN(4), LV_KB_BTN(4), LV_KB_BTN(4), LV_KB_BTN(4),
+    LV_KB_BTN(4), LV_KB_BTN(4), LV_KB_BTN(4), LV_KB_BTN(4), LV_KB_BTN(4),
+    // Row 3: A-L + enter
+    LV_KB_BTN(4), LV_KB_BTN(4), LV_KB_BTN(4), LV_KB_BTN(4), LV_KB_BTN(4),
+    LV_KB_BTN(4), LV_KB_BTN(4), LV_KB_BTN(4), LV_KB_BTN(4),
+    static_cast<lv_buttonmatrix_ctrl_t>(LV_BUTTONMATRIX_CTRL_CHECKED | 8),
+    // Row 4: shift + Z-M + period/comma + special
+    static_cast<lv_buttonmatrix_ctrl_t>(LV_KEYBOARD_CTRL_BUTTON_FLAGS | 5),
+    LV_KB_BTN(3), LV_KB_BTN(3), LV_KB_BTN(3), LV_KB_BTN(3),
+    LV_KB_BTN(3), LV_KB_BTN(3), LV_KB_BTN(3), LV_KB_BTN(3), LV_KB_BTN(3),
+    static_cast<lv_buttonmatrix_ctrl_t>(LV_KEYBOARD_CTRL_BUTTON_FLAGS | 5),
+    // Row 5: keyboard/left/space/right/ok
+    static_cast<lv_buttonmatrix_ctrl_t>(LV_KEYBOARD_CTRL_BUTTON_FLAGS | 2),
+    static_cast<lv_buttonmatrix_ctrl_t>(LV_BUTTONMATRIX_CTRL_CHECKED | 2),
+    static_cast<lv_buttonmatrix_ctrl_t>(6),
+    static_cast<lv_buttonmatrix_ctrl_t>(LV_BUTTONMATRIX_CTRL_CHECKED | 2),
+    static_cast<lv_buttonmatrix_ctrl_t>(LV_KEYBOARD_CTRL_BUTTON_FLAGS | 2)
+};
+
+// Improved numeric keyboard with PERIOD (critical for IPs and decimals)
+static const char * const kb_map_num_improved[] = {
+    "1", "2", "3", LV_SYMBOL_KEYBOARD, "\n",
+    "4", "5", "6", LV_SYMBOL_OK, "\n",
+    "7", "8", "9", LV_SYMBOL_BACKSPACE, "\n",
+    "+/-", "0", ".", LV_SYMBOL_LEFT, LV_SYMBOL_RIGHT, ""
+};
+
+static const lv_buttonmatrix_ctrl_t kb_ctrl_num_improved[] = {
+    LV_KB_BTN(1), LV_KB_BTN(1), LV_KB_BTN(1),
+    static_cast<lv_buttonmatrix_ctrl_t>(LV_KEYBOARD_CTRL_BUTTON_FLAGS | 2),
+    LV_KB_BTN(1), LV_KB_BTN(1), LV_KB_BTN(1),
+    static_cast<lv_buttonmatrix_ctrl_t>(LV_KEYBOARD_CTRL_BUTTON_FLAGS | 2),
+    LV_KB_BTN(1), LV_KB_BTN(1), LV_KB_BTN(1),
+    static_cast<lv_buttonmatrix_ctrl_t>(2),
+    LV_KB_BTN(1), LV_KB_BTN(1), LV_KB_BTN(1),
+    static_cast<lv_buttonmatrix_ctrl_t>(LV_BUTTONMATRIX_CTRL_CHECKED | 1),
+    static_cast<lv_buttonmatrix_ctrl_t>(LV_BUTTONMATRIX_CTRL_CHECKED | 1)
+};
 
 /**
- * @brief Textarea focus event callback - handles auto show/hide
+ * @brief Textarea focus event callback - handles auto show/hide with context-aware behavior
  */
 static void textarea_focus_event_cb(lv_event_t* e)
 {
@@ -34,10 +134,36 @@ static void textarea_focus_event_cb(lv_event_t* e)
 
     if (code == LV_EVENT_FOCUSED) {
         spdlog::debug("[Keyboard] Textarea focused: {}", (void*)textarea);
+
+        // Check if this is a password field (stored in user_data by register_textarea_ex)
+        bool is_password = (lv_obj_get_user_data(textarea) == (void*)1);
+
+        if (is_password && !g_number_row_user_preference) {
+            // Temporarily enable number row for password fields (even if user disabled it)
+            spdlog::debug("[Keyboard] Auto-enabling number row for password field");
+            g_number_row_enabled = true;
+            lv_keyboard_set_map(g_keyboard, LV_KEYBOARD_MODE_TEXT_LOWER,
+                               kb_map_lc_numrow, kb_ctrl_lc_numrow);
+            lv_keyboard_set_map(g_keyboard, LV_KEYBOARD_MODE_TEXT_UPPER,
+                               kb_map_uc_numrow, kb_ctrl_uc_numrow);
+        }
+
+        g_context_textarea = textarea;
         ui_keyboard_show(textarea);
     }
     else if (code == LV_EVENT_DEFOCUSED) {
         spdlog::debug("[Keyboard] Textarea defocused: {}", (void*)textarea);
+
+        // Restore user preference when leaving password field
+        bool was_password = (lv_obj_get_user_data(textarea) == (void*)1);
+        if (was_password && !g_number_row_user_preference && g_number_row_enabled) {
+            spdlog::debug("[Keyboard] Restoring number row to user preference");
+            g_number_row_enabled = g_number_row_user_preference;
+            lv_keyboard_set_map(g_keyboard, LV_KEYBOARD_MODE_TEXT_LOWER, NULL, NULL);
+            lv_keyboard_set_map(g_keyboard, LV_KEYBOARD_MODE_TEXT_UPPER, NULL, NULL);
+        }
+
+        g_context_textarea = NULL;
         ui_keyboard_hide();
     }
 }
@@ -76,6 +202,25 @@ void ui_keyboard_init(lv_obj_t* parent)
 
     // Enable pop-overs (iOS/Android-style key feedback)
     lv_keyboard_set_popovers(g_keyboard, true);
+
+    // Apply improved numeric keyboard layout (adds period key for IPs/decimals)
+    lv_keyboard_set_map(g_keyboard, LV_KEYBOARD_MODE_NUMBER,
+                       kb_map_num_improved, kb_ctrl_num_improved);
+
+    // Load number row preference from config (defaults to true)
+    Config* config = Config::get_instance();
+    g_number_row_user_preference = config->get("/keyboard_number_row", true);
+    g_number_row_enabled = g_number_row_user_preference;
+
+    if (g_number_row_enabled) {
+        lv_keyboard_set_map(g_keyboard, LV_KEYBOARD_MODE_TEXT_LOWER,
+                           kb_map_lc_numrow, kb_ctrl_lc_numrow);
+        lv_keyboard_set_map(g_keyboard, LV_KEYBOARD_MODE_TEXT_UPPER,
+                           kb_map_uc_numrow, kb_ctrl_uc_numrow);
+        spdlog::info("[Keyboard] Number row enabled (from config)");
+    } else {
+        spdlog::info("[Keyboard] Number row disabled (from config)");
+    }
 
     // Apply styling - theme handles colors, set opacity for transparency
     lv_obj_set_style_bg_opa(g_keyboard, LV_OPA_80, LV_PART_MAIN);  // 80% opacity = 20% transparent
@@ -289,4 +434,73 @@ void ui_keyboard_set_position(lv_align_t align, int32_t x_ofs, int32_t y_ofs)
     spdlog::debug("[Keyboard] Setting position: align={}, x={}, y={}",
                   (int)align, x_ofs, y_ofs);
     lv_obj_align(g_keyboard, align, x_ofs, y_ofs);
+}
+
+void ui_keyboard_set_number_row(bool enable)
+{
+    if (g_keyboard == NULL) {
+        spdlog::error("[Keyboard] Not initialized - call ui_keyboard_init() first");
+        return;
+    }
+
+    if (g_number_row_enabled == enable) {
+        return;  // No change needed
+    }
+
+    g_number_row_enabled = enable;
+    g_number_row_user_preference = enable;  // Update user preference
+    spdlog::info("[Keyboard] Number row {} (user preference)", enable ? "enabled" : "disabled");
+
+    // Apply custom layouts for text modes with number row
+    if (enable) {
+        // Set custom maps with number row for text modes
+        lv_keyboard_set_map(g_keyboard, LV_KEYBOARD_MODE_TEXT_LOWER,
+                           kb_map_lc_numrow, kb_ctrl_lc_numrow);
+        lv_keyboard_set_map(g_keyboard, LV_KEYBOARD_MODE_TEXT_UPPER,
+                           kb_map_uc_numrow, kb_ctrl_uc_numrow);
+    } else {
+        // Restore default LVGL layouts (pass NULL to reset)
+        lv_keyboard_set_map(g_keyboard, LV_KEYBOARD_MODE_TEXT_LOWER, NULL, NULL);
+        lv_keyboard_set_map(g_keyboard, LV_KEYBOARD_MODE_TEXT_UPPER, NULL, NULL);
+    }
+
+    // Always apply improved numeric keyboard (with period key)
+    lv_keyboard_set_map(g_keyboard, LV_KEYBOARD_MODE_NUMBER,
+                       kb_map_num_improved, kb_ctrl_num_improved);
+
+    // Save preference to config
+    Config* config = Config::get_instance();
+    config->set("/keyboard_number_row", enable);
+    config->save();
+
+    // Refresh display if currently visible
+    lv_keyboard_mode_t current_mode = lv_keyboard_get_mode(g_keyboard);
+    lv_keyboard_set_mode(g_keyboard, current_mode);
+}
+
+bool ui_keyboard_get_number_row()
+{
+    return g_number_row_enabled;
+}
+
+void ui_keyboard_register_textarea_ex(lv_obj_t* textarea, bool is_password)
+{
+    if (g_keyboard == NULL) {
+        spdlog::error("[Keyboard] Not initialized - call ui_keyboard_init() first");
+        return;
+    }
+
+    if (textarea == NULL) {
+        spdlog::error("[Keyboard] Cannot register NULL textarea");
+        return;
+    }
+
+    spdlog::debug("[Keyboard] Registering textarea: {} (password: {})",
+                  (void*)textarea, is_password);
+
+    // Store password flag in user data (lv_obj doesn't have built-in password type tracking)
+    lv_obj_set_user_data(textarea, is_password ? (void*)1 : (void*)0);
+
+    // Use standard registration which adds focus/defocus handlers
+    ui_keyboard_register_textarea(textarea);
 }

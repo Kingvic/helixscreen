@@ -334,8 +334,16 @@ void ui_modal_register_keyboard(lv_obj_t* modal, lv_obj_t* textarea)
     // Position keyboard for this modal
     position_keyboard_for_modal(modal);
 
-    // Register textarea with keyboard system
-    ui_keyboard_register_textarea(textarea);
+    // Check if this is a password textarea (via LVGL's password_mode property)
+    bool is_password = lv_textarea_get_password_mode(textarea);
+
+    // Register textarea with context-aware keyboard (auto-enables number row for passwords)
+    if (is_password) {
+        ui_keyboard_register_textarea_ex(textarea, true);
+        spdlog::debug("[Modal] Registered PASSWORD textarea with keyboard");
+    } else {
+        ui_keyboard_register_textarea(textarea);
+    }
 
     spdlog::debug("[Modal] Keyboard registered for modal: {}, textarea: {}",
                   (void*)modal, (void*)textarea);

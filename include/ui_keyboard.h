@@ -98,3 +98,32 @@ void ui_keyboard_set_mode(lv_keyboard_mode_t mode);
  * @param y_ofs Y offset from alignment point
  */
 void ui_keyboard_set_position(lv_align_t align, int32_t x_ofs, int32_t y_ofs);
+
+/**
+ * @brief Enable/disable number row on text keyboards
+ *
+ * When enabled, adds a top row with numbers 1-0 to text keyboards (like Android).
+ * This slightly reduces key height but provides quick access to numbers without
+ * switching modes. Setting is persisted to helixconfig.json.
+ *
+ * @param enable true to show number row, false for standard layout
+ */
+void ui_keyboard_set_number_row(bool enable);
+
+/**
+ * @brief Get current number row state
+ *
+ * @return true if number row is enabled, false otherwise
+ */
+bool ui_keyboard_get_number_row();
+
+/**
+ * @brief Register textarea with context-aware keyboard behavior
+ *
+ * Enhanced version of ui_keyboard_register_textarea() that automatically
+ * enables number row for password fields and numeric-heavy inputs.
+ *
+ * @param textarea The textarea widget to register
+ * @param is_password true if this is a password field (auto-enable number row)
+ */
+void ui_keyboard_register_textarea_ex(lv_obj_t* textarea, bool is_password);
