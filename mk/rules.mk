@@ -27,8 +27,8 @@ $(TARGET): $(SDL2_LIB) $(LIBHV_LIB) $(APP_C_OBJS) $(APP_OBJS) $(OBJCPP_OBJS) $(L
 # Collect all header dependencies
 HEADERS := $(shell find $(INC_DIR) -name "*.h" 2>/dev/null)
 
-# Compile app C sources (depend on headers)
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c $(HEADERS)
+# Compile app C sources (depend on headers and libhv for hv/json.hpp)
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c $(HEADERS) $(LIBHV_LIB)
 	$(Q)mkdir -p $(dir $@)
 	$(ECHO) "$(BLUE)[CC]$(RESET) $<"
 ifeq ($(V),1)
@@ -40,8 +40,8 @@ endif
 		exit 1; \
 	}
 
-# Compile app C++ sources (depend on headers)
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(HEADERS)
+# Compile app C++ sources (depend on headers and libhv for hv/json.hpp)
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(HEADERS) $(LIBHV_LIB)
 	$(Q)mkdir -p $(dir $@)
 	$(ECHO) "$(BLUE)[CXX]$(RESET) $<"
 ifeq ($(V),1)
@@ -53,8 +53,8 @@ endif
 		exit 1; \
 	}
 
-# Compile app Objective-C++ sources (macOS .mm files, depend on headers)
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.mm $(HEADERS)
+# Compile app Objective-C++ sources (macOS .mm files, depend on headers and libhv for hv/json.hpp)
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.mm $(HEADERS) $(LIBHV_LIB)
 	$(Q)mkdir -p $(dir $@)
 	$(ECHO) "$(BLUE)[OBJCXX]$(RESET) $<"
 ifeq ($(V),1)
