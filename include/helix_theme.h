@@ -43,6 +43,7 @@ extern "C" {
  * @param display LVGL display to apply theme to
  * @param primary_color Primary theme color (from globals.xml)
  * @param secondary_color Secondary theme color (from globals.xml)
+ * @param text_primary_color Primary text color for buttons/labels (theme-aware)
  * @param is_dark Dark mode flag (true = dark mode)
  * @param base_font Base font for theme
  * @param screen_bg Screen background color (from globals.xml variant)
@@ -66,6 +67,7 @@ lv_theme_t* helix_theme_init(
     lv_display_t* display,
     lv_color_t primary_color,
     lv_color_t secondary_color,
+    lv_color_t text_primary_color,
     bool is_dark,
     const lv_font_t* base_font,
     lv_color_t screen_bg,

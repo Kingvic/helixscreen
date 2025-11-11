@@ -112,6 +112,10 @@
                             height="#button_height">
                         <text_body text="Test Connection"
                                    align="center"/>
+                        <!-- Disable button while connection test is in progress -->
+                        <lv_obj-bind_state_if_eq subject="connection_testing" state="disabled" ref_value="1"/>
+                        <!-- Remove clickable flag when connection test is in progress -->
+                        <lv_obj-bind_flag_if_eq subject="connection_testing" flag="clickable" ref_value="0"/>
                     </lv_button>
 
                     <!-- Connection Status (icon + text) -->

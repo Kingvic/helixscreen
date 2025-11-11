@@ -130,6 +130,7 @@ lv_theme_t* helix_theme_init(
     lv_display_t* display,
     lv_color_t primary_color,
     lv_color_t secondary_color,
+    lv_color_t text_primary_color,
     bool is_dark,
     const lv_font_t* base_font,
     lv_color_t screen_bg,
@@ -199,12 +200,13 @@ lv_theme_t* helix_theme_init(
     lv_style_init(&helix_theme_instance->pressed_style);
     lv_style_set_radius(&helix_theme_instance->pressed_style, border_radius);
 
-    // Initialize default button style (grey background with border radius, no shadow)
+    // Initialize default button style (grey background with border radius, no shadow, theme-aware text color)
     lv_style_init(&helix_theme_instance->button_style);
     lv_style_set_bg_color(&helix_theme_instance->button_style, theme_grey);
     lv_style_set_bg_opa(&helix_theme_instance->button_style, LV_OPA_COVER);
     lv_style_set_radius(&helix_theme_instance->button_style, border_radius);
     lv_style_set_shadow_width(&helix_theme_instance->button_style, 0);
+    lv_style_set_text_color(&helix_theme_instance->button_style, text_primary_color);
 
     // CRITICAL: Now we need to patch the default theme's color fields
     // This is necessary because LVGL's default theme bakes colors into pre-computed
