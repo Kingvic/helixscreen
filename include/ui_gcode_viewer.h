@@ -51,7 +51,7 @@ typedef enum {
     GCODE_VIEWER_STATE_LOADING,    ///< File is being parsed
     GCODE_VIEWER_STATE_LOADED,     ///< File loaded and ready to render
     GCODE_VIEWER_STATE_ERROR       ///< Error during loading
-} gcode_viewer_state_t;
+} gcode_viewer_state_enum_t;
 
 /**
  * @brief Camera preset views
@@ -108,7 +108,7 @@ void ui_gcode_viewer_clear(lv_obj_t* obj);
  * @param obj Viewer widget
  * @return Current state
  */
-gcode_viewer_state_t ui_gcode_viewer_get_state(lv_obj_t* obj);
+gcode_viewer_state_enum_t ui_gcode_viewer_get_state(lv_obj_t* obj);
 
 // ==============================================
 // Camera Controls

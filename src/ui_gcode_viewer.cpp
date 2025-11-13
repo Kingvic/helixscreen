@@ -25,7 +25,7 @@
 struct gcode_viewer_state_t {
     // G-code data
     std::unique_ptr<gcode::ParsedGCodeFile> gcode_file;
-    gcode_viewer_state_t state{GCODE_VIEWER_STATE_EMPTY};
+    gcode_viewer_state_enum_t viewer_state{GCODE_VIEWER_STATE_EMPTY};
 
     // Rendering components
     std::unique_ptr<gcode::GCodeCamera> camera;
@@ -65,7 +65,7 @@ static void gcode_viewer_draw_cb(lv_event_t* e) {
     }
 
     // If no G-code loaded, draw placeholder message
-    if (st->state != GCODE_VIEWER_STATE_LOADED || !st->gcode_file) {
+    if (st->viewer_state != GCODE_VIEWER_STATE_LOADED || !st->gcode_file) {
         // TODO: Draw "No G-code loaded" message
         return;
     }
@@ -213,14 +213,14 @@ void ui_gcode_viewer_load_file(lv_obj_t* obj, const char* file_path) {
     if (!st || !file_path) return;
 
     spdlog::info("GCodeViewer: Loading file: {}", file_path);
-    st->state = GCODE_VIEWER_STATE_LOADING;
+    st->viewer_state = GCODE_VIEWER_STATE_LOADING;
 
     // Parse file (synchronous in Phase 1)
     try {
         std::ifstream file(file_path);
         if (!file.is_open()) {
             spdlog::error("GCodeViewer: Failed to open file: {}", file_path);
-            st->state = GCODE_VIEWER_STATE_ERROR;
+            st->viewer_state = GCODE_VIEWER_STATE_ERROR;
             return;
         }
 
@@ -250,7 +250,7 @@ void ui_gcode_viewer_load_file(lv_obj_t* obj, const char* file_path) {
         st->camera->fit_to_bounds(st->gcode_file->global_bounding_box);
         st->camera->set_isometric_view();
 
-        st->state = GCODE_VIEWER_STATE_LOADED;
+        st->viewer_state = GCODE_VIEWER_STATE_LOADED;
 
         spdlog::info("GCodeViewer: Loaded {} layers, {} segments, {} objects",
                     st->gcode_file->layers.size(),
@@ -262,7 +262,7 @@ void ui_gcode_viewer_load_file(lv_obj_t* obj, const char* file_path) {
 
     } catch (const std::exception& ex) {
         spdlog::error("GCodeViewer: Exception during parsing: {}", ex.what());
-        st->state = GCODE_VIEWER_STATE_ERROR;
+        st->viewer_state = GCODE_VIEWER_STATE_ERROR;
         st->gcode_file.reset();
     }
 }
@@ -278,7 +278,7 @@ void ui_gcode_viewer_set_gcode_data(lv_obj_t* obj, void* gcode_data) {
     st->camera->fit_to_bounds(st->gcode_file->global_bounding_box);
     st->camera->set_isometric_view();
 
-    st->state = GCODE_VIEWER_STATE_LOADED;
+    st->viewer_state = GCODE_VIEWER_STATE_LOADED;
 
     spdlog::info("GCodeViewer: Set G-code data: {} layers, {} segments",
                 st->gcode_file->layers.size(),
@@ -293,15 +293,15 @@ void ui_gcode_viewer_clear(lv_obj_t* obj) {
     if (!st) return;
 
     st->gcode_file.reset();
-    st->state = GCODE_VIEWER_STATE_EMPTY;
+    st->viewer_state = GCODE_VIEWER_STATE_EMPTY;
 
     lv_obj_invalidate(obj);
     spdlog::debug("GCodeViewer: Cleared");
 }
 
-gcode_viewer_state_t ui_gcode_viewer_get_state(lv_obj_t* obj) {
+gcode_viewer_state_enum_t ui_gcode_viewer_get_state(lv_obj_t* obj) {
     gcode_viewer_state_t* st = get_state(obj);
-    return st ? st->state : GCODE_VIEWER_STATE_EMPTY;
+    return st ? st->viewer_state : GCODE_VIEWER_STATE_EMPTY;
 }
 
 // ==============================================
