@@ -1,7 +1,7 @@
 # Session Handoff Document
 
 **Last Updated:** 2025-11-13
-**Current Focus:** G-code 3D visualization system - Phase 1 (MVP parser & renderer)
+**Current Focus:** G-code 3D visualization - Phase 1 Complete ✅
 
 ---
 
@@ -84,48 +84,69 @@
 
 ## 🚀 NEXT PRIORITIES
 
-### 1. **G-Code 3D Visualization System - Phase 1 (MVP)** ⭐ NEW
+### 1. **G-Code 3D Visualization System - Phase 1** ✅ COMPLETE
 **Goal:** Display static 3D preview of G-code files
-**Documentation:** See `docs/GCODE_VISUALIZATION.md` for complete design
+**Documentation:** See `docs/GCODE_VISUALIZATION.md` for complete design and integration guide
 
-**Tasks:**
+**Completed Tasks:**
 - [x] Implement `GCodeParser` (streaming parser)
   - [x] Parse G0/G1 movement commands (X, Y, Z, E coordinates)
   - [x] Detect layer boundaries (Z-axis changes)
   - [x] Build layer-indexed data structure
-  - [x] Write unit tests with sample G-code files
+  - [x] Parse EXCLUDE_OBJECT metadata
+  - [x] Write 14 comprehensive unit tests
 - [x] Implement `GCodeRenderer` (3D-to-2D projection)
-  - [x] Orthographic projection matrix math
-  - [x] Line drawing via LVGL canvas
-  - [x] Color coding (blue=extrusion, gray=travel)
+  - [x] Orthographic projection matrix math (GLM)
+  - [x] Line drawing via LVGL 9.4 canvas API
+  - [x] Theme-integrated color coding (primary=extrusion, secondary_light=travel)
   - [x] Basic frustum culling for performance
 - [x] Implement `GCodeCamera` (view management)
-  - [x] Fixed isometric view (no interaction yet)
+  - [x] Spherical coordinate camera (azimuth/elevation)
+  - [x] Interactive rotation via touch drag gesture
+  - [x] Preset views (Isometric, Top, Front, Side)
   - [x] View and projection matrices (GLM)
   - [x] Fit-to-bounds auto-framing
-- [ ] Create `ui_gcode_viewer` widget ⏳ IN PROGRESS
-  - [ ] Custom LVGL widget with canvas
-  - [ ] Custom draw event callback
-  - [ ] Integration with renderer
-  - [ ] Reference pattern: `src/ui_jog_pad.cpp:220-350`
-- [ ] Integration with print select panel
-  - [ ] Add "Preview" button to print select UI
-  - [ ] Fetch G-code file from Moonraker HTTP API
-  - [ ] Parse and render in full-screen overlay
-  - [ ] Test with small/medium/large files
+- [x] Create `ui_gcode_viewer` custom LVGL widget
+  - [x] Custom LVGL widget with draw event callback
+  - [x] XML component registration for declarative use
+  - [x] Touch gesture support (drag to rotate)
+  - [x] State management (EMPTY/LOADING/LOADED/ERROR)
+  - [x] C API for programmatic control
+- [x] Integration & Testing
+  - [x] Test panel with full-screen viewer (`-p gcode-test`)
+  - [x] View control buttons (Iso/Top/Front/Side/Reset)
+  - [x] Sample G-code file (20mm calibration cube)
+  - [x] Real-time statistics display
+  - [x] Integration documentation in GCODE_VISUALIZATION.md
 
-**Progress:** Core infrastructure complete (Parser, Camera, Renderer). Now implementing LVGL widget integration.
+**Build System:**
+- [x] Added GLM library (header-only, via git submodule)
+- [x] Fixed LVGL 9.4 API compatibility (XML paths, lv_draw_line, lv_xml_get_const)
+- [x] Command-line flag: `-p gcode-test`
 
-**Success Criteria:**
-- Display G-code files in 3D wireframe view
-- Blue lines for extrusion moves, gray for travel moves
-- Entire model visible and properly framed in viewport
-- Performance: 30 FPS on desktop, 10+ FPS on embedded target
+**Files Created:**
+- `include/gcode_{parser,camera,renderer}.h` + `src/*.cpp` (core components)
+- `include/ui_gcode_viewer.h` + `src/ui_gcode_viewer.cpp` (LVGL widget)
+- `include/ui_panel_gcode_test.h` + `src/ui_panel_gcode_test.cpp` (test panel)
+- `ui_xml/gcode_test_panel.xml` (panel layout)
+- `assets/test.gcode` (sample file)
+- `tests/unit/test_gcode_parser.cpp` (14 unit tests)
 
-**Use Cases:**
-- Alternative to slicer-embedded thumbnails
-- Print progress monitoring (future)
-- Klipper object exclusion selection (future)
+**Usage:**
+```bash
+# Run test panel:
+./build/bin/helix-ui-proto -p gcode-test
+
+# Embed in XML:
+<gcode_viewer name="my_viewer" width="100%" height="400"/>
+
+# C++ API:
+lv_obj_t* viewer = ui_gcode_viewer_create(parent);
+ui_gcode_viewer_load_file(viewer, "/path/to/file.gcode");
+ui_gcode_viewer_set_view(viewer, GCODE_VIEW_ISOMETRIC);
+```
+
+**Next Phase:** Integration with print select panel (add "Preview" button, fetch via Moonraker HTTP)
 
 ---
 

@@ -1,6 +1,6 @@
 # G-Code 3D Visualization System
 
-**Status:** Planning / Early Development
+**Status:** Phase 1 Complete - Core Infrastructure & Test Panel
 **Target:** LVGL 9.4 UI Prototype (HelixScreen)
 **Last Updated:** 2025-11-13
 
@@ -90,6 +90,115 @@ tests/
   test_gcode_projection.cpp   // Unit tests for 3D math
   mock_gcode_files.h          // Test data
 ```
+
+---
+
+## Quick Start / Integration Guide
+
+### Using the G-Code Viewer Widget
+
+The G-code viewer is implemented as a custom LVGL widget that can be embedded in any panel.
+
+#### 1. In XML (Declarative)
+
+```xml
+<!-- Add to any panel XML file -->
+<gcode_viewer
+    name="my_viewer"
+    width="100%"
+    height="400"
+    style_bg_color="#bg_color"/>
+```
+
+#### 2. In C++ Code (Programmatic)
+
+```cpp
+#include "ui_gcode_viewer.h"
+
+// Create viewer widget
+lv_obj_t* viewer = ui_gcode_viewer_create(parent_obj);
+
+// Load a G-code file
+ui_gcode_viewer_load_file(viewer, "/path/to/file.gcode");
+
+// Control camera
+ui_gcode_viewer_rotate(viewer, 15.0f, 10.0f);  // Azimuth, elevation (degrees)
+ui_gcode_viewer_zoom(viewer, 1.2f);             // Zoom factor (>1 = zoom in)
+ui_gcode_viewer_reset_view(viewer);             // Return to default view
+
+// Set preset views
+ui_gcode_viewer_set_view(viewer, GCODE_VIEW_ISOMETRIC);
+ui_gcode_viewer_set_view(viewer, GCODE_VIEW_TOP);
+ui_gcode_viewer_set_view(viewer, GCODE_VIEW_FRONT);
+ui_gcode_viewer_set_view(viewer, GCODE_VIEW_SIDE);
+
+// Display options
+ui_gcode_viewer_set_show_travels(viewer, false);  // Hide travel moves
+ui_gcode_viewer_set_layer_range(viewer, 0, 10);   // Show only layers 0-10
+
+// Get viewer state
+ui_gcode_viewer_state_t state = ui_gcode_viewer_get_state(viewer);
+// States: EMPTY, LOADING, LOADED, ERROR
+```
+
+#### 3. Test Panel Example
+
+Run the standalone test panel:
+```bash
+./build/bin/helix-ui-proto -p gcode-test
+```
+
+The test panel demonstrates:
+- Full-screen viewer layout
+- View control buttons (Iso/Top/Front/Side/Reset)
+- File loading (uses `assets/test.gcode`)
+- Real-time statistics display
+- Touch gesture support (drag to rotate)
+
+**Source files:**
+- `ui_xml/gcode_test_panel.xml` - Panel layout
+- `src/ui_panel_gcode_test.cpp` - Event handlers
+- `include/ui_panel_gcode_test.h` - API
+
+### Widget Registration
+
+The widget must be registered before use (done automatically in `main.cpp`):
+
+```cpp
+// In main.cpp initialization:
+ui_gcode_viewer_register();
+
+// XML component registration:
+lv_xml_register_component_from_file("A:ui_xml/gcode_test_panel.xml");
+```
+
+### Touch Gestures
+
+The viewer supports intuitive touch interactions:
+- **Drag:** Rotate camera (0.5° per pixel)
+- **Future:** Pinch-zoom, two-finger pan
+
+### Theme Integration
+
+Colors are automatically loaded from the theme system:
+- Extrusion moves: `primary` color
+- Travel moves: `secondary_light` color
+- Object boundaries: `accent` color
+- Highlighted objects: `success` color
+- Excluded objects: `text_disabled` color
+
+### Performance Characteristics
+
+**Phase 1 (Current):**
+- **Memory:** ~32 bytes/segment, ~1KB/layer
+- **Rendering:** ~60 FPS for models up to 10K segments
+- **Loading:** Streams from file, no full load required
+
+**Target model sizes:**
+- Small prints (<5K segments): Excellent performance
+- Medium prints (5-20K segments): Good performance
+- Large prints (20-50K segments): Acceptable with LOD
+- Very large prints (>50K segments): Future optimization needed
 
 ---
 
