@@ -1,7 +1,7 @@
 # Session Handoff Document
 
-**Last Updated:** 2025-11-12
-**Current Focus:** Wizard printer identification complete, hardware selection working
+**Last Updated:** 2025-11-13
+**Current Focus:** G-code 3D visualization system - Phase 1 (MVP parser & renderer)
 
 ---
 
@@ -84,13 +84,56 @@
 
 ## 🚀 NEXT PRIORITIES
 
-### 1. Implement Wizard Summary Screen (Step 8)
+### 1. **G-Code 3D Visualization System - Phase 1 (MVP)** ⭐ NEW
+**Goal:** Display static 3D preview of G-code files
+**Documentation:** See `docs/GCODE_VISUALIZATION.md` for complete design
+
+**Tasks:**
+- [ ] Implement `GCodeParser` (streaming parser)
+  - [ ] Parse G0/G1 movement commands (X, Y, Z, E coordinates)
+  - [ ] Detect layer boundaries (Z-axis changes)
+  - [ ] Build layer-indexed data structure
+  - [ ] Write unit tests with sample G-code files
+- [ ] Implement `GCodeRenderer` (3D-to-2D projection)
+  - [ ] Orthographic projection matrix math
+  - [ ] Line drawing via LVGL canvas
+  - [ ] Color coding (blue=extrusion, gray=travel)
+  - [ ] Basic frustum culling for performance
+- [ ] Implement `GCodeCamera` (view management)
+  - [ ] Fixed isometric view (no interaction yet)
+  - [ ] View and projection matrices (GLM)
+  - [ ] Fit-to-bounds auto-framing
+- [ ] Create `ui_gcode_viewer` widget
+  - [ ] Custom LVGL widget with canvas
+  - [ ] Custom draw event callback
+  - [ ] Integration with renderer
+  - [ ] Reference pattern: `src/ui_jog_pad.cpp:220-350`
+- [ ] Integration with print select panel
+  - [ ] Add "Preview" button to print select UI
+  - [ ] Fetch G-code file from Moonraker HTTP API
+  - [ ] Parse and render in full-screen overlay
+  - [ ] Test with small/medium/large files
+
+**Success Criteria:**
+- Display G-code files in 3D wireframe view
+- Blue lines for extrusion moves, gray for travel moves
+- Entire model visible and properly framed in viewport
+- Performance: 30 FPS on desktop, 10+ FPS on embedded target
+
+**Use Cases:**
+- Alternative to slicer-embedded thumbnails
+- Print progress monitoring (future)
+- Klipper object exclusion selection (future)
+
+---
+
+### 2. Implement Wizard Summary Screen (Step 8)
 - Display all configured settings (WiFi, connection, printer, hardware)
 - "Start Using HelixScreen" button to exit wizard
 - Save `wizard_completed=true` flag to config
 - Show friendly confirmation message
 
-### 2. End-to-End Wizard Testing
+### 3. End-to-End Wizard Testing
 - Test complete wizard flow from start to finish
 - Verify config persistence across all steps
 - Test with real printer (no `--test` flag)
