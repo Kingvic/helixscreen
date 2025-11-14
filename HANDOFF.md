@@ -1,15 +1,47 @@
 # Session Handoff Document
 
-**Last Updated:** 2025-11-12
-**Current Focus:** Wizard printer identification complete, hardware selection working
+**Last Updated:** 2025-11-13
+**Current Focus:** Bed Mesh Phases 1-3 complete, ready for Phase 4 (Moonraker Integration)
 
 ---
 
 ## ✅ CURRENT STATE
 
-### Completed Phases
+### Recently Completed
 
-1. **WiFi Password Modal** - ✅ COMPLETE
+1. **Bed Mesh Phase 1: Settings Panel Infrastructure** - ✅ COMPLETE
+   - Created settings_panel.xml with 6-card launcher grid (Network, Display, Bed Mesh, Z-Offset, Printer Info, About)
+   - Implemented ui_panel_settings.h/cpp with card click handlers
+   - Fixed main.cpp to support `-p settings` command-line flag activation
+   - Added ui_nav_set_active() call for initial panel navigation
+   - Only "Bed Mesh" card is active (clickable), others are "Coming soon" placeholders
+
+2. **Bed Mesh Phase 2: Core 3D Rendering Engine** - ✅ COMPLETE
+   - Comprehensive analysis of GuppyScreen bed mesh renderer (2,250 lines) documented in docs/GUPPYSCREEN_BEDMESH_ANALYSIS.md
+   - Created bed_mesh_renderer.h/cpp (768 lines) - C API with C++ implementation
+   - Perspective projection with Euler angle rotation (X-axis tilt, Z-axis spin)
+   - Scanline triangle rasterization (solid + gradient modes)
+   - Painter's algorithm depth sorting (descending order by average quad depth)
+   - Heat-map color mapping (purple→blue→cyan→yellow→red, 0.8 compression factor)
+   - Fixed LVGL 9.4 API compatibility (lv_canvas_set_px only, no lv_canvas_draw_rect)
+   - 2.6MB compiled object file, zero warnings
+
+3. **Bed Mesh Phase 3: Visualization UI** - ✅ COMPLETE
+   - Created bed_mesh_panel.xml - full-screen overlay with canvas (600×400 RGB888)
+   - Interactive rotation sliders (X: -85° to -10° tilt, Z: 0° to 360° spin)
+   - Header bar with back button, title, mesh info label
+   - Implemented ui_panel_bed_mesh.h/cpp (364 lines)
+   - Canvas buffer: 720KB static allocation
+   - Event handlers for sliders update labels + trigger redraw
+   - Test mesh data: 10×10 dome shape (0.0-0.5mm Z range)
+   - Back button wired to ui_nav_go_back()
+   - Resource cleanup on panel deletion
+   - Settings → Bed Mesh card opens visualization panel
+   - Real-time canvas updates on rotation changes
+
+### Completed Earlier
+
+4. **WiFi Password Modal** - ✅ COMPLETE
    - Modal appears and functions correctly
    - Connect button disables immediately on click (50% opacity)
    - Fixed button radius morphing on press (disabled LV_THEME_DEFAULT_GROW in lv_conf.h)
@@ -35,66 +67,73 @@
    - Wizard triggers `discover_printer()` after successful connection
    - Connection stays alive for hardware selection steps 4-7
 
-5. **Phase 2: Dynamic Dropdown Population** - ✅ COMPLETE
-   - All 4 wizard hardware screens use dynamic dropdowns from MoonrakerClient
+5. **Wizard Implementation** - ✅ COMPLETE
+   - All 8 wizard steps implemented (WiFi, Connection, Printer ID, Hardware Selection x4, Summary)
+   - Dynamic dropdown population from MoonrakerClient hardware discovery
    - Hardware filtering: bed (by "bed"), hotend (by "extruder"/"hotend"), fans (separated by type), LEDs (all)
-   - Fixed critical layout bug: `height="LV_SIZE_CONTENT"` → `flex_grow="1"`
-
-6. **Phase 2.5: Connection Screen Reactive UI** - ✅ SUBSTANTIALLY COMPLETE
    - Reactive Next button control via connection_test_passed subject
-   - Split connection_status into icon (checkmark/xmark) and text subjects
    - Virtual keyboard integration with auto-show on textarea focus
-   - Config prefilling for IP/port from previous sessions
-   - Disabled button styling (50% opacity when connection_test_passed=0)
-
-7. **Phase 3: Mock Backend** - ✅ COMPLETE
-   - `MoonrakerClientMock` with 7 printer profiles, factory pattern in main.cpp
-
-8. **Printer Identification (Step 3)** - ✅ COMPLETE
-   - Printer name input with validation (max 32 chars, red border for "too long" errors)
-   - Printer type selection via roller (33 common printer types)
-   - Theme color system improvements: added `error_color` to globals.xml
-   - Fixed theme API usage: `ui_theme_get_color()` for all color lookups
-   - Config persistence for printer name and type
-   - Virtual keyboard integration with auto-show on focus
-
-9. **Wizard Screen Lifecycle** - ✅ FIXED
-   - Fixed double-free segfault in bed select screen (src/ui_wizard_bed_select.cpp:148-155)
-   - Wizard framework handles object deletion - create functions must NOT call `lv_obj_del()`
-   - Correct pattern: create() stores pointer, cleanup() only nulls pointer
+   - Config persistence for all wizard fields
+   - Theme color system: added `error_color` to globals.xml
+   - Fixed double-free segfault in bed select screen cleanup
+   - MoonrakerClientMock with 7 printer profiles for testing
 
 ### What Works Now
 
-- ✅ Wizard WiFi setup (step 1) with network list, password modal, connection
-- ✅ Wizard connection screen (step 2) with reactive Next button control
-- ✅ Wizard printer identification (step 3) with name input and type selection
-- ✅ Wizard hardware selection (steps 4-7) dynamically populated from discovered hardware
+- ✅ Complete wizard flow (WiFi → Connection → Printer ID → Hardware Selection → Summary)
 - ✅ Virtual keyboard with screen slide animation and auto-show on focus
 - ✅ Mock backend testing (`--test` flag)
 - ✅ Config persistence for all wizard fields
 - ✅ Theme system with semantic color constants (error_color, primary_color, etc.)
+- ✅ Settings panel with 6-card launcher grid
+- ✅ Bed mesh 3D visualization with interactive rotation controls
+- ✅ Test mesh rendering (10×10 dome shape with heat-map colors)
 
-### What Needs Work
+### What Needs Work - Phase 4: Moonraker Integration
 
-- ❌ Wizard summary screen (step 8) needs implementation
-- ❌ Real printer testing with full wizard flow (only tested individual steps)
-- ❌ Printer auto-detection via mDNS (future enhancement)
+- ❌ Fetch actual bed mesh data from Moonraker API
+- ❌ Display mesh data from printer state (bed_mesh object)
+- ❌ Handle multiple mesh profiles (default, adaptive, calibration)
+- ❌ Support mesh profile switching in UI
+- ❌ Real-time mesh updates when printer performs BED_MESH_CALIBRATE
+- ❌ Display mesh metadata (min/max Z, probe count, mesh variance)
 
 ---
 
 ## 🚀 NEXT PRIORITIES
 
-### 1. Implement Wizard Summary Screen (Step 8)
-- Display all configured settings (WiFi, connection, printer, hardware)
-- "Start Using HelixScreen" button to exit wizard
-- Save `wizard_completed=true` flag to config
-- Show friendly confirmation message
+### 1. Phase 4: Moonraker Bed Mesh Integration
+**Goal:** Replace test mesh data with real bed mesh from Moonraker API
 
-### 2. End-to-End Wizard Testing
-- Test complete wizard flow from start to finish
-- Verify config persistence across all steps
-- Test with real printer (no `--test` flag)
-- Verify navigation (back/next) works reliably
+**Tasks:**
+1. **Moonraker API Integration**
+   - Add bed mesh subscription to MoonrakerClient
+   - Implement `get_bed_mesh()` API to fetch mesh data
+   - Parse mesh structure: `probed_matrix`, `mesh_min`, `mesh_max`, `profiles`
+
+2. **Reactive Data Flow**
+   - Create bed mesh subjects for reactive updates
+   - Wire subjects to mesh data changes from printer
+   - Handle mesh profile changes (default, adaptive, etc.)
+
+3. **UI Updates**
+   - Add profile selector dropdown to bed_mesh_panel.xml
+   - Display mesh metadata (min/max Z, probe count, variance)
+   - Show "No mesh data" placeholder when mesh not available
+   - Update mesh info label with real dimensions and range
+
+4. **Testing**
+   - Test with real printer running BED_MESH_CALIBRATE
+   - Verify mesh updates in real-time during calibration
+   - Test profile switching
+   - Test mock backend with synthetic mesh data
+
+**Reference:** See docs/GUPPYSCREEN_BEDMESH_ANALYSIS.md for Moonraker API patterns
+
+### 2. Keyboard Panel Integration (Nice-to-Have)
+- Complete keyboard panel implementation started in recent commits
+- Add keyboard panel to main navigation
+- Test iOS-style keyboard with long-press alternatives
 
 ---
 
@@ -258,6 +297,11 @@ Fixed 8px radius on buttons appears to morph when `LV_THEME_DEFAULT_GROW=1` caus
 
 ---
 
-**Reference:** See `docs/MOONRAKER_HARDWARE_DISCOVERY_PLAN.md` for implementation plan
+## 📚 Key Documentation
 
-**Next Session:** Polish wizard connection screen (step 2), then implement printer identification (step 3)
+- **Bed Mesh Analysis:** `docs/GUPPYSCREEN_BEDMESH_ANALYSIS.md` - Complete GuppyScreen renderer analysis (829 lines)
+- **Implementation Patterns:** `docs/BEDMESH_IMPLEMENTATION_PATTERNS.md` - Copy-paste code templates (515 lines)
+- **Renderer Index:** `docs/BEDMESH_RENDERER_INDEX.md` - API reference for bed_mesh_renderer.h/cpp
+- **Moonraker Integration:** Use `moonraker` skill for WebSocket/API work
+
+**Next Session:** Implement Phase 4 (Moonraker Integration) - fetch real bed mesh data from printer
