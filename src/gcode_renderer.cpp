@@ -310,9 +310,7 @@ lv_draw_line_dsc_t GCodeRenderer::get_line_style(const ToolpathSegment& segment)
     }
 
     // Apply global opacity
-    dsc.opa = static_cast<lv_opa_t>(
-        std::clamp((base_opa * global_opacity_) / 255, 0, 255)
-    );
+    dsc.opa = static_cast<lv_opa_t>(std::clamp((base_opa * global_opacity_) / 255, 0, 255));
 
     return dsc;
 }

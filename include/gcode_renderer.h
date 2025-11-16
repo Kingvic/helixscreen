@@ -335,8 +335,8 @@ class GCodeRenderer {
     // Rendering control
     bool use_custom_extrusion_color_{false};
     bool use_custom_travel_color_{false};
-    lv_opa_t global_opacity_{LV_OPA_90};  // Default opacity for all segments
-    float brightness_factor_{1.0f};       // Brightness multiplier (0.5-2.0)
+    lv_opa_t global_opacity_{LV_OPA_90}; // Default opacity for all segments
+    float brightness_factor_{1.0f};      // Brightness multiplier (0.5-2.0)
 
     // Statistics (updated each frame)
     size_t segments_rendered_{0};
