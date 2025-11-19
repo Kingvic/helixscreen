@@ -13,16 +13,190 @@
 #include "ui_panel_gcode_test.h"
 
 #include "ui_gcode_viewer.h"
+#include "ui_theme.h"
 
 #include <spdlog/spdlog.h>
+#include <dirent.h>
+#include <vector>
+#include <string>
+#include <algorithm>
 
 // Panel state
 static lv_obj_t* panel_root = nullptr;
 static lv_obj_t* gcode_viewer = nullptr;
 static lv_obj_t* stats_label = nullptr;
+static lv_obj_t* file_picker_overlay = nullptr;
 
 // Path to default sample G-code file
 static const char* TEST_GCODE_PATH = "assets/OrcaCube AD5M.gcode";
+static const char* ASSETS_DIR = "assets";
+
+// Store available files
+static std::vector<std::string> gcode_files;
+
+// ==============================================
+// File Browser
+// ==============================================
+
+/**
+ * @brief Scan assets directory for .gcode files
+ */
+static void scan_gcode_files() {
+    gcode_files.clear();
+
+    DIR* dir = opendir(ASSETS_DIR);
+    if (!dir) {
+        spdlog::error("[GCodeTest] Failed to open assets directory");
+        return;
+    }
+
+    struct dirent* entry;
+    while ((entry = readdir(dir)) != nullptr) {
+        std::string filename = entry->d_name;
+
+        // Check if file ends with .gcode
+        if (filename.length() > 6 &&
+            filename.substr(filename.length() - 6) == ".gcode") {
+            std::string full_path = std::string(ASSETS_DIR) + "/" + filename;
+            gcode_files.push_back(full_path);
+            spdlog::debug("[GCodeTest] Found G-code file: {}", full_path);
+        }
+    }
+    closedir(dir);
+
+    // Sort files alphabetically
+    std::sort(gcode_files.begin(), gcode_files.end());
+
+    spdlog::info("[GCodeTest] Found {} G-code files", gcode_files.size());
+}
+
+/**
+ * @brief File list item click handler
+ */
+static void on_file_selected(lv_event_t* e) {
+    uint32_t index = (uint32_t)(uintptr_t)lv_event_get_user_data(e);
+
+    if (index >= gcode_files.size()) {
+        spdlog::error("[GCodeTest] Invalid file index: {}", index);
+        return;
+    }
+
+    const std::string& filepath = gcode_files[index];
+    spdlog::info("[GCodeTest] Loading selected file: {}", filepath);
+
+    // Load the file
+    if (gcode_viewer) {
+        ui_gcode_viewer_load_file(gcode_viewer, filepath.c_str());
+
+        // Update stats
+        int layer_count = ui_gcode_viewer_get_layer_count(gcode_viewer);
+        gcode_viewer_state_enum_t state = ui_gcode_viewer_get_state(gcode_viewer);
+
+        if (stats_label) {
+            if (state == GCODE_VIEWER_STATE_LOADED) {
+                char buf[256];
+                // Extract filename from path
+                size_t last_slash = filepath.find_last_of('/');
+                std::string filename = (last_slash != std::string::npos) ?
+                    filepath.substr(last_slash + 1) : filepath;
+
+                snprintf(buf, sizeof(buf), "%s | %d layers", filename.c_str(), layer_count);
+                lv_label_set_text(stats_label, buf);
+            } else if (state == GCODE_VIEWER_STATE_ERROR) {
+                lv_label_set_text(stats_label, "Error loading file");
+            }
+        }
+    }
+
+    // Close the file picker
+    if (file_picker_overlay) {
+        lv_obj_del(file_picker_overlay);
+        file_picker_overlay = nullptr;
+    }
+}
+
+/**
+ * @brief Close button handler for file picker
+ */
+static void on_file_picker_close(lv_event_t*) {
+    if (file_picker_overlay) {
+        lv_obj_del(file_picker_overlay);
+        file_picker_overlay = nullptr;
+    }
+}
+
+/**
+ * @brief Create and show file picker overlay
+ */
+static void show_file_picker() {
+    if (file_picker_overlay) {
+        // Already open
+        return;
+    }
+
+    // Scan for files
+    scan_gcode_files();
+
+    if (gcode_files.empty()) {
+        spdlog::warn("[GCodeTest] No G-code files found in assets directory");
+        return;
+    }
+
+    // Create full-screen overlay
+    file_picker_overlay = lv_obj_create(lv_screen_active());
+    lv_obj_set_size(file_picker_overlay, LV_PCT(100), LV_PCT(100));
+    lv_obj_set_style_bg_color(file_picker_overlay, lv_color_black(), 0);
+    lv_obj_set_style_bg_opa(file_picker_overlay, 200, 0);  // Semi-transparent
+    lv_obj_set_style_pad_all(file_picker_overlay, 40, 0);
+
+    // Create card for file list
+    lv_obj_t* card = lv_obj_create(file_picker_overlay);
+    lv_obj_set_size(card, LV_PCT(80), LV_PCT(80));
+    lv_obj_center(card);
+    lv_obj_set_flex_flow(card, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_style_pad_all(card, 16, 0);
+    lv_obj_set_style_pad_gap(card, 12, 0);
+
+    // Header
+    lv_obj_t* header = lv_label_create(card);
+    lv_label_set_text(header, "Select G-Code File");
+
+    // File list container
+    lv_obj_t* list_container = lv_obj_create(card);
+    lv_obj_set_width(list_container, LV_PCT(100));
+    lv_obj_set_flex_grow(list_container, 1);
+    lv_obj_set_flex_flow(list_container, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_style_pad_all(list_container, 8, 0);
+    lv_obj_set_style_pad_gap(list_container, 8, 0);
+    lv_obj_set_scroll_dir(list_container, LV_DIR_VER);
+
+    // Add file buttons
+    for (size_t i = 0; i < gcode_files.size(); i++) {
+        // Extract filename from path
+        size_t last_slash = gcode_files[i].find_last_of('/');
+        std::string filename = (last_slash != std::string::npos) ?
+            gcode_files[i].substr(last_slash + 1) : gcode_files[i];
+
+        lv_obj_t* btn = lv_button_create(list_container);
+        lv_obj_set_width(btn, LV_PCT(100));
+        lv_obj_set_height(btn, 50);
+        lv_obj_add_event_cb(btn, on_file_selected, LV_EVENT_CLICKED, (void*)(uintptr_t)i);
+
+        lv_obj_t* label = lv_label_create(btn);
+        lv_label_set_text(label, filename.c_str());
+        lv_obj_center(label);
+    }
+
+    // Close button
+    lv_obj_t* close_btn = lv_button_create(card);
+    lv_obj_set_width(close_btn, LV_PCT(100));
+    lv_obj_set_height(close_btn, 50);
+    lv_obj_add_event_cb(close_btn, on_file_picker_close, LV_EVENT_CLICKED, nullptr);
+
+    lv_obj_t* close_label = lv_label_create(close_btn);
+    lv_label_set_text(close_label, "Cancel");
+    lv_obj_center(close_label);
+}
 
 // ==============================================
 // Event Callbacks
@@ -54,39 +228,37 @@ static void on_view_preset_clicked(lv_event_t* e) {
 }
 
 /**
- * @brief Load test file button click handler
+ * @brief Zoom button click handler
  */
-static void on_load_test_file(lv_event_t* e) {
-    if (!gcode_viewer)
+static void on_zoom_clicked(lv_event_t* e) {
+    lv_obj_t* btn = lv_event_get_target_obj(e);
+    const char* name = lv_obj_get_name(btn);
+
+    if (!gcode_viewer || !name)
         return;
 
-    spdlog::info("[GCodeTest] Loading test file: {}", TEST_GCODE_PATH);
+    float zoom_step = 1.2f; // 20% zoom per click
 
-    // Load the test G-code file
-    ui_gcode_viewer_load_file(gcode_viewer, TEST_GCODE_PATH);
-
-    // Update stats after loading
-    // Note: This is synchronous in Phase 1, so state is immediately available
-    int layer_count = ui_gcode_viewer_get_layer_count(gcode_viewer);
-    gcode_viewer_state_enum_t state = ui_gcode_viewer_get_state(gcode_viewer);
-
-    if (stats_label) {
-        if (state == GCODE_VIEWER_STATE_LOADED) {
-            char buf[128];
-            snprintf(buf, sizeof(buf), "Loaded: %d layers | Drag to rotate", layer_count);
-            lv_label_set_text(stats_label, buf);
-        } else if (state == GCODE_VIEWER_STATE_ERROR) {
-            lv_label_set_text(stats_label, "Error loading file");
-        } else {
-            lv_label_set_text(stats_label, "Loading...");
-        }
+    if (strcmp(name, "btn_zoom_in") == 0) {
+        ui_gcode_viewer_zoom(gcode_viewer, zoom_step);
+        spdlog::debug("[GCodeTest] Zoom in clicked");
+    } else if (strcmp(name, "btn_zoom_out") == 0) {
+        ui_gcode_viewer_zoom(gcode_viewer, 1.0f / zoom_step);
+        spdlog::debug("[GCodeTest] Zoom out clicked");
     }
+}
+
+/**
+ * @brief Load file button click handler - shows file picker
+ */
+static void on_load_test_file(lv_event_t*) {
+    show_file_picker();
 }
 
 /**
  * @brief Clear button click handler
  */
-static void on_clear(lv_event_t* e) {
+static void on_clear(lv_event_t*) {
     if (!gcode_viewer)
         return;
 
@@ -125,6 +297,8 @@ lv_obj_t* ui_panel_gcode_test_create(lv_obj_t* parent) {
     lv_obj_t* btn_front = lv_obj_find_by_name(panel_root, "btn_front");
     lv_obj_t* btn_side = lv_obj_find_by_name(panel_root, "btn_side");
     lv_obj_t* btn_reset = lv_obj_find_by_name(panel_root, "btn_reset");
+    lv_obj_t* btn_zoom_in = lv_obj_find_by_name(panel_root, "btn_zoom_in");
+    lv_obj_t* btn_zoom_out = lv_obj_find_by_name(panel_root, "btn_zoom_out");
     lv_obj_t* btn_load = lv_obj_find_by_name(panel_root, "btn_load_test");
     lv_obj_t* btn_clear = lv_obj_find_by_name(panel_root, "btn_clear");
 
@@ -138,6 +312,10 @@ lv_obj_t* ui_panel_gcode_test_create(lv_obj_t* parent) {
         lv_obj_add_event_cb(btn_side, on_view_preset_clicked, LV_EVENT_CLICKED, nullptr);
     if (btn_reset)
         lv_obj_add_event_cb(btn_reset, on_view_preset_clicked, LV_EVENT_CLICKED, nullptr);
+    if (btn_zoom_in)
+        lv_obj_add_event_cb(btn_zoom_in, on_zoom_clicked, LV_EVENT_CLICKED, nullptr);
+    if (btn_zoom_out)
+        lv_obj_add_event_cb(btn_zoom_out, on_zoom_clicked, LV_EVENT_CLICKED, nullptr);
     if (btn_load)
         lv_obj_add_event_cb(btn_load, on_load_test_file, LV_EVENT_CLICKED, nullptr);
     if (btn_clear)
@@ -153,11 +331,11 @@ lv_obj_t* ui_panel_gcode_test_create(lv_obj_t* parent) {
 
     if (stats_label) {
         if (state == GCODE_VIEWER_STATE_LOADED) {
-            char buf[128];
-            snprintf(buf, sizeof(buf), "Loaded: %d layers | Drag to rotate", layer_count);
+            char buf[256];
+            snprintf(buf, sizeof(buf), "OrcaCube AD5M.gcode | %d layers", layer_count);
             lv_label_set_text(stats_label, buf);
         } else if (state == GCODE_VIEWER_STATE_ERROR) {
-            lv_label_set_text(stats_label, "Error loading file - check console");
+            lv_label_set_text(stats_label, "Error loading file");
         } else {
             lv_label_set_text(stats_label, "Loading...");
         }
@@ -168,6 +346,12 @@ lv_obj_t* ui_panel_gcode_test_create(lv_obj_t* parent) {
 }
 
 void ui_panel_gcode_test_cleanup(void) {
+    // Clean up file picker if open
+    if (file_picker_overlay) {
+        lv_obj_del(file_picker_overlay);
+        file_picker_overlay = nullptr;
+    }
+
     // Widgets are automatically cleaned up by LVGL when panel_root is deleted
     panel_root = nullptr;
     gcode_viewer = nullptr;
