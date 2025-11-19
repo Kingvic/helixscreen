@@ -97,6 +97,14 @@ static void gcode_viewer_draw_cb(lv_event_t* e) {
     int width = lv_area_get_width(&coords);
     int height = lv_area_get_height(&coords);
 
+    static int draw_count = 0;
+    if (draw_count++ < 10) {  // Only log first 10 draws to avoid spam
+        spdlog::warn("GCodeViewer DRAW #{}: widget={}x{}, cam={}x{}, aspect={:.3f}",
+                     draw_count, width, height,
+                     st->camera->get_viewport_width(), st->camera->get_viewport_height(),
+                     (float)width / (float)height);
+    }
+
     st->renderer->set_viewport_size(width, height);
     st->camera->set_viewport_size(width, height);
 
@@ -183,6 +191,33 @@ static void gcode_viewer_release_cb(lv_event_t* e) {
 }
 
 /**
+ * @brief Size changed callback - update camera aspect ratio on resize
+ */
+static void gcode_viewer_size_changed_cb(lv_event_t* e) {
+    lv_obj_t* obj = lv_event_get_target_obj(e);
+    gcode_viewer_state_t* st = get_state(obj);
+
+    if (!st)
+        return;
+
+    // Get new widget dimensions
+    lv_area_t coords;
+    lv_obj_get_coords(obj, &coords);
+    int width = lv_area_get_width(&coords);
+    int height = lv_area_get_height(&coords);
+
+    // Update camera and renderer viewport to match new size
+    st->camera->set_viewport_size(width, height);
+    st->renderer->set_viewport_size(width, height);
+
+    // Trigger redraw with new aspect ratio
+    lv_obj_invalidate(obj);
+
+    spdlog::warn("GCodeViewer SIZE_CHANGED: {}x{}, aspect={:.3f}",
+                 width, height, (float)width / (float)height);
+}
+
+/**
  * @brief Cleanup callback - free resources on widget deletion
  */
 static void gcode_viewer_delete_cb(lv_event_t* e) {
@@ -225,10 +260,28 @@ lv_obj_t* ui_gcode_viewer_create(lv_obj_t* parent) {
 
     // Register event handlers
     lv_obj_add_event_cb(obj, gcode_viewer_draw_cb, LV_EVENT_DRAW_POST, nullptr);
+    lv_obj_add_event_cb(obj, gcode_viewer_size_changed_cb, LV_EVENT_SIZE_CHANGED, nullptr);
     lv_obj_add_event_cb(obj, gcode_viewer_press_cb, LV_EVENT_PRESSED, nullptr);
     lv_obj_add_event_cb(obj, gcode_viewer_pressing_cb, LV_EVENT_PRESSING, nullptr);
     lv_obj_add_event_cb(obj, gcode_viewer_release_cb, LV_EVENT_RELEASED, nullptr);
     lv_obj_add_event_cb(obj, gcode_viewer_delete_cb, LV_EVENT_DELETE, nullptr);
+
+    // Initialize viewport size based on current widget dimensions
+    // This ensures correct aspect ratio from the start
+    lv_obj_update_layout(obj); // Force layout calculation
+    lv_area_t coords;
+    lv_obj_get_coords(obj, &coords);
+    int width = lv_area_get_width(&coords);
+    int height = lv_area_get_height(&coords);
+
+    if (width > 0 && height > 0) {
+        st->camera->set_viewport_size(width, height);
+        st->renderer->set_viewport_size(width, height);
+        spdlog::warn("GCodeViewer INIT: viewport={}x{}, aspect={:.3f}",
+                     width, height, (float)width / (float)height);
+    } else {
+        spdlog::error("GCodeViewer INIT: Invalid size {}x{}, using defaults", width, height);
+    }
 
     spdlog::debug("GCodeViewer: Widget created");
     return obj;
