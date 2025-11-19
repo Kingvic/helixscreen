@@ -383,3 +383,59 @@ test-sdf-reconstruction:
 	$(ECHO) "$(YELLOW)⚠ SDF reconstruction test skipped (ENABLE_TINYGL_3D=no)$(RESET)"
 	$(ECHO) "  Rebuild with: make ENABLE_TINYGL_3D=yes test-sdf-reconstruction"
 endif
+
+# ============================================================================
+# TinyGL Test Framework - Comprehensive quality and performance testing
+# ============================================================================
+
+TINYGL_TEST_DIR := tests/tinygl
+TINYGL_TEST_FRAMEWORK_BIN := $(BIN_DIR)/tinygl_test_runner
+TINYGL_TEST_FRAMEWORK_OBJS := \
+	$(OBJ_DIR)/tinygl_test_framework.o \
+	$(OBJ_DIR)/tinygl_test_runner.o
+
+# TinyGL test framework targets
+test-tinygl-framework: $(TINYGL_TEST_FRAMEWORK_BIN)
+	$(ECHO) "$(CYAN)$(BOLD)Running TinyGL comprehensive test framework...$(RESET)"
+	$(Q)$(TINYGL_TEST_FRAMEWORK_BIN) all
+
+test-tinygl-quality: $(TINYGL_TEST_FRAMEWORK_BIN)
+	$(ECHO) "$(CYAN)Testing TinyGL rendering quality...$(RESET)"
+	$(Q)$(TINYGL_TEST_FRAMEWORK_BIN) gouraud
+	$(Q)$(TINYGL_TEST_FRAMEWORK_BIN) banding
+	$(ECHO) "$(GREEN)✓ Quality tests complete$(RESET)"
+
+test-tinygl-performance: $(TINYGL_TEST_FRAMEWORK_BIN)
+	$(ECHO) "$(CYAN)Benchmarking TinyGL performance...$(RESET)"
+	$(Q)$(TINYGL_TEST_FRAMEWORK_BIN) performance
+	$(ECHO) "$(GREEN)✓ Performance benchmarks complete$(RESET)"
+
+test-tinygl-reference: $(TINYGL_TEST_FRAMEWORK_BIN)
+	$(ECHO) "$(CYAN)Generating TinyGL reference images...$(RESET)"
+	$(Q)$(TINYGL_TEST_FRAMEWORK_BIN) reference
+	$(ECHO) "$(GREEN)✓ Reference images generated$(RESET)"
+
+# Build TinyGL test framework
+$(TINYGL_TEST_FRAMEWORK_BIN): $(TINYGL_TEST_FRAMEWORK_OBJS) $(TINYGL_LIB)
+	$(Q)mkdir -p $(BIN_DIR)
+	$(ECHO) "$(MAGENTA)[LD]$(RESET) tinygl_test_runner"
+	$(Q)$(CXX) $(CXXFLAGS) $(TINYGL_TEST_FRAMEWORK_OBJS) -o $@ $(TINYGL_LIB) $(LDFLAGS) -lm
+	$(ECHO) "$(GREEN)✓ TinyGL test framework ready$(RESET)"
+
+# Compile test framework
+$(OBJ_DIR)/tinygl_test_framework.o: $(TINYGL_TEST_DIR)/tinygl_test_framework.cpp $(TINYGL_TEST_DIR)/tinygl_test_framework.h
+	$(Q)mkdir -p $(dir $@)
+	$(ECHO) "$(BLUE)[TEST]$(RESET) tinygl_test_framework.cpp"
+	$(Q)$(CXX) $(CXXFLAGS) $(INCLUDES) $(TINYGL_INC) -I$(TINYGL_TEST_DIR) -c $< -o $@
+
+$(OBJ_DIR)/tinygl_test_runner.o: $(TINYGL_TEST_DIR)/test_runner.cpp $(TINYGL_TEST_DIR)/tinygl_test_framework.h
+	$(Q)mkdir -p $(dir $@)
+	$(ECHO) "$(BLUE)[TEST]$(RESET) test_runner.cpp"
+	$(Q)$(CXX) $(CXXFLAGS) $(INCLUDES) $(TINYGL_INC) -I$(TINYGL_TEST_DIR) -c $< -o $@
+
+# Clean TinyGL test artifacts
+clean-tinygl-tests:
+	$(ECHO) "$(YELLOW)Cleaning TinyGL test artifacts...$(RESET)"
+	$(Q)rm -f $(TINYGL_TEST_FRAMEWORK_BIN) $(TINYGL_TEST_FRAMEWORK_OBJS)
+	$(Q)rm -rf $(TINYGL_TEST_DIR)/output $(TINYGL_TEST_DIR)/reference
+	$(ECHO) "$(GREEN)✓ TinyGL test artifacts cleaned$(RESET)"
