@@ -1,11 +1,13 @@
 # TinyGL Test Results - Baseline Analysis
 
-Generated: 2025-11-19
+Generated: 2025-11-19 (Updated: 2025-11-20)
 Test Framework Version: 1.0
 
 ## Executive Summary
 
 We've successfully created a comprehensive TinyGL test framework that benchmarks both rendering quality and performance. The baseline results confirm the issues identified in our initial analysis and provide quantitative metrics for measuring improvements.
+
+**Update 2025-11-20**: Phong shading, ordered dithering, and critical bug fixes now complete. See updates below.
 
 ## Performance Baseline
 
@@ -38,19 +40,28 @@ We've successfully created a comprehensive TinyGL test framework that benchmarks
 
 ## Quality Issues Confirmed
 
-### 1. Gouraud Shading Artifacts ⚠️
+### 1. Gouraud Shading Artifacts ✅ RESOLVED (Phong Shading)
 **Test**: `gouraud_artifacts.ppm`
-- Low-tessellation cylinder (8 segments): **Severe faceting visible**
-- High-tessellation cylinder (32 segments): **Still shows subtle artifacts**
+- Low-tessellation cylinder (8 segments): **Severe faceting visible** (Gouraud)
+- High-tessellation cylinder (32 segments): **Still shows subtle artifacts** (Gouraud)
 - **Root Cause**: Per-vertex lighting interpolation
 - **Impact**: Most visible on curved surfaces with strong directional lighting
+- **✅ Solution**: Phong shading (per-pixel lighting) eliminates these artifacts
+  - Available via `glShadeModel(GL_PHONG)`
+  - Only 6.4% performance overhead
+  - Smooth lighting on low-poly curved surfaces
 
-### 2. Color Banding ⚠️
+### 2. Color Banding ✅ RESOLVED (Ordered Dithering)
 **Test**: `color_banding.ppm`
-- Gradient test: **Clear 8-bit quantization bands**
-- Sphere shading: **Visible banding in shadow transitions**
+- Gradient test: **Clear 8-bit quantization bands** (baseline)
+- Sphere shading: **Visible banding in shadow transitions** (baseline)
 - **Root Cause**: 8-bit RGB color precision after lighting calculations
 - **Impact**: Most noticeable in smooth gradients and dark areas
+- **✅ Solution**: Ordered dithering using 4×4 Bayer matrix
+  - Available via `glSetEnableDithering(GL_TRUE)`
+  - <3% performance overhead (as predicted)
+  - Breaks up color bands with spatial noise
+  - Testing: 37K (no dither) → 55K (dithered) PNG size confirms noise addition
 
 ### 3. No Anti-Aliasing ⚠️
 **All tests show**:
@@ -72,19 +83,26 @@ We've successfully created a comprehensive TinyGL test framework that benchmarks
 
 ## Recommended Priority Order
 
-Based on test results, here's the optimal implementation sequence:
+Based on test results and recent completions (2025-11-20):
 
-### Quick Wins (1-2 days each)
-1. **Ordered Dithering** - Addresses color banding (high visibility improvement)
-2. **Edge AA via Coverage** - Reduces aliasing (major quality boost)
+### ✅ Completed (2025-11-20)
+1. **✅ Per-Pixel Lighting (Phong Shading)** - Eliminates Gouraud artifacts (6.4% overhead)
+2. **✅ Depth Test Bug Fix** - Critical fix restored all rendering
+3. **✅ OpenMP Build Toggle** - Embedded-friendly builds (default OFF)
+4. **✅ Ordered Dithering** - Reduces color banding via 4×4 Bayer matrix (<3% overhead)
+5. **✅ Build Quality** - Fixed all compilation warnings (newlines, prototypes, conversions)
 
-### Medium Effort (1 week each)
-3. **SIMD Transform Pipeline** - 25-40% performance gain
-4. **Hierarchical Z-Buffer** - 15-25% speedup for complex scenes
+### 🎯 Next Priorities (Conditional - Based on Real-World Testing)
+**Major quality improvements complete!** Further work depends on actual usage results:
+1. **Profile on Raspberry Pi** - Measure real-world performance on target hardware
+2. **Edge AA via Coverage** - Only if aliasing is noticeable in practice
 
-### Major Improvements (2-3 weeks each)
-5. **Hybrid Per-Pixel Lighting** - Eliminates Gouraud artifacts
-6. **Tile-Based Rasterizer** - Enables multi-threading (2-3x speedup)
+### Medium Effort (Only If Necessary)
+4. **SIMD Transform Pipeline (NEON)** - 25-40% performance gain on ARM
+5. **Hierarchical Z-Buffer** - 15-25% speedup for complex scenes
+
+### Low Priority (Defer)
+6. **Tile-Based Rasterizer** - Enables multi-threading (current performance sufficient)
 
 ## Test Suite Capabilities
 
