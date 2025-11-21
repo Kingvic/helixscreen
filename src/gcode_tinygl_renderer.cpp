@@ -28,7 +28,7 @@ GCodeTinyGLRenderer::GCodeTinyGLRenderer()
     geometry_builder_->set_smooth_shading(smooth_shading_);
     geometry_builder_->set_extrusion_width(extrusion_width_);
     geometry_builder_->set_use_height_gradient(false); // Use actual G-code filament colors
-    geometry_builder_->set_debug_face_colors(true);    // TEMP: Enable debug coloring for testing
+    geometry_builder_->set_debug_face_colors(false);   // Production: use actual G-code colors
 
     spdlog::debug("GCodeTinyGLRenderer created");
 }
@@ -152,6 +152,9 @@ void GCodeTinyGLRenderer::init_tinygl() {
     glEnable(GL_LIGHTING);
     glEnable(GL_COLOR_MATERIAL);
     glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
+
+    // Enable Phong (per-pixel) shading for smoother appearance
+    glShadeModel(GL_PHONG);
 
     // Set material properties (use current specular settings)
     // GL_COLOR_MATERIAL only controls ambient/diffuse, so we must set specular separately

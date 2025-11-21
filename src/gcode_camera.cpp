@@ -26,12 +26,12 @@ GCodeCamera::GCodeCamera() {
 }
 
 void GCodeCamera::reset() {
-    // Match user's test view angle for geometry verification
-    azimuth_ = 85.5f;
-    elevation_ = -2.5f;
+    // Default isometric view
+    azimuth_ = 45.0f;
+    elevation_ = 30.0f;
     target_ = glm::vec3(0, 0, 0);
     distance_ = 100.0f;
-    zoom_level_ = 10.0f; // 10x zoom - will be preserved by fit_to_bounds
+    zoom_level_ = 1.0f;
     projection_type_ = ProjectionType::ORTHOGRAPHIC;
 
     update_matrices();

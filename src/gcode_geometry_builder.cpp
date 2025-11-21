@@ -488,8 +488,9 @@ GeometryBuilder::generate_ribbon_vertices(const ToolpathSegment& segment, Ribbon
         perp_horizontal = glm::normalize(perp_horizontal);
     }
 
-    // Second perpendicular: cross(direction, perp_horizontal) gives vertical component
-    glm::vec3 perp_vertical = glm::normalize(glm::cross(direction, perp_horizontal));
+    // Second perpendicular: cross(perp_horizontal, direction) gives UPWARD vertical
+    // Note: Order matters! cross(A, B) uses right-hand rule
+    glm::vec3 perp_vertical = glm::normalize(glm::cross(perp_horizontal, direction));
 
     // Compute color (multi-color support: uses tool palette if available, else Z-gradient/solid)
     uint32_t rgb = compute_segment_color(segment, quant.min_bounds.z, quant.max_bounds.z);
@@ -715,7 +716,8 @@ GeometryBuilder::generate_ribbon_vertices(const ToolpathSegment& segment, Ribbon
         geometry.vertices.push_back(
             {quant.quantize_vec3(start_tl), start_cap_normal_idx, color_idx_start_cap});
 
-        // Start cap triangles: (BL, BR, TR) + (BL, TR, TL)
+        // Start cap triangles: same winding as original end cap
+        // Both caps need SAME winding despite opposite normals (due to vertex position order)
         geometry.strips.push_back({idx_start_cap_bl, idx_start_cap_br, idx_start_cap_tr});
         geometry.strips.push_back({idx_start_cap_bl, idx_start_cap_tr, idx_start_cap_tl});
     }
@@ -736,9 +738,9 @@ GeometryBuilder::generate_ribbon_vertices(const ToolpathSegment& segment, Ribbon
     geometry.vertices.push_back(
         {quant.quantize_vec3(end_tl), end_cap_normal_idx, color_idx_end_cap});
 
-    // End cap triangles: (BL, BR, TR) + (BL, TR, TL)
-    geometry.strips.push_back({idx_end_cap_bl, idx_end_cap_br, idx_end_cap_tr});
-    geometry.strips.push_back({idx_end_cap_bl, idx_end_cap_tr, idx_end_cap_tl});
+    // End cap triangles: reversed winding to match start cap pattern
+    geometry.strips.push_back({idx_end_cap_tr, idx_end_cap_br, idx_end_cap_bl});
+    geometry.strips.push_back({idx_end_cap_tl, idx_end_cap_tr, idx_end_cap_bl});
 
     // Generate triangle strips (4 strips, one per face, 2 triangles each)
     // Each strip uses 4 indices instead of 6 (33% reduction!)
