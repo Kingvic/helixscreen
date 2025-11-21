@@ -190,6 +190,7 @@ lv_xml_register_widget("widget_name", create_cb, apply_cb);
 📘 **docs/LVGL9_XML_GUIDE.md** - Complete XML reference
 ⚡ **docs/QUICK_REFERENCE.md** - Common code patterns
 🔨 **docs/BUILD_SYSTEM.md** - Makefile and patches
+🧪 **docs/TESTING.md** - Test infrastructure and Catch2 usage
 ©️ **docs/COPYRIGHT_HEADERS.md** - GPL v3 headers
 🚀 **docs/CI_CD_GUIDE.md** - GitHub Actions
 
