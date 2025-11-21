@@ -1,13 +1,47 @@
 # Session Handoff Document
 
-**Last Updated:** 2025-11-20
-**Current Focus:** G-code Viewer Polish & Bed Mesh Enhancements
+**Last Updated:** 2025-11-21
+**Current Focus:** G-code viewer enhancements complete
 
 ---
 
 ## ✅ CURRENT STATE
 
 ### Recently Completed
+
+**N-Sided Elliptical Tube Rendering (2025-11-21)**
+- ✅ Implemented configurable N-sided tube cross-sections (N=4, 8, or 16)
+- ✅ Elliptical cross-section (width ≠ height) matching FDM extrusion geometry
+- ✅ Phase 1: Infrastructure and config (tube_sides parameter)
+- ✅ Phase 2: Data structures (vectors instead of hardcoded arrays)
+- ✅ Phase 3: Vertex generation (N-based loops with elliptical positioning)
+- ✅ Phase 4: Triangle strip generation (N-based with triangle fans for caps)
+- ✅ Fixed face winding order for correct backface culling
+- ✅ Performance: Hash map optimization for palette lookups (146× speedup)
+- ✅ Performance: Re-enabled segment simplification (54% reduction)
+- ✅ Cleaned up unused variables and obsolete code
+- ✅ Default: N=4 (diamond, fastest) for best performance
+- ✅ Optional: N=8 (octagonal), N=16 (circular, matches OrcaSlicer quality)
+
+**Configuration:**
+```json
+{
+  "gcode_viewer": {
+    "tube_sides": 4  // Options: 4 (default), 8, 16
+  }
+}
+```
+
+**Commits:**
+- `3bf1c42` - docs: archive GCODE_TUBE_NSIDED_REFACTOR.md
+- `428b471` - config: change default gcode-test panel file to OrcaCube AD5M
+- `d945752` - config: change default tube_sides from 16 to 4
+- `26e2a33` - fix(gcode): correct face winding order for N-sided tubes
+- `e4d9088` - refactor: clean up unused variables and obsolete code
+- `774344b` - feat(gcode): Enable N=8 and N=16 elliptical tube cross-sections
+- `62ba4b5` - wip(gcode): Phase 4 - Triangle strip generation for N-sided tubes
+- `b3d2368` - wip(gcode): Phase 3 - Vertex generation refactor for N-sided tubes
+- `0ab2f42` - wip(gcode): Phase 2 - Data structure refactor for N-sided tubes
 
 **G-Code Viewer Command-Line Options (2025-11-20/21)**
 - ✅ Added `--gcode-file <path>` to load specific G-code file on startup
