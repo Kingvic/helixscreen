@@ -172,7 +172,6 @@ void GCodeCamera::set_viewport_size(int width, int height) {
     update_matrices();
 }
 
-
 glm::vec3 GCodeCamera::compute_camera_position() const {
     // Convert spherical coordinates (azimuth, elevation, distance) to Cartesian
     float azimuth_rad = glm::radians(azimuth_);

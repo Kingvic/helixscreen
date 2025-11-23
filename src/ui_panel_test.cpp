@@ -23,8 +23,8 @@
 
 #include "ui_panel_test.h"
 
-#include "ui_theme.h"
 #include "ui_keyboard.h"
+#include "ui_theme.h"
 
 #include <spdlog/spdlog.h>
 

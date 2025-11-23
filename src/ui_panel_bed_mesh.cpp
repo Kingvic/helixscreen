@@ -176,8 +176,9 @@ static void on_bed_mesh_update(const MoonrakerClient::BedMeshProfile& mesh) {
 
     // Format and update Z range with coordinates (Mainsail format)
     // Split into two lines for better readability
-    snprintf(z_range_buf, sizeof(z_range_buf), "Max [%.1f, %.1f] = %.3f mm\nMin [%.1f, %.1f] = %.3f mm",
-             max_x, max_y, max_z, min_x, min_y, min_z);
+    snprintf(z_range_buf, sizeof(z_range_buf),
+             "Max [%.1f, %.1f] = %.3f mm\nMin [%.1f, %.1f] = %.3f mm", max_x, max_y, max_z, min_x,
+             min_y, min_z);
     lv_subject_copy_string(&bed_mesh_z_range, z_range_buf);
     spdlog::debug("[BedMesh] Set Z range: {}", z_range_buf);
 
@@ -246,11 +247,13 @@ void ui_panel_bed_mesh_setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
                 // Build options string (newline-separated)
                 std::string options;
                 for (size_t i = 0; i < profiles.size(); i++) {
-                    if (i > 0) options += "\n";
+                    if (i > 0)
+                        options += "\n";
                     options += profiles[i];
                 }
                 lv_dropdown_set_options(profile_dropdown, options.c_str());
-                spdlog::debug("[BedMesh] Profile dropdown populated with {} profiles", profiles.size());
+                spdlog::debug("[BedMesh] Profile dropdown populated with {} profiles",
+                              profiles.size());
 
                 // Set selected index to match active profile
                 const auto& active_mesh = client->get_active_bed_mesh();
@@ -258,7 +261,8 @@ void ui_panel_bed_mesh_setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
                     for (size_t i = 0; i < profiles.size(); i++) {
                         if (profiles[i] == active_mesh.name) {
                             lv_dropdown_set_selected(profile_dropdown, i);
-                            spdlog::debug("[BedMesh] Set dropdown to active profile: {}", active_mesh.name);
+                            spdlog::debug("[BedMesh] Set dropdown to active profile: {}",
+                                          active_mesh.name);
                             break;
                         }
                     }
@@ -269,7 +273,8 @@ void ui_panel_bed_mesh_setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
             }
 
             // Register event callback
-            lv_obj_add_event_cb(profile_dropdown, profile_dropdown_cb, LV_EVENT_VALUE_CHANGED, nullptr);
+            lv_obj_add_event_cb(profile_dropdown, profile_dropdown_cb, LV_EVENT_VALUE_CHANGED,
+                                nullptr);
             spdlog::debug("[BedMesh] Profile dropdown event handler registered");
         } else {
             lv_dropdown_set_options(profile_dropdown, "(no connection)");

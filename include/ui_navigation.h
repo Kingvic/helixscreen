@@ -28,12 +28,12 @@
 /**
  * @brief Panel indices for navigation system
  */
-#define PANEL_HOME 0      ///< Home panel index
-#define PANEL_CONTROLS 1  ///< Controls panel index
-#define PANEL_FILAMENT 2  ///< Filament panel index
-#define PANEL_SETTINGS 3  ///< Settings panel index
-#define PANEL_ADVANCED 4  ///< Advanced panel index
-#define PANEL_COUNT 5     ///< Total number of panels
+#define PANEL_HOME 0     ///< Home panel index
+#define PANEL_CONTROLS 1 ///< Controls panel index
+#define PANEL_FILAMENT 2 ///< Filament panel index
+#define PANEL_SETTINGS 3 ///< Settings panel index
+#define PANEL_ADVANCED 4 ///< Advanced panel index
+#define PANEL_COUNT 5    ///< Total number of panels
 
 /**
  * @brief Initialize navigation system with active panel subject
@@ -81,6 +81,7 @@ int ui_navigation_get_active_panel();
  * Stores references to panel widgets so navigation system can
  * control their visibility during panel switches.
  *
- * @param panels Array of panel widgets (size: PANEL_COUNT). NULL entries allowed for not-yet-created panels.
+ * @param panels Array of panel widgets (size: PANEL_COUNT). NULL entries allowed for
+ * not-yet-created panels.
  */
 void ui_navigation_set_panels(lv_obj_t** panels);

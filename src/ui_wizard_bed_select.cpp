@@ -101,42 +101,34 @@ lv_obj_t* ui_wizard_bed_select_create(lv_obj_t* parent) {
 
     // Populate heater dropdown (discover + filter + populate + restore)
     wizard_populate_hardware_dropdown(
-        bed_select_screen_root, "bed_heater_dropdown",
-        &bed_heater_selected, bed_heater_items,
+        bed_select_screen_root, "bed_heater_dropdown", &bed_heater_selected, bed_heater_items,
         [](MoonrakerClient* c) -> const auto& { return c->get_heaters(); },
-        "bed",  // Filter for bed-related heaters
-        true,   // Allow "None" option
-        WizardConfigPaths::BED_HEATER,
-        [](MoonrakerClient* c) { return c->guess_bed_heater(); },
-        "[Wizard Bed]"
-    );
+        "bed", // Filter for bed-related heaters
+        true,  // Allow "None" option
+        WizardConfigPaths::BED_HEATER, [](MoonrakerClient* c) { return c->guess_bed_heater(); },
+        "[Wizard Bed]");
 
     // Attach heater dropdown callback programmatically
-    lv_obj_t* heater_dropdown = lv_obj_find_by_name(bed_select_screen_root,
-                                                      "bed_heater_dropdown");
+    lv_obj_t* heater_dropdown = lv_obj_find_by_name(bed_select_screen_root, "bed_heater_dropdown");
     if (heater_dropdown) {
         lv_obj_add_event_cb(heater_dropdown, wizard_hardware_dropdown_changed_cb,
-                           LV_EVENT_VALUE_CHANGED, &bed_heater_selected);
+                            LV_EVENT_VALUE_CHANGED, &bed_heater_selected);
     }
 
     // Populate sensor dropdown (discover + filter + populate + restore)
     wizard_populate_hardware_dropdown(
-        bed_select_screen_root, "bed_sensor_dropdown",
-        &bed_sensor_selected, bed_sensor_items,
+        bed_select_screen_root, "bed_sensor_dropdown", &bed_sensor_selected, bed_sensor_items,
         [](MoonrakerClient* c) -> const auto& { return c->get_sensors(); },
         nullptr, // No filter - include all sensors for bed
         true,    // Allow "None" option
-        WizardConfigPaths::BED_SENSOR,
-        [](MoonrakerClient* c) { return c->guess_bed_sensor(); },
-        "[Wizard Bed]"
-    );
+        WizardConfigPaths::BED_SENSOR, [](MoonrakerClient* c) { return c->guess_bed_sensor(); },
+        "[Wizard Bed]");
 
     // Attach sensor dropdown callback programmatically
-    lv_obj_t* sensor_dropdown = lv_obj_find_by_name(bed_select_screen_root,
-                                                      "bed_sensor_dropdown");
+    lv_obj_t* sensor_dropdown = lv_obj_find_by_name(bed_select_screen_root, "bed_sensor_dropdown");
     if (sensor_dropdown) {
         lv_obj_add_event_cb(sensor_dropdown, wizard_hardware_dropdown_changed_cb,
-                           LV_EVENT_VALUE_CHANGED, &bed_sensor_selected);
+                            LV_EVENT_VALUE_CHANGED, &bed_sensor_selected);
     }
 
     spdlog::info("[Wizard Bed] Screen created successfully");

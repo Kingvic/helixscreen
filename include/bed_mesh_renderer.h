@@ -89,8 +89,9 @@ extern "C" {
 // Rendering configuration constants
 #define BED_MESH_SCALE 50.0            // Base spacing between mesh points (world units)
 #define BED_MESH_CAMERA_DISTANCE 450.0 // Virtual camera distance (moderate perspective: ~33% depth)
-#define BED_MESH_CAMERA_ZOOM_LEVEL 1.176 // Default zoom (1.0 = neutral, <1.0 = zoomed out, >1.0 = zoomed in)
-#define BED_MESH_DEFAULT_Z_SCALE 60.0  // Default height amplification factor
+#define BED_MESH_CAMERA_ZOOM_LEVEL                                                                 \
+    1.176 // Default zoom (1.0 = neutral, <1.0 = zoomed out, >1.0 = zoomed in)
+#define BED_MESH_DEFAULT_Z_SCALE 60.0         // Default height amplification factor
 #define BED_MESH_DEFAULT_Z_TARGET_HEIGHT 80.0 // Target projected height range (world units)
 #define BED_MESH_MIN_Z_SCALE 35.0             // Min Z scale (prevents flatness)
 #define BED_MESH_MAX_Z_SCALE 120.0            // Max Z scale (prevents extreme projection)
@@ -118,12 +119,12 @@ typedef struct {
     bed_mesh_vertex_3d_t vertices[4]; // Four corners in WORLD space: [0]=BL, [1]=BR, [2]=TL, [3]=TR
 
     // Cached screen-space projections (computed once per frame, reused for rendering)
-    int screen_x[4];                  // Screen X coordinates for vertices[0..3]
-    int screen_y[4];                  // Screen Y coordinates for vertices[0..3]
-    double depths[4];                 // Z-depths for vertices[0..3] (for sorting/debugging)
+    int screen_x[4];  // Screen X coordinates for vertices[0..3]
+    int screen_y[4];  // Screen Y coordinates for vertices[0..3]
+    double depths[4]; // Z-depths for vertices[0..3] (for sorting/debugging)
 
-    double avg_depth;                 // Average depth for back-to-front sorting (computed from depths[])
-    lv_color_t center_color;          // Fallback solid color for fast rendering (drag mode)
+    double avg_depth;        // Average depth for back-to-front sorting (computed from depths[])
+    lv_color_t center_color; // Fallback solid color for fast rendering (drag mode)
 } bed_mesh_quad_3d_t;
 
 // RGB color structure (for intermediate calculations)
@@ -147,8 +148,8 @@ typedef struct {
     bool trig_cache_valid; // True if cached values match current angles
 
     // Centering offsets (computed after scaling to fit canvas)
-    int center_offset_x;  // Horizontal centering offset in screen pixels
-    int center_offset_y;  // Vertical centering offset in screen pixels
+    int center_offset_x; // Horizontal centering offset in screen pixels
+    int center_offset_y; // Vertical centering offset in screen pixels
 } bed_mesh_view_state_t;
 
 // Main renderer instance (opaque handle)
@@ -278,8 +279,8 @@ void bed_mesh_renderer_auto_color_range(bed_mesh_renderer_t* renderer);
  * @param canvas_height Viewport height in pixels
  * @return true on success, false on error (NULL pointers, no mesh data)
  */
-bool bed_mesh_renderer_render(bed_mesh_renderer_t* renderer, lv_layer_t* layer,
-                              int canvas_width, int canvas_height);
+bool bed_mesh_renderer_render(bed_mesh_renderer_t* renderer, lv_layer_t* layer, int canvas_width,
+                              int canvas_height);
 
 #ifdef __cplusplus
 }

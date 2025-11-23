@@ -267,7 +267,6 @@ class GCodeTinyGLRenderer {
                                const std::string& filename);
 
   private:
-
     /**
      * @brief Render geometry with TinyGL
      * @param camera Camera with view/projection

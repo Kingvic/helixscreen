@@ -495,11 +495,12 @@ void GCodeParser::parse_extruder_color_metadata(const std::string& line) {
     // Log color palette (manual join since fmt::join may not be available)
     std::string palette_str;
     for (size_t i = 0; i < tool_color_palette_.size(); ++i) {
-        if (i > 0) palette_str += ", ";
+        if (i > 0)
+            palette_str += ", ";
         palette_str += tool_color_palette_[i];
     }
-    spdlog::debug("Parsed {} extruder colors from metadata: [{}]",
-                  tool_color_palette_.size(), palette_str);
+    spdlog::debug("Parsed {} extruder colors from metadata: [{}]", tool_color_palette_.size(),
+                  palette_str);
 
     // Set metadata_filament_color_ to the first valid color (for single-color rendering fallback)
     if (!tool_color_palette_.empty() && !tool_color_palette_[0].empty()) {

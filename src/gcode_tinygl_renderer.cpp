@@ -5,9 +5,10 @@
 
 #ifdef ENABLE_TINYGL_3D
 
-#include <spdlog/spdlog.h>
-#include "runtime_config.h"
 #include "config.h"
+#include "runtime_config.h"
+
+#include <spdlog/spdlog.h>
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -212,8 +213,8 @@ void GCodeTinyGLRenderer::setup_lighting() {
 
     // Lower ambient for better shadow contrast
     // Higher diffuse intensity for stronger directional lighting
-    constexpr float INTENSITY_CORRECTION = 0.8f;  // Increased from 0.6 for brighter diffuse
-    constexpr float INTENSITY_AMBIENT = 0.2f;     // Reduced from 0.3 for darker shadows
+    constexpr float INTENSITY_CORRECTION = 0.8f; // Increased from 0.6 for brighter diffuse
+    constexpr float INTENSITY_AMBIENT = 0.2f;    // Reduced from 0.3 for darker shadows
 
     // Top light: Primary light from above-right (matches OrcaSlicer LIGHT_TOP_DIR)
     // Direction: normalized(-0.6, 0.6, 1.0) = (-0.4574957, 0.4574957, 0.7624929)
@@ -461,10 +462,11 @@ void GCodeTinyGLRenderer::set_prebuilt_geometry(std::unique_ptr<RibbonGeometry> 
         return;
     }
 
-    geometry_ = std::move(*geometry);  // Move the value from unique_ptr into optional
+    geometry_ = std::move(*geometry); // Move the value from unique_ptr into optional
     current_gcode_filename_ = filename;
 
-    spdlog::info("[GCode::Renderer] Pre-built geometry set: {} vertices, {} triangles (extrusion: {}, travel: {})",
+    spdlog::info("[GCode::Renderer] Pre-built geometry set: {} vertices, {} triangles (extrusion: "
+                 "{}, travel: {})",
                  geometry_->vertices.size(),
                  geometry_->extrusion_triangle_count + geometry_->travel_triangle_count,
                  geometry_->extrusion_triangle_count, geometry_->travel_triangle_count);
@@ -508,12 +510,12 @@ void GCodeTinyGLRenderer::render_geometry(const GCodeCamera& camera) {
 
         // Debug logging for first/last strips (end caps)
         if (is_first) {
-            spdlog::debug("Rendering first strip (start cap): indices [{}, {}, {}, {}]",
-                         strip[0], strip[1], strip[2], strip[3]);
+            spdlog::debug("Rendering first strip (start cap): indices [{}, {}, {}, {}]", strip[0],
+                          strip[1], strip[2], strip[3]);
         }
         if (is_last) {
-            spdlog::debug("Rendering last strip (end cap): indices [{}, {}, {}, {}]",
-                         strip[0], strip[1], strip[2], strip[3]);
+            spdlog::debug("Rendering last strip (end cap): indices [{}, {}, {}, {}]", strip[0],
+                          strip[1], strip[2], strip[3]);
         }
 
         glBegin(GL_TRIANGLE_STRIP);
@@ -538,8 +540,10 @@ void GCodeTinyGLRenderer::render_geometry(const GCodeCamera& camera) {
 
             // Detailed vertex logging at trace level
             if (is_first || is_last) {
-                spdlog::trace("  strip[{}]=vertex[{}]: pos=({:.3f},{:.3f},{:.3f}) normal=({:.3f},{:.3f},{:.3f}) color=0x{:06X}",
-                             i, strip[i], pos.x, pos.y, pos.z, normal.x, normal.y, normal.z, color_rgb);
+                spdlog::trace("  strip[{}]=vertex[{}]: pos=({:.3f},{:.3f},{:.3f}) "
+                              "normal=({:.3f},{:.3f},{:.3f}) color=0x{:06X}",
+                              i, strip[i], pos.x, pos.y, pos.z, normal.x, normal.y, normal.z,
+                              color_rgb);
             }
 
             glVertex3f(pos.x, pos.y, pos.z);
@@ -567,7 +571,8 @@ void GCodeTinyGLRenderer::render_geometry(const GCodeCamera& camera) {
 
     // Log render timing
     auto render_end = std::chrono::high_resolution_clock::now();
-    auto render_duration = std::chrono::duration_cast<std::chrono::microseconds>(render_end - render_start);
+    auto render_duration =
+        std::chrono::duration_cast<std::chrono::microseconds>(render_end - render_start);
     float render_ms = render_duration.count() / 1000.0f;
 
     if (first_render) {
@@ -577,8 +582,8 @@ void GCodeTinyGLRenderer::render_geometry(const GCodeCamera& camera) {
 
     // Log every 60 frames (debug level only)
     if (++frame_count >= 60) {
-        spdlog::debug("[GCode::Renderer] Render time: {:.1f}ms ({:.1f} FPS)",
-                     render_ms, render_ms > 0 ? 1000.0f / render_ms : 0.0f);
+        spdlog::debug("[GCode::Renderer] Render time: {:.1f}ms ({:.1f} FPS)", render_ms,
+                      render_ms > 0 ? 1000.0f / render_ms : 0.0f);
         frame_count = 0;
     }
 }
@@ -659,8 +664,7 @@ void GCodeTinyGLRenderer::render(lv_layer_t* layer, const ParsedGCodeFile& gcode
     const RuntimeConfig& config = get_runtime_config();
     bool show_debug_overlay = spdlog::get_level() <= spdlog::level::debug ||
                               config.gcode_camera_azimuth_set ||
-                              config.gcode_camera_elevation_set ||
-                              config.gcode_camera_zoom_set;
+                              config.gcode_camera_elevation_set || config.gcode_camera_zoom_set;
     if (show_debug_overlay) {
         char debug_text[128];
         snprintf(debug_text, sizeof(debug_text), "Az: %.1f° El: %.1f° Zoom: %.1fx",

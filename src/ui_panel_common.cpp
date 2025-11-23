@@ -34,8 +34,7 @@
 // HEADER BAR SETUP
 // ============================================================================
 
-lv_obj_t* ui_panel_setup_header(lv_obj_t* panel, lv_obj_t* parent_screen,
-                                 const char* header_name) {
+lv_obj_t* ui_panel_setup_header(lv_obj_t* panel, lv_obj_t* parent_screen, const char* header_name) {
     if (!panel || !parent_screen || !header_name) {
         spdlog::warn("[PanelCommon] Invalid parameters for header setup");
         return nullptr;
@@ -57,7 +56,7 @@ lv_obj_t* ui_panel_setup_header(lv_obj_t* panel, lv_obj_t* parent_screen,
 // ============================================================================
 
 lv_obj_t* ui_panel_setup_content_padding(lv_obj_t* panel, lv_obj_t* parent_screen,
-                                          const char* content_name) {
+                                         const char* content_name) {
     if (!panel || !parent_screen || !content_name) {
         spdlog::warn("[PanelCommon] Invalid parameters for content padding setup");
         return nullptr;
@@ -65,7 +64,8 @@ lv_obj_t* ui_panel_setup_content_padding(lv_obj_t* panel, lv_obj_t* parent_scree
 
     lv_obj_t* content = lv_obj_find_by_name(panel, content_name);
     if (content) {
-        lv_coord_t vertical_padding = ui_get_header_content_padding(lv_obj_get_height(parent_screen));
+        lv_coord_t vertical_padding =
+            ui_get_header_content_padding(lv_obj_get_height(parent_screen));
 
         // Set vertical padding (top/bottom) responsively, keep horizontal at medium (12px)
         lv_obj_set_style_pad_top(content, vertical_padding, 0);
@@ -136,8 +136,8 @@ static void panel_resize_callback_wrapper(ui_panel_resize_context_t* context) {
 
     lv_obj_t* content = lv_obj_find_by_name(context->panel, context->content_name);
     if (content) {
-        lv_coord_t vertical_padding = ui_get_header_content_padding(
-            lv_obj_get_height(context->parent_screen));
+        lv_coord_t vertical_padding =
+            ui_get_header_content_padding(lv_obj_get_height(context->parent_screen));
 
         // Update vertical padding (top/bottom) responsively, keep horizontal at medium (12px)
         lv_obj_set_style_pad_top(content, vertical_padding, 0);
@@ -152,24 +152,35 @@ static ui_panel_resize_context_t* trampoline_contexts[8] = {nullptr};
 static int trampoline_count = 0;
 
 // Actual trampoline implementations
-static void resize_trampoline_impl_0(void) { panel_resize_callback_wrapper(trampoline_contexts[0]); }
-static void resize_trampoline_impl_1(void) { panel_resize_callback_wrapper(trampoline_contexts[1]); }
-static void resize_trampoline_impl_2(void) { panel_resize_callback_wrapper(trampoline_contexts[2]); }
-static void resize_trampoline_impl_3(void) { panel_resize_callback_wrapper(trampoline_contexts[3]); }
-static void resize_trampoline_impl_4(void) { panel_resize_callback_wrapper(trampoline_contexts[4]); }
-static void resize_trampoline_impl_5(void) { panel_resize_callback_wrapper(trampoline_contexts[5]); }
-static void resize_trampoline_impl_6(void) { panel_resize_callback_wrapper(trampoline_contexts[6]); }
-static void resize_trampoline_impl_7(void) { panel_resize_callback_wrapper(trampoline_contexts[7]); }
+static void resize_trampoline_impl_0(void) {
+    panel_resize_callback_wrapper(trampoline_contexts[0]);
+}
+static void resize_trampoline_impl_1(void) {
+    panel_resize_callback_wrapper(trampoline_contexts[1]);
+}
+static void resize_trampoline_impl_2(void) {
+    panel_resize_callback_wrapper(trampoline_contexts[2]);
+}
+static void resize_trampoline_impl_3(void) {
+    panel_resize_callback_wrapper(trampoline_contexts[3]);
+}
+static void resize_trampoline_impl_4(void) {
+    panel_resize_callback_wrapper(trampoline_contexts[4]);
+}
+static void resize_trampoline_impl_5(void) {
+    panel_resize_callback_wrapper(trampoline_contexts[5]);
+}
+static void resize_trampoline_impl_6(void) {
+    panel_resize_callback_wrapper(trampoline_contexts[6]);
+}
+static void resize_trampoline_impl_7(void) {
+    panel_resize_callback_wrapper(trampoline_contexts[7]);
+}
 
 static ui_resize_callback_t trampoline_funcs[8] = {
-    resize_trampoline_impl_0,
-    resize_trampoline_impl_1,
-    resize_trampoline_impl_2,
-    resize_trampoline_impl_3,
-    resize_trampoline_impl_4,
-    resize_trampoline_impl_5,
-    resize_trampoline_impl_6,
-    resize_trampoline_impl_7,
+    resize_trampoline_impl_0, resize_trampoline_impl_1, resize_trampoline_impl_2,
+    resize_trampoline_impl_3, resize_trampoline_impl_4, resize_trampoline_impl_5,
+    resize_trampoline_impl_6, resize_trampoline_impl_7,
 };
 
 void ui_panel_setup_resize_callback(ui_panel_resize_context_t* context) {
@@ -197,9 +208,9 @@ void ui_panel_setup_resize_callback(ui_panel_resize_context_t* context) {
 // ============================================================================
 
 void ui_panel_setup_standard_layout(lv_obj_t* panel, lv_obj_t* parent_screen,
-                                     const char* header_name, const char* content_name,
-                                     ui_panel_resize_context_t* resize_context,
-                                     const char* back_button_name) {
+                                    const char* header_name, const char* content_name,
+                                    ui_panel_resize_context_t* resize_context,
+                                    const char* back_button_name) {
     if (!panel || !parent_screen) {
         spdlog::error("[PanelCommon] Invalid parameters for standard layout setup");
         return;

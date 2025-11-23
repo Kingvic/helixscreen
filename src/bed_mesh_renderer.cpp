@@ -22,6 +22,7 @@
  */
 
 #include "bed_mesh_renderer.h"
+
 #include "bed_mesh_coordinate_transform.h"
 
 #include <spdlog/spdlog.h>
@@ -52,7 +53,8 @@ constexpr double CANVAS_PADDING_FACTOR = 0.95;                // Fill 95% of can
 const lv_color_t CANVAS_BG_COLOR = lv_color_make(40, 40, 40); // Dark gray background
 
 // Grid and axis colors
-const lv_color_t GRID_LINE_COLOR = lv_color_make(140, 140, 140);  // Medium gray (lightened for Mainsail match)
+const lv_color_t GRID_LINE_COLOR =
+    lv_color_make(140, 140, 140); // Medium gray (lightened for Mainsail match)
 const lv_color_t AXIS_LINE_COLOR = lv_color_make(180, 180, 180); // Light gray
 
 // Axis extension (percentage beyond mesh bounds)
@@ -81,8 +83,9 @@ constexpr uint8_t GRADIENT_RED_R = 255;
 
 // Rendering opacity values
 constexpr lv_opa_t MESH_TRIANGLE_OPACITY = LV_OPA_90; // 90% opacity for mesh surfaces
-constexpr lv_opa_t GRID_LINE_OPACITY = LV_OPA_70;     // 70% opacity for grid overlay (increased for Mainsail match)
-constexpr lv_opa_t AXIS_LINE_OPACITY = LV_OPA_80;     // 80% opacity for axis indicators
+constexpr lv_opa_t GRID_LINE_OPACITY =
+    LV_OPA_70; // 70% opacity for grid overlay (increased for Mainsail match)
+constexpr lv_opa_t AXIS_LINE_OPACITY = LV_OPA_80; // 80% opacity for axis indicators
 
 // Color gradient lookup table (pre-computed for performance)
 constexpr int COLOR_GRADIENT_LUT_SIZE = 1024; // 1024 samples for smooth gradient
@@ -98,7 +101,8 @@ constexpr int GRADIENT_MEDIUM_SEGMENT_COUNT = 3;   // Segment count for medium l
 constexpr int GRADIENT_WIDE_SEGMENT_COUNT = 4;     // Segment count for wide lines
 
 // Gradient sampling position within segment (0.0 = start, 0.5 = center, 1.0 = end)
-constexpr double GRADIENT_SEGMENT_SAMPLE_POSITION = 0.5; // Sample at segment center for better color distribution
+constexpr double GRADIENT_SEGMENT_SAMPLE_POSITION =
+    0.5; // Sample at segment center for better color distribution
 
 } // anonymous namespace
 
@@ -123,10 +127,10 @@ constexpr double GRADIENT_SEGMENT_SAMPLE_POSITION = 0.5; // Sample at segment ce
  * - ERROR: renderer unusable, must be destroyed
  */
 enum class RendererState {
-    UNINITIALIZED,    // Created, no mesh data
-    MESH_LOADED,      // Mesh data loaded, quads may need regeneration
-    READY_TO_RENDER,  // Projection cached, ready for render()
-    ERROR             // Invalid state (e.g., set_mesh_data failed)
+    UNINITIALIZED,   // Created, no mesh data
+    MESH_LOADED,     // Mesh data loaded, quads may need regeneration
+    READY_TO_RENDER, // Projection cached, ready for render()
+    ERROR            // Invalid state (e.g., set_mesh_data failed)
 };
 
 // Internal renderer state
@@ -140,7 +144,7 @@ struct bed_mesh_renderer {
     int cols;
     double mesh_min_z;
     double mesh_max_z;
-    bool has_mesh_data;  // Redundant with state, kept for backwards compatibility
+    bool has_mesh_data; // Redundant with state, kept for backwards compatibility
 
     // Color range configuration
     bool auto_color_range;
@@ -157,8 +161,8 @@ struct bed_mesh_renderer {
     // Only stores screen_x/screen_y - no unused fields (world x/y/z, depth)
     // Old AOS: 40 bytes/point (5 doubles + 2 ints), New SOA: 8 bytes/point (2 ints)
     // Memory savings: 80% reduction (16 KB → 3.2 KB for 20×20 mesh)
-    std::vector<std::vector<int>> projected_screen_x;  // [row][col] → screen X coordinate
-    std::vector<std::vector<int>> projected_screen_y;  // [row][col] → screen Y coordinate
+    std::vector<std::vector<int>> projected_screen_x; // [row][col] → screen X coordinate
+    std::vector<std::vector<int>> projected_screen_y; // [row][col] → screen Y coordinate
 };
 
 // Helper functions (forward declarations)
@@ -169,12 +173,12 @@ static void update_trig_cache(bed_mesh_view_state_t* view_state);
 static void project_and_cache_vertices(bed_mesh_renderer_t* renderer, int canvas_width,
                                        int canvas_height);
 static void project_and_cache_quads(bed_mesh_renderer_t* renderer, int canvas_width,
-                                     int canvas_height);
+                                    int canvas_height);
 static void compute_projected_mesh_bounds(const bed_mesh_renderer_t* renderer, int* out_min_x,
                                           int* out_max_x, int* out_min_y, int* out_max_y);
 static void compute_centering_offset(int mesh_min_x, int mesh_max_x, int mesh_min_y, int mesh_max_y,
-                                      int layer_offset_x, int layer_offset_y, int canvas_width,
-                                      int canvas_height, int* out_offset_x, int* out_offset_y);
+                                     int layer_offset_x, int layer_offset_y, int canvas_width,
+                                     int canvas_height, int* out_offset_x, int* out_offset_y);
 static bed_mesh_point_3d_t project_3d_to_2d(double x, double y, double z, int canvas_width,
                                             int canvas_height, const bed_mesh_view_state_t* view);
 static lv_color_t height_to_color(double value, double min_val, double max_val);
@@ -182,8 +186,8 @@ static bed_mesh_rgb_t lerp_color(bed_mesh_rgb_t a, bed_mesh_rgb_t b, double t);
 static void fill_triangle_solid(lv_layer_t* layer, int x1, int y1, int x2, int y2, int x3, int y3,
                                 int canvas_width, int canvas_height, lv_color_t color);
 static void fill_triangle_gradient(lv_layer_t* layer, int x1, int y1, lv_color_t c1, int x2, int y2,
-                                   lv_color_t c2, int x3, int y3, lv_color_t c3,
-                                   int canvas_width, int canvas_height);
+                                   lv_color_t c2, int x3, int y3, lv_color_t c3, int canvas_width,
+                                   int canvas_height);
 static void generate_mesh_quads(bed_mesh_renderer_t* renderer);
 static void sort_quads_by_depth(std::vector<bed_mesh_quad_3d_t>& quads);
 static void render_quad(lv_layer_t* layer, const bed_mesh_quad_3d_t& quad, int canvas_width,
@@ -193,7 +197,7 @@ static void render_grid_lines(lv_layer_t* layer, const bed_mesh_renderer_t* rend
 static void render_axis_labels(lv_layer_t* layer, const bed_mesh_renderer_t* renderer,
                                int canvas_width, int canvas_height);
 static void render_numeric_axis_ticks(lv_layer_t* layer, const bed_mesh_renderer_t* renderer,
-                                     int canvas_width, int canvas_height);
+                                      int canvas_width, int canvas_height);
 
 // Coordinate transformation helpers
 // NOTE: These are now wrapper functions that delegate to the CoordinateTransform namespace.
@@ -542,7 +546,8 @@ void bed_mesh_renderer_auto_color_range(bed_mesh_renderer_t* renderer) {
             generate_mesh_quads(renderer);
             spdlog::debug("Regenerated quads due to auto color range change");
 
-            // State transition: READY_TO_RENDER → MESH_LOADED (quads regenerated, projections invalid)
+            // State transition: READY_TO_RENDER → MESH_LOADED (quads regenerated, projections
+            // invalid)
             if (renderer->state == RendererState::READY_TO_RENDER) {
                 renderer->state = RendererState::MESH_LOADED;
             }
@@ -552,8 +557,8 @@ void bed_mesh_renderer_auto_color_range(bed_mesh_renderer_t* renderer) {
     spdlog::debug("Auto color range enabled");
 }
 
-bool bed_mesh_renderer_render(bed_mesh_renderer_t* renderer, lv_layer_t* layer,
-                              int canvas_width, int canvas_height) {
+bool bed_mesh_renderer_render(bed_mesh_renderer_t* renderer, lv_layer_t* layer, int canvas_width,
+                              int canvas_height) {
     if (!renderer || !layer) {
         spdlog::error("Invalid parameters for render: renderer={}, layer={}", (void*)renderer,
                       (void*)layer);
@@ -591,11 +596,11 @@ bool bed_mesh_renderer_render(bed_mesh_renderer_t* renderer, lv_layer_t* layer,
     const lv_area_t* clip_area = &layer->_clip_area;
     int actual_width = lv_area_get_width(clip_area);
     int actual_height = lv_area_get_height(clip_area);
-    int layer_offset_x = clip_area->x1;  // Layer's screen X position
-    int layer_offset_y = clip_area->y1;  // Layer's screen Y position
+    int layer_offset_x = clip_area->x1; // Layer's screen X position
+    int layer_offset_y = clip_area->y1; // Layer's screen Y position
 
-    spdlog::debug("[LAYER] Clip area: {}x{} at offset ({},{})",
-                  actual_width, actual_height, layer_offset_x, layer_offset_y);
+    spdlog::debug("[LAYER] Clip area: {}x{} at offset ({},{})", actual_width, actual_height,
+                  layer_offset_x, layer_offset_y);
 
     // Use the layer's clip area dimensions for rendering
     canvas_width = actual_width;
@@ -659,8 +664,8 @@ bool bed_mesh_renderer_render(bed_mesh_renderer_t* renderer, lv_layer_t* layer,
 
         // Calculate centering offset using helper function
         compute_centering_offset(min_x, max_x, min_y, max_y, layer_offset_x, layer_offset_y,
-                                  canvas_width, canvas_height, &renderer->view_state.center_offset_x,
-                                  &renderer->view_state.center_offset_y);
+                                 canvas_width, canvas_height, &renderer->view_state.center_offset_x,
+                                 &renderer->view_state.center_offset_y);
 
         // Re-project with the centering offset applied
         project_and_cache_vertices(renderer, canvas_width, canvas_height);
@@ -696,17 +701,17 @@ bool bed_mesh_renderer_render(bed_mesh_renderer_t* renderer, lv_layer_t* layer,
         }
     }
     spdlog::info("[GRADIENT_OVERALL] All quads bounds: x=[{},{}] y=[{},{}] quads={} canvas={}x{}",
-                 quad_min_x, quad_max_x, quad_min_y, quad_max_y,
-                 renderer->quads.size(), canvas_width, canvas_height);
+                 quad_min_x, quad_max_x, quad_min_y, quad_max_y, renderer->quads.size(),
+                 canvas_width, canvas_height);
 
     // DEBUG: Log first quad vertex positions using cached coordinates
     if (!renderer->quads.empty()) {
         const auto& first_quad = renderer->quads[0];
         spdlog::info("[FIRST_QUAD] Vertices (world -> cached screen):");
         for (int i = 0; i < 4; i++) {
-            spdlog::info("  v{}: world=({:.2f},{:.2f},{:.2f}) -> screen=({},{})",
-                         i, first_quad.vertices[i].x, first_quad.vertices[i].y, first_quad.vertices[i].z,
-                         first_quad.screen_x[i], first_quad.screen_y[i]);
+            spdlog::info("  v{}: world=({:.2f},{:.2f},{:.2f}) -> screen=({},{})", i,
+                         first_quad.vertices[i].x, first_quad.vertices[i].y,
+                         first_quad.vertices[i].z, first_quad.screen_x[i], first_quad.screen_y[i]);
         }
     }
 
@@ -734,20 +739,18 @@ bool bed_mesh_renderer_render(bed_mesh_renderer_t* renderer, lv_layer_t* layer,
     auto ms_overlays = std::chrono::duration<double, std::milli>(t_overlays - t_rasterize).count();
     auto ms_total = std::chrono::duration<double, std::milli>(t_overlays - t_start).count();
 
-    spdlog::trace("[PERF] Render: {:.2f}ms total | Proj: {:.2f}ms ({:.0f}%) | Sort: {:.2f}ms ({:.0f}%) | "
-                  "Raster: {:.2f}ms ({:.0f}%) | Overlays: {:.2f}ms ({:.0f}%) | Mode: {}",
-                  ms_total, ms_project, 100.0 * ms_project / ms_total,
-                  ms_sort, 100.0 * ms_sort / ms_total,
-                  ms_rasterize, 100.0 * ms_rasterize / ms_total,
-                  ms_overlays, 100.0 * ms_overlays / ms_total,
-                  use_gradient ? "gradient" : "solid");
+    spdlog::trace(
+        "[PERF] Render: {:.2f}ms total | Proj: {:.2f}ms ({:.0f}%) | Sort: {:.2f}ms ({:.0f}%) | "
+        "Raster: {:.2f}ms ({:.0f}%) | Overlays: {:.2f}ms ({:.0f}%) | Mode: {}",
+        ms_total, ms_project, 100.0 * ms_project / ms_total, ms_sort, 100.0 * ms_sort / ms_total,
+        ms_rasterize, 100.0 * ms_rasterize / ms_total, ms_overlays, 100.0 * ms_overlays / ms_total,
+        use_gradient ? "gradient" : "solid");
 
     // Output canvas dimensions and view coordinates
-    spdlog::info("[CANVAS_SIZE] Widget dimensions: {}x{} | Alt: {:.1f}° | Az: {:.1f}° | Zoom: {:.2f}x",
-                 canvas_width, canvas_height,
-                 renderer->view_state.angle_x,
-                 renderer->view_state.angle_z,
-                 renderer->view_state.fov_scale / DEFAULT_FOV_SCALE);
+    spdlog::info(
+        "[CANVAS_SIZE] Widget dimensions: {}x{} | Alt: {:.1f}° | Az: {:.1f}° | Zoom: {:.2f}x",
+        canvas_width, canvas_height, renderer->view_state.angle_x, renderer->view_state.angle_z,
+        renderer->view_state.fov_scale / DEFAULT_FOV_SCALE);
 
     // State transition: MESH_LOADED → READY_TO_RENDER (successful render with cached projections)
     if (renderer->state == RendererState::MESH_LOADED) {
@@ -891,7 +894,7 @@ static void project_and_cache_vertices(bed_mesh_renderer_t* renderer, int canvas
  * - Updates quad.avg_depth for depth sorting
  */
 static void project_and_cache_quads(bed_mesh_renderer_t* renderer, int canvas_width,
-                                     int canvas_height) {
+                                    int canvas_height) {
     if (!renderer || renderer->quads.empty()) {
         return;
     }
@@ -975,8 +978,8 @@ static void compute_projected_mesh_bounds(const bed_mesh_renderer_t* renderer, i
  * @param[out] out_offset_y Vertical centering offset
  */
 static void compute_centering_offset(int mesh_min_x, int mesh_max_x, int mesh_min_y, int mesh_max_y,
-                                      int layer_offset_x, int layer_offset_y, int canvas_width,
-                                      int canvas_height, int* out_offset_x, int* out_offset_y) {
+                                     int layer_offset_x, int layer_offset_y, int canvas_width,
+                                     int canvas_height, int* out_offset_x, int* out_offset_y) {
     // Calculate centers in screen space
     int mesh_center_x = (mesh_min_x + mesh_max_x) / 2;
     int mesh_center_y = (mesh_min_y + mesh_max_y) / 2;
@@ -1018,7 +1021,8 @@ static bed_mesh_point_3d_t project_3d_to_2d(double x, double y, double z, int ca
     // Step 5: Convert to screen coordinates (centered in canvas)
     result.screen_x = static_cast<int>(canvas_width / 2 + perspective_x) + view->center_offset_x;
     result.screen_y =
-        static_cast<int>(canvas_height * BED_MESH_Z_ORIGIN_VERTICAL_POS + perspective_y) + view->center_offset_y;
+        static_cast<int>(canvas_height * BED_MESH_Z_ORIGIN_VERTICAL_POS + perspective_y) +
+        view->center_offset_y;
     result.depth = final_z;
 
     return result;
@@ -1122,7 +1126,8 @@ static void fill_triangle_solid(lv_layer_t* layer, int x1, int y1, int x2, int y
     if (y1 == y3)
         return;
 
-    // Note: LVGL's layer system handles clipping automatically, no need for manual bounds checking here
+    // Note: LVGL's layer system handles clipping automatically, no need for manual bounds checking
+    // here
 
     // Prepare draw descriptor for horizontal spans
     lv_draw_rect_dsc_t dsc;
@@ -1171,8 +1176,8 @@ static void interpolate_edge(int y, int y0, int x0, const bed_mesh_rgb_t& c0, in
 }
 
 static void fill_triangle_gradient(lv_layer_t* layer, int x1, int y1, lv_color_t c1, int x2, int y2,
-                                   lv_color_t c2, int x3, int y3, lv_color_t c3,
-                                   int canvas_width, int canvas_height) {
+                                   lv_color_t c2, int x3, int y3, lv_color_t c3, int canvas_width,
+                                   int canvas_height) {
     // Sort vertices by Y coordinate, keeping colors aligned
     struct Vertex {
         int x, y;
@@ -1254,11 +1259,13 @@ static void fill_triangle_gradient(lv_layer_t* layer, int x1, int y1, lv_color_t
 
             int segment_count;
             if (line_width < GRADIENT_THIN_LINE_THRESHOLD) {
-                segment_count = GRADIENT_THIN_SEGMENT_COUNT;    // Thin lines: 2 segments (faster)
+                segment_count = GRADIENT_THIN_SEGMENT_COUNT; // Thin lines: 2 segments (faster)
             } else if (line_width < GRADIENT_MEDIUM_LINE_THRESHOLD) {
-                segment_count = GRADIENT_MEDIUM_SEGMENT_COUNT;  // Medium lines: 3 segments (balanced)
+                segment_count =
+                    GRADIENT_MEDIUM_SEGMENT_COUNT; // Medium lines: 3 segments (balanced)
             } else {
-                segment_count = GRADIENT_WIDE_SEGMENT_COUNT;    // Wide lines: 4 segments (better quality)
+                segment_count =
+                    GRADIENT_WIDE_SEGMENT_COUNT; // Wide lines: 4 segments (better quality)
             }
 
             for (int segment_index = 0; segment_index < segment_count; segment_index++) {
@@ -1269,7 +1276,8 @@ static void fill_triangle_gradient(lv_layer_t* layer, int x1, int y1, lv_color_t
                     continue;
 
                 // Sample color at segment center for better color distribution
-                double interpolation_factor = (segment_index + GRADIENT_SEGMENT_SAMPLE_POSITION) / segment_count;
+                double interpolation_factor =
+                    (segment_index + GRADIENT_SEGMENT_SAMPLE_POSITION) / segment_count;
                 bed_mesh_rgb_t seg_color = lerp_color(c_left, c_right, interpolation_factor);
                 lv_color_t color = lv_color_make(seg_color.r, seg_color.g, seg_color.b);
                 dsc.bg_color = color;
@@ -1481,8 +1489,8 @@ static void render_grid_lines(lv_layer_t* layer, const bed_mesh_renderer_t* rend
     // DEBUG: Log grid line bounds summary
     if (grid_lines_drawn > 0) {
         spdlog::info("[GRID_LINES] Total bounds: x=[{},{}] y=[{},{}] lines_drawn={} canvas={}x{}",
-                     grid_min_x, grid_max_x, grid_min_y, grid_max_y,
-                     grid_lines_drawn, canvas_width, canvas_height);
+                     grid_min_x, grid_max_x, grid_min_y, grid_max_y, grid_lines_drawn, canvas_width,
+                     canvas_height);
     }
 }
 
@@ -1588,8 +1596,8 @@ static void render_axis_labels(lv_layer_t* layer, const bed_mesh_renderer_t* ren
         x_area.y2 = x_area.y1 + 14;
 
         // Clamp label area to canvas bounds
-        if (x_area.x1 >= 0 && x_area.x2 < canvas_width &&
-            x_area.y1 >= 0 && x_area.y2 < canvas_height) {
+        if (x_area.x1 >= 0 && x_area.x2 < canvas_width && x_area.y1 >= 0 &&
+            x_area.y2 < canvas_height) {
             lv_draw_label(layer, &label_dsc, &x_area);
         }
     }
@@ -1605,8 +1613,8 @@ static void render_axis_labels(lv_layer_t* layer, const bed_mesh_renderer_t* ren
         y_area.y2 = y_area.y1 + 14;
 
         // Clamp label area to canvas bounds
-        if (y_area.x1 >= 0 && y_area.x2 < canvas_width &&
-            y_area.y1 >= 0 && y_area.y2 < canvas_height) {
+        if (y_area.x1 >= 0 && y_area.x2 < canvas_width && y_area.y1 >= 0 &&
+            y_area.y2 < canvas_height) {
             lv_draw_label(layer, &label_dsc, &y_area);
         }
     }
@@ -1622,8 +1630,8 @@ static void render_axis_labels(lv_layer_t* layer, const bed_mesh_renderer_t* ren
         z_area.y2 = z_area.y1 + 14;
 
         // Clamp label area to canvas bounds
-        if (z_area.x1 >= 0 && z_area.x2 < canvas_width &&
-            z_area.y1 >= 0 && z_area.y2 < canvas_height) {
+        if (z_area.x1 >= 0 && z_area.x2 < canvas_width && z_area.y1 >= 0 &&
+            z_area.y2 < canvas_height) {
             lv_draw_label(layer, &label_dsc, &z_area);
         }
     }
@@ -1636,7 +1644,7 @@ static void render_axis_labels(lv_layer_t* layer, const bed_mesh_renderer_t* ren
  * the X and Y axes to show bed dimensions, matching Mainsail's visualization style.
  */
 static void render_numeric_axis_ticks(lv_layer_t* layer, const bed_mesh_renderer_t* renderer,
-                                     int canvas_width, int canvas_height) {
+                                      int canvas_width, int canvas_height) {
     if (!renderer || !renderer->has_mesh_data) {
         return;
     }
@@ -1654,7 +1662,7 @@ static void render_numeric_axis_ticks(lv_layer_t* layer, const bed_mesh_renderer
     lv_draw_label_dsc_init(&label_dsc);
     label_dsc.color = lv_color_white();
     label_dsc.font = &lv_font_montserrat_10; // Smaller font for numeric labels
-    label_dsc.opa = LV_OPA_80; // Slightly more transparent than axis letters
+    label_dsc.opa = LV_OPA_80;               // Slightly more transparent than axis letters
     label_dsc.align = LV_TEXT_ALIGN_CENTER;
 
     // Determine appropriate tick spacing (aim for 3-5 ticks per axis)
@@ -1669,12 +1677,11 @@ static void render_numeric_axis_ticks(lv_layer_t* layer, const bed_mesh_renderer
     for (double x_mm = 0; x_mm <= bed_width_mm / 2.0; x_mm += tick_spacing) {
         // Draw positive X tick
         double world_x = x_mm;
-        bed_mesh_point_3d_t pos_tick = project_3d_to_2d(world_x, x_axis_y, grid_z,
-                                                         canvas_width, canvas_height,
-                                                         &renderer->view_state);
+        bed_mesh_point_3d_t pos_tick = project_3d_to_2d(world_x, x_axis_y, grid_z, canvas_width,
+                                                        canvas_height, &renderer->view_state);
 
-        if (pos_tick.screen_x >= 0 && pos_tick.screen_x < canvas_width &&
-            pos_tick.screen_y >= 0 && pos_tick.screen_y < canvas_height) {
+        if (pos_tick.screen_x >= 0 && pos_tick.screen_x < canvas_width && pos_tick.screen_y >= 0 &&
+            pos_tick.screen_y < canvas_height) {
             char label_text[8];
             snprintf(label_text, sizeof(label_text), "%.0f", x_mm);
             label_dsc.text = label_text;
@@ -1686,8 +1693,8 @@ static void render_numeric_axis_ticks(lv_layer_t* layer, const bed_mesh_renderer
             label_area.y2 = label_area.y1 + 12;
 
             // Clamp to canvas bounds
-            if (label_area.x1 >= 0 && label_area.x2 < canvas_width &&
-                label_area.y1 >= 0 && label_area.y2 < canvas_height) {
+            if (label_area.x1 >= 0 && label_area.x2 < canvas_width && label_area.y1 >= 0 &&
+                label_area.y2 < canvas_height) {
                 lv_draw_label(layer, &label_dsc, &label_area);
             }
         }
@@ -1695,9 +1702,8 @@ static void render_numeric_axis_ticks(lv_layer_t* layer, const bed_mesh_renderer
         // Draw negative X tick (skip 0 to avoid duplicate)
         if (x_mm > 0.1) {
             world_x = -x_mm;
-            bed_mesh_point_3d_t neg_tick = project_3d_to_2d(world_x, x_axis_y, grid_z,
-                                                             canvas_width, canvas_height,
-                                                             &renderer->view_state);
+            bed_mesh_point_3d_t neg_tick = project_3d_to_2d(world_x, x_axis_y, grid_z, canvas_width,
+                                                            canvas_height, &renderer->view_state);
 
             if (neg_tick.screen_x >= 0 && neg_tick.screen_x < canvas_width &&
                 neg_tick.screen_y >= 0 && neg_tick.screen_y < canvas_height) {
@@ -1711,8 +1717,8 @@ static void render_numeric_axis_ticks(lv_layer_t* layer, const bed_mesh_renderer
                 label_area.x2 = label_area.x1 + 30;
                 label_area.y2 = label_area.y1 + 12;
 
-                if (label_area.x1 >= 0 && label_area.x2 < canvas_width &&
-                    label_area.y1 >= 0 && label_area.y2 < canvas_height) {
+                if (label_area.x1 >= 0 && label_area.x2 < canvas_width && label_area.y1 >= 0 &&
+                    label_area.y2 < canvas_height) {
                     lv_draw_label(layer, &label_dsc, &label_area);
                 }
             }
@@ -1724,12 +1730,11 @@ static void render_numeric_axis_ticks(lv_layer_t* layer, const bed_mesh_renderer
     for (double y_mm = 0; y_mm <= bed_height_mm / 2.0; y_mm += tick_spacing) {
         // Draw positive Y tick
         double world_y = y_mm;
-        bed_mesh_point_3d_t pos_tick = project_3d_to_2d(y_axis_x, world_y, grid_z,
-                                                         canvas_width, canvas_height,
-                                                         &renderer->view_state);
+        bed_mesh_point_3d_t pos_tick = project_3d_to_2d(y_axis_x, world_y, grid_z, canvas_width,
+                                                        canvas_height, &renderer->view_state);
 
-        if (pos_tick.screen_x >= 0 && pos_tick.screen_x < canvas_width &&
-            pos_tick.screen_y >= 0 && pos_tick.screen_y < canvas_height) {
+        if (pos_tick.screen_x >= 0 && pos_tick.screen_x < canvas_width && pos_tick.screen_y >= 0 &&
+            pos_tick.screen_y < canvas_height) {
             char label_text[8];
             snprintf(label_text, sizeof(label_text), "%.0f", y_mm);
             label_dsc.text = label_text;
@@ -1740,8 +1745,8 @@ static void render_numeric_axis_ticks(lv_layer_t* layer, const bed_mesh_renderer
             label_area.x2 = label_area.x1 + 30;
             label_area.y2 = label_area.y1 + 12;
 
-            if (label_area.x1 >= 0 && label_area.x2 < canvas_width &&
-                label_area.y1 >= 0 && label_area.y2 < canvas_height) {
+            if (label_area.x1 >= 0 && label_area.x2 < canvas_width && label_area.y1 >= 0 &&
+                label_area.y2 < canvas_height) {
                 lv_draw_label(layer, &label_dsc, &label_area);
             }
         }
@@ -1749,9 +1754,8 @@ static void render_numeric_axis_ticks(lv_layer_t* layer, const bed_mesh_renderer
         // Draw negative Y tick (skip 0 to avoid duplicate)
         if (y_mm > 0.1) {
             world_y = -y_mm;
-            bed_mesh_point_3d_t neg_tick = project_3d_to_2d(y_axis_x, world_y, grid_z,
-                                                             canvas_width, canvas_height,
-                                                             &renderer->view_state);
+            bed_mesh_point_3d_t neg_tick = project_3d_to_2d(y_axis_x, world_y, grid_z, canvas_width,
+                                                            canvas_height, &renderer->view_state);
 
             if (neg_tick.screen_x >= 0 && neg_tick.screen_x < canvas_width &&
                 neg_tick.screen_y >= 0 && neg_tick.screen_y < canvas_height) {
@@ -1765,8 +1769,8 @@ static void render_numeric_axis_ticks(lv_layer_t* layer, const bed_mesh_renderer
                 label_area.x2 = label_area.x1 + 30;
                 label_area.y2 = label_area.y1 + 12;
 
-                if (label_area.x1 >= 0 && label_area.x2 < canvas_width &&
-                    label_area.y1 >= 0 && label_area.y2 < canvas_height) {
+                if (label_area.x1 >= 0 && label_area.x2 < canvas_width && label_area.y1 >= 0 &&
+                    label_area.y2 < canvas_height) {
                     lv_draw_label(layer, &label_dsc, &label_area);
                 }
             }

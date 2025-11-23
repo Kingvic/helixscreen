@@ -26,11 +26,11 @@
 #include "ui_theme.h"
 #include "ui_utils.h"
 
+#include "spdlog/spdlog.h"
+
 #include <algorithm>
 #include <stdio.h>
 #include <vector>
-
-#include "spdlog/spdlog.h"
 
 // ============================================================================
 // LIFECYCLE & RESPONSIVE BEHAVIOR

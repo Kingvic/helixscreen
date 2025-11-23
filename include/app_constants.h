@@ -21,58 +21,58 @@
  * @brief Application-wide constants shared between UI and backend
  */
 namespace AppConstants {
-    /**
-     * @brief Temperature-related constants
-     *
-     * Safety limits and default values for temperature control.
-     * Used by both UI panels and backend temperature management.
-     */
-    namespace Temperature {
-        /// Minimum safe temperature for extrusion operations (Klipper default)
-        constexpr int MIN_EXTRUSION_TEMP = 170;
+/**
+ * @brief Temperature-related constants
+ *
+ * Safety limits and default values for temperature control.
+ * Used by both UI panels and backend temperature management.
+ */
+namespace Temperature {
+/// Minimum safe temperature for extrusion operations (Klipper default)
+constexpr int MIN_EXTRUSION_TEMP = 170;
 
-        /// Default maximum temperature for nozzle/hotend
-        constexpr int DEFAULT_NOZZLE_MAX = 500;
+/// Default maximum temperature for nozzle/hotend
+constexpr int DEFAULT_NOZZLE_MAX = 500;
 
-        /// Default maximum temperature for heated bed
-        constexpr int DEFAULT_BED_MAX = 150;
+/// Default maximum temperature for heated bed
+constexpr int DEFAULT_BED_MAX = 150;
 
-        /// Default minimum temperature (ambient)
-        constexpr int DEFAULT_MIN_TEMP = 0;
-    }
+/// Default minimum temperature (ambient)
+constexpr int DEFAULT_MIN_TEMP = 0;
+} // namespace Temperature
 
-    /**
-     * @brief Responsive layout breakpoints
-     *
-     * These define the screen height thresholds for different UI layouts.
-     * Use these consistently across all panels for uniform responsive behavior.
-     */
-    namespace Responsive {
-        /// Tiny screens: <= 479px height
-        constexpr lv_coord_t BREAKPOINT_TINY_MAX = 479;
+/**
+ * @brief Responsive layout breakpoints
+ *
+ * These define the screen height thresholds for different UI layouts.
+ * Use these consistently across all panels for uniform responsive behavior.
+ */
+namespace Responsive {
+/// Tiny screens: <= 479px height
+constexpr lv_coord_t BREAKPOINT_TINY_MAX = 479;
 
-        /// Small screens: 480-599px height
-        constexpr lv_coord_t BREAKPOINT_SMALL_MAX = 599;
+/// Small screens: 480-599px height
+constexpr lv_coord_t BREAKPOINT_SMALL_MAX = 599;
 
-        /// Medium screens: 600-1023px height
-        constexpr lv_coord_t BREAKPOINT_MEDIUM_MAX = 1023;
+/// Medium screens: 600-1023px height
+constexpr lv_coord_t BREAKPOINT_MEDIUM_MAX = 1023;
 
-        /// Large screens: >= 1024px height
-        // (No max defined - anything above MEDIUM is large)
-    }
+/// Large screens: >= 1024px height
+// (No max defined - anything above MEDIUM is large)
+} // namespace Responsive
 
-    /**
-     * @brief Material temperature presets
-     *
-     * Common filament material extrusion temperatures.
-     * These can be overridden by user settings in the future.
-     */
-    namespace MaterialPresets {
-        constexpr int PLA = 210;
-        constexpr int PETG = 240;
-        constexpr int ABS = 250;
-        constexpr int CUSTOM_DEFAULT = 200;
-    }
-}
+/**
+ * @brief Material temperature presets
+ *
+ * Common filament material extrusion temperatures.
+ * These can be overridden by user settings in the future.
+ */
+namespace MaterialPresets {
+constexpr int PLA = 210;
+constexpr int PETG = 240;
+constexpr int ABS = 250;
+constexpr int CUSTOM_DEFAULT = 200;
+} // namespace MaterialPresets
+} // namespace AppConstants
 
 #endif // APP_CONSTANTS_H

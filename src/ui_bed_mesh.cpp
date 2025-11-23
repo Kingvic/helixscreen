@@ -45,8 +45,8 @@ typedef struct {
     int rotation_z;                // Current spin angle (degrees)
 
     // Touch drag state
-    bool is_dragging;              // Currently in drag gesture
-    lv_point_t last_drag_pos;      // Last touch position for delta calculation
+    bool is_dragging;         // Currently in drag gesture
+    lv_point_t last_drag_pos; // Last touch position for delta calculation
 } bed_mesh_widget_data_t;
 
 /**
@@ -90,7 +90,8 @@ static void bed_mesh_draw_cb(lv_event_t* e) {
 
         // Calculate centered position
         lv_point_t txt_size;
-        lv_text_get_size(&txt_size, label_dsc.text, label_dsc.font, 0, 0, LV_COORD_MAX, LV_TEXT_FLAG_NONE);
+        lv_text_get_size(&txt_size, label_dsc.text, label_dsc.font, 0, 0, LV_COORD_MAX,
+                         LV_TEXT_FLAG_NONE);
 
         lv_area_t label_area;
         label_area.x1 = (width - txt_size.x) / 2;
@@ -151,12 +152,13 @@ static void bed_mesh_pressing_cb(lv_event_t* e) {
     lv_indev_state_t state = lv_indev_get_state(indev);
     if (state != LV_INDEV_STATE_PRESSED) {
         // Input was released but we missed the event - force cleanup
-        spdlog::warn("[bed_mesh] Detected missed release event (state={}), forcing gradient mode", (int)state);
+        spdlog::warn("[bed_mesh] Detected missed release event (state={}), forcing gradient mode",
+                     (int)state);
         data->is_dragging = false;
         if (data->renderer) {
             bed_mesh_renderer_set_dragging(data->renderer, false);
         }
-        lv_obj_invalidate(obj);  // Trigger redraw with gradient
+        lv_obj_invalidate(obj); // Trigger redraw with gradient
         return;
     }
 
@@ -221,7 +223,8 @@ static void bed_mesh_release_cb(lv_event_t* e) {
     // Force immediate redraw to switch back to gradient rendering
     lv_obj_invalidate(obj);
 
-    spdlog::trace("[bed_mesh] Release - final rotation({}, {}), switching to gradient", data->rotation_x, data->rotation_z);
+    spdlog::trace("[bed_mesh] Release - final rotation({}, {}), switching to gradient",
+                  data->rotation_x, data->rotation_z);
 }
 
 /**
@@ -295,7 +298,7 @@ static void* bed_mesh_xml_create(lv_xml_parser_state_t* state, const char** attr
     if (!data_ptr->renderer) {
         spdlog::error("[bed_mesh] Failed to create renderer");
         lv_obj_delete(obj);
-        return NULL;  // unique_ptr automatically cleans up
+        return NULL; // unique_ptr automatically cleans up
     }
 
     // Set default rotation angles
@@ -311,15 +314,17 @@ static void* bed_mesh_xml_create(lv_xml_parser_state_t* state, const char** attr
     lv_obj_set_user_data(obj, data_ptr.release());
 
     // Register event handlers
-    lv_obj_add_event_cb(obj, bed_mesh_draw_cb, LV_EVENT_DRAW_POST, NULL);     // Custom drawing
-    lv_obj_add_event_cb(obj, bed_mesh_size_changed_cb, LV_EVENT_SIZE_CHANGED, NULL); // Handle resize
-    lv_obj_add_event_cb(obj, bed_mesh_delete_cb, LV_EVENT_DELETE, NULL);      // Cleanup
+    lv_obj_add_event_cb(obj, bed_mesh_draw_cb, LV_EVENT_DRAW_POST, NULL); // Custom drawing
+    lv_obj_add_event_cb(obj, bed_mesh_size_changed_cb, LV_EVENT_SIZE_CHANGED,
+                        NULL);                                           // Handle resize
+    lv_obj_add_event_cb(obj, bed_mesh_delete_cb, LV_EVENT_DELETE, NULL); // Cleanup
 
     // Register touch event handlers for drag rotation
     lv_obj_add_event_cb(obj, bed_mesh_press_cb, LV_EVENT_PRESSED, NULL);
     lv_obj_add_event_cb(obj, bed_mesh_pressing_cb, LV_EVENT_PRESSING, NULL);
     lv_obj_add_event_cb(obj, bed_mesh_release_cb, LV_EVENT_RELEASED, NULL);
-    lv_obj_add_event_cb(obj, bed_mesh_release_cb, LV_EVENT_PRESS_LOST, NULL);  // Handle drag outside widget
+    lv_obj_add_event_cb(obj, bed_mesh_release_cb, LV_EVENT_PRESS_LOST,
+                        NULL); // Handle drag outside widget
 
     // Set default size (will be overridden by XML width/height attributes)
     lv_obj_set_size(obj, BED_MESH_CANVAS_WIDTH, BED_MESH_CANVAS_HEIGHT);

@@ -70,6 +70,7 @@
 #define UI_WIDGET_MEMORY_H
 
 #include "lvgl/lvgl.h"
+
 #include <memory>
 
 /**
@@ -93,8 +94,7 @@ struct LvglDeleter {
  *
  * @tparam T Type of data stored
  */
-template <typename T>
-using lvgl_unique_ptr = std::unique_ptr<T, LvglDeleter>;
+template <typename T> using lvgl_unique_ptr = std::unique_ptr<T, LvglDeleter>;
 
 /**
  * @brief Allocate memory using lv_malloc and wrap in RAII unique_ptr
@@ -104,8 +104,7 @@ using lvgl_unique_ptr = std::unique_ptr<T, LvglDeleter>;
  * @param args Arguments forwarded to T's constructor
  * @return lvgl_unique_ptr<T> Owning pointer (nullptr on allocation failure)
  */
-template <typename T, typename... Args>
-inline lvgl_unique_ptr<T> lvgl_make_unique(Args&&... args) {
+template <typename T, typename... Args> inline lvgl_unique_ptr<T> lvgl_make_unique(Args&&... args) {
     T* ptr = (T*)lv_malloc(sizeof(T));
     if (!ptr) {
         return lvgl_unique_ptr<T>(nullptr);
@@ -125,8 +124,7 @@ inline lvgl_unique_ptr<T> lvgl_make_unique(Args&&... args) {
  * @param count Number of elements to allocate
  * @return lvgl_unique_ptr<T> Owning pointer (nullptr on allocation failure)
  */
-template <typename T>
-inline lvgl_unique_ptr<T> lvgl_make_unique_array(size_t count) {
+template <typename T> inline lvgl_unique_ptr<T> lvgl_make_unique_array(size_t count) {
     T* ptr = (T*)lv_malloc(count * sizeof(T));
     if (!ptr) {
         return lvgl_unique_ptr<T>(nullptr);

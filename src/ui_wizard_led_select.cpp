@@ -98,21 +98,19 @@ lv_obj_t* ui_wizard_led_select_create(lv_obj_t* parent) {
 
     // Populate LED dropdown (discover + filter + populate + restore)
     wizard_populate_hardware_dropdown(
-        led_select_screen_root, "led_main_dropdown",
-        &led_strip_selected, led_strip_items,
+        led_select_screen_root, "led_main_dropdown", &led_strip_selected, led_strip_items,
         [](MoonrakerClient* c) -> const auto& { return c->get_leds(); },
         nullptr, // No filter - include all LEDs
         true,    // Allow "None" option
         WizardConfigPaths::LED_STRIP,
         nullptr, // No guessing method for LED strips
-        "[Wizard LED]"
-    );
+        "[Wizard LED]");
 
     // Attach LED dropdown callback programmatically
     lv_obj_t* led_dropdown = lv_obj_find_by_name(led_select_screen_root, "led_main_dropdown");
     if (led_dropdown) {
         lv_obj_add_event_cb(led_dropdown, wizard_hardware_dropdown_changed_cb,
-                           LV_EVENT_VALUE_CHANGED, &led_strip_selected);
+                            LV_EVENT_VALUE_CHANGED, &led_strip_selected);
     }
 
     spdlog::info("[Wizard LED] Screen created successfully");

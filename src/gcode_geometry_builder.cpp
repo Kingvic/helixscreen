@@ -4,17 +4,18 @@
 // G-Code Geometry Builder Implementation
 
 #include "gcode_geometry_builder.h"
+
 #include "config.h"
 
 #include <spdlog/spdlog.h>
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <glm/gtx/norm.hpp>
 #include <limits>
 #include <unordered_map>
-#include <chrono>
 
 namespace gcode {
 
@@ -202,14 +203,14 @@ void GeometryBuilder::BuildStats::log() const {
     spdlog::info("[GCode::Builder] Geometry Build Statistics:");
     spdlog::info("[GCode::Builder]   G-code Parsing:");
     spdlog::info("[GCode::Builder]     Raw toolpath segments:    {:>8}", input_segments);
-    spdlog::info("[GCode::Builder]     After simplification:     {:>8} ({:.1f}% reduction)", output_segments,
-                 simplification_ratio * 100.0f);
+    spdlog::info("[GCode::Builder]     After simplification:     {:>8} ({:.1f}% reduction)",
+                 output_segments, simplification_ratio * 100.0f);
     spdlog::info("[GCode::Builder]   3D Geometry Generation:");
     spdlog::info("[GCode::Builder]     Vertices (triangle strips): {:>8}", vertices_generated);
     spdlog::info("[GCode::Builder]     Triangles rendered:         {:>8}", triangles_generated);
     spdlog::info("[GCode::Builder]   Memory:");
-    spdlog::info("[GCode::Builder]     Total geometry memory:    {:>8} KB ({:.2f} MB)", memory_bytes / 1024,
-                 memory_bytes / (1024.0 * 1024.0));
+    spdlog::info("[GCode::Builder]     Total geometry memory:    {:>8} KB ({:.2f} MB)",
+                 memory_bytes / 1024, memory_bytes / (1024.0 * 1024.0));
 
     if (input_segments > 0) {
         float bytes_per_segment = static_cast<float>(memory_bytes) / input_segments;
@@ -232,7 +233,7 @@ GeometryBuilder::GeometryBuilder() {
 
 uint16_t GeometryBuilder::add_to_normal_palette(RibbonGeometry& geometry, const glm::vec3& normal) {
     // Very light quantization (0.001) to merge nearly-identical normals without visible banding
-    constexpr float QUANT_STEP = 0.01f;  // Increased from 0.001 for better deduplication
+    constexpr float QUANT_STEP = 0.01f; // Increased from 0.001 for better deduplication
     glm::vec3 quantized;
     quantized.x = std::round(normal.x / QUANT_STEP) * QUANT_STEP;
     quantized.y = std::round(normal.y / QUANT_STEP) * QUANT_STEP;
@@ -250,7 +251,7 @@ uint16_t GeometryBuilder::add_to_normal_palette(RibbonGeometry& geometry, const 
     auto* cache = static_cast<NormalCache*>(geometry.normal_cache_ptr);
     auto it = cache->find(quantized);
     if (it != cache->end()) {
-        return it->second;  // Cache hit!
+        return it->second; // Cache hit!
     }
 
     // Not in cache - add to palette
@@ -261,7 +262,7 @@ uint16_t GeometryBuilder::add_to_normal_palette(RibbonGeometry& geometry, const 
 
     uint16_t index = static_cast<uint16_t>(geometry.normal_palette.size());
     geometry.normal_palette.push_back(quantized);
-    (*cache)[quantized] = index;  // Add to cache
+    (*cache)[quantized] = index; // Add to cache
 
     // Log palette size periodically
     if (geometry.normal_palette.size() % 1000 == 0) {
@@ -276,7 +277,7 @@ uint8_t GeometryBuilder::add_to_color_palette(RibbonGeometry& geometry, uint32_t
     auto* cache = static_cast<ColorCache*>(geometry.color_cache_ptr);
     auto it = cache->find(color_rgb);
     if (it != cache->end()) {
-        return it->second;  // Cache hit!
+        return it->second; // Cache hit!
     }
 
     // Not in cache - add to palette
@@ -287,7 +288,7 @@ uint8_t GeometryBuilder::add_to_color_palette(RibbonGeometry& geometry, uint32_t
 
     uint8_t index = static_cast<uint8_t>(geometry.color_palette.size());
     geometry.color_palette.push_back(color_rgb);
-    (*cache)[color_rgb] = index;  // Add to cache
+    (*cache)[color_rgb] = index; // Add to cache
 
     return index;
 }
@@ -328,25 +329,25 @@ RibbonGeometry GeometryBuilder::build(const ParsedGCodeFile& gcode,
     }
 
     stats_.input_segments = all_segments.size();
-    spdlog::debug("[GCode::Builder] Collected {} total segments from {} layers", all_segments.size(),
-                  gcode.layers.size());
+    spdlog::debug("[GCode::Builder] Collected {} total segments from {} layers",
+                  all_segments.size(), gcode.layers.size());
 
     // Pre-filter: Remove degenerate (zero-length) segments before simplification
     size_t degenerate_count = 0;
-    all_segments.erase(
-        std::remove_if(all_segments.begin(), all_segments.end(),
-                      [&degenerate_count](const ToolpathSegment& seg) {
-                          float length = glm::distance(seg.start, seg.end);
-                          if (length < 0.0001f) {
-                              degenerate_count++;
-                              return true;  // Remove this segment
-                          }
-                          return false;  // Keep this segment
-                      }),
-        all_segments.end());
+    all_segments.erase(std::remove_if(all_segments.begin(), all_segments.end(),
+                                      [&degenerate_count](const ToolpathSegment& seg) {
+                                          float length = glm::distance(seg.start, seg.end);
+                                          if (length < 0.0001f) {
+                                              degenerate_count++;
+                                              return true; // Remove this segment
+                                          }
+                                          return false; // Keep this segment
+                                      }),
+                       all_segments.end());
 
     if (degenerate_count > 0) {
-        spdlog::debug("[GCode::Builder] Pre-filtered {} degenerate (zero-length) segments", degenerate_count);
+        spdlog::debug("[GCode::Builder] Pre-filtered {} degenerate (zero-length) segments",
+                      degenerate_count);
     }
 
     // Step 1: Simplify segments (merge collinear lines)
@@ -357,13 +358,15 @@ RibbonGeometry GeometryBuilder::build(const ParsedGCodeFile& gcode,
         stats_.simplification_ratio =
             1.0f - (static_cast<float>(simplified.size()) / all_segments.size());
 
-        spdlog::info("[GCode::Builder] Toolpath simplification: {} → {} segments ({:.1f}% reduction)",
-                     all_segments.size(), simplified.size(), stats_.simplification_ratio * 100.0f);
+        spdlog::info(
+            "[GCode::Builder] Toolpath simplification: {} → {} segments ({:.1f}% reduction)",
+            all_segments.size(), simplified.size(), stats_.simplification_ratio * 100.0f);
     } else {
         simplified = all_segments;
         stats_.output_segments = simplified.size();
         stats_.simplification_ratio = 0.0f;
-        spdlog::info("[GCode::Builder] Toolpath simplification DISABLED: using {} raw segments", simplified.size());
+        spdlog::info("[GCode::Builder] Toolpath simplification DISABLED: using {} raw segments",
+                     simplified.size());
     }
 
     // Find the maximum Z height (top layer) dynamically for debug filtering
@@ -384,7 +387,7 @@ RibbonGeometry GeometryBuilder::build(const ParsedGCodeFile& gcode,
     size_t segments_skipped = 0;
     size_t segments_processed = 0;
     size_t segments_shared = 0;
-    size_t sharing_candidates = 0;  // Segments where prev_end_cap exists
+    size_t sharing_candidates = 0; // Segments where prev_end_cap exists
 
     for (size_t i = 0; i < simplified.size(); ++i) {
         const auto& segment = simplified[i];
@@ -487,9 +490,10 @@ RibbonGeometry GeometryBuilder::build(const ParsedGCodeFile& gcode,
     }
 
     if (total_segs > 0) {
-        spdlog::debug("Top layer Z={:.2f}mm: {} segments ({} extrusion, {} travel, angles: {}°±45°, {}°h, {}°v, {} other)",
-                      max_z, total_segs, extrusion_segs, travel_segs,
-                      diagonal_45_segs, horizontal_segs, vertical_segs, other_angle_segs);
+        spdlog::debug("Top layer Z={:.2f}mm: {} segments ({} extrusion, {} travel, angles: "
+                      "{}°±45°, {}°h, {}°v, {} other)",
+                      max_z, total_segs, extrusion_segs, travel_segs, diagonal_45_segs,
+                      horizontal_segs, vertical_segs, other_angle_segs);
     }
 
     // Store quantization parameters for dequantization during rendering
@@ -501,11 +505,13 @@ RibbonGeometry GeometryBuilder::build(const ParsedGCodeFile& gcode,
     stats_.memory_bytes = geometry.memory_usage();
 
     // Log vertex sharing statistics
-    float sharing_rate = sharing_candidates > 0 ? (100.0f * segments_shared / sharing_candidates) : 0.0f;
-    spdlog::info("[GCode::Builder] Vertex sharing: {}/{} segments ({:.1f}%)",
-                 segments_shared, sharing_candidates, sharing_rate);
+    float sharing_rate =
+        sharing_candidates > 0 ? (100.0f * segments_shared / sharing_candidates) : 0.0f;
+    spdlog::info("[GCode::Builder] Vertex sharing: {}/{} segments ({:.1f}%)", segments_shared,
+                 sharing_candidates, sharing_rate);
     if (sharing_rate < 40.0f) {
-        spdlog::warn("[GCode::Builder] Low vertex sharing rate ({:.1f}%) - expected ~50% for continuous toolpaths",
+        spdlog::warn("[GCode::Builder] Low vertex sharing rate ({:.1f}%) - expected ~50% for "
+                     "continuous toolpaths",
                      sharing_rate);
     }
 
@@ -518,18 +524,21 @@ RibbonGeometry GeometryBuilder::build(const ParsedGCodeFile& gcode,
     auto* normal_cache = static_cast<NormalCache*>(geometry.normal_cache_ptr);
     auto* color_cache = static_cast<ColorCache*>(geometry.color_cache_ptr);
     spdlog::debug("[GCode::Builder] Cache stats: normal_cache={} entries, color_cache={} entries",
-                 normal_cache->size(), color_cache->size());
+                  normal_cache->size(), color_cache->size());
 
     if (segments_skipped > 0) {
-        spdlog::debug("[GCode::Builder] Skipped {} travel move segments (non-extrusion)", segments_skipped);
+        spdlog::debug("[GCode::Builder] Skipped {} travel move segments (non-extrusion)",
+                      segments_skipped);
     }
 
     stats_.log();
 
     // End timing
     auto build_end = std::chrono::high_resolution_clock::now();
-    auto build_duration = std::chrono::duration_cast<std::chrono::milliseconds>(build_end - build_start);
-    spdlog::info("[GCode::Builder] Geometry build completed in {:.3f} seconds", build_duration.count() / 1000.0);
+    auto build_duration =
+        std::chrono::duration_cast<std::chrono::milliseconds>(build_end - build_start);
+    spdlog::info("[GCode::Builder] Geometry build completed in {:.3f} seconds",
+                 build_duration.count() / 1000.0);
 
     return geometry;
 }
@@ -624,15 +633,15 @@ GeometryBuilder::TubeCap
 GeometryBuilder::generate_ribbon_vertices(const ToolpathSegment& segment, RibbonGeometry& geometry,
                                           const QuantizationParams& quant,
                                           std::optional<TubeCap> prev_start_cap) {
-
     // Read tube cross-section configuration
-    static int tube_sides = -1;  // Cache config value (read once)
+    static int tube_sides = -1; // Cache config value (read once)
     if (tube_sides == -1) {
         tube_sides = Config::get_instance()->get<int>("/gcode_viewer/tube_sides", 16);
 
         // Validate: only 4, 8, or 16 sides supported
         if (tube_sides != 4 && tube_sides != 8 && tube_sides != 16) {
-            spdlog::warn("Invalid tube_sides={} (must be 4, 8, or 16), defaulting to 16", tube_sides);
+            spdlog::warn("Invalid tube_sides={} (must be 4, 8, or 16), defaulting to 16",
+                         tube_sides);
             tube_sides = 16;
         }
 
@@ -673,8 +682,10 @@ GeometryBuilder::generate_ribbon_vertices(const ToolpathSegment& segment, Ribbon
     if (!highlighted_objects_.empty() && !segment.object_name.empty() &&
         highlighted_objects_.count(segment.object_name) > 0) {
         constexpr float HIGHLIGHT_BRIGHTNESS = 1.8f;
-        uint8_t r = static_cast<uint8_t>(std::min(255.0f, ((rgb >> 16) & 0xFF) * HIGHLIGHT_BRIGHTNESS));
-        uint8_t g = static_cast<uint8_t>(std::min(255.0f, ((rgb >> 8) & 0xFF) * HIGHLIGHT_BRIGHTNESS));
+        uint8_t r =
+            static_cast<uint8_t>(std::min(255.0f, ((rgb >> 16) & 0xFF) * HIGHLIGHT_BRIGHTNESS));
+        uint8_t g =
+            static_cast<uint8_t>(std::min(255.0f, ((rgb >> 8) & 0xFF) * HIGHLIGHT_BRIGHTNESS));
         uint8_t b = static_cast<uint8_t>(std::min(255.0f, (rgb & 0xFF) * HIGHLIGHT_BRIGHTNESS));
         rgb = (r << 16) | (g << 8) | b;
     }
@@ -694,13 +705,15 @@ GeometryBuilder::generate_ribbon_vertices(const ToolpathSegment& segment, Ribbon
         };
 
         for (int i = 0; i < N; i++) {
-            uint32_t color = DEBUG_COLORS[i % 4];  // Cycle: R,Y,B,G,R,Y,B,G,...
+            uint32_t color = DEBUG_COLORS[i % 4]; // Cycle: R,Y,B,G,R,Y,B,G,...
             face_colors[i] = add_to_color_palette(geometry, color);
         }
 
         static bool logged_once = false;
         if (!logged_once) {
-            spdlog::debug("DEBUG FACE COLORS ACTIVE: N={} faces, colors cycle through Red/Yellow/Blue/Green", N);
+            spdlog::debug(
+                "DEBUG FACE COLORS ACTIVE: N={} faces, colors cycle through Red/Yellow/Blue/Green",
+                N);
             logged_once = true;
         }
     }
@@ -717,9 +730,9 @@ GeometryBuilder::generate_ribbon_vertices(const ToolpathSegment& segment, Ribbon
     std::vector<glm::vec3> vertex_offsets(N);
 
     for (int i = 0; i < N; i++) {
-        float angle = i * angle_step;  // 0°, 360°/N, 2×360°/N, ...
-        vertex_offsets[i] = half_width * std::cos(angle) * right +
-                           half_height * std::sin(angle) * perp_up;
+        float angle = i * angle_step; // 0°, 360°/N, 2×360°/N, ...
+        vertex_offsets[i] =
+            half_width * std::cos(angle) * right + half_height * std::sin(angle) * perp_up;
     }
 
     // Generate N face normals (one per face)
@@ -728,10 +741,9 @@ GeometryBuilder::generate_ribbon_vertices(const ToolpathSegment& segment, Ribbon
     std::vector<glm::vec3> face_normals(N);
 
     for (int i = 0; i < N; i++) {
-        float face_angle = (i + 0.5f) * angle_step;  // Midpoint between vertices i and i+1
-        glm::vec3 face_center_offset =
-            half_width * std::cos(face_angle) * right +
-            half_height * std::sin(face_angle) * perp_up;
+        float face_angle = (i + 0.5f) * angle_step; // Midpoint between vertices i and i+1
+        glm::vec3 face_center_offset = half_width * std::cos(face_angle) * right +
+                                       half_height * std::sin(face_angle) * perp_up;
         face_normals[i] = glm::normalize(face_center_offset);
     }
 
@@ -747,16 +759,16 @@ GeometryBuilder::generate_ribbon_vertices(const ToolpathSegment& segment, Ribbon
 
         // Use unique START_CAP color for debug visualization
         uint8_t start_cap_color_idx = debug_face_colors_
-            ? add_to_color_palette(geometry, DebugColors::START_CAP)
-            : face_colors[0];  // Use first face color if not debugging
+                                          ? add_to_color_palette(geometry, DebugColors::START_CAP)
+                                          : face_colors[0]; // Use first face color if not debugging
 
         // Generate N start cap vertices
         for (int i = 0; i < N; i++) {
             glm::vec3 pos = prev_pos + vertex_offsets[i];
             geometry.vertices.push_back({
                 quant.quantize_vec3(pos),
-                cap_normal_idx,          // Axial normal pointing backward
-                start_cap_color_idx      // MAGENTA for start cap in debug mode
+                cap_normal_idx,     // Axial normal pointing backward
+                start_cap_color_idx // MAGENTA for start cap in debug mode
             });
         }
         idx_start += N;
@@ -764,66 +776,55 @@ GeometryBuilder::generate_ribbon_vertices(const ToolpathSegment& segment, Ribbon
 
     // ========== PREV SIDE FACE VERTICES ==========
     // Generate 2N prev vertices (2 vertices per face, N faces)
-    // Each face connects vertex (i+1)%N to vertex i (going backwards around circle for correct winding)
+    // Each face connects vertex (i+1)%N to vertex i (going backwards around circle for correct
+    // winding)
     for (int i = 0; i < N; i++) {
         int next_i = (i + 1) % N;
-        glm::vec3 pos_v1 = prev_pos + vertex_offsets[next_i];  // REVERSED: next_i first
-        glm::vec3 pos_v2 = prev_pos + vertex_offsets[i];       // then i
+        glm::vec3 pos_v1 = prev_pos + vertex_offsets[next_i]; // REVERSED: next_i first
+        glm::vec3 pos_v2 = prev_pos + vertex_offsets[i];      // then i
         uint16_t normal_idx = add_to_normal_palette(geometry, face_normals[i]);
 
-        geometry.vertices.push_back({
-            quant.quantize_vec3(pos_v1),
-            normal_idx,
-            face_colors[i]
-        });
-        geometry.vertices.push_back({
-            quant.quantize_vec3(pos_v2),
-            normal_idx,
-            face_colors[i]
-        });
+        geometry.vertices.push_back({quant.quantize_vec3(pos_v1), normal_idx, face_colors[i]});
+        geometry.vertices.push_back({quant.quantize_vec3(pos_v2), normal_idx, face_colors[i]});
     }
-    idx_start += 2*N;
+    idx_start += 2 * N;
 
     // ========== CURR SIDE FACE VERTICES ==========
     // Generate 2N curr vertices (2 vertices per face, N faces)
-    // Each face connects vertex (i+1)%N to vertex i (going backwards around circle for correct winding)
+    // Each face connects vertex (i+1)%N to vertex i (going backwards around circle for correct
+    // winding)
     for (int i = 0; i < N; i++) {
         int next_i = (i + 1) % N;
-        glm::vec3 pos_v1 = curr_pos + vertex_offsets[next_i];  // REVERSED: next_i first
-        glm::vec3 pos_v2 = curr_pos + vertex_offsets[i];       // then i
+        glm::vec3 pos_v1 = curr_pos + vertex_offsets[next_i]; // REVERSED: next_i first
+        glm::vec3 pos_v2 = curr_pos + vertex_offsets[i];      // then i
         uint16_t normal_idx = add_to_normal_palette(geometry, face_normals[i]);
 
-        geometry.vertices.push_back({
-            quant.quantize_vec3(pos_v1),
-            normal_idx,
-            face_colors[i]
-        });
-        geometry.vertices.push_back({
-            quant.quantize_vec3(pos_v2),
-            normal_idx,
-            face_colors[i]
-        });
+        geometry.vertices.push_back({quant.quantize_vec3(pos_v1), normal_idx, face_colors[i]});
+        geometry.vertices.push_back({quant.quantize_vec3(pos_v2), normal_idx, face_colors[i]});
     }
-    idx_start += 2*N;
+    idx_start += 2 * N;
 
     // ========== END CAP TRACKING ==========
     // Track end cap edge positions (first vertex of each face in curr ring)
     TubeCap end_cap(N);
-    uint32_t end_cap_base = idx_start - 2*N;
+    uint32_t end_cap_base = idx_start - 2 * N;
     for (int i = 0; i < N; i++) {
         // Track first vertex of each face (vertex i)
-        end_cap[i] = end_cap_base + 2*i;
+        end_cap[i] = end_cap_base + 2 * i;
     }
 
     static int debug_count = 0;
     if (debug_count < 2 && debug_face_colors_) {
         spdlog::info("=== Segment {} | N={} | is_first={} ===", debug_count, N, is_first_segment);
         spdlog::info("  Segment: start=({:.3f},{:.3f},{:.3f}) end=({:.3f},{:.3f},{:.3f})",
-                     segment.start.x, segment.start.y, segment.start.z,
-                     segment.end.x, segment.end.y, segment.end.z);
-        spdlog::info("  Direction: dir=({:.3f},{:.3f},{:.3f}) right=({:.3f},{:.3f},{:.3f}) perp_up=({:.3f},{:.3f},{:.3f})",
-                     dir.x, dir.y, dir.z, right.x, right.y, right.z, perp_up.x, perp_up.y, perp_up.z);
-        spdlog::info("  Cross-section center: prev_pos=({:.3f},{:.3f},{:.3f}) curr_pos=({:.3f},{:.3f},{:.3f})",
+                     segment.start.x, segment.start.y, segment.start.z, segment.end.x,
+                     segment.end.y, segment.end.z);
+        spdlog::info("  Direction: dir=({:.3f},{:.3f},{:.3f}) right=({:.3f},{:.3f},{:.3f}) "
+                     "perp_up=({:.3f},{:.3f},{:.3f})",
+                     dir.x, dir.y, dir.z, right.x, right.y, right.z, perp_up.x, perp_up.y,
+                     perp_up.z);
+        spdlog::info("  Cross-section center: prev_pos=({:.3f},{:.3f},{:.3f}) "
+                     "curr_pos=({:.3f},{:.3f},{:.3f})",
                      prev_pos.x, prev_pos.y, prev_pos.z, curr_pos.x, curr_pos.y, curr_pos.z);
         spdlog::info("  Curr vertices ({} total):", N);
         for (int i = 0; i < N; i++) {
@@ -840,25 +841,25 @@ GeometryBuilder::generate_ribbon_vertices(const ToolpathSegment& segment, Ribbon
 
     if (is_first_segment) {
         // First segment: N (start cap) + 2N (prev) + 2N (curr) = 5N vertices
-        base = idx_start - 5*N;
+        base = idx_start - 5 * N;
         start_cap_base = base;
         prev_faces_base = base + N;
-        curr_faces_base = base + N + 2*N;
+        curr_faces_base = base + N + 2 * N;
     } else {
         // Subsequent: 2N (prev) + 2N (curr) = 4N vertices
-        base = idx_start - 4*N;
+        base = idx_start - 4 * N;
         prev_faces_base = base;
-        curr_faces_base = base + 2*N;
+        curr_faces_base = base + 2 * N;
     }
 
     // Generate N side face strips (one strip per face)
     // Each face connects vertex i to vertex (i+1)%N
     for (int i = 0; i < N; i++) {
         geometry.strips.push_back({
-            prev_faces_base + 2*i,      // prev ring, vertex i
-            prev_faces_base + 2*i + 1,  // prev ring, vertex i+1
-            curr_faces_base + 2*i,      // curr ring, vertex i
-            curr_faces_base + 2*i + 1   // curr ring, vertex i+1
+            prev_faces_base + 2 * i,     // prev ring, vertex i
+            prev_faces_base + 2 * i + 1, // prev ring, vertex i+1
+            curr_faces_base + 2 * i,     // curr ring, vertex i
+            curr_faces_base + 2 * i + 1  // curr ring, vertex i+1
         });
     }
 
@@ -878,17 +879,16 @@ GeometryBuilder::generate_ribbon_vertices(const ToolpathSegment& segment, Ribbon
         }
 
         if (debug_face_colors_) {
-            spdlog::info("START CAP: N={} vertices, {} triangles (triangle fan)", N, N-2);
+            spdlog::info("START CAP: N={} vertices, {} triangles (triangle fan)", N, N - 2);
         }
     }
 
     // ========== END CAP VERTICES ==========
     // Create N new vertices at the SAME POSITIONS as end_cap vertices but with axial normals
-    uint8_t end_cap_color_idx = debug_face_colors_
-        ? add_to_color_palette(geometry, DebugColors::END_CAP)
-        : face_colors[0];
+    uint8_t end_cap_color_idx =
+        debug_face_colors_ ? add_to_color_palette(geometry, DebugColors::END_CAP) : face_colors[0];
 
-    glm::vec3 cap_normal_end = -dir;  // Same as start cap
+    glm::vec3 cap_normal_end = -dir; // Same as start cap
     uint16_t end_cap_normal_idx = add_to_normal_palette(geometry, cap_normal_end);
 
     uint32_t idx_end_cap_start = idx_start;
@@ -902,11 +902,8 @@ GeometryBuilder::generate_ribbon_vertices(const ToolpathSegment& segment, Ribbon
 
     // Create N end cap vertices with axial normals
     for (int i = 0; i < N; i++) {
-        geometry.vertices.push_back({
-            geometry.vertices[end_cap[i]].position,
-            end_cap_normal_idx,
-            end_cap_color_idx
-        });
+        geometry.vertices.push_back(
+            {geometry.vertices[end_cap[i]].position, end_cap_normal_idx, end_cap_color_idx});
     }
     idx_start += N;
 
@@ -926,7 +923,7 @@ GeometryBuilder::generate_ribbon_vertices(const ToolpathSegment& segment, Ribbon
     }
 
     if (debug_face_colors_) {
-        spdlog::info("END CAP: N={} vertices, {} triangles (reversed triangle fan)", N, N-2);
+        spdlog::info("END CAP: N={} vertices, {} triangles (reversed triangle fan)", N, N - 2);
         spdlog::info("  Total geometry.strips.size() = {}", geometry.strips.size());
     }
 
@@ -934,9 +931,9 @@ GeometryBuilder::generate_ribbon_vertices(const ToolpathSegment& segment, Ribbon
     // Side faces: 2 triangles per face, N faces
     // Start cap: N-2 triangles (triangle fan)
     // End cap: N-2 triangles (triangle fan)
-    int side_triangles = 2*N;
-    int start_cap_triangles = is_first_segment ? (N-2) : 0;
-    int end_cap_triangles = N-2;
+    int side_triangles = 2 * N;
+    int start_cap_triangles = is_first_segment ? (N - 2) : 0;
+    int end_cap_triangles = N - 2;
     int triangle_count = side_triangles + start_cap_triangles + end_cap_triangles;
 
     // Formula validation:
@@ -1093,8 +1090,8 @@ uint32_t GeometryBuilder::compute_segment_color(const ToolpathSegment& segment, 
     }
 
     // Priority 3: Default filament color
-    return (static_cast<uint32_t>(filament_r_) << 16) |
-           (static_cast<uint32_t>(filament_g_) << 8) | static_cast<uint32_t>(filament_b_);
+    return (static_cast<uint32_t>(filament_r_) << 16) | (static_cast<uint32_t>(filament_g_) << 8) |
+           static_cast<uint32_t>(filament_b_);
 }
 
 } // namespace gcode

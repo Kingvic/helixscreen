@@ -19,8 +19,9 @@
 
 #include "lvgl/lvgl.h"
 #include "spdlog/spdlog.h"
-#include <functional>
+
 #include <exception>
+#include <functional>
 
 /**
  * @brief Safe wrapper for LVGL event callbacks
@@ -72,10 +73,10 @@ inline void ui_event_safe_call(const char* callback_name, std::function<void()> 
  * @param callback_name Name of the callback function to create
  * @param body Code body to execute (with exception safety)
  */
-#define LVGL_SAFE_EVENT_CB(callback_name, body) \
-    static void callback_name(lv_event_t* e) { \
-        (void)e; \
-        ui_event_safe_call(#callback_name, [&]() body); \
+#define LVGL_SAFE_EVENT_CB(callback_name, body)                                                    \
+    static void callback_name(lv_event_t* e) {                                                     \
+        (void)e;                                                                                   \
+        ui_event_safe_call(#callback_name, [&]() body);                                            \
     }
 
 /**
@@ -96,10 +97,10 @@ inline void ui_event_safe_call(const char* callback_name, std::function<void()> 
  * @param event_var Name to use for the lv_event_t* parameter in body
  * @param body Code body to execute (with exception safety and event access)
  */
-#define LVGL_SAFE_EVENT_CB_WITH_EVENT(callback_name, event_var, body) \
-    static void callback_name(lv_event_t* e) { \
-        lv_event_t* event_var = e; \
-        ui_event_safe_call(#callback_name, [&]() body); \
+#define LVGL_SAFE_EVENT_CB_WITH_EVENT(callback_name, event_var, body)                              \
+    static void callback_name(lv_event_t* e) {                                                     \
+        lv_event_t* event_var = e;                                                                 \
+        ui_event_safe_call(#callback_name, [&]() body);                                            \
     }
 
 /**
@@ -119,20 +120,20 @@ inline void ui_event_safe_call(const char* callback_name, std::function<void()> 
  *
  * @param callback_name String name of the callback (for logging)
  */
-#define LVGL_SAFE_EVENT_CB_BEGIN(callback_name) \
-    try {
-
+#define LVGL_SAFE_EVENT_CB_BEGIN(callback_name) try {
 /**
  * @brief End exception-safe event callback block
  *
  * Use this at the end of an event callback function to close the exception
  * handling block started with LVGL_SAFE_EVENT_CB_BEGIN().
  */
-#define LVGL_SAFE_EVENT_CB_END() \
-    } catch (const std::exception& ex) { \
-        spdlog::error("Exception in LVGL callback: {}", ex.what()); \
-    } catch (...) { \
-        spdlog::error("Unknown exception in LVGL callback"); \
+#define LVGL_SAFE_EVENT_CB_END()                                                                   \
+    }                                                                                              \
+    catch (const std::exception& ex) {                                                             \
+        spdlog::error("Exception in LVGL callback: {}", ex.what());                                \
+    }                                                                                              \
+    catch (...) {                                                                                  \
+        spdlog::error("Unknown exception in LVGL callback");                                       \
     }
 
 #endif // UI_EVENT_SAFETY_H

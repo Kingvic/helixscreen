@@ -32,24 +32,26 @@
  * In test mode, mocks are used by default but can be overridden with --real-* flags.
  */
 struct RuntimeConfig {
-    bool test_mode = false;  ///< Master test mode flag (--test)
+    bool test_mode = false; ///< Master test mode flag (--test)
 
     bool skip_splash = false; ///< Skip splash screen (--skip-splash, independent of test mode)
 
-    bool use_real_wifi = false;      ///< Use real WiFi backend (--real-wifi, requires --test)
-    bool use_real_ethernet = false;  ///< Use real Ethernet backend (--real-ethernet, requires --test)
-    bool use_real_moonraker = false; ///< Use real Moonraker client (--real-moonraker, requires --test)
-    bool use_real_files = false;     ///< Use real file listing (--real-files, requires --test)
+    bool use_real_wifi = false; ///< Use real WiFi backend (--real-wifi, requires --test)
+    bool use_real_ethernet =
+        false; ///< Use real Ethernet backend (--real-ethernet, requires --test)
+    bool use_real_moonraker =
+        false;                   ///< Use real Moonraker client (--real-moonraker, requires --test)
+    bool use_real_files = false; ///< Use real file listing (--real-files, requires --test)
 
     // G-code viewer options
-    const char* gcode_test_file = nullptr; ///< G-code file to load on startup (--gcode-file)
-    bool gcode_camera_azimuth_set = false; ///< Whether azimuth was set via command line
-    float gcode_camera_azimuth = 0.0f;     ///< Camera azimuth angle in degrees (--gcode-az)
+    const char* gcode_test_file = nullptr;   ///< G-code file to load on startup (--gcode-file)
+    bool gcode_camera_azimuth_set = false;   ///< Whether azimuth was set via command line
+    float gcode_camera_azimuth = 0.0f;       ///< Camera azimuth angle in degrees (--gcode-az)
     bool gcode_camera_elevation_set = false; ///< Whether elevation was set via command line
-    float gcode_camera_elevation = 0.0f;   ///< Camera elevation angle in degrees (--gcode-el)
-    bool gcode_camera_zoom_set = false;    ///< Whether zoom was set via command line
-    float gcode_camera_zoom = 1.0f;        ///< Camera zoom level (--gcode-zoom)
-    bool gcode_debug_colors = false;       ///< Enable per-face debug coloring (--gcode-debug-colors)
+    float gcode_camera_elevation = 0.0f;     ///< Camera elevation angle in degrees (--gcode-el)
+    bool gcode_camera_zoom_set = false;      ///< Whether zoom was set via command line
+    float gcode_camera_zoom = 1.0f;          ///< Camera zoom level (--gcode-zoom)
+    bool gcode_debug_colors = false; ///< Enable per-face debug coloring (--gcode-debug-colors)
 
     /**
      * @brief Check if WiFi should use mock implementation

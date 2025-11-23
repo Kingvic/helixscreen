@@ -53,8 +53,7 @@
  * @param header_name Name of the header bar widget (e.g., "motion_header")
  * @return Pointer to header bar widget if found, nullptr otherwise
  */
-lv_obj_t* ui_panel_setup_header(lv_obj_t* panel, lv_obj_t* parent_screen,
-                                const char* header_name);
+lv_obj_t* ui_panel_setup_header(lv_obj_t* panel, lv_obj_t* parent_screen, const char* header_name);
 
 // ============================================================================
 // CONTENT PADDING SETUP
@@ -76,7 +75,7 @@ lv_obj_t* ui_panel_setup_header(lv_obj_t* panel, lv_obj_t* parent_screen,
  * @return Pointer to content area widget if found, nullptr otherwise
  */
 lv_obj_t* ui_panel_setup_content_padding(lv_obj_t* panel, lv_obj_t* parent_screen,
-                                          const char* content_name);
+                                         const char* content_name);
 
 // ============================================================================
 // BACK BUTTON SETUP
@@ -121,8 +120,8 @@ lv_obj_t* ui_panel_setup_back_button(lv_obj_t* panel, const char* button_name = 
  * updates on window resize.
  */
 struct ui_panel_resize_context_t {
-    lv_obj_t* panel;         ///< Panel object
-    lv_obj_t* parent_screen; ///< Parent screen object
+    lv_obj_t* panel;          ///< Panel object
+    lv_obj_t* parent_screen;  ///< Parent screen object
     const char* content_name; ///< Name of content area widget
 };
 
@@ -164,6 +163,6 @@ void ui_panel_setup_resize_callback(ui_panel_resize_context_t* context);
  * @param back_button_name Name of back button (default: "back_button")
  */
 void ui_panel_setup_standard_layout(lv_obj_t* panel, lv_obj_t* parent_screen,
-                                     const char* header_name, const char* content_name,
-                                     ui_panel_resize_context_t* resize_context,
-                                     const char* back_button_name = "back_button");
+                                    const char* header_name, const char* content_name,
+                                    ui_panel_resize_context_t* resize_context,
+                                    const char* back_button_name = "back_button");

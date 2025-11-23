@@ -56,50 +56,50 @@
   </consts>
   <!-- Uses shared backdrop from navigation system -->
   <view extends="lv_obj" name="motion_panel" width="#overlay_panel_width_large" height="100%" align="right_mid" style_pad_all="0" style_border_width="0" scrollable="false" flex_flow="column">
-      <!-- Header Bar -->
-      <header_bar name="motion_header" title="Motion: XYZ"/>
-      <!-- Content Area: Two Columns -->
-      <lv_obj name="motion_content" flex_grow="1" width="100%" style_bg_opa="0" style_pad_all="20" scrollable="false" style_border_width="0" style_border_opa="0" flex_flow="row" style_flex_main_place="center">
-        <!-- Left Column (65%): XY Jog Pad -->
-        <lv_obj name="left_column" width="65%" height="100%" style_bg_opa="0" style_pad_all="0" scrollable="false" style_border_width="0" style_border_opa="0">
-          <!-- Circular Jog Pad: Custom-Drawn Two-Zone Design (Bambu Lab Style) -->
-          <!-- Outer ring = large jogs, inner circle = small jogs -->
-          <!-- Custom draw shows concentric circles, radial dividers, axis labels, home icon -->
-          <!-- Click detection uses angle from center to determine direction -->
-          <lv_obj name="jog_pad_container" width="LV_SIZE_CONTENT" height="LV_SIZE_CONTENT" style_bg_opa="0" style_pad_all="0" style_border_width="0" style_border_opa="0" style_radius="160" scrollable="false" clickable="true" align="center">
-            <!-- No child widgets - all graphics drawn via LV_EVENT_DRAW_POST -->
-            <!-- Click handled via LV_EVENT_CLICKED with angle-based direction detection -->
-          </lv_obj>
-        </lv_obj>
-        <!-- Right Column (35%): Z-Axis Controls + Position Display -->
-        <lv_obj name="right_column" width="35%" height="100%" style_bg_opa="0" style_pad_all="0" scrollable="false" style_border_width="0" style_border_opa="0" flex_flow="column" style_flex_main_place="start" style_flex_cross_place="center" style_pad_gap="20">
-          <!-- Position Display Card -->
-          <ui_card name="position_card" width="100%" height="#position_card_height" style_radius="8" style_pad_all="16" scrollable="false" flex_flow="column" style_flex_main_place="start" style_flex_cross_place="start" style_pad_gap="8">
-            <text_body text="Position:"/>
-            <text_heading name="pos_x" bind_text="motion_pos_x"/>
-            <text_heading name="pos_y" bind_text="motion_pos_y"/>
-            <text_heading name="pos_z" bind_text="motion_pos_z"/>
-          </ui_card>
-          <!-- Z-Axis Button Group -->
-          <lv_obj name="z_controls" width="100%" height="#z_controls_height" style_bg_opa="0" style_pad_all="0" style_border_width="0" style_border_opa="0" scrollable="false" flex_flow="column" style_flex_main_place="start" style_flex_cross_place="center" style_pad_gap="#padding_medium">
-            <lv_button name="z_up_10" width="#z_button_width" height="#z_button_height" style_radius="6" style_border_width="0" flex_flow="row" style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="4">
-              <icon src="mat_arrow_up" size="xs" variant="primary"/>
-              <text_body text="10mm"/>
-            </lv_button>
-            <lv_button name="z_up_1" width="#z_button_width" height="#z_button_height" style_radius="6" style_border_width="0" flex_flow="row" style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="4">
-              <icon src="mat_arrow_up" size="xs" variant="primary"/>
-              <text_body text="1mm"/>
-            </lv_button>
-            <lv_button name="z_down_1" width="#z_button_width" height="#z_button_height" style_radius="6" style_border_width="0" flex_flow="row" style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="4">
-              <icon src="mat_arrow_down" size="xs" variant="primary"/>
-              <text_body text="1mm"/>
-            </lv_button>
-            <lv_button name="z_down_10" width="#z_button_width" height="#z_button_height" style_radius="6" style_border_width="0" flex_flow="row" style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="4">
-              <icon src="mat_arrow_down" size="xs" variant="primary"/>
-              <text_body text="10mm"/>
-            </lv_button>
-          </lv_obj>
+    <!-- Header Bar -->
+    <header_bar name="motion_header" title="Motion: XYZ"/>
+    <!-- Content Area: Two Columns -->
+    <lv_obj name="motion_content" flex_grow="1" width="100%" style_bg_opa="0" style_pad_all="20" scrollable="false" style_border_width="0" style_border_opa="0" flex_flow="row" style_flex_main_place="center">
+      <!-- Left Column (65%): XY Jog Pad -->
+      <lv_obj name="left_column" width="65%" height="100%" style_bg_opa="0" style_pad_all="0" scrollable="false" style_border_width="0" style_border_opa="0">
+        <!-- Circular Jog Pad: Custom-Drawn Two-Zone Design (Bambu Lab Style) -->
+        <!-- Outer ring = large jogs, inner circle = small jogs -->
+        <!-- Custom draw shows concentric circles, radial dividers, axis labels, home icon -->
+        <!-- Click detection uses angle from center to determine direction -->
+        <lv_obj name="jog_pad_container" width="LV_SIZE_CONTENT" height="LV_SIZE_CONTENT" style_bg_opa="0" style_pad_all="0" style_border_width="0" style_border_opa="0" style_radius="160" scrollable="false" clickable="true" align="center">
+          <!-- No child widgets - all graphics drawn via LV_EVENT_DRAW_POST -->
+          <!-- Click handled via LV_EVENT_CLICKED with angle-based direction detection -->
         </lv_obj>
       </lv_obj>
+      <!-- Right Column (35%): Z-Axis Controls + Position Display -->
+      <lv_obj name="right_column" width="35%" height="100%" style_bg_opa="0" style_pad_all="0" scrollable="false" style_border_width="0" style_border_opa="0" flex_flow="column" style_flex_main_place="start" style_flex_cross_place="center" style_pad_gap="20">
+        <!-- Position Display Card -->
+        <ui_card name="position_card" width="100%" height="#position_card_height" style_radius="8" style_pad_all="16" scrollable="false" flex_flow="column" style_flex_main_place="start" style_flex_cross_place="start" style_pad_gap="8">
+          <text_body text="Position:"/>
+          <text_heading name="pos_x" bind_text="motion_pos_x"/>
+          <text_heading name="pos_y" bind_text="motion_pos_y"/>
+          <text_heading name="pos_z" bind_text="motion_pos_z"/>
+        </ui_card>
+        <!-- Z-Axis Button Group -->
+        <lv_obj name="z_controls" width="100%" height="#z_controls_height" style_bg_opa="0" style_pad_all="0" style_border_width="0" style_border_opa="0" scrollable="false" flex_flow="column" style_flex_main_place="start" style_flex_cross_place="center" style_pad_gap="#padding_medium">
+          <lv_button name="z_up_10" width="#z_button_width" height="#z_button_height" style_radius="6" style_border_width="0" flex_flow="row" style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="4">
+            <icon src="mat_arrow_up" size="xs" variant="primary"/>
+            <text_body text="10mm"/>
+          </lv_button>
+          <lv_button name="z_up_1" width="#z_button_width" height="#z_button_height" style_radius="6" style_border_width="0" flex_flow="row" style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="4">
+            <icon src="mat_arrow_up" size="xs" variant="primary"/>
+            <text_body text="1mm"/>
+          </lv_button>
+          <lv_button name="z_down_1" width="#z_button_width" height="#z_button_height" style_radius="6" style_border_width="0" flex_flow="row" style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="4">
+            <icon src="mat_arrow_down" size="xs" variant="primary"/>
+            <text_body text="1mm"/>
+          </lv_button>
+          <lv_button name="z_down_10" width="#z_button_width" height="#z_button_height" style_radius="6" style_border_width="0" flex_flow="row" style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="4">
+            <icon src="mat_arrow_down" size="xs" variant="primary"/>
+            <text_body text="10mm"/>
+          </lv_button>
+        </lv_obj>
+      </lv_obj>
+    </lv_obj>
   </view>
 </component>

@@ -12,6 +12,7 @@
 #define UI_ASYNC_CALLBACK_H
 
 #include "lvgl/lvgl.h"
+
 #include <functional>
 #include <memory>
 
@@ -44,8 +45,7 @@
  * @param callback Function to execute in LVGL thread with data pointer
  */
 template <typename T>
-void ui_async_call_safe(std::unique_ptr<T> data,
-                        std::function<void(T*)> callback) {
+void ui_async_call_safe(std::unique_ptr<T> data, std::function<void(T*)> callback) {
     // Package data and callback together
     struct AsyncPackage {
         std::unique_ptr<T> data;
@@ -64,8 +64,7 @@ void ui_async_call_safe(std::unique_ptr<T> data,
 
             // pkg and pkg->data automatically deleted when unique_ptrs go out of scope
         },
-        package
-    );
+        package);
 }
 
 #endif // UI_ASYNC_CALLBACK_H

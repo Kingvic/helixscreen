@@ -115,8 +115,8 @@ lv_obj_t* ui_wizard_fan_select_create(lv_obj_t* parent) {
     }
 
     // Build dropdown options string with "None" option
-    std::string hotend_options_str = WizardHelpers::build_dropdown_options(
-        hotend_fan_items, nullptr, true);
+    std::string hotend_options_str =
+        WizardHelpers::build_dropdown_options(hotend_fan_items, nullptr, true);
 
     // Add "None" to items vector to match dropdown
     hotend_fan_items.push_back("None");
@@ -135,8 +135,8 @@ lv_obj_t* ui_wizard_fan_select_create(lv_obj_t* parent) {
     }
 
     // Build dropdown options string with "None" option
-    std::string part_options_str = WizardHelpers::build_dropdown_options(
-        part_fan_items, nullptr, true);
+    std::string part_options_str =
+        WizardHelpers::build_dropdown_options(part_fan_items, nullptr, true);
 
     // Add "None" to items vector to match dropdown
     part_fan_items.push_back("None");
@@ -147,17 +147,17 @@ lv_obj_t* ui_wizard_fan_select_create(lv_obj_t* parent) {
         lv_dropdown_set_options(hotend_dropdown, hotend_options_str.c_str());
 
         // Restore saved selection (no guessing method for fans)
-        WizardHelpers::restore_dropdown_selection(
-            hotend_dropdown, &hotend_fan_selected, hotend_fan_items,
-            WizardConfigPaths::HOTEND_FAN, client,
-            nullptr, // No guessing method for hotend fans
-            "[Wizard Fan]");
+        WizardHelpers::restore_dropdown_selection(hotend_dropdown, &hotend_fan_selected,
+                                                  hotend_fan_items, WizardConfigPaths::HOTEND_FAN,
+                                                  client,
+                                                  nullptr, // No guessing method for hotend fans
+                                                  "[Wizard Fan]");
     }
 
     // Attach hotend fan dropdown callback programmatically
     if (hotend_dropdown) {
         lv_obj_add_event_cb(hotend_dropdown, wizard_hardware_dropdown_changed_cb,
-                           LV_EVENT_VALUE_CHANGED, &hotend_fan_selected);
+                            LV_EVENT_VALUE_CHANGED, &hotend_fan_selected);
     }
 
     // Find and configure part fan dropdown
@@ -167,17 +167,16 @@ lv_obj_t* ui_wizard_fan_select_create(lv_obj_t* parent) {
         lv_dropdown_set_options(part_dropdown, part_options_str.c_str());
 
         // Restore saved selection (no guessing method for fans)
-        WizardHelpers::restore_dropdown_selection(
-            part_dropdown, &part_fan_selected, part_fan_items,
-            WizardConfigPaths::PART_FAN, client,
-            nullptr, // No guessing method for part fans
-            "[Wizard Fan]");
+        WizardHelpers::restore_dropdown_selection(part_dropdown, &part_fan_selected, part_fan_items,
+                                                  WizardConfigPaths::PART_FAN, client,
+                                                  nullptr, // No guessing method for part fans
+                                                  "[Wizard Fan]");
     }
 
     // Attach part fan dropdown callback programmatically
     if (part_dropdown) {
         lv_obj_add_event_cb(part_dropdown, wizard_hardware_dropdown_changed_cb,
-                           LV_EVENT_VALUE_CHANGED, &part_fan_selected);
+                            LV_EVENT_VALUE_CHANGED, &part_fan_selected);
     }
 
     spdlog::info("[Wizard Fan] Screen created successfully");

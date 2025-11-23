@@ -23,7 +23,6 @@
 
 #include "ui_panel_controls_temp.h"
 
-#include "app_constants.h"
 #include "ui_component_header_bar.h"
 #include "ui_component_keypad.h"
 #include "ui_heater_config.h"
@@ -32,6 +31,8 @@
 #include "ui_temperature_utils.h"
 #include "ui_theme.h"
 #include "ui_utils.h"
+
+#include "app_constants.h"
 
 #include <spdlog/spdlog.h>
 
@@ -631,9 +632,8 @@ void ui_panel_controls_temp_bed_setup(lv_obj_t* panel, lv_obj_t* parent_screen) 
 
 void ui_panel_controls_temp_set_nozzle(int current, int target) {
     // Validate temperature ranges using dynamic limits
-    UITemperatureUtils::validate_and_clamp_pair(current, target,
-                                                 nozzle_min_temp, nozzle_max_temp,
-                                                 "Temp/Nozzle");
+    UITemperatureUtils::validate_and_clamp_pair(current, target, nozzle_min_temp, nozzle_max_temp,
+                                                "Temp/Nozzle");
 
     nozzle_current = current;
     nozzle_target = target;
@@ -642,9 +642,8 @@ void ui_panel_controls_temp_set_nozzle(int current, int target) {
 
 void ui_panel_controls_temp_set_bed(int current, int target) {
     // Validate temperature ranges using dynamic limits
-    UITemperatureUtils::validate_and_clamp_pair(current, target,
-                                                 bed_min_temp, bed_max_temp,
-                                                 "Temp/Bed");
+    UITemperatureUtils::validate_and_clamp_pair(current, target, bed_min_temp, bed_max_temp,
+                                                "Temp/Bed");
 
     bed_current = current;
     bed_target = target;

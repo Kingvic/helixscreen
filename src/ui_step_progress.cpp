@@ -194,9 +194,7 @@ static void apply_step_styling(lv_obj_t* step_item, ui_step_state_t state) {
 static void step_progress_delete_cb(lv_event_t* e) {
     lv_obj_t* widget = lv_event_get_target_obj(e);
     // Transfer ownership to RAII wrapper - automatic cleanup
-    lvgl_unique_ptr<step_progress_data_t> data(
-        (step_progress_data_t*)lv_obj_get_user_data(widget)
-    );
+    lvgl_unique_ptr<step_progress_data_t> data((step_progress_data_t*)lv_obj_get_user_data(widget));
     lv_obj_set_user_data(widget, nullptr);
 
     if (data) {

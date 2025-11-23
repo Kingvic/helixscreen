@@ -23,13 +23,14 @@
 
 #include "ui_panel_filament.h"
 
-#include "app_constants.h"
 #include "ui_component_keypad.h"
 #include "ui_event_safety.h"
 #include "ui_nav.h"
 #include "ui_temperature_utils.h"
 #include "ui_theme.h"
 #include "ui_utils.h"
+
+#include "app_constants.h"
 
 #include <spdlog/spdlog.h>
 
@@ -55,11 +56,8 @@ static int selected_material = -1; // -1 = none, 0=PLA, 1=PETG, 2=ABS, 3=Custom
 
 // Material temperature presets
 static const int MATERIAL_TEMPS[] = {
-    AppConstants::MaterialPresets::PLA,
-    AppConstants::MaterialPresets::PETG,
-    AppConstants::MaterialPresets::ABS,
-    AppConstants::MaterialPresets::CUSTOM_DEFAULT
-};
+    AppConstants::MaterialPresets::PLA, AppConstants::MaterialPresets::PETG,
+    AppConstants::MaterialPresets::ABS, AppConstants::MaterialPresets::CUSTOM_DEFAULT};
 
 // Temperature limits (can be updated from Moonraker heater config)
 static int nozzle_min_temp = AppConstants::Temperature::DEFAULT_MIN_TEMP;
@@ -137,7 +135,8 @@ static void update_temp_display() {
 static void update_status() {
     const char* status_msg;
 
-    if (UITemperatureUtils::is_extrusion_safe(nozzle_current, AppConstants::Temperature::MIN_EXTRUSION_TEMP)) {
+    if (UITemperatureUtils::is_extrusion_safe(nozzle_current,
+                                              AppConstants::Temperature::MIN_EXTRUSION_TEMP)) {
         // Hot enough
         if (nozzle_target > 0 && nozzle_current >= nozzle_target - 5 &&
             nozzle_current <= nozzle_target + 5) {
@@ -167,7 +166,8 @@ static void update_warning_text() {
 
 // Update safety state (button enable/disable, warning visibility)
 static void update_safety_state() {
-    bool allowed = UITemperatureUtils::is_extrusion_safe(nozzle_current, AppConstants::Temperature::MIN_EXTRUSION_TEMP);
+    bool allowed = UITemperatureUtils::is_extrusion_safe(
+        nozzle_current, AppConstants::Temperature::MIN_EXTRUSION_TEMP);
 
     lv_subject_set_int(&filament_extrusion_allowed_subject, allowed ? 1 : 0);
     lv_subject_set_int(&filament_safety_warning_visible_subject, allowed ? 0 : 1);
@@ -271,7 +271,8 @@ static void preset_custom_button_cb(lv_event_t* e) {
 
         spdlog::debug("[Filament] Opening custom temperature keypad");
 
-        ui_keypad_config_t config = {.initial_value = (float)(nozzle_target > 0 ? nozzle_target : 200),
+        ui_keypad_config_t config = {.initial_value =
+                                         (float)(nozzle_target > 0 ? nozzle_target : 200),
                                      .min_value = 0.0f,
                                      .max_value = (float)nozzle_max_temp,
                                      .title_label = "Custom Temperature",
@@ -287,9 +288,10 @@ static void preset_custom_button_cb(lv_event_t* e) {
 
 // Event handler: Load filament button
 LVGL_SAFE_EVENT_CB(load_button_cb, {
-    if (!UITemperatureUtils::is_extrusion_safe(nozzle_current, AppConstants::Temperature::MIN_EXTRUSION_TEMP)) {
-        spdlog::warn("[Filament] Load blocked: nozzle too cold ({}°C < {}°C)",
-                     nozzle_current, AppConstants::Temperature::MIN_EXTRUSION_TEMP);
+    if (!UITemperatureUtils::is_extrusion_safe(nozzle_current,
+                                               AppConstants::Temperature::MIN_EXTRUSION_TEMP)) {
+        spdlog::warn("[Filament] Load blocked: nozzle too cold ({}°C < {}°C)", nozzle_current,
+                     AppConstants::Temperature::MIN_EXTRUSION_TEMP);
         return;
     }
 
@@ -299,9 +301,10 @@ LVGL_SAFE_EVENT_CB(load_button_cb, {
 
 // Event handler: Unload filament button
 LVGL_SAFE_EVENT_CB(unload_button_cb, {
-    if (!UITemperatureUtils::is_extrusion_safe(nozzle_current, AppConstants::Temperature::MIN_EXTRUSION_TEMP)) {
-        spdlog::warn("[Filament] Unload blocked: nozzle too cold ({}°C < {}°C)",
-                     nozzle_current, AppConstants::Temperature::MIN_EXTRUSION_TEMP);
+    if (!UITemperatureUtils::is_extrusion_safe(nozzle_current,
+                                               AppConstants::Temperature::MIN_EXTRUSION_TEMP)) {
+        spdlog::warn("[Filament] Unload blocked: nozzle too cold ({}°C < {}°C)", nozzle_current,
+                     AppConstants::Temperature::MIN_EXTRUSION_TEMP);
         return;
     }
 
@@ -311,9 +314,10 @@ LVGL_SAFE_EVENT_CB(unload_button_cb, {
 
 // Event handler: Purge button
 LVGL_SAFE_EVENT_CB(purge_button_cb, {
-    if (!UITemperatureUtils::is_extrusion_safe(nozzle_current, AppConstants::Temperature::MIN_EXTRUSION_TEMP)) {
-        spdlog::warn("[Filament] Purge blocked: nozzle too cold ({}°C < {}°C)",
-                     nozzle_current, AppConstants::Temperature::MIN_EXTRUSION_TEMP);
+    if (!UITemperatureUtils::is_extrusion_safe(nozzle_current,
+                                               AppConstants::Temperature::MIN_EXTRUSION_TEMP)) {
+        spdlog::warn("[Filament] Purge blocked: nozzle too cold ({}°C < {}°C)", nozzle_current,
+                     AppConstants::Temperature::MIN_EXTRUSION_TEMP);
         return;
     }
 
@@ -402,9 +406,8 @@ void ui_panel_filament_setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
 
 void ui_panel_filament_set_temp(int current, int target) {
     // Validate temperature ranges
-    UITemperatureUtils::validate_and_clamp_pair(current, target,
-                                                 nozzle_min_temp, nozzle_max_temp,
-                                                 "Filament");
+    UITemperatureUtils::validate_and_clamp_pair(current, target, nozzle_min_temp, nozzle_max_temp,
+                                                "Filament");
 
     nozzle_current = current;
     nozzle_target = target;
@@ -444,7 +447,8 @@ int ui_panel_filament_get_material() {
 }
 
 bool ui_panel_filament_is_extrusion_allowed() {
-    return UITemperatureUtils::is_extrusion_safe(nozzle_current, AppConstants::Temperature::MIN_EXTRUSION_TEMP);
+    return UITemperatureUtils::is_extrusion_safe(nozzle_current,
+                                                 AppConstants::Temperature::MIN_EXTRUSION_TEMP);
 }
 
 void ui_panel_filament_set_limits(int min_temp, int max_temp) {

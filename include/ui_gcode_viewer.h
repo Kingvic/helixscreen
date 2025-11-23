@@ -103,7 +103,8 @@ void ui_gcode_viewer_load_file(lv_obj_t* obj, const char* file_path);
  * geometry building completes. Use this to update UI elements that
  * depend on the loaded file data.
  */
-void ui_gcode_viewer_set_load_callback(lv_obj_t* obj, gcode_viewer_load_callback_t callback, void* user_data);
+void ui_gcode_viewer_set_load_callback(lv_obj_t* obj, gcode_viewer_load_callback_t callback,
+                                       void* user_data);
 
 /**
  * @brief Set G-code data directly (already parsed)

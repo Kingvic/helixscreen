@@ -23,13 +23,14 @@
 
 #include "ui_panel_controls_extrusion.h"
 
-#include "app_constants.h"
 #include "ui_component_header_bar.h"
 #include "ui_event_safety.h"
 #include "ui_nav.h"
 #include "ui_temperature_utils.h"
 #include "ui_theme.h"
 #include "ui_utils.h"
+
+#include "app_constants.h"
 
 #include <spdlog/spdlog.h>
 
@@ -85,15 +86,16 @@ void ui_panel_controls_extrusion_init_subjects() {
     lv_xml_register_subject(NULL, "extrusion_temp_status", &temp_status_subject);
     lv_xml_register_subject(NULL, "extrusion_warning_temps", &warning_temps_subject);
 
-    spdlog::info("[Extrusion] Subjects initialized: temp={}/{}°C, amount={}mm",
-                 nozzle_current, nozzle_target, selected_amount);
+    spdlog::info("[Extrusion] Subjects initialized: temp={}/{}°C, amount={}mm", nozzle_current,
+                 nozzle_target, selected_amount);
 }
 
 // Update temperature status display text
 static void update_temp_status() {
     // Status indicator: ✓ (ready), ⚠ (heating), ✗ (too cold)
     const char* status_icon;
-    if (UITemperatureUtils::is_extrusion_safe(nozzle_current, AppConstants::Temperature::MIN_EXTRUSION_TEMP)) {
+    if (UITemperatureUtils::is_extrusion_safe(nozzle_current,
+                                              AppConstants::Temperature::MIN_EXTRUSION_TEMP)) {
         // Within 5°C of target and hot enough (safe range check without overflow)
         if (nozzle_target > 0 && nozzle_current >= nozzle_target - 5 &&
             nozzle_current <= nozzle_target + 5) {
@@ -121,7 +123,8 @@ static void update_warning_text() {
 
 // Update safety state (button enable/disable, warning visibility)
 static void update_safety_state() {
-    bool allowed = UITemperatureUtils::is_extrusion_safe(nozzle_current, AppConstants::Temperature::MIN_EXTRUSION_TEMP);
+    bool allowed = UITemperatureUtils::is_extrusion_safe(
+        nozzle_current, AppConstants::Temperature::MIN_EXTRUSION_TEMP);
 
     // Enable/disable extrude and retract buttons
     if (btn_extrude) {
@@ -149,7 +152,8 @@ static void update_safety_state() {
         }
     }
 
-    spdlog::debug("[Extrusion] Safety state updated: allowed={} (temp={}°C)", allowed, nozzle_current);
+    spdlog::debug("[Extrusion] Safety state updated: allowed={} (temp={}°C)", allowed,
+                  nozzle_current);
 }
 
 // Update visual feedback for amount selector buttons
@@ -213,9 +217,10 @@ LVGL_SAFE_EVENT_CB_WITH_EVENT(amount_button_cb, event, {
 
 // Event handler: Extrude button
 LVGL_SAFE_EVENT_CB(extrude_button_cb, {
-    if (!UITemperatureUtils::is_extrusion_safe(nozzle_current, AppConstants::Temperature::MIN_EXTRUSION_TEMP)) {
-        spdlog::warn("[Extrusion] Extrude blocked: nozzle too cold ({}°C < {}°C)",
-                     nozzle_current, AppConstants::Temperature::MIN_EXTRUSION_TEMP);
+    if (!UITemperatureUtils::is_extrusion_safe(nozzle_current,
+                                               AppConstants::Temperature::MIN_EXTRUSION_TEMP)) {
+        spdlog::warn("[Extrusion] Extrude blocked: nozzle too cold ({}°C < {}°C)", nozzle_current,
+                     AppConstants::Temperature::MIN_EXTRUSION_TEMP);
         return;
     }
 
@@ -225,9 +230,10 @@ LVGL_SAFE_EVENT_CB(extrude_button_cb, {
 
 // Event handler: Retract button
 LVGL_SAFE_EVENT_CB(retract_button_cb, {
-    if (!UITemperatureUtils::is_extrusion_safe(nozzle_current, AppConstants::Temperature::MIN_EXTRUSION_TEMP)) {
-        spdlog::warn("[Extrusion] Retract blocked: nozzle too cold ({}°C < {}°C)",
-                     nozzle_current, AppConstants::Temperature::MIN_EXTRUSION_TEMP);
+    if (!UITemperatureUtils::is_extrusion_safe(nozzle_current,
+                                               AppConstants::Temperature::MIN_EXTRUSION_TEMP)) {
+        spdlog::warn("[Extrusion] Retract blocked: nozzle too cold ({}°C < {}°C)", nozzle_current,
+                     AppConstants::Temperature::MIN_EXTRUSION_TEMP);
         return;
     }
 
@@ -278,8 +284,9 @@ void ui_panel_controls_extrusion_setup(lv_obj_t* panel, lv_obj_t* parent_screen)
         lv_obj_set_style_pad_bottom(extrusion_content, vertical_padding, 0);
         lv_obj_set_style_pad_left(extrusion_content, UI_PADDING_MEDIUM, 0);
         lv_obj_set_style_pad_right(extrusion_content, UI_PADDING_MEDIUM, 0);
-        spdlog::debug("[Extrusion]   ✓ Content padding: top/bottom={}px, left/right={}px (responsive)",
-                      vertical_padding, UI_PADDING_MEDIUM);
+        spdlog::debug(
+            "[Extrusion]   ✓ Content padding: top/bottom={}px, left/right={}px (responsive)",
+            vertical_padding, UI_PADDING_MEDIUM);
     }
 
     // Register resize callback
@@ -331,13 +338,15 @@ void ui_panel_controls_extrusion_setup(lv_obj_t* panel, lv_obj_t* parent_screen)
 void ui_panel_controls_extrusion_set_temp(int current, int target) {
     // Validate temperature ranges using dynamic limits
     if (current < nozzle_min_temp || current > nozzle_max_temp) {
-        spdlog::warn("[Extrusion] Invalid nozzle current temperature {}°C (valid: {}-{}°C), clamping",
-                     current, nozzle_min_temp, nozzle_max_temp);
+        spdlog::warn(
+            "[Extrusion] Invalid nozzle current temperature {}°C (valid: {}-{}°C), clamping",
+            current, nozzle_min_temp, nozzle_max_temp);
         current = (current < nozzle_min_temp) ? nozzle_min_temp : nozzle_max_temp;
     }
     if (target < nozzle_min_temp || target > nozzle_max_temp) {
-        spdlog::warn("[Extrusion] Invalid nozzle target temperature {}°C (valid: {}-{}°C), clamping",
-                     target, nozzle_min_temp, nozzle_max_temp);
+        spdlog::warn(
+            "[Extrusion] Invalid nozzle target temperature {}°C (valid: {}-{}°C), clamping", target,
+            nozzle_min_temp, nozzle_max_temp);
         target = (target < nozzle_min_temp) ? nozzle_min_temp : nozzle_max_temp;
     }
 
@@ -353,7 +362,8 @@ int ui_panel_controls_extrusion_get_amount() {
 }
 
 bool ui_panel_controls_extrusion_is_allowed() {
-    return UITemperatureUtils::is_extrusion_safe(nozzle_current, AppConstants::Temperature::MIN_EXTRUSION_TEMP);
+    return UITemperatureUtils::is_extrusion_safe(nozzle_current,
+                                                 AppConstants::Temperature::MIN_EXTRUSION_TEMP);
 }
 
 void ui_panel_controls_extrusion_set_limits(int min_temp, int max_temp) {

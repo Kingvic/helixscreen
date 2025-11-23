@@ -442,9 +442,10 @@ std::optional<std::string> GCodeRenderer::pick_object(const glm::vec2& screen_po
 
     // Iterate through visible layers
     int layer_start = options_.layer_start;
-    int layer_end = (options_.layer_end < 0 || options_.layer_end >= static_cast<int>(gcode.layers.size()))
-                        ? static_cast<int>(gcode.layers.size()) - 1
-                        : options_.layer_end;
+    int layer_end =
+        (options_.layer_end < 0 || options_.layer_end >= static_cast<int>(gcode.layers.size()))
+            ? static_cast<int>(gcode.layers.size()) - 1
+            : options_.layer_end;
 
     for (int layer_idx = layer_start; layer_idx <= layer_end; ++layer_idx) {
         if (layer_idx < 0 || layer_idx >= static_cast<int>(gcode.layers.size())) {
@@ -479,7 +480,9 @@ std::optional<std::string> GCodeRenderer::pick_object(const glm::vec2& screen_po
 
             // Project click onto line segment (clamped to [0,1])
             float segment_length_sq = glm::dot(v, v);
-            float t = (segment_length_sq > 0.0001f) ? std::clamp(glm::dot(w, v) / segment_length_sq, 0.0f, 1.0f) : 0.0f;
+            float t = (segment_length_sq > 0.0001f)
+                          ? std::clamp(glm::dot(w, v) / segment_length_sq, 0.0f, 1.0f)
+                          : 0.0f;
 
             // Closest point on segment to click
             glm::vec2 closest_point = *start_screen + t * v;

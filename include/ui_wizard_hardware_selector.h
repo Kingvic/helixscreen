@@ -61,16 +61,10 @@ void wizard_hardware_dropdown_changed_cb(lv_event_t* e);
  * @return true if dropdown found and populated
  */
 bool wizard_populate_hardware_dropdown(
-    lv_obj_t* root,
-    const char* dropdown_name,
-    lv_subject_t* subject,
+    lv_obj_t* root, const char* dropdown_name, lv_subject_t* subject,
     std::vector<std::string>& items_out,
     std::function<const std::vector<std::string>&(MoonrakerClient*)> moonraker_getter,
-    const char* prefix_filter,
-    bool allow_none,
-    const char* config_key,
-    std::function<std::string(MoonrakerClient*)> guess_fallback,
-    const char* log_prefix
-);
+    const char* prefix_filter, bool allow_none, const char* config_key,
+    std::function<std::string(MoonrakerClient*)> guess_fallback, const char* log_prefix);
 
 #endif // UI_WIZARD_HARDWARE_SELECTOR_H

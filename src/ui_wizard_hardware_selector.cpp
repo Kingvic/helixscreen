@@ -23,9 +23,10 @@
 
 #include "ui_wizard_hardware_selector.h"
 
+#include "ui_wizard_helpers.h"
+
 #include "app_globals.h"
 #include "config.h"
-#include "ui_wizard_helpers.h"
 
 #include <spdlog/spdlog.h>
 
@@ -43,17 +44,11 @@ void wizard_hardware_dropdown_changed_cb(lv_event_t* e) {
 }
 
 bool wizard_populate_hardware_dropdown(
-    lv_obj_t* root,
-    const char* dropdown_name,
-    lv_subject_t* subject,
+    lv_obj_t* root, const char* dropdown_name, lv_subject_t* subject,
     std::vector<std::string>& items_out,
     std::function<const std::vector<std::string>&(MoonrakerClient*)> moonraker_getter,
-    const char* prefix_filter,
-    bool allow_none,
-    const char* config_key,
-    std::function<std::string(MoonrakerClient*)> guess_fallback,
-    const char* log_prefix
-) {
+    const char* prefix_filter, bool allow_none, const char* config_key,
+    std::function<std::string(MoonrakerClient*)> guess_fallback, const char* log_prefix) {
     if (!root || !dropdown_name || !subject) {
         spdlog::error("{} Invalid parameters for dropdown population", log_prefix);
         return false;
@@ -79,8 +74,7 @@ bool wizard_populate_hardware_dropdown(
     std::string options_str = WizardHelpers::build_dropdown_options(
         items_out,
         nullptr, // No additional filter (already filtered above)
-        allow_none
-    );
+        allow_none);
 
     // Add "None" to items vector if needed (to match dropdown)
     if (allow_none) {
@@ -97,13 +91,10 @@ bool wizard_populate_hardware_dropdown(
     lv_dropdown_set_options(dropdown, options_str.c_str());
 
     // Restore saved selection with guessing fallback
-    WizardHelpers::restore_dropdown_selection(
-        dropdown, subject, items_out,
-        config_key, client,
-        guess_fallback, log_prefix
-    );
+    WizardHelpers::restore_dropdown_selection(dropdown, subject, items_out, config_key, client,
+                                              guess_fallback, log_prefix);
 
-    spdlog::debug("{} Populated dropdown '{}' with {} items",
-                  log_prefix, dropdown_name, items_out.size());
+    spdlog::debug("{} Populated dropdown '{}' with {} items", log_prefix, dropdown_name,
+                  items_out.size());
     return true;
 }

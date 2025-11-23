@@ -23,10 +23,11 @@
 
 #include "wifi_manager.h"
 
+#include "ui_async_callback.h"
+
 #include "lvgl/lvgl.h"
 #include "safe_log.h"
 #include "spdlog/spdlog.h"
-#include "ui_async_callback.h"
 
 #include <algorithm>
 #include <cstring>
@@ -435,7 +436,8 @@ void WiFiManager::handle_auth_failed(const std::string& event_data) {
 
     // Use RAII-safe async callback wrapper
     ui_async_call_safe<ConnectCallbackData>(
-        std::make_unique<ConnectCallbackData>(ConnectCallbackData{self_, false, "Authentication failed"}),
+        std::make_unique<ConnectCallbackData>(
+            ConnectCallbackData{self_, false, "Authentication failed"}),
         [](ConnectCallbackData* d) {
             if (auto manager = d->manager.lock()) {
                 if (manager->connect_callback_) {

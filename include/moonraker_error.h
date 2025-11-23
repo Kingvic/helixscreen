@@ -51,10 +51,10 @@ enum class MoonrakerErrorType {
  */
 struct MoonrakerError {
     MoonrakerErrorType type = MoonrakerErrorType::NONE; ///< Error type classification
-    int code = 0;        ///< JSON-RPC error code if applicable
-    std::string message; ///< Human-readable error message
-    std::string method;  ///< Method that caused the error
-    json details;        ///< Additional error details from Moonraker
+    int code = 0;                                       ///< JSON-RPC error code if applicable
+    std::string message;                                ///< Human-readable error message
+    std::string method;                                 ///< Method that caused the error
+    json details;                                       ///< Additional error details from Moonraker
 
     /**
      * @brief Check if there's an error

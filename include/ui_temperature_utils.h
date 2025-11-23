@@ -30,8 +30,8 @@ namespace UITemperatureUtils {
  * @param temp_type Temperature type for logging (e.g., "current", "target")
  * @return true if temperature was valid, false if it was clamped
  */
-bool validate_and_clamp(int& temp, int min_temp, int max_temp,
-                       const char* context, const char* temp_type);
+bool validate_and_clamp(int& temp, int min_temp, int max_temp, const char* context,
+                        const char* temp_type);
 
 /**
  * @brief Validates and clamps a temperature pair (current + target)
@@ -45,8 +45,7 @@ bool validate_and_clamp(int& temp, int min_temp, int max_temp,
  * @param context Logging context (e.g., "Temp", "Filament")
  * @return true if both temperatures were valid, false if either was clamped
  */
-bool validate_and_clamp_pair(int& current, int& target,
-                             int min_temp, int max_temp,
+bool validate_and_clamp_pair(int& current, int& target, int min_temp, int max_temp,
                              const char* context);
 
 /**

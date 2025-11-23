@@ -12,10 +12,11 @@
 
 #include "ui_panel_gcode_test.h"
 
-#include "runtime_config.h"
 #include "ui_event_safety.h"
 #include "ui_gcode_viewer.h"
 #include "ui_theme.h"
+
+#include "runtime_config.h"
 
 #include <spdlog/spdlog.h>
 
@@ -117,7 +118,8 @@ static void on_gcode_load_complete(lv_obj_t* viewer, void* user_data, bool succe
                         all_same = false;
                         break;
                     }
-                    if (next_semi == std::string::npos) break;
+                    if (next_semi == std::string::npos)
+                        break;
                     pos = next_semi + 1;
                 }
                 if (all_same) {
@@ -128,7 +130,8 @@ static void on_gcode_load_complete(lv_obj_t* viewer, void* user_data, bool succe
 
         // Build stats string: filename | layers | filament type
         if (!filament_str.empty()) {
-            snprintf(buf, sizeof(buf), "%s | %d layers | %s", filename, layer_count, filament_str.c_str());
+            snprintf(buf, sizeof(buf), "%s | %d layers | %s", filename, layer_count,
+                     filament_str.c_str());
         } else {
             snprintf(buf, sizeof(buf), "%s | %d layers", filename, layer_count);
         }
@@ -498,7 +501,8 @@ lv_obj_t* ui_panel_gcode_test_create(lv_obj_t* parent) {
 
     // Auto-load file (either from config or default)
     std::string default_path = std::string(ASSETS_DIR) + "/" + DEFAULT_TEST_FILE;
-    const char* file_to_load = config.gcode_test_file ? config.gcode_test_file : default_path.c_str();
+    const char* file_to_load =
+        config.gcode_test_file ? config.gcode_test_file : default_path.c_str();
     spdlog::info("[GCodeTest] Auto-loading file: {}", file_to_load);
 
     if (stats_label) {

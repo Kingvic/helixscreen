@@ -101,42 +101,36 @@ lv_obj_t* ui_wizard_hotend_select_create(lv_obj_t* parent) {
 
     // Populate heater dropdown (discover + filter + populate + restore)
     wizard_populate_hardware_dropdown(
-        hotend_select_screen_root, "hotend_heater_dropdown",
-        &hotend_heater_selected, hotend_heater_items,
-        [](MoonrakerClient* c) -> const auto& { return c->get_heaters(); },
+        hotend_select_screen_root, "hotend_heater_dropdown", &hotend_heater_selected,
+        hotend_heater_items, [](MoonrakerClient* c) -> const auto& { return c->get_heaters(); },
         "extruder", // Filter for extruder-related heaters
         true,       // Allow "None" option
         WizardConfigPaths::HOTEND_HEATER,
-        [](MoonrakerClient* c) { return c->guess_hotend_heater(); },
-        "[Wizard Hotend]"
-    );
+        [](MoonrakerClient* c) { return c->guess_hotend_heater(); }, "[Wizard Hotend]");
 
     // Attach heater dropdown callback programmatically
-    lv_obj_t* heater_dropdown = lv_obj_find_by_name(hotend_select_screen_root,
-                                                      "hotend_heater_dropdown");
+    lv_obj_t* heater_dropdown =
+        lv_obj_find_by_name(hotend_select_screen_root, "hotend_heater_dropdown");
     if (heater_dropdown) {
         lv_obj_add_event_cb(heater_dropdown, wizard_hardware_dropdown_changed_cb,
-                           LV_EVENT_VALUE_CHANGED, &hotend_heater_selected);
+                            LV_EVENT_VALUE_CHANGED, &hotend_heater_selected);
     }
 
     // Populate sensor dropdown (discover + filter + populate + restore)
     wizard_populate_hardware_dropdown(
-        hotend_select_screen_root, "hotend_sensor_dropdown",
-        &hotend_sensor_selected, hotend_sensor_items,
-        [](MoonrakerClient* c) -> const auto& { return c->get_sensors(); },
+        hotend_select_screen_root, "hotend_sensor_dropdown", &hotend_sensor_selected,
+        hotend_sensor_items, [](MoonrakerClient* c) -> const auto& { return c->get_sensors(); },
         "extruder", // Filter for extruder/hotend-related sensors
         true,       // Allow "None" option
         WizardConfigPaths::HOTEND_SENSOR,
-        [](MoonrakerClient* c) { return c->guess_hotend_sensor(); },
-        "[Wizard Hotend]"
-    );
+        [](MoonrakerClient* c) { return c->guess_hotend_sensor(); }, "[Wizard Hotend]");
 
     // Attach sensor dropdown callback programmatically
-    lv_obj_t* sensor_dropdown = lv_obj_find_by_name(hotend_select_screen_root,
-                                                      "hotend_sensor_dropdown");
+    lv_obj_t* sensor_dropdown =
+        lv_obj_find_by_name(hotend_select_screen_root, "hotend_sensor_dropdown");
     if (sensor_dropdown) {
         lv_obj_add_event_cb(sensor_dropdown, wizard_hardware_dropdown_changed_cb,
-                           LV_EVENT_VALUE_CHANGED, &hotend_sensor_selected);
+                            LV_EVENT_VALUE_CHANGED, &hotend_sensor_selected);
     }
 
     spdlog::info("[Wizard Hotend] Screen created successfully");

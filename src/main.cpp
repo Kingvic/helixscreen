@@ -137,10 +137,10 @@ static bool parse_command_line_args(
     int argc, char** argv, int& initial_panel, bool& show_motion, bool& show_nozzle_temp,
     bool& show_bed_temp, bool& show_extrusion, bool& show_print_status, bool& show_file_detail,
     bool& show_keypad, bool& show_keyboard, bool& show_step_test, bool& show_test_panel,
-    bool& show_gcode_test, bool& show_bed_mesh, bool& show_glyphs, bool& force_wizard, int& wizard_step,
-    bool& panel_requested, int& display_num, int& x_pos, int& y_pos, bool& screenshot_enabled,
-    int& screenshot_delay_sec, int& timeout_sec, int& verbosity, bool& dark_mode,
-    bool& theme_requested, int& dpi) {
+    bool& show_gcode_test, bool& show_bed_mesh, bool& show_glyphs, bool& force_wizard,
+    int& wizard_step, bool& panel_requested, int& display_num, int& x_pos, int& y_pos,
+    bool& screenshot_enabled, int& screenshot_delay_sec, int& timeout_sec, int& verbosity,
+    bool& dark_mode, bool& theme_requested, int& dpi) {
     // Parse arguments
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-s") == 0 || strcmp(argv[i], "--size") == 0) {
@@ -211,13 +211,15 @@ static bool parse_command_line_args(
                 } else if (strcmp(panel_arg, "gcode-test") == 0 ||
                            strcmp(panel_arg, "gcode_test") == 0) {
                     show_gcode_test = true;
-                } else if (strcmp(panel_arg, "bed-mesh") == 0 || strcmp(panel_arg, "bed_mesh") == 0) {
+                } else if (strcmp(panel_arg, "bed-mesh") == 0 ||
+                           strcmp(panel_arg, "bed_mesh") == 0) {
                     show_bed_mesh = true;
                 } else if (strcmp(panel_arg, "glyphs") == 0) {
                     show_glyphs = true;
                 } else {
                     printf("Unknown panel: %s\n", panel_arg);
-                    printf("Available panels: home, controls, motion, nozzle-temp, bed-temp, bed-mesh, "
+                    printf("Available panels: home, controls, motion, nozzle-temp, bed-temp, "
+                           "bed-mesh, "
                            "extrusion, print-status, filament, settings, advanced, print-select, "
                            "step-test, test, gcode-test, glyphs\n");
                     return false;
@@ -398,7 +400,8 @@ static bool parse_command_line_args(
                 // Check for empty string
                 if (camera_str[0] == '\0') {
                     printf("Error: --camera requires a non-empty string argument\n");
-                    printf("Format: --camera \"az:90.5,el:4.0,zoom:15.5\" (each parameter optional)\n");
+                    printf("Format: --camera \"az:90.5,el:4.0,zoom:15.5\" (each parameter "
+                           "optional)\n");
                     return false;
                 }
 
@@ -409,7 +412,8 @@ static bool parse_command_line_args(
 
                 while (token != nullptr) {
                     // Trim leading whitespace
-                    while (*token == ' ') token++;
+                    while (*token == ' ')
+                        token++;
 
                     // Parse key:value pairs
                     if (strncmp(token, "az:", 3) == 0) {
@@ -441,7 +445,8 @@ static bool parse_command_line_args(
                             g_runtime_config.gcode_camera_zoom = (float)val;
                             g_runtime_config.gcode_camera_zoom_set = true;
                         } else {
-                            printf("Error: Invalid zoom value in --camera (must be positive): %s\n", token);
+                            printf("Error: Invalid zoom value in --camera (must be positive): %s\n",
+                                   token);
                             free(str_copy);
                             return false;
                         }
@@ -1366,7 +1371,8 @@ int main(int argc, char** argv) {
                 ui_nav_push_overlay(bed_mesh);
                 spdlog::info("Bed mesh overlay pushed to nav stack");
             } else {
-                spdlog::error("Failed to create bed mesh overlay from XML component 'bed_mesh_panel'");
+                spdlog::error(
+                    "Failed to create bed mesh overlay from XML component 'bed_mesh_panel'");
             }
         }
         if (show_keypad) {
