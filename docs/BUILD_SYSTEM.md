@@ -248,7 +248,7 @@ The build system automatically applies patches to git submodules before compilat
 
 ### How It Works
 
-1. **Patch Storage**: All submodule patches are stored in `../patches/` (relative to submodule in `prototype-ui9/lvgl/`)
+1. **Patch Storage**: All submodule patches are stored in `patches/` (in the repository root)
 2. **Auto-Detection**: Makefile checks if patches are already applied before each build
 3. **Idempotent**: Safe to run multiple times - patches are only applied once
 4. **Transparent**: No manual intervention needed for normal development
@@ -289,8 +289,8 @@ To add a new submodule patch:
 1. **Make changes** in the submodule directory
 2. **Generate patch**:
    ```bash
-   cd prototype-ui9/lvgl
-   git diff > ../patches/my-new-patch.patch
+   cd lib/lvgl
+   git diff > ../../patches/my-new-patch.patch
    ```
 3. **Update Makefile** to apply the patch in the `apply-patches` target
 4. **Document** in `patches/README.md`

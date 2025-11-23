@@ -118,7 +118,7 @@ project_name/
 ### HelixScreen Prototype Structure
 
 ```
-prototype-ui9/
+helixscreen/
 ├── ui_xml/
 │   ├── globals.xml            # Theme constants + auto-generated icons
 │   ├── app_layout.xml         # Root: navbar + content area

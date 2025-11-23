@@ -303,7 +303,7 @@ Tests cover:
 
 ### Overview
 
-HelixScreen uses [spdlog](https://github.com/gabime/spdlog) for all console/file logging. The library is integrated as an **independent git submodule** (not shared with parent guppyscreen project).
+HelixScreen uses [spdlog](https://github.com/gabime/spdlog) for all console/file logging. The library is integrated as an **independent git submodule**.
 
 **Version:** fmt 11.2.0 branch (updated 2025-11-01)
 - Eliminates fmt deprecation warnings
@@ -349,15 +349,6 @@ spdlog::error("Error occurred: {}", error_msg);
 **Log levels:** `trace()`, `debug()`, `info()`, `warn()`, `error()`, `critical()`
 
 **Verbosity flags:** `-v` (info), `-vv` (debug), `-vvv` (trace). Default: warn only.
-
-### Why Independent Submodule?
-
-Previously, spdlog was a symlink to `../spdlog` (shared with parent guppyscreen project). This caused issues:
-- Couldn't upgrade HelixScreen's fmt version independently
-- Build warnings from old fmt 9.0.1
-- Tight coupling between projects
-
-**Solution:** Separate submodule allows independent version control and eliminates deprecation warnings.
 
 ## Multi-Display Development (macOS)
 

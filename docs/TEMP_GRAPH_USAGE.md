@@ -161,7 +161,7 @@ lv_color_hex(0x20B2AA)  // Light sea green
 
 ## API Reference
 
-See `/Users/pbrown/code/guppyscreen/prototype-ui9/include/ui_temp_graph.h` for complete API documentation.
+See `include/ui_temp_graph.h` for complete API documentation.
 
 ## Files
 
