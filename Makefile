@@ -289,8 +289,9 @@ ifneq ($(JOBS),1)
     MAKEFLAGS += --output-sync=target
 endif
 
-# Binary
+# Binaries
 TARGET := $(BIN_DIR)/helix-ui-proto
+MOONRAKER_INSPECTOR := $(BIN_DIR)/moonraker-inspector
 
 # LVGL configuration
 LV_CONF := -DLV_CONF_INCLUDE_SIMPLE
@@ -321,7 +322,7 @@ MOCK_OBJS := $(patsubst $(TEST_MOCK_DIR)/%.cpp,$(OBJ_DIR)/tests/mocks/%.o,$(MOCK
 # Default target
 .DEFAULT_GOAL := all
 
-.PHONY: all build clean run test tests test-integration test-cards test-print-select test-size-content demo compile_commands libhv-build apply-patches generate-fonts help check-deps install-deps venv-setup icon format format-staged screenshots
+.PHONY: all build clean run test tests test-integration test-cards test-print-select test-size-content demo compile_commands libhv-build apply-patches generate-fonts help check-deps install-deps venv-setup icon format format-staged screenshots tools moonraker-inspector
 
 # Help target - checks stdout dynamically to avoid colors when piped
 help:
@@ -346,6 +347,10 @@ help:
 	echo ""; \
 	echo "$${C}Run Targets:$${X}"; \
 	echo "  $${G}run$${X}              - Build and run the UI prototype"; \
+	echo ""; \
+	echo "$${C}Tool Targets:$${X}"; \
+	echo "  $${G}tools$${X}            - Build all diagnostic tools"; \
+	echo "  $${G}moonraker-inspector$${X} - Query Moonraker printer metadata"; \
 	echo ""; \
 	echo "$${C}Development Targets:$${X}"; \
 	echo "  $${G}compile_commands$${X} - Generate compile_commands.json for IDE/LSP"; \
@@ -388,4 +393,5 @@ include mk/patches.mk
 include mk/tests.mk
 include mk/fonts.mk
 include mk/format.mk
+include mk/tools.mk
 include mk/rules.mk
