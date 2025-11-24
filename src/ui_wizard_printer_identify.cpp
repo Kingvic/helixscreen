@@ -294,7 +294,8 @@ LVGL_SAFE_EVENT_CB_WITH_EVENT(on_printer_name_changed, event, {
                       max_length);
     } else if (!is_empty) {
         // Valid input: use secondary color border
-        lv_color_t valid_color = ui_theme_get_color("secondary_color");
+        const char* sec_color_str = lv_xml_get_const(NULL, "secondary_color");
+        lv_color_t valid_color = sec_color_str ? ui_theme_parse_color(sec_color_str) : lv_color_hex(0x000000);
         lv_obj_set_style_border_color(ta, valid_color, LV_PART_MAIN);
         lv_obj_set_style_border_width(ta, 1, LV_PART_MAIN);
     } else {

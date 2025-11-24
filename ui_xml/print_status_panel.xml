@@ -5,11 +5,11 @@
 <component>
   <!-- Print Status Panel - Active print monitoring -->
   <!-- 2:1 layout with thumbnail on left, controls on right (similar to print_file_detail) -->
-  <view extends="lv_obj" name="print_status_panel" x="#nav_width" height="100%" style_pad_all="0" style_border_width="0" flex_flow="column">
-    <!-- HEADER BAR (reusable component) -->
-    <header_bar title="Print Status" name="status_header"/>
-    <!-- CONTENT AREA (two columns: thumbnail left, controls right) -->
-    <lv_obj width="100%" flex_grow="1" style_bg_opa="0" style_border_width="0" style_pad_left="#padding_normal" style_pad_right="#padding_normal" style_pad_top="#padding_normal" style_pad_bottom="#padding_normal" flex_flow="row" style_pad_gap="#gap_normal" name="content_container">
+  <view extends="lv_obj" name="print_status_panel" x="#nav_width" height="100%" style_bg_opa="255" style_bg_color="#card_bg" style_pad_all="0" style_border_width="0" flex_flow="column">
+    <!-- Header Bar (uses improved header_bar component) -->
+    <header_bar title="Print Status" name="overlay_header"/>
+    <!-- Content Area (two columns: thumbnail left, controls right) -->
+    <lv_obj width="100%" flex_grow="1" style_bg_opa="0" style_border_width="0" style_pad_left="#padding_normal" style_pad_right="#padding_normal" style_pad_top="#padding_normal" style_pad_bottom="#padding_normal" flex_flow="row" style_pad_gap="#gap_normal" name="overlay_content">
       <!-- ================================================================== -->
       <!-- LEFT SECTION: Thumbnail (2/3 width via flex_grow)                 -->
       <!-- ================================================================== -->

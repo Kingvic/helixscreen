@@ -5,73 +5,61 @@
   <view extends="lv_obj" name="notification_history_panel"
         width="100%" height="100%"
         style_bg_opa="255"
+        style_bg_color="#card_bg"
         style_border_width="0"
         style_pad_all="0"
         flex_flow="column">
 
-    <!-- Header -->
-    <lv_obj width="100%" height="#header_height"
-            style_bg_opa="0" style_border_width="0"
-            style_pad_left="#padding_normal" style_pad_right="#padding_normal"
-            flex_flow="row" style_flex_main_place="space_between" style_flex_cross_place="center">
+    <!-- Header Bar (uses improved header_bar component) -->
+    <header_bar name="overlay_header"
+                title="Notifications"
+                right_button_text="Clear All"
+                show_right_button="true"/>
 
-      <!-- Back button -->
-      <lv_button name="history_back_btn"
-                 width="#header_back_button_size" height="#header_back_button_size"
-                 style_bg_opa="0" style_border_width="0" clickable="true">
-        <event_cb trigger="clicked" callback="history_back_clicked"/>
-        <lv_label text="&#xF053;" align="center" style_text_font="#font_heading"/>
-      </lv_button>
-
-      <!-- Title -->
-      <text_heading text="Notifications" flex_grow="1" style_text_align="center"/>
-
-      <!-- Clear All button -->
-      <lv_button name="history_clear_btn"
-                 width="#header_right_button_width" height="#header_right_button_height"
-                 style_radius="#border_radius" style_border_width="0" clickable="true">
-        <event_cb trigger="clicked" callback="history_clear_clicked"/>
-        <text_body text="Clear All" align="center"/>
-      </lv_button>
-    </lv_obj>
-
-    <!-- Filter buttons -->
-    <lv_obj width="100%" height="60"
+    <!-- Filter buttons (panel-specific feature) -->
+    <lv_obj name="filter_buttons" width="100%" height="60"
             style_bg_opa="0" style_border_width="0"
             style_pad_all="#padding_small" style_pad_gap="#gap_small"
-            flex_flow="row" style_flex_main_place="center">
+            flex_flow="row" style_flex_main_place="center"
+            scrollable="false">
 
       <lv_button name="filter_all_btn" width="80" height="#button_height_small"
-                 style_radius="#border_radius" clickable="true">
-        <event_cb trigger="clicked" callback="filter_all_clicked"/>
+                 style_radius="#border_radius" clickable="true"
+                 scrollable="false">
         <text_body text="All" align="center"/>
       </lv_button>
 
       <lv_button name="filter_errors_btn" width="80" height="#button_height_small"
-                 style_radius="#border_radius" clickable="true">
-        <event_cb trigger="clicked" callback="filter_errors_clicked"/>
+                 style_radius="#border_radius" clickable="true"
+                 scrollable="false">
         <text_body text="Errors" align="center"/>
       </lv_button>
 
       <lv_button name="filter_warnings_btn" width="80" height="#button_height_small"
-                 style_radius="#border_radius" clickable="true">
-        <event_cb trigger="clicked" callback="filter_warnings_clicked"/>
+                 style_radius="#border_radius" clickable="true"
+                 scrollable="false">
         <text_body text="Warnings" align="center"/>
       </lv_button>
 
       <lv_button name="filter_info_btn" width="80" height="#button_height_small"
-                 style_radius="#border_radius" clickable="true">
-        <event_cb trigger="clicked" callback="filter_info_clicked"/>
+                 style_radius="#border_radius" clickable="true"
+                 scrollable="false">
         <text_body text="Info" align="center"/>
       </lv_button>
     </lv_obj>
 
-    <!-- Notification list (populated dynamically) -->
-    <lv_obj name="notification_list_container" width="100%" flex_grow="1"
+    <!-- Content Area -->
+    <lv_obj name="overlay_content" width="100%" flex_grow="1"
             style_bg_opa="0"
             style_border_width="0" style_pad_all="#padding_normal"
             flex_flow="column" scrollbar_mode="active">
-      <!-- List items added dynamically via C++ -->
+      <!-- Notification list (populated dynamically) -->
+      <lv_obj name="notification_list_container" width="100%" height="LV_SIZE_CONTENT"
+              style_bg_opa="0"
+              style_border_width="0" style_pad_all="0"
+              flex_flow="column">
+        <!-- List items added dynamically via C++ -->
+      </lv_obj>
     </lv_obj>
 
     <!-- Empty state (shown when no notifications) -->

@@ -23,6 +23,7 @@
 
 #include "ui_panel_bed_mesh.h"
 
+#include "ui_panel_common.h"
 #include "ui_bed_mesh.h"
 #include "ui_nav.h"
 #include "ui_subject_registry.h"
@@ -74,26 +75,7 @@ static void panel_delete_cb(lv_event_t* e) {
     parent_obj = nullptr;
 }
 
-// Back button event handler
-static void back_button_cb(lv_event_t* e) {
-    (void)e;
-
-    // Use navigation history to go back to previous panel
-    if (!ui_nav_go_back()) {
-        // Fallback: If navigation history is empty, manually hide panel
-        if (bed_mesh_panel) {
-            lv_obj_add_flag(bed_mesh_panel, LV_OBJ_FLAG_HIDDEN);
-        }
-
-        // Show settings panel (typical parent)
-        if (parent_obj) {
-            lv_obj_t* settings_launcher = lv_obj_find_by_name(parent_obj, "settings_panel");
-            if (settings_launcher) {
-                lv_obj_clear_flag(settings_launcher, LV_OBJ_FLAG_HIDDEN);
-            }
-        }
-    }
-}
+// Bed mesh panel no longer needs custom back button handler - uses standard helper
 
 // Profile dropdown event handler
 static void profile_dropdown_cb(lv_event_t* e) {
@@ -209,27 +191,26 @@ void ui_panel_bed_mesh_setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
     bed_mesh_panel = panel;
     parent_obj = parent_screen;
 
+    // Use standard overlay panel setup for header/content/back button
+    ui_overlay_panel_setup_standard(panel, parent_screen, "overlay_header", "overlay_content");
+    lv_obj_t* overlay_content = lv_obj_find_by_name(panel, "overlay_content");
+    if (!overlay_content) {
+        spdlog::error("[BedMesh] overlay_content not found!");
+        return;
+    }
+
     spdlog::info("[BedMesh] Setting up event handlers...");
 
-    // Find canvas widget (created by <bed_mesh> XML widget)
-    canvas = lv_obj_find_by_name(panel, "bed_mesh_canvas");
+    // Find canvas widget (created by <bed_mesh> XML widget) - search within overlay_content
+    canvas = lv_obj_find_by_name(overlay_content, "bed_mesh_canvas");
     if (!canvas) {
         spdlog::error("[BedMesh] Canvas widget not found in XML");
         return;
     }
     spdlog::debug("[BedMesh] Found canvas widget - rotation controlled by touch drag");
 
-    // Find and setup back button
-    lv_obj_t* back_btn = lv_obj_find_by_name(panel, "back_button");
-    if (back_btn) {
-        lv_obj_add_event_cb(back_btn, back_button_cb, LV_EVENT_CLICKED, nullptr);
-        spdlog::debug("[BedMesh] Back button configured");
-    } else {
-        spdlog::warn("[BedMesh] Back button not found in XML");
-    }
-
-    // Find and setup profile dropdown
-    profile_dropdown = lv_obj_find_by_name(panel, "profile_dropdown");
+    // Find and setup profile dropdown - search within overlay_content
+    profile_dropdown = lv_obj_find_by_name(overlay_content, "profile_dropdown");
     if (profile_dropdown) {
         // Get Moonraker client to fetch profile list
         MoonrakerClient* client = get_moonraker_client();

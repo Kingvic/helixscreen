@@ -645,6 +645,8 @@ static void register_xml_components() {
 
     lv_xml_register_component_from_file("A:ui_xml/icon.xml");
     lv_xml_register_component_from_file("A:ui_xml/header_bar.xml");
+    lv_xml_register_component_from_file("A:ui_xml/overlay_panel_base.xml");  // Base styling only
+    lv_xml_register_component_from_file("A:ui_xml/overlay_panel.xml");  // Depends on header_bar + base
     lv_xml_register_component_from_file("A:ui_xml/status_bar.xml");
     lv_xml_register_component_from_file("A:ui_xml/toast_notification.xml");
     lv_xml_register_component_from_file("A:ui_xml/error_dialog.xml");

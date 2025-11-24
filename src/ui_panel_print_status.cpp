@@ -23,7 +23,7 @@
 
 #include "ui_panel_print_status.h"
 
-#include "ui_component_header_bar.h"
+#include "ui_panel_common.h"
 #include "ui_nav.h"
 #include "ui_subject_registry.h"
 #include "ui_utils.h"
@@ -158,26 +158,7 @@ static void update_all_displays() {
 // EVENT HANDLERS
 // ============================================================================
 
-// Event handler: Back button (from header_bar component)
-static void back_button_cb(lv_event_t* e) {
-    (void)e;
-    spdlog::debug("[PrintStatus] Back button clicked");
-
-    // Use navigation history to go back to previous panel
-    if (!ui_nav_go_back()) {
-        // Fallback: If navigation history is empty, manually hide and show home panel
-        if (print_status_panel) {
-            lv_obj_add_flag(print_status_panel, LV_OBJ_FLAG_HIDDEN);
-        }
-
-        if (parent_obj) {
-            lv_obj_t* home_panel = lv_obj_find_by_name(parent_obj, "home_panel");
-            if (home_panel) {
-                lv_obj_clear_flag(home_panel, LV_OBJ_FLAG_HIDDEN);
-            }
-        }
-    }
-}
+// Print status panel no longer needs custom back button handler - uses standard helper
 
 // Event handler: Nozzle temperature card
 static void nozzle_temp_card_cb(lv_event_t* e) {
@@ -269,14 +250,7 @@ static void scale_thumbnail_images() {
 static void on_resize() {
     spdlog::debug("Print status panel handling resize event");
 
-    // Update content padding
-    if (print_status_panel && parent_obj) {
-        lv_obj_t* content_container = lv_obj_find_by_name(print_status_panel, "content_container");
-        if (content_container) {
-            lv_coord_t padding = ui_get_header_content_padding(lv_obj_get_height(parent_obj));
-            lv_obj_set_style_pad_all(content_container, padding, 0);
-        }
-    }
+    // Note: Content padding now handled by standard overlay panel helper
 
     scale_thumbnail_images();
 }
@@ -294,18 +268,12 @@ void ui_panel_print_status_setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
     lv_coord_t nav_width = screen_width / 10; // UI_NAV_WIDTH macro: screen_width / 10
     lv_obj_set_width(panel, screen_width - nav_width);
 
-    // Setup header for responsive height
-    lv_obj_t* print_status_header = lv_obj_find_by_name(panel, "print_status_header");
-    if (print_status_header) {
-        ui_component_header_bar_setup(print_status_header, parent_screen);
-    }
-
-    // Set responsive padding for content area
-    lv_obj_t* content_container = lv_obj_find_by_name(panel, "content_container");
-    if (content_container) {
-        lv_coord_t padding = ui_get_header_content_padding(lv_obj_get_height(parent_screen));
-        lv_obj_set_style_pad_all(content_container, padding, 0);
-        spdlog::debug("[PrintStatus]   ✓ Content padding: %dpx (responsive)", padding);
+    // Use standard overlay panel setup for header/content/back button
+    ui_overlay_panel_setup_standard(panel, parent_screen, "overlay_header", "overlay_content");
+    lv_obj_t* overlay_content = lv_obj_find_by_name(panel, "overlay_content");
+    if (!overlay_content) {
+        spdlog::error("[PrintStatus] overlay_content not found!");
+        return;
     }
 
     // Force layout calculation before scaling images (flex layout needs this)
@@ -319,17 +287,8 @@ void ui_panel_print_status_setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
 
     spdlog::debug("[PrintStatus] Setting up panel event handlers...");
 
-    // Back button (from header_bar component)
-    lv_obj_t* back_btn = lv_obj_find_by_name(panel, "back_button");
-    if (back_btn) {
-        lv_obj_add_event_cb(back_btn, back_button_cb, LV_EVENT_CLICKED, nullptr);
-        spdlog::debug("[PrintStatus]   ✓ Back button");
-    } else {
-        spdlog::error("[PrintStatus]   ✗ Back button NOT FOUND");
-    }
-
-    // Nozzle temperature card (clickable)
-    lv_obj_t* nozzle_card = lv_obj_find_by_name(panel, "nozzle_temp_card");
+    // Nozzle temperature card (clickable) - search within overlay_content
+    lv_obj_t* nozzle_card = lv_obj_find_by_name(overlay_content, "nozzle_temp_card");
     if (nozzle_card) {
         lv_obj_add_event_cb(nozzle_card, nozzle_temp_card_cb, LV_EVENT_CLICKED, nullptr);
         spdlog::debug("[PrintStatus]   ✓ Nozzle temp card");
@@ -337,8 +296,8 @@ void ui_panel_print_status_setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
         spdlog::error("[PrintStatus]   ✗ Nozzle temp card NOT FOUND");
     }
 
-    // Bed temperature card (clickable)
-    lv_obj_t* bed_card = lv_obj_find_by_name(panel, "bed_temp_card");
+    // Bed temperature card (clickable) - search within overlay_content
+    lv_obj_t* bed_card = lv_obj_find_by_name(overlay_content, "bed_temp_card");
     if (bed_card) {
         lv_obj_add_event_cb(bed_card, bed_temp_card_cb, LV_EVENT_CLICKED, nullptr);
         spdlog::debug("[PrintStatus]   ✓ Bed temp card");
@@ -346,8 +305,8 @@ void ui_panel_print_status_setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
         spdlog::error("[PrintStatus]   ✗ Bed temp card NOT FOUND");
     }
 
-    // Light button
-    lv_obj_t* light_btn = lv_obj_find_by_name(panel, "btn_light");
+    // Light button - search within overlay_content
+    lv_obj_t* light_btn = lv_obj_find_by_name(overlay_content, "btn_light");
     if (light_btn) {
         lv_obj_add_event_cb(light_btn, light_button_cb, LV_EVENT_CLICKED, nullptr);
         spdlog::debug("[PrintStatus]   ✓ Light button");
@@ -355,8 +314,8 @@ void ui_panel_print_status_setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
         spdlog::error("[PrintStatus]   ✗ Light button NOT FOUND\n");
     }
 
-    // Pause button
-    lv_obj_t* pause_btn = lv_obj_find_by_name(panel, "btn_pause");
+    // Pause button - search within overlay_content
+    lv_obj_t* pause_btn = lv_obj_find_by_name(overlay_content, "btn_pause");
     if (pause_btn) {
         lv_obj_add_event_cb(pause_btn, pause_button_cb, LV_EVENT_CLICKED, nullptr);
         spdlog::debug("[PrintStatus]   ✓ Pause button");
@@ -364,8 +323,8 @@ void ui_panel_print_status_setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
         spdlog::error("[PrintStatus]   ✗ Pause button NOT FOUND");
     }
 
-    // Tune button
-    lv_obj_t* tune_btn = lv_obj_find_by_name(panel, "btn_tune");
+    // Tune button - search within overlay_content
+    lv_obj_t* tune_btn = lv_obj_find_by_name(overlay_content, "btn_tune");
     if (tune_btn) {
         lv_obj_add_event_cb(tune_btn, tune_button_cb, LV_EVENT_CLICKED, nullptr);
         spdlog::debug("[PrintStatus]   ✓ Tune button");
@@ -373,8 +332,8 @@ void ui_panel_print_status_setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
         spdlog::error("[PrintStatus]   ✗ Tune button NOT FOUND");
     }
 
-    // Cancel button
-    lv_obj_t* cancel_btn = lv_obj_find_by_name(panel, "btn_cancel");
+    // Cancel button - search within overlay_content
+    lv_obj_t* cancel_btn = lv_obj_find_by_name(overlay_content, "btn_cancel");
     if (cancel_btn) {
         lv_obj_add_event_cb(cancel_btn, cancel_button_cb, LV_EVENT_CLICKED, nullptr);
         spdlog::debug("[PrintStatus]   ✓ Cancel button");
@@ -382,8 +341,8 @@ void ui_panel_print_status_setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
         spdlog::error("[PrintStatus]   ✗ Cancel button NOT FOUND");
     }
 
-    // Get progress bar widget for direct updates
-    progress_bar = lv_obj_find_by_name(panel, "print_progress");
+    // Get progress bar widget for direct updates - search within overlay_content
+    progress_bar = lv_obj_find_by_name(overlay_content, "print_progress");
     if (progress_bar) {
         lv_bar_set_range(progress_bar, 0, 100);
         lv_bar_set_value(progress_bar, 0, LV_ANIM_OFF);

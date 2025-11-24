@@ -23,7 +23,7 @@
 
 #include "ui_panel_controls_temp.h"
 
-#include "ui_component_header_bar.h"
+#include "ui_panel_common.h"
 #include "ui_component_keypad.h"
 #include "ui_heater_config.h"
 #include "ui_nav.h"
@@ -348,25 +348,7 @@ static void custom_button_cb_generic(lv_event_t* e, const heater_config_t* confi
 // NOZZLE TEMPERATURE PANEL
 // ============================================================================
 
-// Event handler: Back button (nozzle panel)
-static void nozzle_back_button_cb(lv_event_t* e) {
-    (void)e;
-
-    // Use navigation history to go back to previous panel
-    if (!ui_nav_go_back()) {
-        // Fallback: If navigation history is empty, manually hide and show controls launcher
-        if (nozzle_panel) {
-            lv_obj_add_flag(nozzle_panel, LV_OBJ_FLAG_HIDDEN);
-        }
-
-        if (parent_obj) {
-            lv_obj_t* controls_launcher = lv_obj_find_by_name(parent_obj, "controls_panel");
-            if (controls_launcher) {
-                lv_obj_clear_flag(controls_launcher, LV_OBJ_FLAG_HIDDEN);
-            }
-        }
-    }
-}
+// Nozzle panel no longer needs custom back button handler - uses standard helper
 
 // Event handler: Confirm button (nozzle panel)
 static void nozzle_confirm_button_cb(lv_event_t* e) {
@@ -375,8 +357,8 @@ static void nozzle_confirm_button_cb(lv_event_t* e) {
 
     // TODO: Send command to printer (moonraker_set_nozzle_temp(nozzle_target))
 
-    // Return to launcher
-    nozzle_back_button_cb(e);
+    // Return to launcher using standard navigation
+    ui_nav_go_back();
 }
 
 // Event handler: Nozzle preset buttons (wrapper for generic handler)
@@ -390,22 +372,19 @@ static void nozzle_custom_button_cb(lv_event_t* e) {
     custom_button_cb_generic(e, &NOZZLE_CONFIG, &nozzle_custom_data);
 }
 
-// Resize callback for responsive padding (nozzle panel)
-static void nozzle_on_resize() {
-    if (!nozzle_panel || !parent_obj) {
-        return;
-    }
-
-    lv_obj_t* temp_content = lv_obj_find_by_name(nozzle_panel, "temp_content");
-    if (temp_content) {
-        lv_coord_t padding = ui_get_header_content_padding(lv_obj_get_height(parent_obj));
-        lv_obj_set_style_pad_all(temp_content, padding, 0);
-    }
-}
+// Nozzle panel no longer needs custom resize callback - uses standard helper
 
 void ui_panel_controls_temp_nozzle_setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
     nozzle_panel = panel;
     parent_obj = parent_screen;
+
+    // Use standard overlay panel setup for header/content/back button
+    ui_overlay_panel_setup_standard(panel, parent_screen, "overlay_header", "overlay_content");
+    lv_obj_t* overlay_content = lv_obj_find_by_name(panel, "overlay_content");
+    if (!overlay_content) {
+        spdlog::error("[Temp/Nozzle] overlay_content not found!");
+        return;
+    }
 
     // Load theme-aware graph color from component scope
     lv_xml_component_scope_t* scope = lv_xml_component_get_scope("nozzle_temp_panel");
@@ -423,58 +402,34 @@ void ui_panel_controls_temp_nozzle_setup(lv_obj_t* panel, lv_obj_t* parent_scree
     spdlog::info("[Temp] Setting up nozzle panel event handlers...");
 
     // Create Y-axis labels using common helper
-    lv_obj_t* y_axis_labels = lv_obj_find_by_name(panel, "y_axis_labels");
+    lv_obj_t* y_axis_labels = lv_obj_find_by_name(overlay_content, "y_axis_labels");
     if (y_axis_labels) {
         create_y_axis_labels(y_axis_labels, &NOZZLE_CONFIG);
     }
 
     // Create temperature graph using common helper
-    lv_obj_t* chart_area = lv_obj_find_by_name(panel, "chart_area");
+    lv_obj_t* chart_area = lv_obj_find_by_name(overlay_content, "chart_area");
     if (chart_area) {
         nozzle_graph = create_temp_graph(chart_area, &NOZZLE_CONFIG, nozzle_current, nozzle_target,
                                          &nozzle_series_id);
     }
 
-    // Setup header for responsive height
-    lv_obj_t* nozzle_temp_header = lv_obj_find_by_name(panel, "nozzle_temp_header");
-    if (nozzle_temp_header) {
-        ui_component_header_bar_setup(nozzle_temp_header, parent_screen);
-    }
-
-    // Set responsive padding for content area
-    lv_obj_t* temp_content = lv_obj_find_by_name(panel, "temp_content");
-    if (temp_content) {
-        lv_coord_t padding = ui_get_header_content_padding(lv_obj_get_height(parent_screen));
-        lv_obj_set_style_pad_all(temp_content, padding, 0);
-        spdlog::debug("[Temp]   ✓ Content padding: {}px (responsive)", padding);
-    }
-
-    // Register resize callback
-    ui_resize_handler_register(nozzle_on_resize);
-
-    // Back button
-    lv_obj_t* back_btn = lv_obj_find_by_name(panel, "back_button");
-    if (back_btn) {
-        lv_obj_add_event_cb(back_btn, nozzle_back_button_cb, LV_EVENT_CLICKED, nullptr);
-        spdlog::debug("[Temp]   ✓ Back button");
-    }
-
     // Show and wire confirm button
-    lv_obj_t* header = lv_obj_find_by_name(panel, "nozzle_temp_header");
-    if (header && ui_header_bar_show_right_button(header)) {
-        lv_obj_t* confirm_btn = lv_obj_find_by_name(header, "right_button");
-        if (confirm_btn) {
-            lv_obj_add_event_cb(confirm_btn, nozzle_confirm_button_cb, LV_EVENT_CLICKED, nullptr);
+    lv_obj_t* header = lv_obj_find_by_name(panel, "overlay_header");
+    if (header) {
+        lv_obj_t* right_button = lv_obj_find_by_name(header, "right_button");
+        if (right_button) {
+            lv_obj_add_event_cb(right_button, nozzle_confirm_button_cb, LV_EVENT_CLICKED, nullptr);
             spdlog::debug("[Temp]   ✓ Confirm button");
         }
     }
 
-    // Preset buttons (using generic helper)
-    setup_preset_buttons(panel, &NOZZLE_CONFIG, nozzle_preset_button_cb);
+    // Preset buttons (using generic helper) - search within overlay_content
+    setup_preset_buttons(overlay_content, &NOZZLE_CONFIG, nozzle_preset_button_cb);
     spdlog::debug("[Temp]   ✓ Preset buttons (4)");
 
     // Custom button
-    lv_obj_t* custom_btn = lv_obj_find_by_name(panel, "btn_custom");
+    lv_obj_t* custom_btn = lv_obj_find_by_name(overlay_content, "btn_custom");
     if (custom_btn) {
         lv_obj_add_event_cb(custom_btn, nozzle_custom_button_cb, LV_EVENT_CLICKED, nullptr);
         spdlog::debug("[Temp]   ✓ Custom button");
@@ -487,25 +442,7 @@ void ui_panel_controls_temp_nozzle_setup(lv_obj_t* panel, lv_obj_t* parent_scree
 // BED TEMPERATURE PANEL
 // ============================================================================
 
-// Event handler: Back button (bed panel)
-static void bed_back_button_cb(lv_event_t* e) {
-    (void)e;
-
-    // Use navigation history to go back to previous panel
-    if (!ui_nav_go_back()) {
-        // Fallback: If navigation history is empty, manually hide and show controls launcher
-        if (bed_panel) {
-            lv_obj_add_flag(bed_panel, LV_OBJ_FLAG_HIDDEN);
-        }
-
-        if (parent_obj) {
-            lv_obj_t* controls_launcher = lv_obj_find_by_name(parent_obj, "controls_panel");
-            if (controls_launcher) {
-                lv_obj_clear_flag(controls_launcher, LV_OBJ_FLAG_HIDDEN);
-            }
-        }
-    }
-}
+// Bed panel no longer needs custom back button handler - uses standard helper
 
 // Event handler: Confirm button (bed panel)
 static void bed_confirm_button_cb(lv_event_t* e) {
@@ -514,8 +451,8 @@ static void bed_confirm_button_cb(lv_event_t* e) {
 
     // TODO: Send command to printer (moonraker_set_bed_temp(bed_target))
 
-    // Return to launcher
-    bed_back_button_cb(e);
+    // Return to launcher using standard navigation
+    ui_nav_go_back();
 }
 
 // Event handler: Bed preset buttons (wrapper for generic handler)
@@ -529,22 +466,19 @@ static void bed_custom_button_cb(lv_event_t* e) {
     custom_button_cb_generic(e, &BED_CONFIG, &bed_custom_data);
 }
 
-// Resize callback for responsive padding (bed panel)
-static void bed_on_resize() {
-    if (!bed_panel || !parent_obj) {
-        return;
-    }
-
-    lv_obj_t* temp_content = lv_obj_find_by_name(bed_panel, "temp_content");
-    if (temp_content) {
-        lv_coord_t padding = ui_get_header_content_padding(lv_obj_get_height(parent_obj));
-        lv_obj_set_style_pad_all(temp_content, padding, 0);
-    }
-}
+// Bed panel no longer needs custom resize callback - uses standard helper
 
 void ui_panel_controls_temp_bed_setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
     bed_panel = panel;
     parent_obj = parent_screen;
+
+    // Use standard overlay panel setup for header/content/back button
+    ui_overlay_panel_setup_standard(panel, parent_screen, "overlay_header", "overlay_content");
+    lv_obj_t* overlay_content = lv_obj_find_by_name(panel, "overlay_content");
+    if (!overlay_content) {
+        spdlog::error("[Temp/Bed] overlay_content not found!");
+        return;
+    }
 
     // Load theme-aware graph color from component scope
     lv_xml_component_scope_t* scope = lv_xml_component_get_scope("bed_temp_panel");
@@ -562,58 +496,34 @@ void ui_panel_controls_temp_bed_setup(lv_obj_t* panel, lv_obj_t* parent_screen) 
     spdlog::info("[Temp] Setting up bed panel event handlers...");
 
     // Create Y-axis labels using common helper
-    lv_obj_t* y_axis_labels = lv_obj_find_by_name(panel, "y_axis_labels");
+    lv_obj_t* y_axis_labels = lv_obj_find_by_name(overlay_content, "y_axis_labels");
     if (y_axis_labels) {
         create_y_axis_labels(y_axis_labels, &BED_CONFIG);
     }
 
     // Create temperature graph using common helper
-    lv_obj_t* chart_area = lv_obj_find_by_name(panel, "chart_area");
+    lv_obj_t* chart_area = lv_obj_find_by_name(overlay_content, "chart_area");
     if (chart_area) {
         bed_graph =
             create_temp_graph(chart_area, &BED_CONFIG, bed_current, bed_target, &bed_series_id);
     }
 
-    // Setup header for responsive height
-    lv_obj_t* bed_temp_header = lv_obj_find_by_name(panel, "bed_temp_header");
-    if (bed_temp_header) {
-        ui_component_header_bar_setup(bed_temp_header, parent_screen);
-    }
-
-    // Set responsive padding for content area
-    lv_obj_t* temp_content = lv_obj_find_by_name(panel, "temp_content");
-    if (temp_content) {
-        lv_coord_t padding = ui_get_header_content_padding(lv_obj_get_height(parent_screen));
-        lv_obj_set_style_pad_all(temp_content, padding, 0);
-        spdlog::debug("[Temp]   ✓ Content padding: {}px (responsive)", padding);
-    }
-
-    // Register resize callback
-    ui_resize_handler_register(bed_on_resize);
-
-    // Back button
-    lv_obj_t* back_btn = lv_obj_find_by_name(panel, "back_button");
-    if (back_btn) {
-        lv_obj_add_event_cb(back_btn, bed_back_button_cb, LV_EVENT_CLICKED, nullptr);
-        spdlog::debug("[Temp]   ✓ Back button");
-    }
-
     // Show and wire confirm button
-    lv_obj_t* header = lv_obj_find_by_name(panel, "bed_temp_header");
-    if (header && ui_header_bar_show_right_button(header)) {
-        lv_obj_t* confirm_btn = lv_obj_find_by_name(header, "right_button");
-        if (confirm_btn) {
-            lv_obj_add_event_cb(confirm_btn, bed_confirm_button_cb, LV_EVENT_CLICKED, nullptr);
+    lv_obj_t* header = lv_obj_find_by_name(panel, "overlay_header");
+    if (header) {
+        lv_obj_t* right_button = lv_obj_find_by_name(header, "right_button");
+        if (right_button) {
+            lv_obj_add_event_cb(right_button, bed_confirm_button_cb, LV_EVENT_CLICKED, nullptr);
             spdlog::debug("[Temp]   ✓ Confirm button");
         }
     }
 
-    // Preset buttons (using generic helper)
-    setup_preset_buttons(panel, &BED_CONFIG, bed_preset_button_cb);
+    // Preset buttons (using generic helper) - search within overlay_content
+    setup_preset_buttons(overlay_content, &BED_CONFIG, bed_preset_button_cb);
     spdlog::debug("[Temp]   ✓ Preset buttons (4)");
 
     // Custom button
-    lv_obj_t* custom_btn = lv_obj_find_by_name(panel, "btn_custom");
+    lv_obj_t* custom_btn = lv_obj_find_by_name(overlay_content, "btn_custom");
     if (custom_btn) {
         lv_obj_add_event_cb(custom_btn, bed_custom_button_cb, LV_EVENT_CLICKED, nullptr);
         spdlog::debug("[Temp]   ✓ Custom button");

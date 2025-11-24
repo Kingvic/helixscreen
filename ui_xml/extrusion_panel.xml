@@ -6,11 +6,11 @@
   <!-- Extrusion Sub-Screen -->
   <!-- Extrude/Retract controls with safety checks -->
   <!-- Uses shared backdrop from navigation system -->
-  <view extends="lv_obj" name="extrusion_panel" width="#overlay_panel_width" height="100%" align="right_mid" style_border_width="0" style_pad_all="0" scrollable="false" flex_flow="column">
-    <!-- Header Bar -->
-    <header_bar name="extrusion_header" title="Extrude / Retract"/>
+  <view extends="lv_obj" name="extrusion_panel" width="#overlay_panel_width" height="100%" align="right_mid" style_border_width="0" style_pad_all="0" style_bg_opa="255" style_bg_color="#card_bg" scrollable="false" flex_flow="column">
+    <!-- Header Bar (uses improved header_bar component) -->
+    <header_bar name="overlay_header" title="Extrude / Retract"/>
     <!-- Content Area: Two Columns -->
-    <lv_obj name="extrusion_content" flex_grow="1" width="100%" style_bg_opa="0" style_pad_all="#padding_normal" scrollable="false" style_border_width="0" style_border_opa="0" flex_flow="row" style_flex_main_place="space_between">
+    <lv_obj name="overlay_content" flex_grow="1" width="100%" style_bg_opa="0" style_pad_all="#padding_normal" scrollable="false" style_border_width="0" style_border_opa="0" flex_flow="row" style_flex_main_place="space_between">
       <!-- Left Column (50%): Extruder Visualization + Temperature Status -->
       <lv_obj name="left_column" width="50%" height="100%" style_bg_opa="0" style_pad_all="0" scrollable="false" style_border_width="0" style_border_opa="0" flex_flow="column" style_flex_main_place="start" style_flex_cross_place="center" style_pad_gap="16">
         <!-- Extruder Visualization -->

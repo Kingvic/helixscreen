@@ -509,6 +509,27 @@ static void apply_keyboard_mode() {
     lv_obj_invalidate(g_keyboard);
 }
 
+// Helper to count UTF-8 characters in a string
+static size_t get_utf8_length(const char* str) {
+    size_t len = 0;
+    while (*str) {
+        if ((*str & 0xC0) != 0x80) { // If not a continuation byte
+            len++;
+        }
+        str++;
+    }
+    return len;
+}
+
+// Helper to check if string ends with suffix
+static bool str_ends_with(const char* str, const char* suffix) {
+    if (!str || !suffix) return false;
+    size_t str_len = strlen(str);
+    size_t suffix_len = strlen(suffix);
+    if (suffix_len > str_len) return false;
+    return strcmp(str + str_len - suffix_len, suffix) == 0;
+}
+
 /**
  * @brief Keyboard event callback - handles ready/cancel events and mode switching
  *
@@ -541,17 +562,23 @@ static void keyboard_event_cb(lv_event_t* e) {
                       btn_id, btn_text ? btn_text : "NULL", is_non_printing);
 
         if (is_non_printing) {
-            // LVGL's default handler has already inserted the button text
-            // We need to delete it and handle the button action instead
+            // LVGL's default handler MIGHT have inserted the button text.
+            // We need to check if it did, and if so, delete it.
+            // This prevents deleting user text when LVGL didn't insert anything (e.g. Backspace, Close).
+            
             if (g_context_textarea && btn_text) {
-                // Delete the characters that LVGL just inserted
-                size_t len = strlen(btn_text);
-                spdlog::info("[Keyboard] Deleting {} bytes of '{}' from textarea", len, btn_text);
-                for (size_t i = 0; i < len; i++) {
-                    lv_textarea_delete_char(g_context_textarea);
+                const char* current_text = lv_textarea_get_text(g_context_textarea);
+                
+                if (str_ends_with(current_text, btn_text)) {
+                    // LVGL inserted the button text - delete it
+                    size_t char_count = get_utf8_length(btn_text);
+                    spdlog::info("[Keyboard] Removing inserted text '{}' ({} chars)", btn_text, char_count);
+                    for (size_t i = 0; i < char_count; i++) {
+                        lv_textarea_delete_char(g_context_textarea);
+                    }
+                } else {
+                    spdlog::trace("[Keyboard] Textarea does not end with '{}' - nothing to delete", btn_text);
                 }
-                spdlog::info("[Keyboard] Deleted {} chars, textarea now: '{}'", len,
-                             lv_textarea_get_text(g_context_textarea));
             }
 
             // Now handle the button action
@@ -607,7 +634,15 @@ static void keyboard_event_cb(lv_event_t* e) {
                 apply_keyboard_mode();
 
             } else if (btn_text && strcmp(btn_text, LV_SYMBOL_NEW_LINE) == 0) {
-                // Enter key - LVGL already handled it, just close keyboard
+                // Enter key
+                // If LVGL inserted a newline character, remove it (we want Enter to just close/submit)
+                if (g_context_textarea) {
+                    const char* current_text = lv_textarea_get_text(g_context_textarea);
+                    if (str_ends_with(current_text, "\n")) {
+                        lv_textarea_delete_char(g_context_textarea);
+                        spdlog::debug("[Keyboard] Removed inserted newline");
+                    }
+                }
                 ui_keyboard_hide();
 
             } else if (btn_text && strcmp(btn_text, LV_SYMBOL_KEYBOARD) == 0) {
@@ -616,8 +651,7 @@ static void keyboard_event_cb(lv_event_t* e) {
                 ui_keyboard_hide();
 
             } else if (btn_text && strcmp(btn_text, LV_SYMBOL_BACKSPACE) == 0) {
-                // Backspace - delete one more character (LVGL inserted the symbol, we deleted it,
-                // now delete user char)
+                // Backspace - user char deletion
                 if (g_context_textarea) {
                     lv_textarea_delete_char(g_context_textarea);
                 }

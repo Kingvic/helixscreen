@@ -239,3 +239,98 @@ void ui_panel_setup_standard_layout(lv_obj_t* panel, lv_obj_t* parent_screen,
 
     spdlog::info("[PanelCommon] Standard panel layout setup complete");
 }
+
+// ============================================================================
+// OVERLAY PANEL SETUP (For panels using overlay_panel.xml wrapper)
+// ============================================================================
+
+void ui_overlay_panel_setup_standard(lv_obj_t* panel, lv_obj_t* parent_screen,
+                                     const char* header_name,
+                                     const char* content_name) {
+    if (!panel || !parent_screen) {
+        spdlog::error("[PanelCommon] Invalid parameters for overlay panel setup");
+        return;
+    }
+
+    spdlog::debug("[PanelCommon] Setting up overlay panel with header='{}', content='{}'",
+                  header_name, content_name);
+
+    // 1. Setup header responsive height (if needed - usually handled by XML)
+    lv_obj_t* header = lv_obj_find_by_name(panel, header_name);
+    if (header) {
+        // Header height is typically set via #header_height constant in XML
+        // Just wire the back button here
+        ui_overlay_panel_wire_back_button(panel, header_name);
+    } else {
+        spdlog::warn("[PanelCommon] Header '{}' not found in overlay panel", header_name);
+    }
+
+    // 2. Setup content padding (responsive vertical, fixed horizontal)
+    // Note: overlay_panel.xml already sets style_pad_all="#padding_normal"
+    // This is a no-op unless we need to override for specific screen sizes
+    lv_obj_t* content = lv_obj_find_by_name(panel, content_name);
+    if (content) {
+        spdlog::debug("[PanelCommon] Content area '{}' found, padding already set by XML",
+                      content_name);
+    } else {
+        spdlog::warn("[PanelCommon] Content area '{}' not found in overlay panel", content_name);
+    }
+
+    spdlog::info("[PanelCommon] Overlay panel setup complete");
+}
+
+lv_obj_t* ui_overlay_panel_wire_back_button(lv_obj_t* panel, const char* header_name) {
+    if (!panel || !header_name) {
+        spdlog::warn("[PanelCommon] Invalid parameters for overlay back button wiring");
+        return nullptr;
+    }
+
+    // Find header_bar widget
+    lv_obj_t* header = lv_obj_find_by_name(panel, header_name);
+    if (!header) {
+        spdlog::warn("[PanelCommon] Header '{}' not found in overlay panel", header_name);
+        return nullptr;
+    }
+
+    // Find back_button within header_bar
+    lv_obj_t* back_btn = lv_obj_find_by_name(header, "back_button");
+    if (!back_btn) {
+        spdlog::warn("[PanelCommon] Back button not found in header '{}'", header_name);
+        return nullptr;
+    }
+
+    // Wire to standard back button handler (uses ui_nav_go_back)
+    lv_obj_add_event_cb(back_btn, ui_panel_back_button_cb, LV_EVENT_CLICKED, panel);
+    spdlog::debug("[PanelCommon] Back button wired in header '{}'", header_name);
+
+    return back_btn;
+}
+
+lv_obj_t* ui_overlay_panel_wire_right_button(lv_obj_t* panel,
+                                             lv_event_cb_t callback,
+                                             const char* header_name) {
+    if (!panel || !callback || !header_name) {
+        spdlog::warn("[PanelCommon] Invalid parameters for overlay right button wiring");
+        return nullptr;
+    }
+
+    // Find header_bar widget
+    lv_obj_t* header = lv_obj_find_by_name(panel, header_name);
+    if (!header) {
+        spdlog::warn("[PanelCommon] Header '{}' not found in overlay panel", header_name);
+        return nullptr;
+    }
+
+    // Find right_button within header_bar
+    lv_obj_t* right_btn = lv_obj_find_by_name(header, "right_button");
+    if (!right_btn) {
+        spdlog::warn("[PanelCommon] Right button not found in header '{}'", header_name);
+        return nullptr;
+    }
+
+    // Wire to provided callback
+    lv_obj_add_event_cb(right_btn, callback, LV_EVENT_CLICKED, nullptr);
+    spdlog::debug("[PanelCommon] Right button wired in header '{}'", header_name);
+
+    return right_btn;
+}

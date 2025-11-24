@@ -4,6 +4,7 @@
 #include "ui_panel_notification_history.h"
 #include "ui_notification_history.h"
 #include "ui_nav.h"
+#include "ui_panel_common.h"
 #include "ui_theme.h"
 #include "ui_status_bar.h"
 #include <spdlog/spdlog.h>
@@ -60,10 +61,6 @@ static std::string format_timestamp(uint64_t timestamp_ms) {
 }
 
 // Event callbacks
-static void history_back_clicked(lv_event_t* e) {
-    ui_nav_go_back();
-}
-
 static void history_clear_clicked(lv_event_t* e) {
     NotificationHistory::instance().clear();
     ui_panel_notification_history_refresh();
@@ -91,19 +88,38 @@ static void filter_info_clicked(lv_event_t* e) {
 }
 
 lv_obj_t* ui_panel_notification_history_create(lv_obj_t* parent) {
-    // Register event callbacks
-    lv_xml_register_event_cb(NULL, "history_back_clicked", history_back_clicked);
-    lv_xml_register_event_cb(NULL, "history_clear_clicked", history_clear_clicked);
-    lv_xml_register_event_cb(NULL, "filter_all_clicked", filter_all_clicked);
-    lv_xml_register_event_cb(NULL, "filter_errors_clicked", filter_errors_clicked);
-    lv_xml_register_event_cb(NULL, "filter_warnings_clicked", filter_warnings_clicked);
-    lv_xml_register_event_cb(NULL, "filter_info_clicked", filter_info_clicked);
-
     // Create panel from XML
     panel_obj = (lv_obj_t*)lv_xml_create(parent, "notification_history_panel", nullptr);
     if (!panel_obj) {
         spdlog::error("Failed to create notification_history_panel from XML");
         return nullptr;
+    }
+
+    // Use standard overlay panel setup (wires back button automatically)
+    ui_overlay_panel_setup_standard(panel_obj, parent, "overlay_header", "overlay_content");
+
+    // Wire right button ("Clear All") to clear callback
+    ui_overlay_panel_wire_right_button(panel_obj, history_clear_clicked, "overlay_header");
+
+    // Setup filter buttons (panel-specific)
+    lv_obj_t* filter_all = lv_obj_find_by_name(panel_obj, "filter_all_btn");
+    if (filter_all) {
+        lv_obj_add_event_cb(filter_all, filter_all_clicked, LV_EVENT_CLICKED, nullptr);
+    }
+
+    lv_obj_t* filter_errors = lv_obj_find_by_name(panel_obj, "filter_errors_btn");
+    if (filter_errors) {
+        lv_obj_add_event_cb(filter_errors, filter_errors_clicked, LV_EVENT_CLICKED, nullptr);
+    }
+
+    lv_obj_t* filter_warnings = lv_obj_find_by_name(panel_obj, "filter_warnings_btn");
+    if (filter_warnings) {
+        lv_obj_add_event_cb(filter_warnings, filter_warnings_clicked, LV_EVENT_CLICKED, nullptr);
+    }
+
+    lv_obj_t* filter_info = lv_obj_find_by_name(panel_obj, "filter_info_btn");
+    if (filter_info) {
+        lv_obj_add_event_cb(filter_info, filter_info_clicked, LV_EVENT_CLICKED, nullptr);
     }
 
     // Reset filter
@@ -127,8 +143,14 @@ void ui_panel_notification_history_refresh() {
         ? NotificationHistory::instance().get_all()
         : NotificationHistory::instance().get_filtered(current_filter);
 
-    // Find list container
-    lv_obj_t* list_container = lv_obj_find_by_name(panel_obj, "notification_list_container");
+    // Find list container (nested within overlay_content)
+    lv_obj_t* overlay_content = lv_obj_find_by_name(panel_obj, "overlay_content");
+    if (!overlay_content) {
+        spdlog::error("Could not find overlay_content");
+        return;
+    }
+
+    lv_obj_t* list_container = lv_obj_find_by_name(overlay_content, "notification_list_container");
     if (!list_container) {
         spdlog::error("Could not find notification_list_container");
         return;

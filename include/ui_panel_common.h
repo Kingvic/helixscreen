@@ -166,3 +166,56 @@ void ui_panel_setup_standard_layout(lv_obj_t* panel, lv_obj_t* parent_screen,
                                     const char* header_name, const char* content_name,
                                     ui_panel_resize_context_t* resize_context,
                                     const char* back_button_name = "back_button");
+
+// ============================================================================
+// OVERLAY PANEL SETUP (For panels using overlay_panel.xml wrapper)
+// ============================================================================
+
+/**
+ * @brief Standard setup for overlay panels using overlay_panel.xml wrapper
+ *
+ * Overlay panels use the new overlay_panel.xml component which provides:
+ * - Integrated header_bar with back button
+ * - Right-aligned positioning
+ * - Content area with responsive padding
+ *
+ * This function wires the header_bar back button to use ui_nav_go_back()
+ * and sets up responsive padding for the content area.
+ *
+ * @param panel Overlay panel root object
+ * @param parent_screen Parent screen for measuring dimensions
+ * @param header_name Name of header_bar widget (default: "overlay_header")
+ * @param content_name Name of content area (default: "overlay_content")
+ */
+void ui_overlay_panel_setup_standard(lv_obj_t* panel, lv_obj_t* parent_screen,
+                                     const char* header_name = "overlay_header",
+                                     const char* content_name = "overlay_content");
+
+/**
+ * @brief Wire back button in overlay panel header_bar
+ *
+ * Finds the back button within the header_bar and wires it to call
+ * ui_nav_go_back() when clicked. This is the standard behavior for all
+ * overlay panels.
+ *
+ * @param panel Overlay panel root object
+ * @param header_name Name of header_bar widget (default: "overlay_header")
+ * @return Pointer to back button if found, nullptr otherwise
+ */
+lv_obj_t* ui_overlay_panel_wire_back_button(lv_obj_t* panel,
+                                            const char* header_name = "overlay_header");
+
+/**
+ * @brief Wire right action button in overlay panel header_bar
+ *
+ * Finds the right button within the header_bar and wires it to the provided
+ * callback. Used for confirm/save/action buttons in overlay panels.
+ *
+ * @param panel Overlay panel root object
+ * @param callback Event callback for button click
+ * @param header_name Name of header_bar widget (default: "overlay_header")
+ * @return Pointer to right button if found, nullptr otherwise
+ */
+lv_obj_t* ui_overlay_panel_wire_right_button(lv_obj_t* panel,
+                                             lv_event_cb_t callback,
+                                             const char* header_name = "overlay_header");

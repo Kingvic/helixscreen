@@ -5,11 +5,11 @@
 <component>
   <!-- Bed Mesh Visualization Panel -->
   <!-- Uses shared backdrop from navigation system -->
-  <view extends="lv_obj" name="bed_mesh_panel" width="#overlay_panel_width_large" height="100%" align="right_mid" style_pad_all="0" style_border_width="0" scrollable="false" flex_flow="column">
-    <!-- Header Bar -->
-    <header_bar name="bed_mesh_header" title="Bed Mesh"/>
+  <view extends="lv_obj" name="bed_mesh_panel" width="#overlay_panel_width_large" height="100%" align="right_mid" style_bg_opa="255" style_bg_color="#card_bg" style_pad_all="0" style_border_width="0" scrollable="false" flex_flow="column">
+    <!-- Header Bar (uses improved header_bar component) -->
+    <header_bar name="overlay_header" title="Bed Mesh"/>
     <!-- Content Area: Horizontal split (Left=Canvas, Right=Controls) -->
-    <lv_obj name="bed_mesh_content" flex_grow="1" width="100%" style_bg_opa="0" style_pad_all="0" scrollable="false" style_border_width="0" flex_flow="row" style_pad_gap="#padding_small">
+    <lv_obj name="overlay_content" flex_grow="1" width="100%" style_bg_opa="0" style_pad_all="0" scrollable="false" style_border_width="0" flex_flow="row" style_pad_gap="#padding_small">
       <!-- Left: Canvas (80% width) - uses touch drag for rotation -->
       <bed_mesh name="bed_mesh_canvas" flex_grow="8" height="100%" clickable="true" style_border_width="1"/>
       <!-- Right: Profile Selector + Stats (20% width) -->

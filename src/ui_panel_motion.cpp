@@ -23,10 +23,10 @@
 
 #include "ui_panel_motion.h"
 
-#include "ui_component_header_bar.h"
 #include "ui_event_safety.h"
 #include "ui_jog_pad.h"
 #include "ui_nav.h"
+#include "ui_panel_common.h"
 #include "ui_subject_registry.h"
 #include "ui_theme.h"
 #include "ui_utils.h"
@@ -106,23 +106,6 @@ static void update_distance_buttons() {
     }
 }
 
-// Event handler: Back button
-LVGL_SAFE_EVENT_CB(back_button_cb, {
-    // Use navigation history to go back to previous panel
-    if (!ui_nav_go_back()) {
-        // Fallback: If navigation history is empty, manually hide and show controls launcher
-        if (motion_panel) {
-            lv_obj_add_flag(motion_panel, LV_OBJ_FLAG_HIDDEN);
-        }
-
-        if (parent_obj) {
-            lv_obj_t* controls_launcher = lv_obj_find_by_name(parent_obj, "controls_panel");
-            if (controls_launcher) {
-                lv_obj_clear_flag(controls_launcher, LV_OBJ_FLAG_HIDDEN);
-            }
-        }
-    }
-})
 
 // Event handler: Distance selector buttons
 LVGL_SAFE_EVENT_CB_WITH_EVENT(distance_button_cb, event, {
@@ -187,57 +170,14 @@ LVGL_SAFE_EVENT_CB_WITH_EVENT(home_button_cb, event, {
     }
 })
 
-// Resize callback for responsive padding
-static void on_resize() {
-    if (!motion_panel || !parent_obj) {
-        return;
-    }
-
-    lv_obj_t* motion_content = lv_obj_find_by_name(motion_panel, "motion_content");
-    if (motion_content) {
-        lv_coord_t vertical_padding = ui_get_header_content_padding(lv_obj_get_height(parent_obj));
-        // Set vertical padding (top/bottom) responsively, keep horizontal at medium (12px)
-        lv_obj_set_style_pad_top(motion_content, vertical_padding, 0);
-        lv_obj_set_style_pad_bottom(motion_content, vertical_padding, 0);
-        lv_obj_set_style_pad_left(motion_content, UI_PADDING_MEDIUM, 0);
-        lv_obj_set_style_pad_right(motion_content, UI_PADDING_MEDIUM, 0);
-    }
-}
-
 void ui_panel_motion_setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
     motion_panel = panel;
     parent_obj = parent_screen;
 
     spdlog::info("[Motion] Setting up event handlers...");
 
-    // Setup header for responsive height
-    lv_obj_t* motion_header = lv_obj_find_by_name(panel, "motion_header");
-    if (motion_header) {
-        ui_component_header_bar_setup(motion_header, parent_screen);
-    }
-
-    // Set responsive padding for content area
-    lv_obj_t* motion_content = lv_obj_find_by_name(panel, "motion_content");
-    if (motion_content) {
-        lv_coord_t vertical_padding =
-            ui_get_header_content_padding(lv_obj_get_height(parent_screen));
-        // Set vertical padding (top/bottom) responsively, keep horizontal at medium (12px)
-        lv_obj_set_style_pad_top(motion_content, vertical_padding, 0);
-        lv_obj_set_style_pad_bottom(motion_content, vertical_padding, 0);
-        lv_obj_set_style_pad_left(motion_content, UI_PADDING_MEDIUM, 0);
-        lv_obj_set_style_pad_right(motion_content, UI_PADDING_MEDIUM, 0);
-        spdlog::debug("[Motion] Content padding: top/bottom={}px, left/right={}px (responsive)",
-                      vertical_padding, UI_PADDING_MEDIUM);
-    }
-
-    // Register resize callback
-    ui_resize_handler_register(on_resize);
-
-    // Back button
-    lv_obj_t* back_btn = lv_obj_find_by_name(panel, "back_button");
-    if (back_btn) {
-        lv_obj_add_event_cb(back_btn, back_button_cb, LV_EVENT_CLICKED, nullptr);
-    }
+    // Use standard overlay panel setup (wires header, back button, handles responsive padding)
+    ui_overlay_panel_setup_standard(panel, parent_screen, "overlay_header", "overlay_content");
 
     // Distance selector buttons
     const char* dist_names[] = {"dist_0_1", "dist_1", "dist_10", "dist_100"};
@@ -250,8 +190,15 @@ void ui_panel_motion_setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
     update_distance_buttons();
     spdlog::debug("[Motion] Distance selector (4 buttons)");
 
+    // Find overlay_content to access motion panel widgets
+    lv_obj_t* overlay_content = lv_obj_find_by_name(panel, "overlay_content");
+    if (!overlay_content) {
+        spdlog::error("[Motion] overlay_content not found!");
+        return;
+    }
+
     // Find jog pad container from XML and replace it with the widget
-    lv_obj_t* jog_pad_container = lv_obj_find_by_name(panel, "jog_pad_container");
+    lv_obj_t* jog_pad_container = lv_obj_find_by_name(overlay_content, "jog_pad_container");
     if (jog_pad_container) {
         // Get parent container (left_column)
         lv_obj_t* left_column = lv_obj_get_parent(jog_pad_container);
@@ -261,7 +208,7 @@ void ui_panel_motion_setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
         lv_coord_t screen_height = lv_display_get_vertical_resolution(disp);
 
         // Get header height (varies by screen size: 50-70px)
-        lv_obj_t* header = lv_obj_find_by_name(panel, "motion_header");
+        lv_obj_t* header = lv_obj_find_by_name(panel, "overlay_header");
         lv_coord_t header_height = header ? lv_obj_get_height(header) : 60;
 
         // Available height = screen height - header - padding (40px top+bottom)
@@ -296,11 +243,11 @@ void ui_panel_motion_setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
         spdlog::warn("[Motion] jog_pad_container NOT FOUND in XML!");
     }
 
-    // Z-axis buttons
+    // Z-axis buttons (look in overlay_content)
     const char* z_names[] = {"z_up_10", "z_up_1", "z_down_1", "z_down_10"};
     int z_found = 0;
     for (const char* name : z_names) {
-        lv_obj_t* btn = lv_obj_find_by_name(panel, name);
+        lv_obj_t* btn = lv_obj_find_by_name(overlay_content, name);
         if (btn) {
             spdlog::debug("[Motion] Found '{}' at {}", name, (void*)btn);
             lv_obj_add_event_cb(btn, z_button_cb, LV_EVENT_CLICKED, nullptr);
@@ -312,10 +259,10 @@ void ui_panel_motion_setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
     }
     spdlog::debug("[Motion] Z-axis controls ({}/4 buttons found)", z_found);
 
-    // Home buttons
+    // Home buttons (look in overlay_content)
     const char* home_names[] = {"home_all", "home_x", "home_y", "home_z"};
     for (const char* name : home_names) {
-        lv_obj_t* btn = lv_obj_find_by_name(panel, name);
+        lv_obj_t* btn = lv_obj_find_by_name(overlay_content, name);
         if (btn) {
             lv_obj_add_event_cb(btn, home_button_cb, LV_EVENT_CLICKED, nullptr);
         }

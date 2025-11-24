@@ -23,9 +23,9 @@
 
 #include "ui_panel_controls_extrusion.h"
 
-#include "ui_component_header_bar.h"
 #include "ui_event_safety.h"
 #include "ui_nav.h"
+#include "ui_panel_common.h"
 #include "ui_subject_registry.h"
 #include "ui_temperature_utils.h"
 #include "ui_theme.h"
@@ -171,23 +171,6 @@ static void update_amount_buttons_visual() {
 // EVENT HANDLERS
 // ============================================================================
 
-// Event handler: Back button
-LVGL_SAFE_EVENT_CB(back_button_cb, {
-    // Use navigation history to go back to previous panel
-    if (!ui_nav_go_back()) {
-        // Fallback: If navigation history is empty, manually hide and show controls launcher
-        if (extrusion_panel) {
-            lv_obj_add_flag(extrusion_panel, LV_OBJ_FLAG_HIDDEN);
-        }
-
-        if (parent_obj) {
-            lv_obj_t* controls_launcher = lv_obj_find_by_name(parent_obj, "controls_panel");
-            if (controls_launcher) {
-                lv_obj_clear_flag(controls_launcher, LV_OBJ_FLAG_HIDDEN);
-            }
-        }
-    }
-})
 
 // Event handler: Amount selector buttons
 LVGL_SAFE_EVENT_CB_WITH_EVENT(amount_button_cb, event, {
@@ -242,63 +225,26 @@ LVGL_SAFE_EVENT_CB(retract_button_cb, {
 // ============================================================================
 
 // Resize callback for responsive padding
-static void on_resize() {
-    if (!extrusion_panel || !parent_obj) {
-        return;
-    }
-
-    lv_obj_t* extrusion_content = lv_obj_find_by_name(extrusion_panel, "extrusion_content");
-    if (extrusion_content) {
-        lv_coord_t vertical_padding = ui_get_header_content_padding(lv_obj_get_height(parent_obj));
-        // Set vertical padding (top/bottom) responsively, keep horizontal at medium (12px)
-        lv_obj_set_style_pad_top(extrusion_content, vertical_padding, 0);
-        lv_obj_set_style_pad_bottom(extrusion_content, vertical_padding, 0);
-        lv_obj_set_style_pad_left(extrusion_content, UI_PADDING_MEDIUM, 0);
-        lv_obj_set_style_pad_right(extrusion_content, UI_PADDING_MEDIUM, 0);
-    }
-}
-
 void ui_panel_controls_extrusion_setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
     extrusion_panel = panel;
     parent_obj = parent_screen;
 
     spdlog::info("[Extrusion] Setting up panel event handlers");
 
-    // Setup header for responsive height
-    lv_obj_t* extrusion_header = lv_obj_find_by_name(panel, "extrusion_header");
-    if (extrusion_header) {
-        ui_component_header_bar_setup(extrusion_header, parent_screen);
-    }
+    // Use standard overlay panel setup (wires header, back button, handles responsive padding)
+    ui_overlay_panel_setup_standard(panel, parent_screen, "overlay_header", "overlay_content");
 
-    // Set responsive padding for content area
-    lv_obj_t* extrusion_content = lv_obj_find_by_name(panel, "extrusion_content");
-    if (extrusion_content) {
-        lv_coord_t vertical_padding =
-            ui_get_header_content_padding(lv_obj_get_height(parent_screen));
-        // Set vertical padding (top/bottom) responsively, keep horizontal at medium (12px)
-        lv_obj_set_style_pad_top(extrusion_content, vertical_padding, 0);
-        lv_obj_set_style_pad_bottom(extrusion_content, vertical_padding, 0);
-        lv_obj_set_style_pad_left(extrusion_content, UI_PADDING_MEDIUM, 0);
-        lv_obj_set_style_pad_right(extrusion_content, UI_PADDING_MEDIUM, 0);
-        spdlog::debug(
-            "[Extrusion]   ✓ Content padding: top/bottom={}px, left/right={}px (responsive)",
-            vertical_padding, UI_PADDING_MEDIUM);
-    }
-
-    // Register resize callback
-    ui_resize_handler_register(on_resize);
-
-    // Back button
-    lv_obj_t* back_btn = lv_obj_find_by_name(panel, "back_button");
-    if (back_btn) {
-        lv_obj_add_event_cb(back_btn, back_button_cb, LV_EVENT_CLICKED, nullptr);
-        spdlog::debug("[Extrusion]   ✓ Back button");
+    // Find overlay_content to access panel widgets
+    lv_obj_t* overlay_content = lv_obj_find_by_name(panel, "overlay_content");
+    if (!overlay_content) {
+        spdlog::error("[Extrusion] overlay_content not found!");
+        return;
     }
 
     // Amount selector buttons
     const char* amount_names[] = {"amount_5mm", "amount_10mm", "amount_25mm", "amount_50mm"};
     for (int i = 0; i < 4; i++) {
-        amount_buttons[i] = lv_obj_find_by_name(panel, amount_names[i]);
+        amount_buttons[i] = lv_obj_find_by_name(overlay_content, amount_names[i]);
         if (amount_buttons[i]) {
             lv_obj_add_event_cb(amount_buttons[i], amount_button_cb, LV_EVENT_CLICKED, nullptr);
         }
@@ -306,21 +252,21 @@ void ui_panel_controls_extrusion_setup(lv_obj_t* panel, lv_obj_t* parent_screen)
     spdlog::debug("[Extrusion]   ✓ Amount buttons (4)");
 
     // Extrude button
-    btn_extrude = lv_obj_find_by_name(panel, "btn_extrude");
+    btn_extrude = lv_obj_find_by_name(overlay_content, "btn_extrude");
     if (btn_extrude) {
         lv_obj_add_event_cb(btn_extrude, extrude_button_cb, LV_EVENT_CLICKED, nullptr);
         spdlog::debug("[Extrusion]   ✓ Extrude button");
     }
 
     // Retract button
-    btn_retract = lv_obj_find_by_name(panel, "btn_retract");
+    btn_retract = lv_obj_find_by_name(overlay_content, "btn_retract");
     if (btn_retract) {
         lv_obj_add_event_cb(btn_retract, retract_button_cb, LV_EVENT_CLICKED, nullptr);
         spdlog::debug("[Extrusion]   ✓ Retract button");
     }
 
     // Safety warning card
-    safety_warning = lv_obj_find_by_name(panel, "safety_warning");
+    safety_warning = lv_obj_find_by_name(overlay_content, "safety_warning");
 
     // Initialize visual state
     update_amount_buttons_visual();
