@@ -44,7 +44,7 @@ libhv.*.log
 # ============================================================================
 # IDE/LSP
 compile_commands.json
-.vscode/
+
 .idea/
 
 # Session notes (developer-specific)

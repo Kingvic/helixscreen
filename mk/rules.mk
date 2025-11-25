@@ -200,15 +200,23 @@ $(OBJ_DIR)/lvgl/demos/%.o: $(LVGL_DIR)/demos/%.c
 
 # Generate compile_commands.json for IDE/LSP support
 compile_commands:
-	$(ECHO) "$(CYAN)Checking for bear...$(RESET)"
-	$(Q)if ! command -v bear >/dev/null 2>&1; then \
-		echo "$(RED)Error: 'bear' not found$(RESET)"; \
-		echo "Install with: $(YELLOW)brew install bear$(RESET) (macOS) or $(YELLOW)apt install bear$(RESET) (Linux)"; \
+	$(ECHO) "$(CYAN)Generating compile_commands.json...$(RESET)"
+	$(Q)if command -v compiledb >/dev/null 2>&1; then \
+		echo "$(CYAN)Using compiledb...$(RESET)"; \
+		compiledb make -n -B; \
+	elif [ -f .venv/bin/compiledb ]; then \
+		echo "$(CYAN)Using .venv/bin/compiledb...$(RESET)"; \
+		.venv/bin/compiledb make -n -B; \
+	elif command -v bear >/dev/null 2>&1; then \
+		echo "$(CYAN)Using bear...$(RESET)"; \
+		bear -- $(MAKE) clean; \
+		bear -- $(MAKE) -j$(NPROC); \
+	else \
+		echo "$(RED)Error: Neither 'compiledb' nor 'bear' found$(RESET)"; \
+		echo "Install compiledb: $(YELLOW)pip install compiledb$(RESET)"; \
+		echo "Or install bear: $(YELLOW)brew install bear$(RESET)"; \
 		exit 1; \
 	fi
-	$(ECHO) "$(CYAN)Generating compile_commands.json...$(RESET)"
-	$(Q)bear -- $(MAKE) clean
-	$(Q)bear -- $(MAKE) -j$(NPROC)
 	$(ECHO) "$(GREEN)✓ compile_commands.json generated$(RESET)"
 	$(ECHO) ""
 	$(ECHO) "$(CYAN)IDE/LSP integration ready. Restart your editor to pick up changes.$(RESET)"
