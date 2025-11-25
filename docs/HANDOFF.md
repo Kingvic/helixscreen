@@ -1,11 +1,46 @@
 # Session Handoff Document
 
 **Last Updated:** 2025-11-24
-**Current Focus:** Wizard Refactoring Complete, Notification System Phase 2 Paused
+**Current Focus:** Notification System UI Complete, Ready for Error Migration
 
 ---
 
 ## 🔥 ACTIVE WORK
+
+### Notification System UI - COMPLETED (2025-11-24)
+
+**Goal:** XML-first notification styling with proper severity-based colors.
+
+**Status:** ✅ COMPLETE
+
+**What Was Done:**
+
+1. ✅ **Created `severity_card` Custom Widget:**
+   - New files: `ui_severity_card.h`, `ui_severity_card.cpp`
+   - Pass `severity="error|warning|success|info"` in XML
+   - Widget auto-applies border color from theme constants
+   - `ui_severity_card_finalize()` styles child `severity_icon`
+
+2. ✅ **Updated Notification Components:**
+   - `notification_history_item.xml` now extends `severity_card`
+   - `toast_notification.xml` now extends `severity_card`
+   - Removed `border_color` prop - severity handles everything
+   - C++ code passes semantic data only, no color computation
+
+3. ✅ **Status Bar Bell Icon:**
+   - Bell changes color based on highest unread severity
+   - Red for errors, yellow for warnings, gray for info/none
+   - Removed separate warning triangle icon
+
+4. ✅ **UI Polish:**
+   - Empty state: fixed bell glyph (now uses `#font_heading`)
+   - Empty state: centered text with `style_text_align="center"`
+   - Overlay backdrop opacity reduced from 80% to 60%
+   - Removed filter buttons for cleaner UI
+
+**Commit:** `294e012` - feat(ui): add severity_card widget for XML-first notification styling
+
+---
 
 ### Wizard Refactoring - COMPLETED (2025-11-24)
 
@@ -83,22 +118,25 @@ Modified: printer_types.h, wizard_config_paths.h, printer_database.json,
 
 ---
 
-## 📊 NOTIFICATION SYSTEM STATUS (Phase 2 - PAUSED)
+## 📊 NOTIFICATION SYSTEM STATUS (Phase 2 - UI Complete)
 
 **See:** `docs/NOTIFICATION_HISTORY_PLAN.md` for complete plan
 
 **Overall Progress:**
 - ✅ Phase 1: Core Infrastructure COMPLETE (2025-11-23)
-- ⚠️ Phase 2: Error Reporting Migration IN PROGRESS (paused at step 3)
+- ✅ Phase 2 UI: Toasts, History Panel, Styling COMPLETE (2025-11-24)
+- 🔜 Phase 2 Migration: Error site conversions (next)
 - 🔜 Phase 3: Comprehensive Migration (future)
 - 🔜 Phase 4: Unit Testing (future)
 
-**Phase 2 Progress (from NOTIFICATION_HISTORY_PLAN.md lines 36-47):**
+**Phase 2 Progress:**
 - [x] Test notification system triggers (4 test messages working)
 - [x] Fix status bar initialization (network icon widget lookup fixed)
 - [x] Implement reactive network status icon (observer pattern, Font Awesome sitemap)
-- [ ] **NEXT:** Verify UI appearance (toasts, history panel) ⬅️ Resume here
-- [ ] Audit Moonraker error sites (~20 calls)
+- [x] Verify UI appearance (toasts, history panel) ✅ DONE
+- [x] Bell icon color changes by severity ✅ DONE
+- [x] XML-first styling with severity_card widget ✅ DONE
+- [ ] **NEXT:** Audit Moonraker error sites (~20 calls)
 - [ ] Convert Moonraker errors to use `NOTIFY_ERROR()` / `NOTIFY_WARNING()`
 - [ ] Audit WiFi error sites (~15 calls)
 - [ ] Convert WiFi errors to use new macros
@@ -106,15 +144,10 @@ Modified: printer_types.h, wizard_config_paths.h, printer_database.json,
 - [ ] Convert file I/O errors to use new macros
 - [ ] Test all conversions
 
-**Why Paused:**
-- Switched focus to wizard refactoring (higher priority user request)
-- Phase 1 infrastructure is complete and working
-- Phase 2 conversions can resume when ready
-
 **When Ready to Resume:**
-1. Verify UI appearance of existing notification system
-2. Begin auditing error sites (see Phase 2B section below for WiFi audit)
-3. Follow conversion patterns from NOTIFICATION_HISTORY_PLAN.md
+1. Begin auditing error sites (see Phase 2B section below for WiFi audit)
+2. Follow conversion patterns from NOTIFICATION_HISTORY_PLAN.md
+3. Use `NOTIFY_ERROR()` / `NOTIFY_WARNING()` macros (thread-safe)
 
 ---
 
@@ -177,8 +210,14 @@ ui_notification_error("Title", "message", true)   // modal
 
 ## ✅ COMPLETED WORK (Recent Sessions)
 
-### Wizard Refactoring (2025-11-24 - This Session)
-- See "ACTIVE WORK" section above for full details
+### Notification System UI (2025-11-24 - This Session)
+- Created `severity_card` custom widget for XML-first styling
+- Notifications extend `severity_card`, pass `severity="error"` etc.
+- Bell icon changes color by highest unread severity (red/yellow/gray)
+- Empty state fixed: proper bell glyph, centered text
+- Overlay backdrop 60% opacity, removed filter buttons
+
+### Wizard Refactoring (2025-11-24)
 - Combined bed/hotend heater configuration screens (8 steps → 7 steps)
 - Added FlashForge Adventurer 5M support
 - Migrated config paths to `/printers/default_printer/*` structure
