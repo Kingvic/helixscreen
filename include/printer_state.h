@@ -196,6 +196,15 @@ class PrinterState {
     void set_printer_connection_state(int state, const char* message);
 
     /**
+     * @brief Check if printer has ever connected this session
+     *
+     * Returns true if we've successfully connected to Moonraker at least once.
+     * Used to distinguish "never connected" (gray icon) from "disconnected after
+     * being connected" (yellow warning icon).
+     */
+    bool was_ever_connected() const { return was_ever_connected_; }
+
+    /**
      * @brief Set network connectivity status
      *
      * Updates network_status_ subject based on WiFi/Ethernet availability.
@@ -250,6 +259,9 @@ class PrinterState {
 
     // XML registration should only happen once (not reset during testing)
     bool xml_registered_ = false;
+
+    // Track if we've ever successfully connected (for UI display)
+    bool was_ever_connected_ = false;
 };
 
 #endif // PRINTER_STATE_H

@@ -273,6 +273,13 @@ json& PrinterState::get_json_state() {
 
 void PrinterState::set_printer_connection_state(int state, const char* message) {
     spdlog::info("[PrinterState] Printer connection state changed: {} - {}", state, message);
+
+    // Track if we've ever successfully connected (state 2 = CONNECTED)
+    if (state == 2 && !was_ever_connected_) {
+        was_ever_connected_ = true;
+        spdlog::debug("[PrinterState] First successful connection - was_ever_connected_ = true");
+    }
+
     spdlog::debug("[PrinterState] Setting printer_connection_state_ subject (at {}) to value {}",
                   (void*)&printer_connection_state_, state);
     lv_subject_set_int(&printer_connection_state_, state);

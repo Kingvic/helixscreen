@@ -94,20 +94,16 @@ void ui_status_bar_register_callbacks() {
 void ui_status_bar_init() {
     spdlog::debug("[StatusBar] ui_status_bar_init() called");
 
-    // First, find the status_bar container itself
-    lv_obj_t* status_bar = lv_obj_find_by_name(lv_screen_active(), "status_bar");
-    if (!status_bar) {
-        spdlog::error("[StatusBar] Failed to find status_bar container - cannot initialize");
-        return;
-    }
-    spdlog::debug("[StatusBar] Found status_bar container at {}", (void*)status_bar);
+    // Status icons are now in the navigation bar (sidebar bottom)
+    // Search from screen root to find them anywhere in the widget tree
+    lv_obj_t* screen = lv_screen_active();
 
-    // Find status bar icons by name (search within status_bar container)
-    network_icon = lv_obj_find_by_name(status_bar, "status_network_icon");
-    printer_icon = lv_obj_find_by_name(status_bar, "status_printer_icon");
+    // Find status icons by name (search entire screen)
+    network_icon = lv_obj_find_by_name(screen, "status_network_icon");
+    printer_icon = lv_obj_find_by_name(screen, "status_printer_icon");
 
     // Bell icon and badge are nested in status_notification_history_container
-    lv_obj_t* notif_container = lv_obj_find_by_name(status_bar, "status_notification_history_container");
+    lv_obj_t* notif_container = lv_obj_find_by_name(screen, "status_notification_history_container");
     if (notif_container) {
         notification_icon = lv_obj_find_by_name(notif_container, "status_notification_icon");
         notification_badge = lv_obj_find_by_name(notif_container, "notification_badge");
@@ -131,26 +127,15 @@ void ui_status_bar_init() {
     // Observe network and printer states for reactive icon updates
     PrinterState& printer_state = get_printer_state();
 
-    // Network status observer
+    // Network status observer (fires immediately with current value on registration)
     lv_subject_t* net_subject = printer_state.get_network_status_subject();
     spdlog::debug("[StatusBar] Registering observer on network_status_subject at {}", (void*)net_subject);
     lv_subject_add_observer(net_subject, network_status_observer, nullptr);
 
-    // Trigger initial network update
-    int32_t initial_net_state = lv_subject_get_int(net_subject);
-    spdlog::debug("[StatusBar] Initial network state: {}", initial_net_state);
-    ui_status_bar_update_network(static_cast<NetworkStatus>(initial_net_state));
-
-    // Printer connection observer
+    // Printer connection observer (fires immediately with current value on registration)
     lv_subject_t* conn_subject = printer_state.get_printer_connection_state_subject();
     spdlog::debug("[StatusBar] Registering observer on printer_connection_state_subject at {}", (void*)conn_subject);
     lv_subject_add_observer(conn_subject, printer_connection_observer, nullptr);
-
-    // Trigger initial printer update
-    int32_t initial_state = lv_subject_get_int(conn_subject);
-    spdlog::debug("[StatusBar] Initial printer connection state from subject: {}", initial_state);
-    spdlog::debug("[StatusBar] Triggering initial update with PrinterStatus={}", static_cast<int>(static_cast<PrinterStatus>(initial_state)));
-    ui_status_bar_update_printer(static_cast<PrinterStatus>(initial_state));
 
     spdlog::debug("[StatusBar] Initialization complete");
 }
@@ -210,9 +195,18 @@ void ui_status_bar_update_printer(PrinterStatus status) {
             break;
         case PrinterStatus::DISCONNECTED:
         default:
-            icon = LV_SYMBOL_WARNING;
-            color = ui_theme_parse_color(lv_xml_get_const(NULL, "warning_color"));
-            spdlog::debug("[StatusBar] Setting icon to LV_SYMBOL_WARNING (yellow)");
+            // Distinguish "never connected" (neutral) from "lost connection" (warning)
+            if (get_printer_state().was_ever_connected()) {
+                // Was connected before - show warning
+                icon = LV_SYMBOL_WARNING;
+                color = ui_theme_parse_color(lv_xml_get_const(NULL, "warning_color"));
+                spdlog::debug("[StatusBar] Setting icon to LV_SYMBOL_WARNING (yellow - was connected)");
+            } else {
+                // Never connected - show neutral gray checkmark
+                icon = LV_SYMBOL_OK;
+                color = ui_theme_parse_color(lv_xml_get_const(NULL, "text_secondary"));
+                spdlog::debug("[StatusBar] Setting icon to LV_SYMBOL_OK (gray - never connected)");
+            }
             break;
     }
 
