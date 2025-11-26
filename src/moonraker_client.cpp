@@ -497,6 +497,13 @@ void MoonrakerClient::register_notify_update(std::function<void(json)> cb) {
 }
 
 void MoonrakerClient::dispatch_status_update(const json& status) {
+    // Parse bed mesh data before dispatching (mirrors WebSocket handler behavior)
+    // This ensures bed mesh is populated on initial subscription response,
+    // not just on subsequent notify_status_update messages
+    if (status.contains("bed_mesh") && status["bed_mesh"].is_object()) {
+        parse_bed_mesh(status["bed_mesh"]);
+    }
+
     // Wrap raw status into notify_status_update format
     json notification = {
         {"method", "notify_status_update"},

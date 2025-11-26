@@ -214,6 +214,23 @@ class MoonrakerClientMock : public MoonrakerClient {
     void generate_mock_bed_mesh();
 
     /**
+     * @brief Generate bed mesh with slight variation
+     *
+     * Used by BED_MESH_CALIBRATE simulation to create new mesh data with
+     * small variations, simulating the behavior of re-probing the bed.
+     * Variation is deterministic based on profile name.
+     */
+    void generate_mock_bed_mesh_with_variation();
+
+    /**
+     * @brief Dispatch bed mesh update notification
+     *
+     * Sends a notify_status_update with the current bed mesh state.
+     * Called after BED_MESH_CALIBRATE, BED_MESH_PROFILE, or BED_MESH_CLEAR.
+     */
+    void dispatch_bed_mesh_update();
+
+    /**
      * @brief Temperature simulation loop (runs in background thread)
      */
     void temperature_simulation_loop();

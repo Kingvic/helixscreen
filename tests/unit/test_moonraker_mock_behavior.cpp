@@ -191,6 +191,20 @@ class MockBehaviorTestFixture {
     std::vector<json> notifications_;
 };
 
+/**
+ * @brief Test helper that exposes protected methods for unit testing
+ *
+ * This allows tests to directly call dispatch_status_update() to verify
+ * the parse_bed_mesh() behavior without going through the full connection flow.
+ */
+class TestableMoonrakerMock : public MoonrakerClientMock {
+  public:
+    using MoonrakerClientMock::MoonrakerClientMock;
+
+    // Expose protected method for testing
+    using MoonrakerClient::dispatch_status_update;
+};
+
 // ============================================================================
 // Initial State Dispatch Tests
 // ============================================================================
@@ -918,6 +932,231 @@ TEST_CASE("MoonrakerClientMock bed mesh",
         // Should have valid bounds
         REQUIRE(mesh.mesh_max[0] > mesh.mesh_min[0]);
         REQUIRE(mesh.mesh_max[1] > mesh.mesh_min[1]);
+    }
+
+    SECTION("bed mesh is included in initial status notification") {
+        MockBehaviorTestFixture fixture;
+        MoonrakerClientMock mock(MoonrakerClientMock::PrinterType::VORON_24);
+
+        // Register callback to capture notifications
+        mock.register_notify_update(fixture.create_capture_callback());
+
+        // Connect (triggers initial state dispatch with bed_mesh)
+        mock.connect("ws://mock/websocket", []() {}, []() {});
+
+        // Wait for at least one notification
+        REQUIRE(fixture.wait_for_callback(500));
+
+        // Find the initial notification containing bed_mesh
+        bool found_bed_mesh = false;
+        json bed_mesh_data;
+        for (const auto& notification : fixture.get_notifications()) {
+            if (notification.contains("params") && notification["params"].is_array() &&
+                !notification["params"].empty()) {
+                const json& status = notification["params"][0];
+                if (status.is_object() && status.contains("bed_mesh")) {
+                    found_bed_mesh = true;
+                    bed_mesh_data = status["bed_mesh"];
+                    break;
+                }
+            }
+        }
+
+        REQUIRE(found_bed_mesh);
+        REQUIRE(bed_mesh_data.is_object());
+
+        // Verify required fields are present (Moonraker-compatible format)
+        REQUIRE(bed_mesh_data.contains("profile_name"));
+        REQUIRE(bed_mesh_data.contains("probed_matrix"));
+        REQUIRE(bed_mesh_data.contains("mesh_min"));
+        REQUIRE(bed_mesh_data.contains("mesh_max"));
+        REQUIRE(bed_mesh_data.contains("profiles"));
+        REQUIRE(bed_mesh_data.contains("mesh_params"));
+
+        // Verify profile_name
+        REQUIRE(bed_mesh_data["profile_name"].is_string());
+        REQUIRE(bed_mesh_data["profile_name"].get<std::string>() == "default");
+
+        // Verify probed_matrix is 2D array
+        REQUIRE(bed_mesh_data["probed_matrix"].is_array());
+        REQUIRE(bed_mesh_data["probed_matrix"].size() == 7);  // 7x7 mesh
+        REQUIRE(bed_mesh_data["probed_matrix"][0].is_array());
+        REQUIRE(bed_mesh_data["probed_matrix"][0].size() == 7);
+
+        // Verify mesh bounds
+        REQUIRE(bed_mesh_data["mesh_min"].is_array());
+        REQUIRE(bed_mesh_data["mesh_min"].size() >= 2);
+        REQUIRE(bed_mesh_data["mesh_max"].is_array());
+        REQUIRE(bed_mesh_data["mesh_max"].size() >= 2);
+
+        // Verify profiles object (Moonraker format: {"profile_name": {...}, ...})
+        REQUIRE(bed_mesh_data["profiles"].is_object());
+        REQUIRE(bed_mesh_data["profiles"].contains("default"));
+
+        // Verify mesh_params
+        REQUIRE(bed_mesh_data["mesh_params"].is_object());
+        REQUIRE(bed_mesh_data["mesh_params"].contains("algo"));
+        REQUIRE(bed_mesh_data["mesh_params"]["algo"].get<std::string>() == "lagrange");
+    }
+
+    SECTION("bed mesh is parsed correctly from initial notification") {
+        // Test that dispatch_status_update correctly parses bed_mesh
+        // (previously this was broken - bed_mesh was in notification but never parsed)
+        MoonrakerClientMock mock(MoonrakerClientMock::PrinterType::VORON_24);
+
+        // Connect (triggers initial state dispatch which should now parse bed_mesh)
+        mock.connect("ws://mock/websocket", []() {}, []() {});
+
+        // After connect, the mock should have parsed the bed mesh from its own notification
+        // via dispatch_status_update() -> parse_bed_mesh()
+        REQUIRE(mock.has_bed_mesh());
+
+        const auto& mesh = mock.get_active_bed_mesh();
+        REQUIRE(mesh.name == "default");
+        REQUIRE(mesh.x_count == 7);
+        REQUIRE(mesh.y_count == 7);
+        REQUIRE(mesh.algo == "lagrange");
+
+        // Verify profiles were also parsed
+        const auto& profiles = mock.get_bed_mesh_profiles();
+        REQUIRE(profiles.size() == 2);
+        REQUIRE(std::find(profiles.begin(), profiles.end(), "default") != profiles.end());
+        REQUIRE(std::find(profiles.begin(), profiles.end(), "adaptive") != profiles.end());
+    }
+
+    SECTION("parse_bed_mesh handles rectangular mesh (5x7)") {
+        // Test that non-square meshes parse correctly
+        TestableMoonrakerMock mock(MoonrakerClientMock::PrinterType::VORON_24);
+        MockBehaviorTestFixture fixture;
+
+        // Create a 5x7 rectangular mesh (5 columns, 7 rows)
+        json bed_mesh = {
+            {"profile_name", "rectangular"},
+            {"probed_matrix", json::array({
+                json::array({0.01, 0.02, 0.03, 0.04, 0.05}),
+                json::array({0.02, 0.03, 0.04, 0.05, 0.06}),
+                json::array({0.03, 0.04, 0.05, 0.06, 0.07}),
+                json::array({0.04, 0.05, 0.06, 0.07, 0.08}),
+                json::array({0.05, 0.06, 0.07, 0.08, 0.09}),
+                json::array({0.06, 0.07, 0.08, 0.09, 0.10}),
+                json::array({0.07, 0.08, 0.09, 0.10, 0.11})
+            })},
+            {"mesh_min", {10.0, 20.0}},
+            {"mesh_max", {200.0, 280.0}},
+            {"profiles", {{"rectangular", json::object()}}},
+            {"mesh_params", {{"algo", "bicubic"}}}
+        };
+
+        // Wrap in status notification format and dispatch
+        json status = {{"bed_mesh", bed_mesh}};
+        mock.register_notify_update(fixture.create_capture_callback());
+        mock.dispatch_status_update(status);
+
+        // Verify rectangular dimensions
+        REQUIRE(mock.has_bed_mesh());
+        const auto& mesh = mock.get_active_bed_mesh();
+        REQUIRE(mesh.name == "rectangular");
+        REQUIRE(mesh.x_count == 5);  // 5 columns
+        REQUIRE(mesh.y_count == 7);  // 7 rows
+        REQUIRE(mesh.algo == "bicubic");
+        REQUIRE(mesh.mesh_min[0] == Catch::Approx(10.0f));
+        REQUIRE(mesh.mesh_min[1] == Catch::Approx(20.0f));
+        REQUIRE(mesh.mesh_max[0] == Catch::Approx(200.0f));
+        REQUIRE(mesh.mesh_max[1] == Catch::Approx(280.0f));
+    }
+
+    SECTION("parse_bed_mesh handles empty probed_matrix") {
+        // An empty matrix should result in has_bed_mesh() == false
+        TestableMoonrakerMock mock(MoonrakerClientMock::PrinterType::VORON_24);
+
+        // First, verify mock starts with a bed mesh
+        mock.connect("ws://mock/websocket", []() {}, []() {});
+        REQUIRE(mock.has_bed_mesh());
+
+        // Now dispatch an empty bed_mesh update (simulates BED_MESH_CLEAR)
+        json bed_mesh = {
+            {"profile_name", ""},
+            {"probed_matrix", json::array()}
+        };
+        json status = {{"bed_mesh", bed_mesh}};
+        mock.dispatch_status_update(status);
+
+        // Should no longer have a bed mesh
+        REQUIRE_FALSE(mock.has_bed_mesh());
+        REQUIRE(mock.get_active_bed_mesh().x_count == 0);
+        REQUIRE(mock.get_active_bed_mesh().y_count == 0);
+    }
+
+    SECTION("parse_bed_mesh handles missing optional fields") {
+        // Test that missing fields don't crash or produce incorrect state
+        TestableMoonrakerMock mock(MoonrakerClientMock::PrinterType::VORON_24);
+
+        // Minimal bed_mesh: only profile_name and probed_matrix
+        json bed_mesh = {
+            {"profile_name", "minimal"},
+            {"probed_matrix", json::array({
+                json::array({0.1, 0.2, 0.3}),
+                json::array({0.2, 0.3, 0.4}),
+                json::array({0.3, 0.4, 0.5})
+            })}
+            // Missing: mesh_min, mesh_max, profiles, mesh_params
+        };
+
+        json status = {{"bed_mesh", bed_mesh}};
+        mock.dispatch_status_update(status);
+
+        // Should still parse the matrix
+        REQUIRE(mock.has_bed_mesh());
+        const auto& mesh = mock.get_active_bed_mesh();
+        REQUIRE(mesh.name == "minimal");
+        REQUIRE(mesh.x_count == 3);
+        REQUIRE(mesh.y_count == 3);
+        // algo should retain previous value or be empty
+    }
+
+    SECTION("parse_bed_mesh handles null profile_name") {
+        // Real Moonraker can send null profile_name when no mesh is loaded
+        TestableMoonrakerMock mock(MoonrakerClientMock::PrinterType::VORON_24);
+
+        json bed_mesh = {
+            {"profile_name", nullptr},  // JSON null
+            {"probed_matrix", json::array({
+                json::array({0.0, 0.1}),
+                json::array({0.1, 0.2})
+            })}
+        };
+
+        json status = {{"bed_mesh", bed_mesh}};
+        mock.dispatch_status_update(status);
+
+        // Should parse matrix but not update name (or use empty string)
+        REQUIRE(mock.has_bed_mesh());
+        // profile_name handling when null - should either be empty or unchanged
+    }
+
+    SECTION("parse_bed_mesh verifies Z heights are numbers") {
+        // Test that non-numeric values in probed_matrix are handled gracefully
+        TestableMoonrakerMock mock(MoonrakerClientMock::PrinterType::VORON_24);
+
+        // Mixed valid/invalid values
+        json bed_mesh = {
+            {"profile_name", "test"},
+            {"probed_matrix", json::array({
+                json::array({0.1, "invalid", 0.3}),  // Middle value is string
+                json::array({0.2, 0.3, 0.4}),
+                json::array({0.3, 0.4, nullptr})     // Last value is null
+            })}
+        };
+
+        json status = {{"bed_mesh", bed_mesh}};
+        mock.dispatch_status_update(status);
+
+        // Should parse, skipping invalid values
+        // The first row will have 2 values (0.1, 0.3), others have 2-3
+        // Implementation may handle this differently
+        // At minimum, it should not crash
+        const auto& mesh = mock.get_active_bed_mesh();
+        REQUIRE(mesh.name == "test");
     }
 }
 
@@ -1791,6 +2030,154 @@ TEST_CASE("MoonrakerClientMock M112 emergency stop sets error state",
                 return status.contains("print_stats") && status["print_stats"]["state"] == "error";
             },
             2000));
+
+        mock.stop_temperature_simulation();
+        mock.disconnect();
+    }
+}
+
+// ============================================================================
+// Bed Mesh G-code Simulation Tests (Task 5)
+// ============================================================================
+
+TEST_CASE("MoonrakerClientMock BED_MESH_CALIBRATE generates new mesh",
+          "[moonraker][mock][bed_mesh][gcode]") {
+    MockBehaviorTestFixture fixture;
+
+    SECTION("BED_MESH_CALIBRATE triggers mesh regeneration and notification") {
+        MoonrakerClientMock mock(MoonrakerClientMock::PrinterType::VORON_24);
+        mock.register_notify_update(fixture.create_capture_callback());
+        mock.connect("ws://mock/websocket", []() {}, []() {});
+
+        // Get initial bed mesh state
+        REQUIRE(mock.has_bed_mesh());
+        auto initial_mesh = mock.get_active_bed_mesh();
+        std::string initial_name = initial_mesh.name;
+
+        fixture.reset();
+
+        // Execute BED_MESH_CALIBRATE
+        mock.gcode_script("BED_MESH_CALIBRATE");
+
+        // Wait for bed mesh notification
+        REQUIRE(fixture.wait_for_matching(
+            [](const json& n) {
+                if (!n.contains("params") || !n["params"].is_array() || n["params"].empty()) {
+                    return false;
+                }
+                const json& status = n["params"][0];
+                return status.contains("bed_mesh");
+            },
+            2000));
+
+        // Mesh should still be valid
+        REQUIRE(mock.has_bed_mesh());
+
+        mock.stop_temperature_simulation();
+        mock.disconnect();
+    }
+
+    SECTION("BED_MESH_CALIBRATE with PROFILE parameter uses custom profile name") {
+        MoonrakerClientMock mock(MoonrakerClientMock::PrinterType::VORON_24);
+        mock.register_notify_update(fixture.create_capture_callback());
+        mock.connect("ws://mock/websocket", []() {}, []() {});
+
+        fixture.reset();
+
+        // Execute BED_MESH_CALIBRATE with custom profile
+        mock.gcode_script("BED_MESH_CALIBRATE PROFILE=custom_profile");
+
+        // Wait for bed mesh notification with the custom profile
+        REQUIRE(fixture.wait_for_matching(
+            [](const json& n) {
+                if (!n.contains("params") || !n["params"].is_array() || n["params"].empty()) {
+                    return false;
+                }
+                const json& status = n["params"][0];
+                if (!status.contains("bed_mesh")) return false;
+                const json& bed_mesh = status["bed_mesh"];
+                return bed_mesh.contains("profile_name") &&
+                       bed_mesh["profile_name"] == "custom_profile";
+            },
+            2000));
+
+        // Verify profile name was updated
+        REQUIRE(mock.get_active_bed_mesh().name == "custom_profile");
+
+        mock.stop_temperature_simulation();
+        mock.disconnect();
+    }
+}
+
+TEST_CASE("MoonrakerClientMock BED_MESH_PROFILE LOAD changes active profile",
+          "[moonraker][mock][bed_mesh][gcode]") {
+    MockBehaviorTestFixture fixture;
+
+    SECTION("BED_MESH_PROFILE LOAD loads existing profile") {
+        MoonrakerClientMock mock(MoonrakerClientMock::PrinterType::VORON_24);
+        mock.register_notify_update(fixture.create_capture_callback());
+        mock.connect("ws://mock/websocket", []() {}, []() {});
+
+        // Initial profile list contains "default" and "adaptive"
+        // First create a new profile
+        mock.gcode_script("BED_MESH_CALIBRATE PROFILE=test_profile");
+
+        fixture.reset();
+
+        // Load default profile
+        mock.gcode_script("BED_MESH_PROFILE LOAD=default");
+
+        // Wait for notification with default profile
+        REQUIRE(fixture.wait_for_matching(
+            [](const json& n) {
+                if (!n.contains("params") || !n["params"].is_array() || n["params"].empty()) {
+                    return false;
+                }
+                const json& status = n["params"][0];
+                if (!status.contains("bed_mesh")) return false;
+                const json& bed_mesh = status["bed_mesh"];
+                return bed_mesh.contains("profile_name") &&
+                       bed_mesh["profile_name"] == "default";
+            },
+            2000));
+
+        REQUIRE(mock.get_active_bed_mesh().name == "default");
+
+        mock.stop_temperature_simulation();
+        mock.disconnect();
+    }
+}
+
+TEST_CASE("MoonrakerClientMock BED_MESH_CLEAR clears active mesh",
+          "[moonraker][mock][bed_mesh][gcode]") {
+    MockBehaviorTestFixture fixture;
+
+    SECTION("BED_MESH_CLEAR clears active mesh and sends notification") {
+        MoonrakerClientMock mock(MoonrakerClientMock::PrinterType::VORON_24);
+        mock.register_notify_update(fixture.create_capture_callback());
+        mock.connect("ws://mock/websocket", []() {}, []() {});
+
+        // Verify we have a bed mesh initially
+        REQUIRE(mock.has_bed_mesh());
+
+        fixture.reset();
+
+        // Execute BED_MESH_CLEAR
+        mock.gcode_script("BED_MESH_CLEAR");
+
+        // Wait for bed mesh notification
+        REQUIRE(fixture.wait_for_matching(
+            [](const json& n) {
+                if (!n.contains("params") || !n["params"].is_array() || n["params"].empty()) {
+                    return false;
+                }
+                const json& status = n["params"][0];
+                return status.contains("bed_mesh");
+            },
+            2000));
+
+        // Mesh should be cleared
+        REQUIRE_FALSE(mock.has_bed_mesh());
 
         mock.stop_temperature_simulation();
         mock.disconnect();

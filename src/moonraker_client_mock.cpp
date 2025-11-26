@@ -239,6 +239,91 @@ void MoonrakerClientMock::generate_mock_bed_mesh() {
                  bed_mesh_profiles_.size());
 }
 
+void MoonrakerClientMock::generate_mock_bed_mesh_with_variation() {
+    // Generate a new mesh with the same structure but slightly different values
+    // This simulates re-probing the bed and getting slightly different results
+
+    // Keep existing configuration
+    active_bed_mesh_.mesh_min[0] = 0.0f;
+    active_bed_mesh_.mesh_min[1] = 0.0f;
+    active_bed_mesh_.mesh_max[0] = 200.0f;
+    active_bed_mesh_.mesh_max[1] = 200.0f;
+    active_bed_mesh_.x_count = 7;
+    active_bed_mesh_.y_count = 7;
+    active_bed_mesh_.algo = "lagrange";
+
+    // Generate dome-shaped mesh with slight random variation
+    active_bed_mesh_.probed_matrix.clear();
+    float center_x = active_bed_mesh_.x_count / 2.0f;
+    float center_y = active_bed_mesh_.y_count / 2.0f;
+    float max_radius = std::min(center_x, center_y);
+
+    // Use a simple pseudo-random offset based on profile name
+    // This ensures different profiles get different (but deterministic) meshes
+    float offset = 0.0f;
+    for (char c : active_bed_mesh_.name) {
+        offset += static_cast<float>(c) * 0.001f;
+    }
+    offset = std::fmod(offset, 0.05f);  // Keep variation small (0-0.05mm)
+
+    for (int row = 0; row < active_bed_mesh_.y_count; row++) {
+        std::vector<float> row_vec;
+        for (int col = 0; col < active_bed_mesh_.x_count; col++) {
+            // Distance from center
+            float dx = col - center_x;
+            float dy = row - center_y;
+            float dist = std::sqrt(dx * dx + dy * dy);
+
+            // Dome shape with variation: height decreases with distance from center
+            float normalized_dist = dist / max_radius;
+            float height = 0.3f * (1.0f - normalized_dist * normalized_dist);
+
+            // Add small variation based on position and profile
+            float variation = std::sin(col * 0.5f + offset) * 0.02f + std::cos(row * 0.5f) * 0.02f;
+            height += variation + offset;
+
+            row_vec.push_back(height);
+        }
+        active_bed_mesh_.probed_matrix.push_back(row_vec);
+    }
+
+    spdlog::debug("[MoonrakerClientMock] Regenerated bed mesh with variation for profile '{}'",
+                  active_bed_mesh_.name);
+}
+
+void MoonrakerClientMock::dispatch_bed_mesh_update() {
+    // Build bed mesh JSON in Moonraker format
+    json probed_matrix_json = json::array();
+    for (const auto& row : active_bed_mesh_.probed_matrix) {
+        json row_json = json::array();
+        for (float val : row) {
+            row_json.push_back(val);
+        }
+        probed_matrix_json.push_back(row_json);
+    }
+
+    json profiles_json = json::object();
+    for (const auto& profile : bed_mesh_profiles_) {
+        profiles_json[profile] = json::object();
+    }
+
+    json bed_mesh_status = {
+        {"bed_mesh", {
+            {"profile_name", active_bed_mesh_.name},
+            {"probed_matrix", probed_matrix_json},
+            {"mesh_min", {active_bed_mesh_.mesh_min[0], active_bed_mesh_.mesh_min[1]}},
+            {"mesh_max", {active_bed_mesh_.mesh_max[0], active_bed_mesh_.mesh_max[1]}},
+            {"profiles", profiles_json},
+            {"mesh_params", {
+                {"algo", active_bed_mesh_.algo}
+            }}
+        }}
+    };
+
+    // Dispatch via base class method
+    dispatch_status_update(bed_mesh_status);
+}
+
 void MoonrakerClientMock::disconnect() {
     spdlog::info("[MoonrakerClientMock] Simulating disconnection");
     stop_temperature_simulation();
@@ -529,13 +614,96 @@ int MoonrakerClientMock::gcode_script(const std::string& gcode) {
         spdlog::debug("[MoonrakerClientMock] Note: Extrusion (E parameter) ignored in G0/G1");
     }
 
-    // Bed mesh (NOT IMPLEMENTED)
+    // Bed mesh commands
     if (gcode.find("BED_MESH_CALIBRATE") != std::string::npos) {
-        spdlog::warn("[MoonrakerClientMock] STUB: BED_MESH_CALIBRATE NOT IMPLEMENTED");
+        // Parse optional PROFILE= parameter
+        std::string profile_name = "default";
+        auto profile_pos = gcode.find("PROFILE=");
+        if (profile_pos != std::string::npos) {
+            size_t start = profile_pos + 8;  // Length of "PROFILE="
+            size_t end = gcode.find_first_of(" \t\n", start);
+            profile_name = gcode.substr(start, end == std::string::npos ? end : end - start);
+        }
+
+        // Regenerate mesh with slight random variation
+        active_bed_mesh_.name = profile_name;
+        generate_mock_bed_mesh_with_variation();
+
+        // Add new profile to list if not already present
+        if (std::find(bed_mesh_profiles_.begin(), bed_mesh_profiles_.end(), profile_name) ==
+            bed_mesh_profiles_.end()) {
+            bed_mesh_profiles_.push_back(profile_name);
+        }
+
+        spdlog::info("[MoonrakerClientMock] BED_MESH_CALIBRATE: generated new mesh for profile '{}'",
+                     profile_name);
+
+        // Dispatch bed mesh update notification
+        dispatch_bed_mesh_update();
+
     } else if (gcode.find("BED_MESH_PROFILE") != std::string::npos) {
-        spdlog::warn("[MoonrakerClientMock] STUB: BED_MESH_PROFILE NOT IMPLEMENTED");
+        // Parse LOAD= or SAVE= or REMOVE= parameter
+        if (gcode.find("LOAD=") != std::string::npos) {
+            auto load_pos = gcode.find("LOAD=");
+            size_t start = load_pos + 5;  // Length of "LOAD="
+            size_t end = gcode.find_first_of(" \t\n", start);
+            std::string profile_name = gcode.substr(start, end == std::string::npos ? end : end - start);
+
+            // Check if profile exists
+            if (std::find(bed_mesh_profiles_.begin(), bed_mesh_profiles_.end(), profile_name) !=
+                bed_mesh_profiles_.end()) {
+                active_bed_mesh_.name = profile_name;
+                // In real Moonraker, this would load actual saved mesh data
+                // For mock, we just change the profile name
+                generate_mock_bed_mesh_with_variation();
+                spdlog::info("[MoonrakerClientMock] BED_MESH_PROFILE LOAD: loaded profile '{}'",
+                             profile_name);
+                dispatch_bed_mesh_update();
+            } else {
+                spdlog::warn("[MoonrakerClientMock] BED_MESH_PROFILE LOAD: profile '{}' not found",
+                             profile_name);
+            }
+        } else if (gcode.find("SAVE=") != std::string::npos) {
+            auto save_pos = gcode.find("SAVE=");
+            size_t start = save_pos + 5;  // Length of "SAVE="
+            size_t end = gcode.find_first_of(" \t\n", start);
+            std::string profile_name = gcode.substr(start, end == std::string::npos ? end : end - start);
+
+            // Add new profile to list if not already present
+            if (std::find(bed_mesh_profiles_.begin(), bed_mesh_profiles_.end(), profile_name) ==
+                bed_mesh_profiles_.end()) {
+                bed_mesh_profiles_.push_back(profile_name);
+            }
+            active_bed_mesh_.name = profile_name;
+            spdlog::info("[MoonrakerClientMock] BED_MESH_PROFILE SAVE: saved profile '{}'",
+                         profile_name);
+            dispatch_bed_mesh_update();
+        } else if (gcode.find("REMOVE=") != std::string::npos) {
+            auto remove_pos = gcode.find("REMOVE=");
+            size_t start = remove_pos + 7;  // Length of "REMOVE="
+            size_t end = gcode.find_first_of(" \t\n", start);
+            std::string profile_name = gcode.substr(start, end == std::string::npos ? end : end - start);
+
+            // Remove profile from list
+            auto it = std::find(bed_mesh_profiles_.begin(), bed_mesh_profiles_.end(), profile_name);
+            if (it != bed_mesh_profiles_.end()) {
+                bed_mesh_profiles_.erase(it);
+                spdlog::info("[MoonrakerClientMock] BED_MESH_PROFILE REMOVE: removed profile '{}'",
+                             profile_name);
+                dispatch_bed_mesh_update();
+            } else {
+                spdlog::warn("[MoonrakerClientMock] BED_MESH_PROFILE REMOVE: profile '{}' not found",
+                             profile_name);
+            }
+        }
     } else if (gcode.find("BED_MESH_CLEAR") != std::string::npos) {
-        spdlog::warn("[MoonrakerClientMock] STUB: BED_MESH_CLEAR NOT IMPLEMENTED");
+        // Clear the active bed mesh
+        active_bed_mesh_.name = "";
+        active_bed_mesh_.probed_matrix.clear();
+        active_bed_mesh_.x_count = 0;
+        active_bed_mesh_.y_count = 0;
+        spdlog::info("[MoonrakerClientMock] BED_MESH_CLEAR: cleared active mesh");
+        dispatch_bed_mesh_update();
     }
 
     // Z offset (NOT IMPLEMENTED)
@@ -633,6 +801,22 @@ void MoonrakerClientMock::dispatch_initial_state() {
     }
     double progress = print_progress_.load();
 
+    // Convert probed_matrix to JSON 2D array
+    json probed_matrix_json = json::array();
+    for (const auto& row : active_bed_mesh_.probed_matrix) {
+        json row_json = json::array();
+        for (float val : row) {
+            row_json.push_back(val);
+        }
+        probed_matrix_json.push_back(row_json);
+    }
+
+    // Build profiles object (Moonraker format: {"profile_name": {...}, ...})
+    json profiles_json = json::object();
+    for (const auto& profile : bed_mesh_profiles_) {
+        profiles_json[profile] = json::object();  // Empty profile data (real has full mesh)
+    }
+
     json initial_status = {
         {"extruder", {
             {"temperature", ext_temp},
@@ -659,6 +843,16 @@ void MoonrakerClientMock::dispatch_initial_state() {
         }},
         {"virtual_sdcard", {
             {"progress", progress}
+        }},
+        {"bed_mesh", {
+            {"profile_name", active_bed_mesh_.name},
+            {"probed_matrix", probed_matrix_json},
+            {"mesh_min", {active_bed_mesh_.mesh_min[0], active_bed_mesh_.mesh_min[1]}},
+            {"mesh_max", {active_bed_mesh_.mesh_max[0], active_bed_mesh_.mesh_max[1]}},
+            {"profiles", profiles_json},
+            {"mesh_params", {
+                {"algo", active_bed_mesh_.algo}
+            }}
         }}
     };
 
