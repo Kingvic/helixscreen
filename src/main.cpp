@@ -48,11 +48,11 @@
 #include "ui_panel_print_status.h"
 #include "ui_panel_settings.h"
 #include "ui_panel_step_test.h"
+#include "ui_panel_temp_control.h"
 #include "ui_panel_test.h"
 #include "ui_severity_card.h"
 #include "ui_status_bar.h"
 #include "ui_switch.h"
-#include "ui_panel_temp_control.h"
 #include "ui_text.h"
 #include "ui_theme.h"
 #include "ui_utils.h"
@@ -796,15 +796,19 @@ static void register_xml_components() {
 // Initialize all reactive subjects for data binding
 static void initialize_subjects() {
     spdlog::debug("Initializing reactive subjects...");
-    app_globals_init_subjects();                 // Global subjects (notification subject, etc.)
-    ui_nav_init();                               // Navigation system (icon colors, active panel)
+    app_globals_init_subjects(); // Global subjects (notification subject, etc.)
+    ui_nav_init();               // Navigation system (icon colors, active panel)
+
+    // PrinterState must be initialized BEFORE panels that observe its subjects
+    // (e.g., HomePanel observes led_state_, extruder_temp_, connection_state_)
+    get_printer_state()
+        .init_subjects(); // Printer state subjects (CRITICAL: must be before panel creation)
+
     get_global_home_panel().init_subjects();     // Home panel data bindings
     get_global_controls_panel().init_subjects(); // Controls panel launcher
     get_global_filament_panel().init_subjects(); // Filament panel
     get_global_settings_panel().init_subjects(); // Settings panel launcher
     ui_wizard_init_subjects();                   // Wizard subjects (for first-run config)
-    get_printer_state()
-        .init_subjects(); // Printer state subjects (CRITICAL: must be before XML creation)
 
     // Panels that need MoonrakerAPI - store pointers for deferred set_api()
     print_select_panel = get_print_select_panel(get_printer_state(), nullptr);
@@ -1094,6 +1098,7 @@ static void initialize_moonraker_client(Config* config) {
     set_moonraker_api(moonraker_api);
 
     // Update all panels with API reference
+    get_global_home_panel().set_api(moonraker_api);
     temp_control_panel->set_api(moonraker_api);
     print_select_panel->set_api(moonraker_api);
     print_status_panel->set_api(moonraker_api);

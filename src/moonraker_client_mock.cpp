@@ -363,6 +363,15 @@ void MoonrakerClientMock::populate_hardware() {
         break;
     }
 
+    // Initialize LED states (all off by default)
+    {
+        std::lock_guard<std::mutex> lock(led_mutex_);
+        led_states_.clear();
+        for (const auto& led : leds_) {
+            led_states_[led] = LedColor{0.0, 0.0, 0.0, 0.0};
+        }
+    }
+
     spdlog::debug("[MoonrakerClientMock] Populated hardware:");
     for (const auto& h : heaters_)
         spdlog::debug("  Heater: {}", h);
@@ -592,6 +601,19 @@ int MoonrakerClientMock::send_jsonrpc(const std::string& method, const json& par
             error_cb(err);
             return 0;
         }
+    }
+
+    // Handle G-code script execution (routes to gcode_script for state updates)
+    if (method == "printer.gcode.script") {
+        std::string script;
+        if (params.contains("script")) {
+            script = params["script"].get<std::string>();
+        }
+        gcode_script(script); // Process G-code (updates LED state, etc.)
+        if (success_cb) {
+            success_cb(json::object()); // Return empty success response
+        }
+        return 0;
     }
 
     // Unimplemented methods - see docs/MOCK_CLIENT_IMPLEMENTATION_PLAN.md
@@ -962,9 +984,73 @@ int MoonrakerClientMock::gcode_script(const std::string& gcode) {
         spdlog::warn("[MoonrakerClientMock] STUB: SET_PRESSURE_ADVANCE NOT IMPLEMENTED");
     }
 
-    // LED control (NOT IMPLEMENTED)
+    // LED control - SET_LED LED=<name> RED=<0-1> GREEN=<0-1> BLUE=<0-1> [WHITE=<0-1>]
     if (gcode.find("SET_LED") != std::string::npos) {
-        spdlog::warn("[MoonrakerClientMock] STUB: SET_LED NOT IMPLEMENTED");
+        // Parse LED name
+        std::string led_name;
+        auto led_pos = gcode.find("LED=");
+        if (led_pos != std::string::npos) {
+            size_t start = led_pos + 4;
+            size_t end = gcode.find_first_of(" \t\n", start);
+            led_name = gcode.substr(start, end == std::string::npos ? end : end - start);
+        }
+
+        // Parse color values (default to 0)
+        auto parse_color = [&gcode](const std::string& param) -> double {
+            auto pos = gcode.find(param + "=");
+            if (pos != std::string::npos) {
+                size_t start = pos + param.length() + 1;
+                try {
+                    return std::clamp(std::stod(gcode.substr(start)), 0.0, 1.0);
+                } catch (...) {
+                    return 0.0;
+                }
+            }
+            return 0.0;
+        };
+
+        double red = parse_color("RED");
+        double green = parse_color("GREEN");
+        double blue = parse_color("BLUE");
+        double white = parse_color("WHITE");
+
+        // Find matching LED in our list (need to match by suffix since command uses short name)
+        std::string full_led_name;
+        for (const auto& led : leds_) {
+            // Match if LED name ends with the command's led_name
+            // e.g., "neopixel chamber_light" matches "chamber_light"
+            if (led.length() >= led_name.length()) {
+                size_t suffix_start = led.length() - led_name.length();
+                if (led.substr(suffix_start) == led_name) {
+                    full_led_name = led;
+                    break;
+                }
+            }
+        }
+
+        if (!full_led_name.empty()) {
+            // Update LED state
+            {
+                std::lock_guard<std::mutex> lock(led_mutex_);
+                led_states_[full_led_name] = LedColor{red, green, blue, white};
+            }
+
+            spdlog::info("[MoonrakerClientMock] SET_LED: {} R={:.2f} G={:.2f} B={:.2f} W={:.2f}",
+                         full_led_name, red, green, blue, white);
+
+            // Dispatch LED state update notification (like real Moonraker would)
+            json led_status;
+            {
+                std::lock_guard<std::mutex> lock(led_mutex_);
+                for (const auto& [name, color] : led_states_) {
+                    led_status[name] = {
+                        {"color_data", json::array({{color.r, color.g, color.b, color.w}})}};
+                }
+            }
+            dispatch_status_update(led_status);
+        } else {
+            spdlog::warn("[MoonrakerClientMock] SET_LED: unknown LED '{}'", led_name);
+        }
     }
 
     // Firmware restart (NOT IMPLEMENTED)
@@ -1059,6 +1145,15 @@ void MoonrakerClientMock::dispatch_initial_state() {
         profiles_json[profile] = json::object(); // Empty profile data (real has full mesh)
     }
 
+    // Build LED state JSON
+    json led_json = json::object();
+    {
+        std::lock_guard<std::mutex> lock(led_mutex_);
+        for (const auto& [name, color] : led_states_) {
+            led_json[name] = {{"color_data", json::array({{color.r, color.g, color.b, color.w}})}};
+        }
+    }
+
     json initial_status = {
         {"extruder", {{"temperature", ext_temp}, {"target", ext_target}}},
         {"heater_bed", {{"temperature", bed_temp_val}, {"target", bed_target_val}}},
@@ -1075,9 +1170,14 @@ void MoonrakerClientMock::dispatch_initial_state() {
           {"profiles", profiles_json},
           {"mesh_params", {{"algo", active_bed_mesh_.algo}}}}}};
 
+    // Merge LED states into initial_status (each LED is a top-level key)
+    for (auto& [key, value] : led_json.items()) {
+        initial_status[key] = value;
+    }
+
     spdlog::info("[MoonrakerClientMock] Dispatching initial state: extruder={}/{}°C, bed={}/{}°C, "
-                 "homed_axes='{}'",
-                 ext_temp, ext_target, bed_temp_val, bed_target_val, homed);
+                 "homed_axes='{}', leds={}",
+                 ext_temp, ext_target, bed_temp_val, bed_target_val, homed, led_json.size());
 
     // Use the base class dispatch method (same as real client)
     dispatch_status_update(initial_status);

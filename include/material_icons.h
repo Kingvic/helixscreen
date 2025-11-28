@@ -50,6 +50,7 @@ LV_IMG_DECLARE(folder_up);
 LV_IMG_DECLARE(pause_img);
 LV_IMG_DECLARE(resume);
 LV_IMG_DECLARE(cancel);
+LV_IMG_DECLARE(prohibited);
 LV_IMG_DECLARE(sd_img);
 LV_IMG_DECLARE(refresh_img);
 

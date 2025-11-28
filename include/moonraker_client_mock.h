@@ -28,6 +28,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <map>
 #include <string>
 #include <thread>
 #include <vector>
@@ -247,7 +248,8 @@ class MoonrakerClientMock : public MoonrakerClient {
     /**
      * @brief Get print state as string for Moonraker-compatible notifications
      *
-     * @return String representation: "standby", "printing", "paused", "complete", "cancelled", "error"
+     * @return String representation: "standby", "printing", "paused", "complete", "cancelled",
+     * "error"
      */
     std::string get_print_state_string() const;
 
@@ -255,10 +257,10 @@ class MoonrakerClientMock : public MoonrakerClient {
     PrinterType printer_type_;
 
     // Temperature simulation state
-    std::atomic<double> extruder_temp_{25.0};   // Current temperature
-    std::atomic<double> extruder_target_{0.0};  // Target temperature (0 = off)
-    std::atomic<double> bed_temp_{25.0};        // Current temperature
-    std::atomic<double> bed_target_{0.0};       // Target temperature (0 = off)
+    std::atomic<double> extruder_temp_{25.0};  // Current temperature
+    std::atomic<double> extruder_target_{0.0}; // Target temperature (0 = off)
+    std::atomic<double> bed_temp_{25.0};       // Current temperature
+    std::atomic<double> bed_target_{0.0};      // Target temperature (0 = off)
 
     // Position simulation state
     std::atomic<double> pos_x_{0.0};
@@ -266,20 +268,28 @@ class MoonrakerClientMock : public MoonrakerClient {
     std::atomic<double> pos_z_{0.0};
 
     // Motion mode state
-    std::atomic<bool> relative_mode_{false};  // G90=absolute (false), G91=relative (true)
+    std::atomic<bool> relative_mode_{false}; // G90=absolute (false), G91=relative (true)
 
     // Homing state (needs mutex since std::string is not atomic)
     mutable std::mutex homed_axes_mutex_;
     std::string homed_axes_;
 
     // Print simulation state
-    std::atomic<int> print_state_{0};           // 0=standby, 1=printing, 2=paused, 3=complete, 4=cancelled, 5=error
-    std::string print_filename_;                // Current print file (protected by print_mutex_)
-    mutable std::mutex print_mutex_;            // Protects print_filename_
-    std::atomic<double> print_progress_{0.0};   // 0.0 to 1.0
-    std::atomic<int> speed_factor_{100};        // Percentage
-    std::atomic<int> flow_factor_{100};         // Percentage
-    std::atomic<int> fan_speed_{0};             // 0-255
+    std::atomic<int> print_state_{
+        0}; // 0=standby, 1=printing, 2=paused, 3=complete, 4=cancelled, 5=error
+    std::string print_filename_;              // Current print file (protected by print_mutex_)
+    mutable std::mutex print_mutex_;          // Protects print_filename_
+    std::atomic<double> print_progress_{0.0}; // 0.0 to 1.0
+    std::atomic<int> speed_factor_{100};      // Percentage
+    std::atomic<int> flow_factor_{100};       // Percentage
+    std::atomic<int> fan_speed_{0};           // 0-255
+
+    // LED simulation state (RGBW values 0.0-1.0)
+    struct LedColor {
+        double r = 0.0, g = 0.0, b = 0.0, w = 0.0;
+    };
+    std::map<std::string, LedColor> led_states_; // LED name -> color
+    mutable std::mutex led_mutex_;               // Protects led_states_
 
     // Simulation tick counter
     std::atomic<uint32_t> tick_count_{0};

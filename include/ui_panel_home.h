@@ -165,12 +165,16 @@ class HomePanel : public PanelBase {
     lv_obj_t* light_button_ = nullptr;
     lv_obj_t* light_divider_ = nullptr;
 
+    // Printer image reference (for connection state dimming)
+    lv_obj_t* printer_image_ = nullptr;
+
     //
     // === Private Helpers ===
     //
 
     void update_tip_of_day();
     void setup_responsive_icon_fonts();
+    void update_printer_image_opacity(int connection_state);
 
     //
     // === Instance Handlers ===
@@ -195,6 +199,7 @@ class HomePanel : public PanelBase {
     static void tip_rotation_timer_cb(lv_timer_t* timer);
     static void extruder_temp_observer_cb(lv_observer_t* observer, lv_subject_t* subject);
     static void led_state_observer_cb(lv_observer_t* observer, lv_subject_t* subject);
+    static void connection_state_observer_cb(lv_observer_t* observer, lv_subject_t* subject);
 
     //
     // === PrinterState Observers (RAII managed) ===
@@ -202,6 +207,7 @@ class HomePanel : public PanelBase {
 
     lv_observer_t* extruder_temp_observer_ = nullptr;
     lv_observer_t* led_state_observer_ = nullptr;
+    lv_observer_t* connection_state_observer_ = nullptr;
 };
 
 // Global instance accessor (needed by main.cpp)

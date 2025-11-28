@@ -40,7 +40,12 @@ HomePanel::HomePanel(PrinterState& printer_state, MoonrakerAPI* api)
     extruder_temp_observer_ = lv_subject_add_observer(printer_state_.get_extruder_temp_subject(),
                                                       extruder_temp_observer_cb, this);
 
-    spdlog::debug("[{}] Subscribed to PrinterState extruder temperature", get_name());
+    // Subscribe to printer connection state for image dimming
+    connection_state_observer_ = lv_subject_add_observer(
+        printer_state_.get_printer_connection_state_subject(), connection_state_observer_cb, this);
+
+    spdlog::debug("[{}] Subscribed to PrinterState extruder temperature and connection state",
+                  get_name());
 
     // Load configured LED from wizard settings and tell PrinterState to track it
     Config* config = Config::get_instance();
@@ -80,6 +85,10 @@ HomePanel::~HomePanel() {
     if (led_state_observer_) {
         lv_observer_remove(led_state_observer_);
         led_state_observer_ = nullptr;
+    }
+    if (connection_state_observer_) {
+        lv_observer_remove(connection_state_observer_);
+        connection_state_observer_ = nullptr;
     }
 
     // Other observers cleaned up by PanelBase::~PanelBase()
@@ -136,6 +145,13 @@ void HomePanel::setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
     // Find light-related widgets for conditional hiding
     light_button_ = lv_obj_find_by_name(panel_, "light_button");
     light_divider_ = lv_obj_find_by_name(panel_, "divider2");
+
+    // Find printer image for connection state dimming
+    printer_image_ = lv_obj_find_by_name(panel_, "printer_image");
+
+    // Apply initial connection state dimming
+    int conn_state = lv_subject_get_int(printer_state_.get_printer_connection_state_subject());
+    update_printer_image_opacity(conn_state);
 
     // If no LED is configured, hide the light button and divider
     // Note: LED on/off visual state is handled by XML binding to PrinterState's led_state subject
@@ -335,6 +351,25 @@ void HomePanel::on_extruder_temp_changed(int temp) {
     spdlog::trace("[{}] Extruder temperature updated: {}°C", get_name(), temp);
 }
 
+void HomePanel::update_printer_image_opacity(int connection_state) {
+    if (!printer_image_) {
+        return;
+    }
+
+    // CONNECTED = 2, all other states show darkened image
+    if (connection_state == 2) {
+        // Connected - clear recolor effect
+        lv_obj_set_style_image_recolor_opa(printer_image_, LV_OPA_TRANSP, 0);
+        spdlog::debug("[{}] Printer connected - image normal", get_name());
+    } else {
+        // Not connected - darken by 50% with black overlay
+        lv_obj_set_style_image_recolor(printer_image_, lv_color_hex(0x000000), 0);
+        lv_obj_set_style_image_recolor_opa(printer_image_, LV_OPA_50, 0);
+        spdlog::debug("[{}] Printer not connected (state={}) - image darkened", get_name(),
+                      connection_state);
+    }
+}
+
 // ============================================================================
 // STATIC TRAMPOLINES
 // ============================================================================
@@ -384,6 +419,13 @@ void HomePanel::extruder_temp_observer_cb(lv_observer_t* observer, lv_subject_t*
     auto* self = static_cast<HomePanel*>(lv_observer_get_user_data(observer));
     if (self) {
         self->on_extruder_temp_changed(lv_subject_get_int(subject));
+    }
+}
+
+void HomePanel::connection_state_observer_cb(lv_observer_t* observer, lv_subject_t* subject) {
+    auto* self = static_cast<HomePanel*>(lv_observer_get_user_data(observer));
+    if (self) {
+        self->update_printer_image_opacity(lv_subject_get_int(subject));
     }
 }
 
