@@ -124,7 +124,7 @@ G90
 G21
 M83 ; use relative distances for extrusion
 ; filament start gcode
-;right_extruder_material: PLA
+;right_extruder_material: TPU
 SET_PRESSURE_ADVANCE ADVANCE=0.025; Override pressure advance value
 T0
 M106 S0
@@ -139,7 +139,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;0.2
 SET_PRINT_STATS_INFO CURRENT_LAYER=1
-M117 Layer 1/175 : Flashforge Generic PLA
+M117 Layer 1/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 SET_VELOCITY_LIMIT ACCEL=500
 ; printing object calicat_calico.stl id:0 copy 0
@@ -504,7 +504,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;0.4
 SET_PRINT_STATS_INFO CURRENT_LAYER=2
-M117 Layer 2/175 : Flashforge Generic PLA
+M117 Layer 2/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 SET_VELOCITY_LIMIT ACCEL=10000
 M140 S50 ; set bed temperature
@@ -1037,7 +1037,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;0.6
 SET_PRINT_STATS_INFO CURRENT_LAYER=3
-M117 Layer 3/175 : Flashforge Generic PLA
+M117 Layer 3/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 SET_VELOCITY_LIMIT ACCEL=10000
@@ -1530,7 +1530,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;0.8
 SET_PRINT_STATS_INFO CURRENT_LAYER=4
-M117 Layer 4/175 : Flashforge Generic PLA
+M117 Layer 4/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 SET_VELOCITY_LIMIT ACCEL=10000
@@ -1764,7 +1764,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;1
 SET_PRINT_STATS_INFO CURRENT_LAYER=5
-M117 Layer 5/175 : Flashforge Generic PLA
+M117 Layer 5/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -1996,7 +1996,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;1.2
 SET_PRINT_STATS_INFO CURRENT_LAYER=6
-M117 Layer 6/175 : Flashforge Generic PLA
+M117 Layer 6/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -2233,7 +2233,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;1.4
 SET_PRINT_STATS_INFO CURRENT_LAYER=7
-M117 Layer 7/175 : Flashforge Generic PLA
+M117 Layer 7/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -2519,7 +2519,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;1.6
 SET_PRINT_STATS_INFO CURRENT_LAYER=8
-M117 Layer 8/175 : Flashforge Generic PLA
+M117 Layer 8/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -2806,7 +2806,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;1.8
 SET_PRINT_STATS_INFO CURRENT_LAYER=9
-M117 Layer 9/175 : Flashforge Generic PLA
+M117 Layer 9/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -3094,7 +3094,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;2
 SET_PRINT_STATS_INFO CURRENT_LAYER=10
-M117 Layer 10/175 : Flashforge Generic PLA
+M117 Layer 10/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -3623,7 +3623,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;2.2
 SET_PRINT_STATS_INFO CURRENT_LAYER=11
-M117 Layer 11/175 : Flashforge Generic PLA
+M117 Layer 11/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -3862,7 +3862,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;2.4
 SET_PRINT_STATS_INFO CURRENT_LAYER=12
-M117 Layer 12/175 : Flashforge Generic PLA
+M117 Layer 12/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -4154,7 +4154,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;2.6
 SET_PRINT_STATS_INFO CURRENT_LAYER=13
-M117 Layer 13/175 : Flashforge Generic PLA
+M117 Layer 13/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -4435,7 +4435,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;2.8
 SET_PRINT_STATS_INFO CURRENT_LAYER=14
-M117 Layer 14/175 : Flashforge Generic PLA
+M117 Layer 14/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -4722,7 +4722,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;3
 SET_PRINT_STATS_INFO CURRENT_LAYER=15
-M117 Layer 15/175 : Flashforge Generic PLA
+M117 Layer 15/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -5007,7 +5007,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;3.2
 SET_PRINT_STATS_INFO CURRENT_LAYER=16
-M117 Layer 16/175 : Flashforge Generic PLA
+M117 Layer 16/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -5504,7 +5504,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;3.4
 SET_PRINT_STATS_INFO CURRENT_LAYER=17
-M117 Layer 17/175 : Flashforge Generic PLA
+M117 Layer 17/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -5871,7 +5871,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;3.6
 SET_PRINT_STATS_INFO CURRENT_LAYER=18
-M117 Layer 18/175 : Flashforge Generic PLA
+M117 Layer 18/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -6174,7 +6174,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;3.8
 SET_PRINT_STATS_INFO CURRENT_LAYER=19
-M117 Layer 19/175 : Flashforge Generic PLA
+M117 Layer 19/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -6323,7 +6323,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;4
 SET_PRINT_STATS_INFO CURRENT_LAYER=20
-M117 Layer 20/175 : Flashforge Generic PLA
+M117 Layer 20/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -6475,7 +6475,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;4.2
 SET_PRINT_STATS_INFO CURRENT_LAYER=21
-M117 Layer 21/175 : Flashforge Generic PLA
+M117 Layer 21/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -6664,7 +6664,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;4.4
 SET_PRINT_STATS_INFO CURRENT_LAYER=22
-M117 Layer 22/175 : Flashforge Generic PLA
+M117 Layer 22/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -6874,7 +6874,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;4.6
 SET_PRINT_STATS_INFO CURRENT_LAYER=23
-M117 Layer 23/175 : Flashforge Generic PLA
+M117 Layer 23/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -7075,7 +7075,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;4.8
 SET_PRINT_STATS_INFO CURRENT_LAYER=24
-M117 Layer 24/175 : Flashforge Generic PLA
+M117 Layer 24/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -7285,7 +7285,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;5
 SET_PRINT_STATS_INFO CURRENT_LAYER=25
-M117 Layer 25/175 : Flashforge Generic PLA
+M117 Layer 25/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -7579,7 +7579,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;5.2
 SET_PRINT_STATS_INFO CURRENT_LAYER=26
-M117 Layer 26/175 : Flashforge Generic PLA
+M117 Layer 26/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -7813,7 +7813,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;5.4
 SET_PRINT_STATS_INFO CURRENT_LAYER=27
-M117 Layer 27/175 : Flashforge Generic PLA
+M117 Layer 27/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -8046,7 +8046,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;5.6
 SET_PRINT_STATS_INFO CURRENT_LAYER=28
-M117 Layer 28/175 : Flashforge Generic PLA
+M117 Layer 28/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -8286,7 +8286,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;5.8
 SET_PRINT_STATS_INFO CURRENT_LAYER=29
-M117 Layer 29/175 : Flashforge Generic PLA
+M117 Layer 29/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -8517,7 +8517,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;6
 SET_PRINT_STATS_INFO CURRENT_LAYER=30
-M117 Layer 30/175 : Flashforge Generic PLA
+M117 Layer 30/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -8751,7 +8751,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;6.2
 SET_PRINT_STATS_INFO CURRENT_LAYER=31
-M117 Layer 31/175 : Flashforge Generic PLA
+M117 Layer 31/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -8987,7 +8987,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;6.4
 SET_PRINT_STATS_INFO CURRENT_LAYER=32
-M117 Layer 32/175 : Flashforge Generic PLA
+M117 Layer 32/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -9139,7 +9139,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;6.6
 SET_PRINT_STATS_INFO CURRENT_LAYER=33
-M117 Layer 33/175 : Flashforge Generic PLA
+M117 Layer 33/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -9292,7 +9292,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;6.8
 SET_PRINT_STATS_INFO CURRENT_LAYER=34
-M117 Layer 34/175 : Flashforge Generic PLA
+M117 Layer 34/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -9443,7 +9443,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;7
 SET_PRINT_STATS_INFO CURRENT_LAYER=35
-M117 Layer 35/175 : Flashforge Generic PLA
+M117 Layer 35/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -9597,7 +9597,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;7.2
 SET_PRINT_STATS_INFO CURRENT_LAYER=36
-M117 Layer 36/175 : Flashforge Generic PLA
+M117 Layer 36/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -9752,7 +9752,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;7.4
 SET_PRINT_STATS_INFO CURRENT_LAYER=37
-M117 Layer 37/175 : Flashforge Generic PLA
+M117 Layer 37/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -9906,7 +9906,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;7.6
 SET_PRINT_STATS_INFO CURRENT_LAYER=38
-M117 Layer 38/175 : Flashforge Generic PLA
+M117 Layer 38/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -10056,7 +10056,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;7.8
 SET_PRINT_STATS_INFO CURRENT_LAYER=39
-M117 Layer 39/175 : Flashforge Generic PLA
+M117 Layer 39/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -10289,7 +10289,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;8
 SET_PRINT_STATS_INFO CURRENT_LAYER=40
-M117 Layer 40/175 : Flashforge Generic PLA
+M117 Layer 40/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -10526,7 +10526,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;8.2
 SET_PRINT_STATS_INFO CURRENT_LAYER=41
-M117 Layer 41/175 : Flashforge Generic PLA
+M117 Layer 41/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -10754,7 +10754,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;8.4
 SET_PRINT_STATS_INFO CURRENT_LAYER=42
-M117 Layer 42/175 : Flashforge Generic PLA
+M117 Layer 42/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -10989,7 +10989,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;8.6
 SET_PRINT_STATS_INFO CURRENT_LAYER=43
-M117 Layer 43/175 : Flashforge Generic PLA
+M117 Layer 43/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -11222,7 +11222,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;8.8
 SET_PRINT_STATS_INFO CURRENT_LAYER=44
-M117 Layer 44/175 : Flashforge Generic PLA
+M117 Layer 44/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -11457,7 +11457,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;9
 SET_PRINT_STATS_INFO CURRENT_LAYER=45
-M117 Layer 45/175 : Flashforge Generic PLA
+M117 Layer 45/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -11616,7 +11616,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;9.2
 SET_PRINT_STATS_INFO CURRENT_LAYER=46
-M117 Layer 46/175 : Flashforge Generic PLA
+M117 Layer 46/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -11775,7 +11775,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;9.4
 SET_PRINT_STATS_INFO CURRENT_LAYER=47
-M117 Layer 47/175 : Flashforge Generic PLA
+M117 Layer 47/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -11934,7 +11934,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;9.6
 SET_PRINT_STATS_INFO CURRENT_LAYER=48
-M117 Layer 48/175 : Flashforge Generic PLA
+M117 Layer 48/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -12106,7 +12106,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;9.8
 SET_PRINT_STATS_INFO CURRENT_LAYER=49
-M117 Layer 49/175 : Flashforge Generic PLA
+M117 Layer 49/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -12317,7 +12317,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;10
 SET_PRINT_STATS_INFO CURRENT_LAYER=50
-M117 Layer 50/175 : Flashforge Generic PLA
+M117 Layer 50/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -12538,7 +12538,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;10.2
 SET_PRINT_STATS_INFO CURRENT_LAYER=51
-M117 Layer 51/175 : Flashforge Generic PLA
+M117 Layer 51/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -12760,7 +12760,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;10.4
 SET_PRINT_STATS_INFO CURRENT_LAYER=52
-M117 Layer 52/175 : Flashforge Generic PLA
+M117 Layer 52/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -12980,7 +12980,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;10.6
 SET_PRINT_STATS_INFO CURRENT_LAYER=53
-M117 Layer 53/175 : Flashforge Generic PLA
+M117 Layer 53/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -13258,7 +13258,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;10.8
 SET_PRINT_STATS_INFO CURRENT_LAYER=54
-M117 Layer 54/175 : Flashforge Generic PLA
+M117 Layer 54/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -13530,7 +13530,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;11
 SET_PRINT_STATS_INFO CURRENT_LAYER=55
-M117 Layer 55/175 : Flashforge Generic PLA
+M117 Layer 55/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 SET_VELOCITY_LIMIT ACCEL=10000
@@ -13801,7 +13801,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;11.2
 SET_PRINT_STATS_INFO CURRENT_LAYER=56
-M117 Layer 56/175 : Flashforge Generic PLA
+M117 Layer 56/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -14071,7 +14071,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;11.4
 SET_PRINT_STATS_INFO CURRENT_LAYER=57
-M117 Layer 57/175 : Flashforge Generic PLA
+M117 Layer 57/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 SET_VELOCITY_LIMIT ACCEL=10000
@@ -14335,7 +14335,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;11.6
 SET_PRINT_STATS_INFO CURRENT_LAYER=58
-M117 Layer 58/175 : Flashforge Generic PLA
+M117 Layer 58/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 SET_VELOCITY_LIMIT ACCEL=10000
@@ -14596,7 +14596,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;11.8
 SET_PRINT_STATS_INFO CURRENT_LAYER=59
-M117 Layer 59/175 : Flashforge Generic PLA
+M117 Layer 59/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 SET_VELOCITY_LIMIT ACCEL=10000
@@ -14800,7 +14800,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;12
 SET_PRINT_STATS_INFO CURRENT_LAYER=60
-M117 Layer 60/175 : Flashforge Generic PLA
+M117 Layer 60/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 SET_VELOCITY_LIMIT ACCEL=10000
@@ -14997,7 +14997,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;12.2
 SET_PRINT_STATS_INFO CURRENT_LAYER=61
-M117 Layer 61/175 : Flashforge Generic PLA
+M117 Layer 61/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -15148,7 +15148,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;12.4
 SET_PRINT_STATS_INFO CURRENT_LAYER=62
-M117 Layer 62/175 : Flashforge Generic PLA
+M117 Layer 62/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -15294,7 +15294,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;12.6
 SET_PRINT_STATS_INFO CURRENT_LAYER=63
-M117 Layer 63/175 : Flashforge Generic PLA
+M117 Layer 63/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -15426,7 +15426,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;12.8
 SET_PRINT_STATS_INFO CURRENT_LAYER=64
-M117 Layer 64/175 : Flashforge Generic PLA
+M117 Layer 64/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -15587,7 +15587,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;13
 SET_PRINT_STATS_INFO CURRENT_LAYER=65
-M117 Layer 65/175 : Flashforge Generic PLA
+M117 Layer 65/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -15733,7 +15733,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;13.2
 SET_PRINT_STATS_INFO CURRENT_LAYER=66
-M117 Layer 66/175 : Flashforge Generic PLA
+M117 Layer 66/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -15927,7 +15927,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;13.4
 SET_PRINT_STATS_INFO CURRENT_LAYER=67
-M117 Layer 67/175 : Flashforge Generic PLA
+M117 Layer 67/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -16118,7 +16118,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;13.6
 SET_PRINT_STATS_INFO CURRENT_LAYER=68
-M117 Layer 68/175 : Flashforge Generic PLA
+M117 Layer 68/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -16333,7 +16333,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;13.8
 SET_PRINT_STATS_INFO CURRENT_LAYER=69
-M117 Layer 69/175 : Flashforge Generic PLA
+M117 Layer 69/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -16560,7 +16560,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;14
 SET_PRINT_STATS_INFO CURRENT_LAYER=70
-M117 Layer 70/175 : Flashforge Generic PLA
+M117 Layer 70/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -16789,7 +16789,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;14.2
 SET_PRINT_STATS_INFO CURRENT_LAYER=71
-M117 Layer 71/175 : Flashforge Generic PLA
+M117 Layer 71/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -17010,7 +17010,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;14.4
 SET_PRINT_STATS_INFO CURRENT_LAYER=72
-M117 Layer 72/175 : Flashforge Generic PLA
+M117 Layer 72/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -17167,7 +17167,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;14.6
 SET_PRINT_STATS_INFO CURRENT_LAYER=73
-M117 Layer 73/175 : Flashforge Generic PLA
+M117 Layer 73/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -17332,7 +17332,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;14.8
 SET_PRINT_STATS_INFO CURRENT_LAYER=74
-M117 Layer 74/175 : Flashforge Generic PLA
+M117 Layer 74/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -17488,7 +17488,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;15
 SET_PRINT_STATS_INFO CURRENT_LAYER=75
-M117 Layer 75/175 : Flashforge Generic PLA
+M117 Layer 75/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -17663,7 +17663,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;15.2
 SET_PRINT_STATS_INFO CURRENT_LAYER=76
-M117 Layer 76/175 : Flashforge Generic PLA
+M117 Layer 76/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -17831,7 +17831,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;15.4
 SET_PRINT_STATS_INFO CURRENT_LAYER=77
-M117 Layer 77/175 : Flashforge Generic PLA
+M117 Layer 77/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -17979,7 +17979,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;15.6
 SET_PRINT_STATS_INFO CURRENT_LAYER=78
-M117 Layer 78/175 : Flashforge Generic PLA
+M117 Layer 78/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -18119,7 +18119,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;15.8
 SET_PRINT_STATS_INFO CURRENT_LAYER=79
-M117 Layer 79/175 : Flashforge Generic PLA
+M117 Layer 79/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -18267,7 +18267,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;16
 SET_PRINT_STATS_INFO CURRENT_LAYER=80
-M117 Layer 80/175 : Flashforge Generic PLA
+M117 Layer 80/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -18490,7 +18490,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;16.2
 SET_PRINT_STATS_INFO CURRENT_LAYER=81
-M117 Layer 81/175 : Flashforge Generic PLA
+M117 Layer 81/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -18716,7 +18716,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;16.4
 SET_PRINT_STATS_INFO CURRENT_LAYER=82
-M117 Layer 82/175 : Flashforge Generic PLA
+M117 Layer 82/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -18946,7 +18946,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;16.6
 SET_PRINT_STATS_INFO CURRENT_LAYER=83
-M117 Layer 83/175 : Flashforge Generic PLA
+M117 Layer 83/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -19206,7 +19206,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;16.8
 SET_PRINT_STATS_INFO CURRENT_LAYER=84
-M117 Layer 84/175 : Flashforge Generic PLA
+M117 Layer 84/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -19467,7 +19467,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;17
 SET_PRINT_STATS_INFO CURRENT_LAYER=85
-M117 Layer 85/175 : Flashforge Generic PLA
+M117 Layer 85/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 SET_VELOCITY_LIMIT ACCEL=10000
@@ -19746,7 +19746,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;17.2
 SET_PRINT_STATS_INFO CURRENT_LAYER=86
-M117 Layer 86/175 : Flashforge Generic PLA
+M117 Layer 86/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -19947,7 +19947,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;17.4
 SET_PRINT_STATS_INFO CURRENT_LAYER=87
-M117 Layer 87/175 : Flashforge Generic PLA
+M117 Layer 87/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -20276,7 +20276,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;17.6
 SET_PRINT_STATS_INFO CURRENT_LAYER=88
-M117 Layer 88/175 : Flashforge Generic PLA
+M117 Layer 88/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -20364,7 +20364,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;17.8
 SET_PRINT_STATS_INFO CURRENT_LAYER=89
-M117 Layer 89/175 : Flashforge Generic PLA
+M117 Layer 89/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -20604,7 +20604,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;18
 SET_PRINT_STATS_INFO CURRENT_LAYER=90
-M117 Layer 90/175 : Flashforge Generic PLA
+M117 Layer 90/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 SET_VELOCITY_LIMIT ACCEL=10000
@@ -20802,7 +20802,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;18.2
 SET_PRINT_STATS_INFO CURRENT_LAYER=91
-M117 Layer 91/175 : Flashforge Generic PLA
+M117 Layer 91/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 SET_VELOCITY_LIMIT ACCEL=10000
@@ -21004,7 +21004,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;18.4
 SET_PRINT_STATS_INFO CURRENT_LAYER=92
-M117 Layer 92/175 : Flashforge Generic PLA
+M117 Layer 92/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 SET_VELOCITY_LIMIT ACCEL=10000
@@ -21171,7 +21171,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;18.6
 SET_PRINT_STATS_INFO CURRENT_LAYER=93
-M117 Layer 93/175 : Flashforge Generic PLA
+M117 Layer 93/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 SET_VELOCITY_LIMIT ACCEL=10000
@@ -21346,7 +21346,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;18.8
 SET_PRINT_STATS_INFO CURRENT_LAYER=94
-M117 Layer 94/175 : Flashforge Generic PLA
+M117 Layer 94/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 SET_VELOCITY_LIMIT ACCEL=10000
@@ -21586,7 +21586,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;19
 SET_PRINT_STATS_INFO CURRENT_LAYER=95
-M117 Layer 95/175 : Flashforge Generic PLA
+M117 Layer 95/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 SET_VELOCITY_LIMIT ACCEL=10000
@@ -21958,7 +21958,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;19.2
 SET_PRINT_STATS_INFO CURRENT_LAYER=96
-M117 Layer 96/175 : Flashforge Generic PLA
+M117 Layer 96/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -22135,7 +22135,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;19.4
 SET_PRINT_STATS_INFO CURRENT_LAYER=97
-M117 Layer 97/175 : Flashforge Generic PLA
+M117 Layer 97/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -22309,7 +22309,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;19.6
 SET_PRINT_STATS_INFO CURRENT_LAYER=98
-M117 Layer 98/175 : Flashforge Generic PLA
+M117 Layer 98/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -22539,7 +22539,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;19.8
 SET_PRINT_STATS_INFO CURRENT_LAYER=99
-M117 Layer 99/175 : Flashforge Generic PLA
+M117 Layer 99/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -22807,7 +22807,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;20
 SET_PRINT_STATS_INFO CURRENT_LAYER=100
-M117 Layer 100/175 : Flashforge Generic PLA
+M117 Layer 100/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -23025,7 +23025,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;20.2
 SET_PRINT_STATS_INFO CURRENT_LAYER=101
-M117 Layer 101/175 : Flashforge Generic PLA
+M117 Layer 101/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 SET_VELOCITY_LIMIT ACCEL=10000
@@ -23136,7 +23136,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;20.4
 SET_PRINT_STATS_INFO CURRENT_LAYER=102
-M117 Layer 102/175 : Flashforge Generic PLA
+M117 Layer 102/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -23252,7 +23252,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;20.6
 SET_PRINT_STATS_INFO CURRENT_LAYER=103
-M117 Layer 103/175 : Flashforge Generic PLA
+M117 Layer 103/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -23367,7 +23367,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;20.8
 SET_PRINT_STATS_INFO CURRENT_LAYER=104
-M117 Layer 104/175 : Flashforge Generic PLA
+M117 Layer 104/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -23548,7 +23548,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;21
 SET_PRINT_STATS_INFO CURRENT_LAYER=105
-M117 Layer 105/175 : Flashforge Generic PLA
+M117 Layer 105/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -23665,7 +23665,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;21.2
 SET_PRINT_STATS_INFO CURRENT_LAYER=106
-M117 Layer 106/175 : Flashforge Generic PLA
+M117 Layer 106/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -23785,7 +23785,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;21.4
 SET_PRINT_STATS_INFO CURRENT_LAYER=107
-M117 Layer 107/175 : Flashforge Generic PLA
+M117 Layer 107/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -24006,7 +24006,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;21.6
 SET_PRINT_STATS_INFO CURRENT_LAYER=108
-M117 Layer 108/175 : Flashforge Generic PLA
+M117 Layer 108/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 SET_VELOCITY_LIMIT ACCEL=10000
@@ -24188,7 +24188,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;21.8
 SET_PRINT_STATS_INFO CURRENT_LAYER=109
-M117 Layer 109/175 : Flashforge Generic PLA
+M117 Layer 109/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -24364,7 +24364,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;22
 SET_PRINT_STATS_INFO CURRENT_LAYER=110
-M117 Layer 110/175 : Flashforge Generic PLA
+M117 Layer 110/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -24549,7 +24549,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;22.2
 SET_PRINT_STATS_INFO CURRENT_LAYER=111
-M117 Layer 111/175 : Flashforge Generic PLA
+M117 Layer 111/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -24728,7 +24728,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;22.4
 SET_PRINT_STATS_INFO CURRENT_LAYER=112
-M117 Layer 112/175 : Flashforge Generic PLA
+M117 Layer 112/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -24911,7 +24911,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;22.6
 SET_PRINT_STATS_INFO CURRENT_LAYER=113
-M117 Layer 113/175 : Flashforge Generic PLA
+M117 Layer 113/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -25014,7 +25014,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;22.8
 SET_PRINT_STATS_INFO CURRENT_LAYER=114
-M117 Layer 114/175 : Flashforge Generic PLA
+M117 Layer 114/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -25117,7 +25117,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;23
 SET_PRINT_STATS_INFO CURRENT_LAYER=115
-M117 Layer 115/175 : Flashforge Generic PLA
+M117 Layer 115/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -25219,7 +25219,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;23.2
 SET_PRINT_STATS_INFO CURRENT_LAYER=116
-M117 Layer 116/175 : Flashforge Generic PLA
+M117 Layer 116/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -25322,7 +25322,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;23.4
 SET_PRINT_STATS_INFO CURRENT_LAYER=117
-M117 Layer 117/175 : Flashforge Generic PLA
+M117 Layer 117/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -25423,7 +25423,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;23.6
 SET_PRINT_STATS_INFO CURRENT_LAYER=118
-M117 Layer 118/175 : Flashforge Generic PLA
+M117 Layer 118/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -25605,7 +25605,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;23.8
 SET_PRINT_STATS_INFO CURRENT_LAYER=119
-M117 Layer 119/175 : Flashforge Generic PLA
+M117 Layer 119/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -25680,7 +25680,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;24
 SET_PRINT_STATS_INFO CURRENT_LAYER=120
-M117 Layer 120/175 : Flashforge Generic PLA
+M117 Layer 120/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -25756,7 +25756,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;24.2
 SET_PRINT_STATS_INFO CURRENT_LAYER=121
-M117 Layer 121/175 : Flashforge Generic PLA
+M117 Layer 121/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -25919,7 +25919,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;24.4
 SET_PRINT_STATS_INFO CURRENT_LAYER=122
-M117 Layer 122/175 : Flashforge Generic PLA
+M117 Layer 122/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -26069,7 +26069,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;24.6
 SET_PRINT_STATS_INFO CURRENT_LAYER=123
-M117 Layer 123/175 : Flashforge Generic PLA
+M117 Layer 123/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -26229,7 +26229,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;24.8
 SET_PRINT_STATS_INFO CURRENT_LAYER=124
-M117 Layer 124/175 : Flashforge Generic PLA
+M117 Layer 124/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -26383,7 +26383,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;25
 SET_PRINT_STATS_INFO CURRENT_LAYER=125
-M117 Layer 125/175 : Flashforge Generic PLA
+M117 Layer 125/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -26540,7 +26540,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;25.2
 SET_PRINT_STATS_INFO CURRENT_LAYER=126
-M117 Layer 126/175 : Flashforge Generic PLA
+M117 Layer 126/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -26694,7 +26694,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;25.4
 SET_PRINT_STATS_INFO CURRENT_LAYER=127
-M117 Layer 127/175 : Flashforge Generic PLA
+M117 Layer 127/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -26772,7 +26772,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;25.6
 SET_PRINT_STATS_INFO CURRENT_LAYER=128
-M117 Layer 128/175 : Flashforge Generic PLA
+M117 Layer 128/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -26851,7 +26851,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;25.8
 SET_PRINT_STATS_INFO CURRENT_LAYER=129
-M117 Layer 129/175 : Flashforge Generic PLA
+M117 Layer 129/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -26929,7 +26929,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;26
 SET_PRINT_STATS_INFO CURRENT_LAYER=130
-M117 Layer 130/175 : Flashforge Generic PLA
+M117 Layer 130/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -27009,7 +27009,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;26.2
 SET_PRINT_STATS_INFO CURRENT_LAYER=131
-M117 Layer 131/175 : Flashforge Generic PLA
+M117 Layer 131/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -27087,7 +27087,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;26.4
 SET_PRINT_STATS_INFO CURRENT_LAYER=132
-M117 Layer 132/175 : Flashforge Generic PLA
+M117 Layer 132/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -27166,7 +27166,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;26.6
 SET_PRINT_STATS_INFO CURRENT_LAYER=133
-M117 Layer 133/175 : Flashforge Generic PLA
+M117 Layer 133/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -27244,7 +27244,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;26.8
 SET_PRINT_STATS_INFO CURRENT_LAYER=134
-M117 Layer 134/175 : Flashforge Generic PLA
+M117 Layer 134/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -27398,7 +27398,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;27
 SET_PRINT_STATS_INFO CURRENT_LAYER=135
-M117 Layer 135/175 : Flashforge Generic PLA
+M117 Layer 135/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -27555,7 +27555,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;27.2
 SET_PRINT_STATS_INFO CURRENT_LAYER=136
-M117 Layer 136/175 : Flashforge Generic PLA
+M117 Layer 136/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -27709,7 +27709,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;27.4
 SET_PRINT_STATS_INFO CURRENT_LAYER=137
-M117 Layer 137/175 : Flashforge Generic PLA
+M117 Layer 137/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -27866,7 +27866,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;27.6
 SET_PRINT_STATS_INFO CURRENT_LAYER=138
-M117 Layer 138/175 : Flashforge Generic PLA
+M117 Layer 138/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -28016,7 +28016,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;27.8
 SET_PRINT_STATS_INFO CURRENT_LAYER=139
-M117 Layer 139/175 : Flashforge Generic PLA
+M117 Layer 139/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -28176,7 +28176,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;28
 SET_PRINT_STATS_INFO CURRENT_LAYER=140
-M117 Layer 140/175 : Flashforge Generic PLA
+M117 Layer 140/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -28252,7 +28252,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;28.2
 SET_PRINT_STATS_INFO CURRENT_LAYER=141
-M117 Layer 141/175 : Flashforge Generic PLA
+M117 Layer 141/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -28327,7 +28327,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;28.4
 SET_PRINT_STATS_INFO CURRENT_LAYER=142
-M117 Layer 142/175 : Flashforge Generic PLA
+M117 Layer 142/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -28403,7 +28403,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;28.6
 SET_PRINT_STATS_INFO CURRENT_LAYER=143
-M117 Layer 143/175 : Flashforge Generic PLA
+M117 Layer 143/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -28478,7 +28478,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;28.8
 SET_PRINT_STATS_INFO CURRENT_LAYER=144
-M117 Layer 144/175 : Flashforge Generic PLA
+M117 Layer 144/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -28554,7 +28554,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;29
 SET_PRINT_STATS_INFO CURRENT_LAYER=145
-M117 Layer 145/175 : Flashforge Generic PLA
+M117 Layer 145/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -28640,7 +28640,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;29.2
 SET_PRINT_STATS_INFO CURRENT_LAYER=146
-M117 Layer 146/175 : Flashforge Generic PLA
+M117 Layer 146/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -28780,7 +28780,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;29.4
 SET_PRINT_STATS_INFO CURRENT_LAYER=147
-M117 Layer 147/175 : Flashforge Generic PLA
+M117 Layer 147/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -28980,7 +28980,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;29.6
 SET_PRINT_STATS_INFO CURRENT_LAYER=148
-M117 Layer 148/175 : Flashforge Generic PLA
+M117 Layer 148/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 SET_VELOCITY_LIMIT ACCEL=10000
@@ -29212,7 +29212,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;29.8
 SET_PRINT_STATS_INFO CURRENT_LAYER=149
-M117 Layer 149/175 : Flashforge Generic PLA
+M117 Layer 149/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 SET_VELOCITY_LIMIT ACCEL=10000
@@ -29438,7 +29438,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;30
 SET_PRINT_STATS_INFO CURRENT_LAYER=150
-M117 Layer 150/175 : Flashforge Generic PLA
+M117 Layer 150/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -29859,7 +29859,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;30.2
 SET_PRINT_STATS_INFO CURRENT_LAYER=151
-M117 Layer 151/175 : Flashforge Generic PLA
+M117 Layer 151/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -30027,7 +30027,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;30.4
 SET_PRINT_STATS_INFO CURRENT_LAYER=152
-M117 Layer 152/175 : Flashforge Generic PLA
+M117 Layer 152/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -30194,7 +30194,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;30.6
 SET_PRINT_STATS_INFO CURRENT_LAYER=153
-M117 Layer 153/175 : Flashforge Generic PLA
+M117 Layer 153/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -30358,7 +30358,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;30.8
 SET_PRINT_STATS_INFO CURRENT_LAYER=154
-M117 Layer 154/175 : Flashforge Generic PLA
+M117 Layer 154/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -30498,7 +30498,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;31
 SET_PRINT_STATS_INFO CURRENT_LAYER=155
-M117 Layer 155/175 : Flashforge Generic PLA
+M117 Layer 155/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -30640,7 +30640,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;31.2
 SET_PRINT_STATS_INFO CURRENT_LAYER=156
-M117 Layer 156/175 : Flashforge Generic PLA
+M117 Layer 156/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -30779,7 +30779,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;31.4
 SET_PRINT_STATS_INFO CURRENT_LAYER=157
-M117 Layer 157/175 : Flashforge Generic PLA
+M117 Layer 157/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 SET_VELOCITY_LIMIT ACCEL=10000
@@ -30918,7 +30918,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;31.6
 SET_PRINT_STATS_INFO CURRENT_LAYER=158
-M117 Layer 158/175 : Flashforge Generic PLA
+M117 Layer 158/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 SET_VELOCITY_LIMIT ACCEL=10000
@@ -31056,7 +31056,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;31.8
 SET_PRINT_STATS_INFO CURRENT_LAYER=159
-M117 Layer 159/175 : Flashforge Generic PLA
+M117 Layer 159/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -31193,7 +31193,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;32
 SET_PRINT_STATS_INFO CURRENT_LAYER=160
-M117 Layer 160/175 : Flashforge Generic PLA
+M117 Layer 160/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -31316,7 +31316,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;32.2
 SET_PRINT_STATS_INFO CURRENT_LAYER=161
-M117 Layer 161/175 : Flashforge Generic PLA
+M117 Layer 161/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 SET_VELOCITY_LIMIT ACCEL=10000
@@ -31424,7 +31424,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;32.4
 SET_PRINT_STATS_INFO CURRENT_LAYER=162
-M117 Layer 162/175 : Flashforge Generic PLA
+M117 Layer 162/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 SET_VELOCITY_LIMIT ACCEL=10000
@@ -31531,7 +31531,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;32.6
 SET_PRINT_STATS_INFO CURRENT_LAYER=163
-M117 Layer 163/175 : Flashforge Generic PLA
+M117 Layer 163/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 SET_VELOCITY_LIMIT ACCEL=10000
@@ -31639,7 +31639,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;32.8
 SET_PRINT_STATS_INFO CURRENT_LAYER=164
-M117 Layer 164/175 : Flashforge Generic PLA
+M117 Layer 164/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 SET_VELOCITY_LIMIT ACCEL=10000
@@ -31738,7 +31738,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;33
 SET_PRINT_STATS_INFO CURRENT_LAYER=165
-M117 Layer 165/175 : Flashforge Generic PLA
+M117 Layer 165/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -31834,7 +31834,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;33.2
 SET_PRINT_STATS_INFO CURRENT_LAYER=166
-M117 Layer 166/175 : Flashforge Generic PLA
+M117 Layer 166/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -31917,7 +31917,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;33.4
 SET_PRINT_STATS_INFO CURRENT_LAYER=167
-M117 Layer 167/175 : Flashforge Generic PLA
+M117 Layer 167/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -31988,7 +31988,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;33.6
 SET_PRINT_STATS_INFO CURRENT_LAYER=168
-M117 Layer 168/175 : Flashforge Generic PLA
+M117 Layer 168/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 SET_VELOCITY_LIMIT ACCEL=10000
@@ -32049,7 +32049,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;33.8
 SET_PRINT_STATS_INFO CURRENT_LAYER=169
-M117 Layer 169/175 : Flashforge Generic PLA
+M117 Layer 169/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -32112,7 +32112,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;34
 SET_PRINT_STATS_INFO CURRENT_LAYER=170
-M117 Layer 170/175 : Flashforge Generic PLA
+M117 Layer 170/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -32174,7 +32174,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;34.2
 SET_PRINT_STATS_INFO CURRENT_LAYER=171
-M117 Layer 171/175 : Flashforge Generic PLA
+M117 Layer 171/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 EXCLUDE_OBJECT_START NAME=calicat_calico.stl_id_0_copy_0
@@ -32224,7 +32224,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;34.4
 SET_PRINT_STATS_INFO CURRENT_LAYER=172
-M117 Layer 172/175 : Flashforge Generic PLA
+M117 Layer 172/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 SET_VELOCITY_LIMIT ACCEL=10000
@@ -32272,7 +32272,7 @@ TIMELAPSE_TAKE_FRAME
 ;AFTER_LAYER_CHANGE
 ;34.6
 SET_PRINT_STATS_INFO CURRENT_LAYER=173
-M117 Layer 173/175 : Flashforge Generic PLA
+M117 Layer 173/175 : Flashforge Generic TPU
 ;_SET_FAN_SPEED_CHANGING_LAYER
 ; printing object calicat_calico.stl id:0 copy 0
 SET_VELOCITY_LIMIT ACCEL=10000
@@ -32389,7 +32389,7 @@ M73 P100 R0
 ; default_acceleration = 10000
 ; default_bed_type = 
 ; default_filament_colour = ;;;
-; default_filament_profile = "Flashforge Generic PLA"
+; default_filament_profile = "Flashforge Generic TPU"
 ; default_jerk = 0
 ; default_junction_deviation = 0
 ; default_print_profile = 0.20mm Standard @Flashforge AD5M Pro 0.4 Nozzle
@@ -32455,15 +32455,15 @@ M73 P100 R0
 ; filament_multitool_ramming_volume = 10,10,10,10
 ; filament_notes = ;;;
 ; filament_ramming_parameters = "120 100 6.6 6.8 7.2 7.6 7.9 8.2 8.7 9.4 9.9 10.0| 0.05 6.6 0.45 6.8 0.95 7.8 1.45 8.3 1.95 9.7 2.45 10 2.95 7.6 3.45 7.6 3.95 7.6 4.45 7.6 4.95 7.6";"120 100 6.6 6.8 7.2 7.6 7.9 8.2 8.7 9.4 9.9 10.0| 0.05 6.6 0.45 6.8 0.95 7.8 1.45 8.3 1.95 9.7 2.45 10 2.95 7.6 3.45 7.6 3.95 7.6 4.45 7.6 4.95 7.6";"120 100 6.6 6.8 7.2 7.6 7.9 8.2 8.7 9.4 9.9 10.0| 0.05 6.6 0.45 6.8 0.95 7.8 1.45 8.3 1.95 9.7 2.45 10 2.95 7.6 3.45 7.6 3.95 7.6 4.45 7.6 4.95 7.6";"120 100 6.6 6.8 7.2 7.6 7.9 8.2 8.7 9.4 9.9 10.0| 0.05 6.6 0.45 6.8 0.95 7.8 1.45 8.3 1.95 9.7 2.45 10 2.95 7.6 3.45 7.6 3.95 7.6 4.45 7.6 4.95 7.6"
-; filament_settings_id = "Flashforge Generic PLA";"Flashforge Generic PLA";"Flashforge Generic PLA";"Flashforge Generic PLA"
+; filament_settings_id = "Flashforge Generic TPU";"Flashforge Generic TPU";"Flashforge Generic TPU";"Flashforge Generic TPU"
 ; filament_shrink = 100%,100%,100%,100%
 ; filament_shrinkage_compensation_z = 100%,100%,100%,100%
 ; filament_soluble = 0,0,0,0
 ; filament_stamping_distance = 0,0,0,0
 ; filament_stamping_loading_speed = 0,0,0,0
-; filament_start_gcode = "; filament start gcode\n;right_extruder_material: PLA\n";"; filament start gcode\n;right_extruder_material: PLA\n";"; filament start gcode\n;right_extruder_material: PLA\n";"; filament start gcode\n;right_extruder_material: PLA\n"
+; filament_start_gcode = "; filament start gcode\n;right_extruder_material: TPU\n";"; filament start gcode\n;right_extruder_material: TPU\n";"; filament start gcode\n;right_extruder_material: TPU\n";"; filament start gcode\n;right_extruder_material: TPU\n"
 ; filament_toolchange_delay = 0,0,0,0
-; filament_type = PLA;PLA;PLA;PLA
+; filament_type = TPU;TPU;TPU;TPU
 ; filament_unloading_speed = 90,90,90,90
 ; filament_unloading_speed_start = 100,100,100,100
 ; filament_vendor = Generic;Generic;Generic;Generic
