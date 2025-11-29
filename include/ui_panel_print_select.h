@@ -4,10 +4,13 @@
 #pragma once
 
 #include "command_sequencer.h"
+#include "gcode_file_modifier.h"
+#include "gcode_ops_detector.h"
 #include "ui_panel_base.h"
 
 #include <ctime>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -336,6 +339,13 @@ class PrintSelectPanel : public PanelBase {
     /// Command sequencer for pre-print operations (created lazily when print starts)
     std::unique_ptr<gcode::CommandSequencer> pre_print_sequencer_;
 
+    /// Cached G-code scan result for selected file (populated when detail view opens)
+    /// Used to detect if user disabled options that are embedded in the G-code file
+    std::optional<gcode::ScanResult> cached_scan_result_;
+
+    /// Filename corresponding to cached_scan_result_ (to detect stale cache)
+    std::string cached_scan_filename_;
+
     //
     // === Internal Methods ===
     //
@@ -417,6 +427,38 @@ class PrintSelectPanel : public PanelBase {
      * @brief Delete currently selected file
      */
     void delete_file();
+
+    /**
+     * @brief Scan G-code file for embedded operations (async)
+     *
+     * Downloads file content from Moonraker and scans for operations like
+     * bed leveling, QGL, nozzle clean. Result is cached in cached_scan_result_.
+     *
+     * @param filename File to scan (relative to gcodes root)
+     */
+    void scan_gcode_for_operations(const std::string& filename);
+
+    /**
+     * @brief Download, modify, upload, and print a G-code file
+     *
+     * Used when user disabled an option that's embedded in the G-code.
+     * Flow: download original → comment out disabled ops → upload to temp dir → print
+     *
+     * @param original_filename Original file to modify
+     * @param ops_to_disable Operations to comment out in the file
+     */
+    void modify_and_print(const std::string& original_filename,
+                          const std::vector<gcode::OperationType>& ops_to_disable);
+
+    /**
+     * @brief Collect operations user wants to disable from unchecked checkboxes
+     *
+     * Compares checkbox states against cached scan result to identify
+     * operations that are embedded in the file but disabled by user.
+     *
+     * @return Vector of operation types that need to be disabled in file
+     */
+    [[nodiscard]] std::vector<gcode::OperationType> collect_ops_to_disable() const;
 
     //
     // === Static Callbacks (trampolines) ===

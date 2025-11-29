@@ -608,7 +608,7 @@ RequestId MoonrakerClientMock::send_jsonrpc(const std::string& method, const jso
         spdlog::info("[MoonrakerClientMock] Returning mock file list for path: '{}'",
                      path.empty() ? "/" : path);
         cb(response);
-        return 0;
+        return next_mock_request_id();
     }
 
     // Handle file metadata API
@@ -621,14 +621,14 @@ RequestId MoonrakerClientMock::send_jsonrpc(const std::string& method, const jso
             json response = build_mock_file_metadata_response(filename);
             spdlog::info("[MoonrakerClientMock] Returning mock metadata for: {}", filename);
             cb(response);
-            return 0;
+            return next_mock_request_id();
         }
     }
 
     // Unimplemented methods - see docs/MOCK_CLIENT_IMPLEMENTATION_PLAN.md
     spdlog::warn("[MoonrakerClientMock] Method '{}' not implemented - callback not invoked",
                  method);
-    return 0;
+    return next_mock_request_id();
 }
 
 RequestId MoonrakerClientMock::send_jsonrpc(const std::string& method, const json& params,
@@ -648,7 +648,7 @@ RequestId MoonrakerClientMock::send_jsonrpc(const std::string& method, const jso
         spdlog::info("[MoonrakerClientMock] Returning mock file list for path: '{}'",
                      path.empty() ? "/" : path);
         success_cb(response);
-        return 0;
+        return next_mock_request_id();
     }
 
     // Handle file metadata API
@@ -661,14 +661,14 @@ RequestId MoonrakerClientMock::send_jsonrpc(const std::string& method, const jso
             json response = build_mock_file_metadata_response(filename);
             spdlog::info("[MoonrakerClientMock] Returning mock metadata for: {}", filename);
             success_cb(response);
-            return 0;
+            return next_mock_request_id();
         } else if (error_cb) {
             MoonrakerError err;
             err.type = MoonrakerErrorType::VALIDATION_ERROR;
             err.message = "Missing filename parameter";
             err.method = method;
             error_cb(err);
-            return 0;
+            return next_mock_request_id();
         }
     }
 
@@ -682,7 +682,7 @@ RequestId MoonrakerClientMock::send_jsonrpc(const std::string& method, const jso
         if (success_cb) {
             success_cb(json::object()); // Return empty success response
         }
-        return 0;
+        return next_mock_request_id();
     }
 
     // Handle print control API methods (delegate to unified internal handlers)
@@ -710,7 +710,7 @@ RequestId MoonrakerClientMock::send_jsonrpc(const std::string& method, const jso
             err.method = method;
             error_cb(err);
         }
-        return 0;
+        return next_mock_request_id();
     }
 
     if (method == "printer.print.pause") {
@@ -725,7 +725,7 @@ RequestId MoonrakerClientMock::send_jsonrpc(const std::string& method, const jso
             err.method = method;
             error_cb(err);
         }
-        return 0;
+        return next_mock_request_id();
     }
 
     if (method == "printer.print.resume") {
@@ -740,7 +740,7 @@ RequestId MoonrakerClientMock::send_jsonrpc(const std::string& method, const jso
             err.method = method;
             error_cb(err);
         }
-        return 0;
+        return next_mock_request_id();
     }
 
     if (method == "printer.print.cancel") {
@@ -755,13 +755,13 @@ RequestId MoonrakerClientMock::send_jsonrpc(const std::string& method, const jso
             err.method = method;
             error_cb(err);
         }
-        return 0;
+        return next_mock_request_id();
     }
 
     // Unimplemented methods - see docs/MOCK_CLIENT_IMPLEMENTATION_PLAN.md
     spdlog::warn("[MoonrakerClientMock] Method '{}' not implemented - callbacks not invoked",
                  method);
-    return 0;
+    return next_mock_request_id();
 }
 
 int MoonrakerClientMock::gcode_script(const std::string& gcode) {

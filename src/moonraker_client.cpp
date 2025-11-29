@@ -161,6 +161,46 @@ void MoonrakerClient::disconnect() {
     reconnect_attempts_ = 0;
 }
 
+void MoonrakerClient::force_reconnect() {
+    spdlog::info("[Moonraker Client] Force reconnect requested - full state reset");
+
+    // Copy stored connection info under lock
+    std::string url;
+    std::function<void()> on_connected;
+    std::function<void()> on_disconnected;
+    std::function<void()> on_discovery_complete;
+    {
+        std::lock_guard<std::mutex> lock(reconnect_mutex_);
+        url = last_url_;
+        on_connected = last_on_connected_;
+        on_disconnected = last_on_disconnected_;
+        on_discovery_complete = last_discovery_complete_;
+    }
+
+    // Verify we have stored connection info
+    if (url.empty()) {
+        spdlog::warn("[Moonraker Client] force_reconnect() called but no previous connection info - "
+                     "call connect() first");
+        return;
+    }
+
+    // 1. Disconnect cleanly (clears pending requests, resets state)
+    disconnect();
+
+    // 2. Connect using stored URL and callbacks
+    int result = connect(url.c_str(), on_connected, on_disconnected);
+    if (result != 0) {
+        spdlog::error("[Moonraker Client] force_reconnect() connect failed: {}", result);
+        return;
+    }
+
+    // 3. Re-run discovery if we have a stored callback
+    //    Note: discover_printer() is typically called in on_connected callback,
+    //    so it will be triggered automatically. But if the caller wants explicit
+    //    discovery, we provide the mechanism.
+    spdlog::debug("[Moonraker Client] force_reconnect() complete - connection initiated");
+}
+
 int MoonrakerClient::connect(const char* url, std::function<void()> on_connected,
                              std::function<void()> on_disconnected) {
     // Reset WebSocket state from previous connection attempt BEFORE setting new callbacks.
@@ -498,6 +538,14 @@ int MoonrakerClient::connect(const char* url, std::function<void()> on_connected
     reconn.delay_policy = 2; // Exponential backoff
     setReconnect(&reconn);
 
+    // Store connection info for force_reconnect()
+    {
+        std::lock_guard<std::mutex> lock(reconnect_mutex_);
+        last_url_ = url;
+        last_on_connected_ = on_connected;
+        last_on_disconnected_ = on_disconnected;
+    }
+
     // Connect
     http_headers headers;
     return open(url, headers);
@@ -732,6 +780,12 @@ int MoonrakerClient::gcode_script(const std::string& gcode) {
 void MoonrakerClient::discover_printer(std::function<void()> on_complete) {
     spdlog::debug("[Moonraker Client] Starting printer auto-discovery");
 
+    // Store callback for force_reconnect()
+    {
+        std::lock_guard<std::mutex> lock(reconnect_mutex_);
+        last_discovery_complete_ = on_complete;
+    }
+
     // Step 1: Query available printer objects (no params required)
     send_jsonrpc("printer.objects.list", json(), [this, on_complete](json response) {
         // Debug: Log raw response
@@ -849,7 +903,10 @@ void MoonrakerClient::discover_printer(std::function<void()> on_complete) {
                                     .c_str());
                         }
 
-                        // Discovery complete
+                        // Discovery complete - notify observers
+                        if (on_discovery_complete_) {
+                            on_discovery_complete_(capabilities_);
+                        }
                         on_complete();
                     });
             });

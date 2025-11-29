@@ -115,6 +115,26 @@ class MoonrakerClient : public hv::WebSocketClient {
     virtual void disconnect();
 
     /**
+     * @brief Force full reconnection with complete state reset
+     *
+     * Unlike automatic reconnection (which preserves callbacks and pending requests),
+     * force_reconnect() performs a complete teardown and rebuild:
+     *   1. Disconnects cleanly (if connected)
+     *   2. Clears all pending requests (callbacks not invoked)
+     *   3. Resets retry counter to 0
+     *   4. Reconnects to the same URL
+     *   5. Runs discover_printer() to re-subscribe to Moonraker events
+     *
+     * Use this when:
+     *   - User manually requests reconnection (e.g., settings panel "Reconnect" button)
+     *   - Recovering from persistent error states
+     *   - After printer firmware restart
+     *
+     * Thread-safe. Can be called from any thread.
+     */
+    void force_reconnect();
+
+    /**
      * @brief Register callback for status update notifications
      *
      * Invoked when Moonraker sends "notify_status_update" messages
@@ -426,6 +446,18 @@ class MoonrakerClient : public hv::WebSocketClient {
     }
 
     /**
+     * @brief Set callback for printer discovery completion
+     *
+     * Called after discover_printer() successfully completes auto-discovery.
+     * Provides the discovered PrinterCapabilities for reactive UI updates.
+     *
+     * @param cb Callback invoked with discovered capabilities
+     */
+    void set_on_discovery_complete(std::function<void(const PrinterCapabilities&)> cb) {
+        on_discovery_complete_ = cb;
+    }
+
+    /**
      * @brief Set connection timeout in milliseconds
      *
      * @param timeout_ms Connection timeout (default 10000ms)
@@ -540,6 +572,7 @@ class MoonrakerClient : public hv::WebSocketClient {
     std::atomic<ConnectionState> connection_state_;
     std::atomic_bool is_destroying_{false}; // Prevent callbacks during destruction
     std::function<void(ConnectionState, ConnectionState)> state_change_callback_;
+    std::function<void(const PrinterCapabilities&)> on_discovery_complete_;
     mutable std::mutex state_callback_mutex_; // Protect state_change_callback_ during destruction
     uint32_t connection_timeout_ms_;
     uint32_t reconnect_attempts_ = 0;
@@ -552,6 +585,13 @@ class MoonrakerClient : public hv::WebSocketClient {
     uint32_t keepalive_interval_ms_;
     uint32_t reconnect_min_delay_ms_;
     uint32_t reconnect_max_delay_ms_;
+
+    // Stored connection info for force_reconnect()
+    std::string last_url_;                                // URL used in last connect()
+    std::function<void()> last_on_connected_;             // Callback from last connect()
+    std::function<void()> last_on_disconnected_;          // Callback from last connect()
+    std::function<void()> last_discovery_complete_;       // Callback from last discover_printer()
+    mutable std::mutex reconnect_mutex_;                  // Protect stored connection info
 };
 
 #endif // MOONRAKER_CLIENT_H

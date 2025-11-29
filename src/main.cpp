@@ -1606,6 +1606,12 @@ int main(int argc, char** argv) {
             std::to_string(config->get<int>(config->df() + "moonraker_port"));
         moonraker_api->set_http_base_url(http_base_url);
 
+        // Register discovery callback (Observer pattern - decouples Moonraker from PrinterState)
+        moonraker_client->set_on_discovery_complete([](const PrinterCapabilities& caps) {
+            // Update PrinterState with discovered capabilities for reactive UI bindings
+            get_printer_state().set_printer_capabilities(caps);
+        });
+
         // Connect to Moonraker
         spdlog::debug("Connecting to Moonraker at {}", moonraker_url);
         int connect_result = moonraker_client->connect(
@@ -1617,8 +1623,6 @@ int main(int argc, char** argv) {
                 // Start auto-discovery (must be called AFTER connection is established)
                 moonraker_client->discover_printer([]() {
                     spdlog::info("✓ Printer auto-discovery complete");
-                    // Update PrinterState with discovered capabilities for reactive UI bindings
-                    get_printer_state().set_printer_capabilities(moonraker_client->capabilities());
                 });
             },
             []() {

@@ -412,8 +412,17 @@ class MoonrakerClientMock : public MoonrakerClient {
      */
     void dispatch_print_state_notification(const std::string& state);
 
+    /**
+     * @brief Generate next mock request ID
+     * @return Valid request ID (always > 0)
+     */
+    RequestId next_mock_request_id() { return mock_request_id_counter_.fetch_add(1) + 1; }
+
   private:
     PrinterType printer_type_;
+
+    // Mock request ID counter for simulating send_jsonrpc return values
+    std::atomic<RequestId> mock_request_id_counter_{0};
 
     // Temperature simulation state
     std::atomic<double> extruder_temp_{25.0};  // Current temperature

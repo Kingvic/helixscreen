@@ -518,6 +518,12 @@ void PrintSelectPanel::set_selected_file(const char* filename, const char* thumb
 
 void PrintSelectPanel::show_detail_view() {
     if (detail_view_widget_) {
+        // Trigger async scan for embedded G-code operations (for conflict detection)
+        std::string filename(selected_filename_buffer_);
+        if (!filename.empty()) {
+            scan_gcode_for_operations(filename);
+        }
+
         // Set filament type dropdown to match file metadata
         lv_obj_t* dropdown = lv_obj_find_by_name(detail_view_widget_, "filament_dropdown");
         if (dropdown && !selected_filament_type_.empty()) {
@@ -1016,6 +1022,16 @@ void PrintSelectPanel::start_print() {
                  get_name(), filename_to_print, do_bed_leveling, do_qgl, do_z_tilt, do_nozzle_clean);
 
     if (api_) {
+        // Check if user disabled operations that are embedded in the G-code file.
+        // If so, we need to modify the file before printing to comment out those operations.
+        std::vector<gcode::OperationType> ops_to_disable = collect_ops_to_disable();
+
+        if (!ops_to_disable.empty()) {
+            spdlog::info("[{}] User disabled {} embedded operations - modifying G-code",
+                         get_name(), ops_to_disable.size());
+            modify_and_print(filename_to_print, ops_to_disable);
+            return; // modify_and_print handles everything including navigation
+        }
         if (has_pre_print_ops) {
             // Create command sequencer for pre-print operations
             pre_print_sequencer_ = std::make_unique<gcode::CommandSequencer>(
@@ -1243,4 +1259,178 @@ bool PrintSelectPanel::select_file_by_name(const std::string& filename) {
 void PrintSelectPanel::set_pending_file_selection(const std::string& filename) {
     pending_file_selection_ = filename;
     spdlog::info("[{}] Set pending file selection: '{}'", get_name(), filename);
+}
+
+// ============================================================================
+// G-code Operations Integration (Stage 7)
+// ============================================================================
+
+void PrintSelectPanel::scan_gcode_for_operations(const std::string& filename) {
+    // Skip if already cached for this file
+    if (cached_scan_filename_ == filename && cached_scan_result_.has_value()) {
+        spdlog::debug("[{}] Using cached scan result for {}", get_name(), filename);
+        return;
+    }
+
+    if (!api_) {
+        spdlog::warn("[{}] Cannot scan G-code - no API connection", get_name());
+        return;
+    }
+
+    // Build path for download
+    std::string file_path = current_path_.empty() ? filename : current_path_ + "/" + filename;
+
+    spdlog::info("[{}] Scanning G-code for embedded operations: {}", get_name(), file_path);
+
+    auto* self = this;
+    api_->download_file(
+        "gcodes", file_path,
+        // Success: parse content and cache result
+        [self, filename](const std::string& content) {
+            gcode::GCodeOpsDetector detector;
+            self->cached_scan_result_ = detector.scan_content(content);
+            self->cached_scan_filename_ = filename;
+
+            if (self->cached_scan_result_->operations.empty()) {
+                spdlog::debug("[{}] No embedded operations found in {}", self->get_name(), filename);
+            } else {
+                spdlog::info("[{}] Found {} embedded operations in {}:", self->get_name(),
+                             self->cached_scan_result_->operations.size(), filename);
+                for (const auto& op : self->cached_scan_result_->operations) {
+                    spdlog::info("[{}]   - {} at line {} ({})", self->get_name(), op.display_name(),
+                                 op.line_number, op.raw_line.substr(0, 50));
+                }
+            }
+        },
+        // Error: just log, don't block the UI
+        [self, filename](const MoonrakerError& error) {
+            spdlog::warn("[{}] Failed to scan G-code {}: {}", self->get_name(), filename,
+                         error.message);
+            self->cached_scan_result_.reset();
+            self->cached_scan_filename_.clear();
+        });
+}
+
+std::vector<gcode::OperationType> PrintSelectPanel::collect_ops_to_disable() const {
+    std::vector<gcode::OperationType> ops_to_disable;
+
+    if (!cached_scan_result_.has_value()) {
+        return ops_to_disable; // No scan result, nothing to disable
+    }
+
+    // Helper to check if checkbox is visible and UNCHECKED
+    auto is_option_disabled = [](lv_obj_t* checkbox) -> bool {
+        if (!checkbox)
+            return false;
+        bool is_visible = !lv_obj_has_flag(checkbox, LV_OBJ_FLAG_HIDDEN);
+        bool is_checked = lv_obj_has_state(checkbox, LV_STATE_CHECKED);
+        return is_visible && !is_checked; // Visible but NOT checked = disabled
+    };
+
+    // Check each operation type: if file has it embedded AND user disabled it
+    if (is_option_disabled(bed_leveling_checkbox_) &&
+        cached_scan_result_->has_operation(gcode::OperationType::BED_LEVELING)) {
+        ops_to_disable.push_back(gcode::OperationType::BED_LEVELING);
+        spdlog::debug("[{}] User disabled bed leveling, file has it embedded", get_name());
+    }
+
+    if (is_option_disabled(qgl_checkbox_) &&
+        cached_scan_result_->has_operation(gcode::OperationType::QGL)) {
+        ops_to_disable.push_back(gcode::OperationType::QGL);
+        spdlog::debug("[{}] User disabled QGL, file has it embedded", get_name());
+    }
+
+    if (is_option_disabled(z_tilt_checkbox_) &&
+        cached_scan_result_->has_operation(gcode::OperationType::Z_TILT)) {
+        ops_to_disable.push_back(gcode::OperationType::Z_TILT);
+        spdlog::debug("[{}] User disabled Z-tilt, file has it embedded", get_name());
+    }
+
+    if (is_option_disabled(nozzle_clean_checkbox_) &&
+        cached_scan_result_->has_operation(gcode::OperationType::NOZZLE_CLEAN)) {
+        ops_to_disable.push_back(gcode::OperationType::NOZZLE_CLEAN);
+        spdlog::debug("[{}] User disabled nozzle clean, file has it embedded", get_name());
+    }
+
+    return ops_to_disable;
+}
+
+void PrintSelectPanel::modify_and_print(const std::string& original_filename,
+                                         const std::vector<gcode::OperationType>& ops_to_disable) {
+    if (!api_) {
+        NOTIFY_ERROR("Cannot start print - not connected to printer");
+        return;
+    }
+
+    if (!cached_scan_result_.has_value()) {
+        spdlog::error("[{}] modify_and_print called without scan result", get_name());
+        NOTIFY_ERROR("Internal error: no scan result");
+        return;
+    }
+
+    // Build path for download
+    std::string file_path =
+        current_path_.empty() ? original_filename : current_path_ + "/" + original_filename;
+
+    spdlog::info("[{}] Modifying G-code to disable {} operations", get_name(), ops_to_disable.size());
+
+    auto* self = this;
+
+    // Step 1: Download the original file
+    api_->download_file(
+        "gcodes", file_path,
+        // Success: modify and upload
+        [self, original_filename, ops_to_disable](const std::string& content) {
+            // Step 2: Apply modifications
+            gcode::GCodeFileModifier modifier;
+            modifier.disable_operations(*self->cached_scan_result_, ops_to_disable);
+
+            std::string modified_content = modifier.apply_to_content(content);
+            if (modified_content.empty()) {
+                NOTIFY_ERROR("Failed to modify G-code file");
+                return;
+            }
+
+            // Step 3: Upload to .helix_temp directory with unique name
+            // Using timestamp to avoid conflicts
+            std::string temp_filename =
+                ".helix_temp/modified_" + std::to_string(std::time(nullptr)) + "_" + original_filename;
+
+            spdlog::info("[{}] Uploading modified G-code to {}", self->get_name(), temp_filename);
+
+            self->api_->upload_file_with_name(
+                "gcodes", temp_filename, temp_filename, modified_content,
+                // Success: start print with modified file
+                [self, temp_filename, original_filename]() {
+                    spdlog::info("[{}] Modified file uploaded, starting print", self->get_name());
+
+                    // Start print with the modified file
+                    self->api_->start_print(
+                        temp_filename,
+                        [self, original_filename]() {
+                            spdlog::info("[{}] Print started with modified G-code (original: {})",
+                                         self->get_name(), original_filename);
+                            if (self->print_status_panel_widget_) {
+                                self->hide_detail_view();
+                                ui_nav_push_overlay(self->print_status_panel_widget_);
+                            }
+                        },
+                        [self, temp_filename](const MoonrakerError& error) {
+                            NOTIFY_ERROR("Failed to start print: {}", error.message);
+                            LOG_ERROR_INTERNAL("[{}] Print start failed for {}: {}",
+                                               self->get_name(), temp_filename, error.message);
+                        });
+                },
+                // Error uploading
+                [self](const MoonrakerError& error) {
+                    NOTIFY_ERROR("Failed to upload modified G-code: {}", error.message);
+                    LOG_ERROR_INTERNAL("[{}] Upload failed: {}", self->get_name(), error.message);
+                });
+        },
+        // Error downloading
+        [self, original_filename](const MoonrakerError& error) {
+            NOTIFY_ERROR("Failed to download G-code for modification: {}", error.message);
+            LOG_ERROR_INTERNAL("[{}] Download failed for {}: {}", self->get_name(),
+                               original_filename, error.message);
+        });
 }
