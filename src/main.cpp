@@ -594,8 +594,8 @@ static bool parse_command_line_args(
             printf("    --real-moonraker   Connect to real printer (requires --test)\n");
             printf("    --real-files       Use real files from printer (requires --test)\n");
             printf("    --select-file <name>  Auto-select file in print-select panel and show detail view\n");
-            printf("\nG-code Viewer Options:\n");
-            printf("  --gcode-file <path>  Load specific G-code file on startup\n");
+            printf("\nG-code Viewer Options (require --test):\n");
+            printf("  --gcode-file <path>  Load specific G-code file in gcode-test panel\n");
             printf("  --camera <params>    Set camera params: \"az:90.5,el:4.0,zoom:15.5\"\n");
             printf("                       (each parameter optional, comma-separated)\n");
             printf("  --gcode-az <deg>     Set camera azimuth angle (degrees)\n");
@@ -661,6 +661,13 @@ static bool parse_command_line_args(
          g_runtime_config.use_real_moonraker || g_runtime_config.use_real_files) &&
         !g_runtime_config.test_mode) {
         printf("Error: --real-* flags require --test mode\n");
+        printf("Use --help for more information\n");
+        return false;
+    }
+
+    // Validate gcode-file requires test mode
+    if (g_runtime_config.gcode_test_file && !g_runtime_config.test_mode) {
+        printf("Error: --gcode-file requires --test mode\n");
         printf("Use --help for more information\n");
         return false;
     }
