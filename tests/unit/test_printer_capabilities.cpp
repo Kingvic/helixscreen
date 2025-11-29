@@ -266,6 +266,86 @@ TEST_CASE("PrinterCapabilities - Macro detection", "[moonraker][capabilities]") 
 }
 
 // ============================================================================
+// HelixScreen Macro Detection Tests
+// ============================================================================
+
+TEST_CASE("PrinterCapabilities - Helix macro detection", "[moonraker][capabilities][helix_macros]") {
+    PrinterCapabilities caps;
+
+    SECTION("No Helix macros when only standard macros present") {
+        json objects = {"gcode_macro START_PRINT", "gcode_macro END_PRINT", "bed_mesh"};
+        caps.parse_objects(objects);
+
+        REQUIRE_FALSE(caps.has_helix_macros());
+        REQUIRE(caps.helix_macros().empty());
+    }
+
+    SECTION("Detects complete Helix macro set") {
+        // All four macros from helix_macros.cfg
+        json objects = {"gcode_macro HELIX_START_PRINT",
+                        "gcode_macro HELIX_CLEAN_NOZZLE",
+                        "gcode_macro HELIX_BED_LEVEL_IF_NEEDED",
+                        "gcode_macro HELIX_VERSION"};
+        caps.parse_objects(objects);
+
+        REQUIRE(caps.has_helix_macros());
+        REQUIRE(caps.helix_macros().size() == 4);
+        REQUIRE(caps.has_helix_macro("HELIX_START_PRINT"));
+        REQUIRE(caps.has_helix_macro("HELIX_CLEAN_NOZZLE"));
+        REQUIRE(caps.has_helix_macro("HELIX_BED_LEVEL_IF_NEEDED"));
+        REQUIRE(caps.has_helix_macro("HELIX_VERSION"));
+    }
+
+    SECTION("Detects partial Helix macro install") {
+        // Only some Helix macros - older version or partial install
+        json objects = {"gcode_macro HELIX_START_PRINT", "gcode_macro START_PRINT"};
+        caps.parse_objects(objects);
+
+        REQUIRE(caps.has_helix_macros());
+        REQUIRE(caps.helix_macros().size() == 1);
+        REQUIRE(caps.has_helix_macro("HELIX_START_PRINT"));
+        REQUIRE_FALSE(caps.has_helix_macro("HELIX_VERSION"));
+    }
+
+    SECTION("Helix macro lookup is case-insensitive") {
+        json objects = {"gcode_macro HELIX_VERSION"};
+        caps.parse_objects(objects);
+
+        REQUIRE(caps.has_helix_macro("HELIX_VERSION"));
+        REQUIRE(caps.has_helix_macro("helix_version"));
+        REQUIRE(caps.has_helix_macro("Helix_Version"));
+    }
+
+    SECTION("Distinguishes HELIX_ prefix from similar names") {
+        json objects = {"gcode_macro HELIX_START_PRINT",  // Valid Helix macro
+                        "gcode_macro HELIXSCREEN_UTIL",   // Not a Helix macro (wrong prefix)
+                        "gcode_macro MY_HELIX_MACRO"};    // Not a Helix macro (prefix not at start)
+        caps.parse_objects(objects);
+
+        REQUIRE(caps.helix_macros().size() == 1);
+        REQUIRE(caps.has_helix_macro("HELIX_START_PRINT"));
+    }
+
+    SECTION("Mixed Helix and standard macros") {
+        json objects = {"gcode_macro START_PRINT",
+                        "gcode_macro HELIX_START_PRINT",
+                        "gcode_macro END_PRINT",
+                        "gcode_macro HELIX_VERSION",
+                        "gcode_macro CLEAN_NOZZLE",
+                        "gcode_macro HELIX_CLEAN_NOZZLE"};
+        caps.parse_objects(objects);
+
+        REQUIRE(caps.macro_count() == 6);
+        REQUIRE(caps.helix_macros().size() == 3);
+        REQUIRE(caps.has_helix_macros());
+
+        // Standard macros should also be detected
+        REQUIRE(caps.has_macro("START_PRINT"));
+        REQUIRE(caps.has_nozzle_clean_macro());
+    }
+}
+
+// ============================================================================
 // Clear and Reset Tests
 // ============================================================================
 

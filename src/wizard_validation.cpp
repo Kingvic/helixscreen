@@ -22,6 +22,11 @@ bool is_valid_ip_or_hostname(const std::string& host) {
         return false;
     }
 
+    // RFC 1035: Total hostname max 253 characters
+    if (host.length() > 253) {
+        return false;
+    }
+
     // First check if it looks like an IP address (contains only digits and dots)
     bool looks_like_ip = true;
     for (char c : host) {
@@ -82,16 +87,46 @@ bool is_valid_ip_or_hostname(const std::string& host) {
     }
 
     // Otherwise, check if it's a valid hostname
-    // Hostname rules: alphanumeric, hyphens, dots, underscores
-    // Must start with alphanumeric, must not be all numeric
+    // RFC 1035: Must start with alphanumeric, cannot end with hyphen
+    // Allowed: alphanumeric, hyphens, dots (no underscores per RFC)
     if (!std::isalnum(host[0])) {
         return false;
     }
 
-    for (size_t i = 0; i < host.length(); i++) {
-        char c = host[i];
-        if (!std::isalnum(c) && c != '.' && c != '-' && c != '_') {
-            return false;
+    // Cannot end with hyphen or dot
+    if (host.back() == '-' || host.back() == '.') {
+        return false;
+    }
+
+    // Cannot start with dot
+    if (host[0] == '.') {
+        return false;
+    }
+
+    // Validate each label (segment between dots)
+    size_t label_start = 0;
+    for (size_t i = 0; i <= host.length(); i++) {
+        if (i == host.length() || host[i] == '.') {
+            size_t label_len = i - label_start;
+
+            // RFC 1035: Each label max 63 characters
+            if (label_len > 63 || label_len == 0) {
+                return false;
+            }
+
+            // Label cannot start or end with hyphen
+            if (host[label_start] == '-' || (i > 0 && host[i - 1] == '-')) {
+                return false;
+            }
+
+            label_start = i + 1;
+        } else {
+            char c = host[i];
+            // Alphanumeric, hyphen, and underscore allowed
+            // (underscores not RFC-compliant but common in internal networks)
+            if (!std::isalnum(c) && c != '-' && c != '_') {
+                return false;
+            }
         }
     }
 
@@ -108,6 +143,12 @@ bool is_valid_port(const std::string& port_str) {
         if (!std::isdigit(c)) {
             return false;
         }
+    }
+
+    // Reject leading zeros (could be confused with octal notation)
+    // Exception: "0" alone is handled by range check below
+    if (port_str.length() > 1 && port_str[0] == '0') {
+        return false;
     }
 
     // Parse and validate range

@@ -284,6 +284,56 @@ TEST_CASE("GCodeOpsDetector - Custom patterns", "[gcode][ops]") {
 // Real-world G-code Snippet Tests
 // ============================================================================
 
+TEST_CASE("GCodeOpsDetector - Robustness edge cases", "[gcode][ops][edge]") {
+    GCodeOpsDetector detector;
+
+    SECTION("Handles binary content gracefully") {
+        // Simulate corrupted/binary content that might occur in a file
+        std::string binary_content = "G28\n";
+        binary_content += std::string("\x00\x01\x02\x03\xFF\xFE", 6);
+        binary_content += "\nBED_MESH_CALIBRATE\n";
+
+        // Should not crash - may or may not detect operations depending on implementation
+        REQUIRE_NOTHROW(detector.scan_content(binary_content));
+    }
+
+    SECTION("Handles very long lines") {
+        // A single line with 10,000 characters
+        std::string long_line(10000, 'X');
+        std::string content = long_line + "\nG28\nBED_MESH_CALIBRATE\n";
+
+        auto result = detector.scan_content(content);
+
+        // Should still detect operations after the long line
+        REQUIRE(result.has_operation(OperationType::HOMING));
+        REQUIRE(result.has_operation(OperationType::BED_LEVELING));
+    }
+
+    SECTION("Handles CRLF line endings") {
+        auto result = detector.scan_content("G28\r\nBED_MESH_CALIBRATE\r\n");
+
+        REQUIRE(result.has_operation(OperationType::HOMING));
+        REQUIRE(result.has_operation(OperationType::BED_LEVELING));
+    }
+
+    SECTION("Handles mixed line endings") {
+        auto result = detector.scan_content("G28\n\rBED_MESH_CALIBRATE\r\nCLEAN_NOZZLE\n");
+
+        REQUIRE(result.has_operation(OperationType::HOMING));
+        REQUIRE(result.has_operation(OperationType::BED_LEVELING));
+        REQUIRE(result.has_operation(OperationType::NOZZLE_CLEAN));
+    }
+
+    SECTION("Handles null bytes in content") {
+        std::string content = "G28\n";
+        content += '\0';  // Null byte
+        content += "BED_MESH_CALIBRATE\n";
+
+        // Should not crash
+        REQUIRE_NOTHROW(detector.scan_content(content));
+    }
+}
+
 TEST_CASE("GCodeOpsDetector - Real-world G-code snippets", "[gcode][ops]") {
     GCodeOpsDetector detector;
 
