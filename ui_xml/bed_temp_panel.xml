@@ -19,14 +19,38 @@
     <header_bar name="overlay_header" title="Heatbed Temperature" right_button_text="Confirm" show_right_button="true"/>
     <!-- Content Area: Two Columns -->
     <lv_obj name="overlay_content" flex_grow="1" width="100%" style_bg_opa="0" style_pad_all="#padding_normal" scrollable="false" style_border_width="0" style_border_opa="0" flex_flow="row" style_flex_main_place="space_between">
-      <!-- Left Column (66%): Temperature Graph with Y-axis labels -->
-      <lv_obj name="graph_container" width="66%" height="100%" style_bg_opa="0" style_pad_all="0" scrollable="false" style_border_width="0" style_border_opa="0" flex_flow="row" style_flex_main_place="start" style_flex_cross_place="start" style_pad_gap="8">
-        <!-- Y-axis labels (created programmatically in C++) -->
-        <lv_obj name="y_axis_labels" width="40" height="100%" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false" flex_flow="column" style_flex_main_place="space_between" style_flex_cross_place="end">
+      <!-- Left Column (66%): Temperature Graph with Y-axis labels + X-axis time labels -->
+      <lv_obj name="graph_outer_container" width="66%" height="100%" style_bg_opa="0" style_pad_all="0" scrollable="false" style_border_width="0" style_border_opa="0" flex_flow="column" style_pad_gap="0">
+        <!-- Graph area (Y-axis + chart) -->
+        <lv_obj name="graph_container" width="100%" flex_grow="1" style_bg_opa="0" style_pad_all="0" scrollable="false" style_border_width="0" style_border_opa="0" flex_flow="row" style_flex_main_place="start" style_flex_cross_place="start" style_pad_gap="8">
+          <!-- Y-axis labels (created programmatically in C++) -->
+          <lv_obj name="y_axis_labels" width="40" height="100%" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false" flex_flow="column" style_flex_main_place="space_between" style_flex_cross_place="end">
+          </lv_obj>
+          <!-- Chart area -->
+          <lv_obj name="chart_area" flex_grow="1" height="100%" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false">
+            <!-- Temperature graph widget created programmatically in C++ -->
+          </lv_obj>
         </lv_obj>
-        <!-- Chart area -->
-        <lv_obj name="chart_area" flex_grow="1" height="100%" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false">
-          <!-- Temperature graph widget created programmatically in C++ -->
+        <!-- X-axis time labels (hidden until 60+ data points via reactive binding) -->
+        <lv_obj name="x_axis_labels" width="100%" height="20" style_bg_opa="0" style_border_width="0" style_pad_all="0" style_pad_left="48" style_pad_right="8" scrollable="false" flex_flow="row" style_flex_main_place="space_between">
+          <lv_label name="x_label_0" text="" style_text_font="#font_small">
+            <lv_obj-bind_flag_if_lt subject="bed_graph_points" flag="hidden" ref_value="60"/>
+          </lv_label>
+          <lv_label name="x_label_1" text="" style_text_font="#font_small">
+            <lv_obj-bind_flag_if_lt subject="bed_graph_points" flag="hidden" ref_value="60"/>
+          </lv_label>
+          <lv_label name="x_label_2" text="" style_text_font="#font_small">
+            <lv_obj-bind_flag_if_lt subject="bed_graph_points" flag="hidden" ref_value="60"/>
+          </lv_label>
+          <lv_label name="x_label_3" text="" style_text_font="#font_small">
+            <lv_obj-bind_flag_if_lt subject="bed_graph_points" flag="hidden" ref_value="60"/>
+          </lv_label>
+          <lv_label name="x_label_4" text="" style_text_font="#font_small">
+            <lv_obj-bind_flag_if_lt subject="bed_graph_points" flag="hidden" ref_value="60"/>
+          </lv_label>
+          <lv_label name="x_label_5" text="" style_text_font="#font_small">
+            <lv_obj-bind_flag_if_lt subject="bed_graph_points" flag="hidden" ref_value="60"/>
+          </lv_label>
         </lv_obj>
       </lv_obj>
       <!-- Right Column (33%): Controls -->

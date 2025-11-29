@@ -18,7 +18,9 @@
 
 #include <spdlog/spdlog.h>
 
+#include <chrono>
 #include <cstring>
+#include <ctime>
 #include <memory>
 
 // ============================================================================
@@ -222,10 +224,22 @@ void TempControlPanel::on_nozzle_temp_changed(int temp) {
     nozzle_current_ = temp;
     update_nozzle_display();
 
+    // Track timestamp on first point
+    if (nozzle_start_time_ms_ == 0) {
+        nozzle_start_time_ms_ = std::chrono::duration_cast<std::chrono::milliseconds>(
+                                    std::chrono::system_clock::now().time_since_epoch())
+                                    .count();
+    }
+    nozzle_point_count_++;
+
+    // Update subject for reactive X-axis label visibility
+    lv_subject_set_int(&nozzle_graph_points_subject_, nozzle_point_count_);
+
     // Push to graph if it exists
     if (nozzle_graph_ && nozzle_series_id_ >= 0) {
         ui_temp_graph_update_series(nozzle_graph_, nozzle_series_id_, static_cast<float>(temp));
-        spdlog::trace("[TempPanel] Nozzle graph updated: {}°C", temp);
+        update_x_axis_labels(nozzle_x_labels_, nozzle_start_time_ms_, nozzle_point_count_);
+        spdlog::trace("[TempPanel] Nozzle graph updated: {}°C (point #{})", temp, nozzle_point_count_);
     }
 }
 
@@ -246,10 +260,22 @@ void TempControlPanel::on_bed_temp_changed(int temp) {
     bed_current_ = temp;
     update_bed_display();
 
+    // Track timestamp on first point
+    if (bed_start_time_ms_ == 0) {
+        bed_start_time_ms_ = std::chrono::duration_cast<std::chrono::milliseconds>(
+                                 std::chrono::system_clock::now().time_since_epoch())
+                                 .count();
+    }
+    bed_point_count_++;
+
+    // Update subject for reactive X-axis label visibility
+    lv_subject_set_int(&bed_graph_points_subject_, bed_point_count_);
+
     // Push to graph if it exists
     if (bed_graph_ && bed_series_id_ >= 0) {
         ui_temp_graph_update_series(bed_graph_, bed_series_id_, static_cast<float>(temp));
-        spdlog::trace("[TempPanel] Bed graph updated: {}°C", temp);
+        update_x_axis_labels(bed_x_labels_, bed_start_time_ms_, bed_point_count_);
+        spdlog::trace("[TempPanel] Bed graph updated: {}°C (point #{})", temp, bed_point_count_);
     }
 }
 
@@ -354,6 +380,11 @@ void TempControlPanel::init_subjects() {
     UI_SUBJECT_INIT_AND_REGISTER_STRING(bed_display_subject_, bed_display_buf_.data(),
                                         bed_display_buf_.data(), "bed_temp_display");
 
+    // Point count subjects for reactive X-axis label visibility
+    // Labels become visible when count >= 60 (bound in XML with bind_flag_if_lt)
+    UI_SUBJECT_INIT_AND_REGISTER_INT(nozzle_graph_points_subject_, 0, "nozzle_graph_points");
+    UI_SUBJECT_INIT_AND_REGISTER_INT(bed_graph_points_subject_, 0, "bed_graph_points");
+
     subjects_initialized_ = true;
     spdlog::debug("[TempPanel] Subjects initialized: nozzle={}/{}°C, bed={}/{}°C", nozzle_current_,
                   nozzle_target_, bed_current_, bed_target_);
@@ -412,6 +443,67 @@ void TempControlPanel::create_y_axis_labels(lv_obj_t* container, const heater_co
         snprintf(buf, sizeof(buf), "%d°", temp);
         lv_label_set_text(label, buf);
         lv_obj_set_style_text_font(label, UI_FONT_SMALL, 0);
+    }
+}
+
+void TempControlPanel::create_x_axis_labels(
+    lv_obj_t* container, std::array<lv_obj_t*, X_AXIS_LABEL_COUNT>& labels) {
+    if (!container)
+        return;
+
+    // Labels are now defined in XML with reactive visibility bindings.
+    // Find them by name instead of creating programmatically.
+    static const char* label_names[X_AXIS_LABEL_COUNT] = {"x_label_0", "x_label_1", "x_label_2",
+                                                          "x_label_3", "x_label_4", "x_label_5"};
+
+    for (int i = 0; i < X_AXIS_LABEL_COUNT; i++) {
+        labels[i] = lv_obj_find_by_name(container, label_names[i]);
+        if (!labels[i]) {
+            spdlog::warn("[TempPanel] X-axis label '{}' not found in container", label_names[i]);
+        }
+    }
+}
+
+void TempControlPanel::update_x_axis_labels(
+    std::array<lv_obj_t*, X_AXIS_LABEL_COUNT>& labels, int64_t start_time_ms, int point_count) {
+
+    // Graph shows 300 points at 1-second intervals = 5 minutes
+    constexpr int MAX_POINTS = 300;
+    constexpr int64_t UPDATE_INTERVAL_MS = 1000;
+
+    // Minimum points needed before updating labels (visibility controlled reactively via XML binding)
+    constexpr int MIN_POINTS_FOR_LABELS = 60;
+
+    // Don't update text until we have enough data (visibility is handled by XML binding)
+    if (start_time_ms == 0 || point_count < MIN_POINTS_FOR_LABELS) {
+        return;
+    }
+
+    // Calculate visible time span
+    int visible_points = std::min(point_count, MAX_POINTS);
+    int64_t visible_duration_ms = visible_points * UPDATE_INTERVAL_MS;
+
+    // Current time (rightmost point)
+    int64_t now_ms = start_time_ms + (point_count * UPDATE_INTERVAL_MS);
+
+    // Oldest visible time (leftmost point)
+    int64_t oldest_ms = now_ms - visible_duration_ms;
+
+    // Interval between labels
+    int64_t label_interval_ms = visible_duration_ms / (X_AXIS_LABEL_COUNT - 1);
+
+    // Update label text (visibility controlled reactively by bind_flag_if_lt in XML)
+    for (int i = 0; i < X_AXIS_LABEL_COUNT; i++) {
+        if (!labels[i])
+            continue;
+
+        int64_t label_time_ms = oldest_ms + (i * label_interval_ms);
+        time_t label_time = static_cast<time_t>(label_time_ms / 1000);
+
+        struct tm* tm_info = localtime(&label_time);
+        char buf[8];
+        strftime(buf, sizeof(buf), "%H:%M", tm_info);
+        lv_label_set_text(labels[i], buf);
     }
 }
 
@@ -667,6 +759,12 @@ void TempControlPanel::setup_nozzle_panel(lv_obj_t* panel, lv_obj_t* parent_scre
             create_temp_graph(chart_area, &nozzle_config_, nozzle_target_, &nozzle_series_id_);
     }
 
+    // Create X-axis time labels
+    lv_obj_t* x_axis_labels = lv_obj_find_by_name(overlay_content, "x_axis_labels");
+    if (x_axis_labels) {
+        create_x_axis_labels(x_axis_labels, nozzle_x_labels_);
+    }
+
     // Wire up confirm button
     lv_obj_t* header = lv_obj_find_by_name(panel, "overlay_header");
     if (header) {
@@ -726,6 +824,12 @@ void TempControlPanel::setup_bed_panel(lv_obj_t* panel, lv_obj_t* parent_screen)
     lv_obj_t* chart_area = lv_obj_find_by_name(overlay_content, "chart_area");
     if (chart_area) {
         bed_graph_ = create_temp_graph(chart_area, &bed_config_, bed_target_, &bed_series_id_);
+    }
+
+    // Create X-axis time labels
+    lv_obj_t* x_axis_labels = lv_obj_find_by_name(overlay_content, "x_axis_labels");
+    if (x_axis_labels) {
+        create_x_axis_labels(x_axis_labels, bed_x_labels_);
     }
 
     // Wire up confirm button

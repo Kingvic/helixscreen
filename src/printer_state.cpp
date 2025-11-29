@@ -308,15 +308,16 @@ void PrinterState::update_from_status(const json& state) {
         }
 
         // Update layer info from print_stats.info (sent by Moonraker/mock client)
+        // Note: Moonraker can send null values for layer fields when not available
         if (stats.contains("info") && stats["info"].is_object()) {
             const auto& info = stats["info"];
 
-            if (info.contains("current_layer")) {
+            if (info.contains("current_layer") && info["current_layer"].is_number()) {
                 int current_layer = info["current_layer"].get<int>();
                 lv_subject_set_int(&print_layer_current_, current_layer);
             }
 
-            if (info.contains("total_layer")) {
+            if (info.contains("total_layer") && info["total_layer"].is_number()) {
                 int total_layer = info["total_layer"].get<int>();
                 lv_subject_set_int(&print_layer_total_, total_layer);
             }

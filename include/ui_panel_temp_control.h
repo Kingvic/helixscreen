@@ -160,6 +160,13 @@ class TempControlPanel {
     // Y-axis label creation
     void create_y_axis_labels(lv_obj_t* container, const heater_config_t* config);
 
+    // X-axis time label creation and update
+    static constexpr int X_AXIS_LABEL_COUNT = 6;
+    void create_x_axis_labels(lv_obj_t* container,
+                              std::array<lv_obj_t*, X_AXIS_LABEL_COUNT>& labels);
+    void update_x_axis_labels(std::array<lv_obj_t*, X_AXIS_LABEL_COUNT>& labels,
+                              int64_t start_time_ms, int point_count);
+
     // Button callback setup
     void setup_preset_buttons(lv_obj_t* panel, heater_type_t type);
     void setup_custom_button(lv_obj_t* panel, heater_type_t type);
@@ -216,6 +223,10 @@ class TempControlPanel {
     lv_subject_t nozzle_display_subject_;
     lv_subject_t bed_display_subject_;
 
+    // Graph point count subjects (for reactive X-axis label visibility)
+    lv_subject_t nozzle_graph_points_subject_;
+    lv_subject_t bed_graph_points_subject_;
+
     // Subject string buffers
     std::array<char, 16> nozzle_current_buf_;
     std::array<char, 16> nozzle_target_buf_;
@@ -237,6 +248,18 @@ class TempControlPanel {
     ui_temp_graph_t* bed_graph_ = nullptr;
     int nozzle_series_id_ = -1;
     int bed_series_id_ = -1;
+
+    //
+    // X-axis time label storage
+    //
+    std::array<lv_obj_t*, X_AXIS_LABEL_COUNT> nozzle_x_labels_{};
+    std::array<lv_obj_t*, X_AXIS_LABEL_COUNT> bed_x_labels_{};
+
+    // Timestamp tracking for X-axis labels
+    int64_t nozzle_start_time_ms_ = 0;
+    int64_t bed_start_time_ms_ = 0;
+    int nozzle_point_count_ = 0;
+    int bed_point_count_ = 0;
 
     //
     // Heater configurations

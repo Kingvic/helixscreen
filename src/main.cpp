@@ -76,6 +76,7 @@
 #include <SDL.h>
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <ctime>
 #include <memory>
@@ -1169,6 +1170,25 @@ int main(int argc, char** argv) {
                                  y_pos, screenshot_enabled, screenshot_delay_sec, timeout_sec,
                                  verbosity, dark_mode, theme_requested, dpi)) {
         return 0; // Help shown or parse error
+    }
+
+    // Check HELIX_AUTO_QUIT_MS environment variable (only if --timeout not specified)
+    if (timeout_sec == 0) {
+        const char* auto_quit_env = std::getenv("HELIX_AUTO_QUIT_MS");
+        if (auto_quit_env != nullptr) {
+            char* endptr;
+            long val = strtol(auto_quit_env, &endptr, 10);
+            if (*endptr == '\0' && val >= 100 && val <= 3600000) {
+                // Convert milliseconds to seconds (round up to ensure at least 1 second)
+                timeout_sec = static_cast<int>((val + 999) / 1000);
+            }
+        }
+    }
+
+    // Check HELIX_AUTO_SCREENSHOT environment variable
+    const char* auto_screenshot_env = std::getenv("HELIX_AUTO_SCREENSHOT");
+    if (auto_screenshot_env != nullptr && strcmp(auto_screenshot_env, "1") == 0) {
+        screenshot_enabled = true;
     }
 
     // Set spdlog log level based on verbosity flags
