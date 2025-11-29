@@ -157,6 +157,14 @@ class PrinterState {
         return &print_state_;
     } // "standby", "printing", "paused", "complete"
 
+    // Layer tracking subjects (from print_stats.info.current_layer/total_layer)
+    lv_subject_t* get_print_layer_current_subject() {
+        return &print_layer_current_;
+    }
+    lv_subject_t* get_print_layer_total_subject() {
+        return &print_layer_total_;
+    }
+
     // Motion subjects
     lv_subject_t* get_position_x_subject() {
         return &position_x_;
@@ -282,6 +290,10 @@ class PrinterState {
     lv_subject_t print_progress_; // Integer 0-100
     lv_subject_t print_filename_; // String buffer
     lv_subject_t print_state_;    // String buffer
+
+    // Layer tracking subjects (from Moonraker print_stats.info)
+    lv_subject_t print_layer_current_; // Current layer (0-based)
+    lv_subject_t print_layer_total_;   // Total layers from file metadata
 
     // Motion subjects
     lv_subject_t position_x_;

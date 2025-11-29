@@ -3,8 +3,10 @@
 
 #include "ui_panel_print_status.h"
 
+#include "runtime_config.h"
 #include "ui_error_reporting.h"
 #include "ui_event_safety.h"
+#include "ui_gcode_viewer.h"
 #include "ui_nav.h"
 #include "ui_panel_common.h"
 #include "ui_subject_registry.h"
@@ -65,7 +67,11 @@ PrintStatusPanel::PrintStatusPanel(PrinterState& printer_state, MoonrakerAPI* ap
     flow_factor_observer_ = lv_subject_add_observer(printer_state_.get_flow_factor_subject(),
                                                     flow_factor_observer_cb, this);
 
-    spdlog::debug("[{}] Subscribed to PrinterState subjects (temps, progress, state, speeds)",
+    // Subscribe to layer tracking for G-code viewer ghost layer updates
+    print_layer_observer_ = lv_subject_add_observer(
+        printer_state_.get_print_layer_current_subject(), print_layer_observer_cb, this);
+
+    spdlog::debug("[{}] Subscribed to PrinterState subjects (temps, progress, state, speeds, layer)",
                   get_name());
 
     // Load configured LED from wizard settings
@@ -129,6 +135,10 @@ PrintStatusPanel::~PrintStatusPanel() {
         lv_observer_remove(led_state_observer_);
         led_state_observer_ = nullptr;
     }
+    if (print_layer_observer_) {
+        lv_observer_remove(print_layer_observer_);
+        print_layer_observer_ = nullptr;
+    }
 }
 
 // ============================================================================
@@ -175,10 +185,8 @@ void PrintStatusPanel::setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
 
     spdlog::info("[{}] Setting up panel...", get_name());
 
-    // Calculate width to fill remaining space after navigation bar
-    lv_coord_t screen_width = lv_obj_get_width(parent_screen_);
-    lv_coord_t nav_width = screen_width / 10;
-    lv_obj_set_width(panel_, screen_width - nav_width);
+    // Panel width is now set via XML using #overlay_panel_width_large and align="right_mid"
+    // No manual width calculation needed
 
     // Use standard overlay panel setup for header/content/back button
     ui_overlay_panel_setup_standard(panel_, parent_screen_, "overlay_header", "overlay_content");
@@ -187,6 +195,30 @@ void PrintStatusPanel::setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
     if (!overlay_content) {
         spdlog::error("[{}] overlay_content not found!", get_name());
         return;
+    }
+
+    // Find thumbnail section for nested widgets
+    lv_obj_t* thumbnail_section = lv_obj_find_by_name(overlay_content, "thumbnail_section");
+    if (!thumbnail_section) {
+        spdlog::error("[{}] thumbnail_section not found!", get_name());
+        return;
+    }
+
+    // Find G-code viewer, thumbnail, and gradient background widgets
+    gcode_viewer_ = lv_obj_find_by_name(thumbnail_section, "print_gcode_viewer");
+    print_thumbnail_ = lv_obj_find_by_name(thumbnail_section, "print_thumbnail");
+    gradient_background_ = lv_obj_find_by_name(thumbnail_section, "gradient_background");
+
+    if (gcode_viewer_) {
+        spdlog::debug("[{}]   ✓ G-code viewer widget found", get_name());
+    } else {
+        spdlog::error("[{}]   ✗ G-code viewer widget NOT FOUND", get_name());
+    }
+    if (print_thumbnail_) {
+        spdlog::debug("[{}]   ✓ Print thumbnail widget found", get_name());
+    }
+    if (gradient_background_) {
+        spdlog::debug("[{}]   ✓ Gradient background widget found", get_name());
     }
 
     // Force layout calculation
@@ -263,6 +295,14 @@ void PrintStatusPanel::setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
         spdlog::error("[{}]   ✗ Progress bar NOT FOUND", get_name());
     }
 
+    // Check if --gcode-file was specified on command line for this panel
+    const auto& config = get_runtime_config();
+    if (config.gcode_test_file && gcode_viewer_) {
+        spdlog::info("[{}] Loading G-code file from command line: {}", get_name(),
+                     config.gcode_test_file);
+        load_gcode_file(config.gcode_test_file);
+    }
+
     spdlog::info("[{}] Setup complete!", get_name());
 }
 
@@ -274,6 +314,91 @@ void PrintStatusPanel::format_time(int seconds, char* buf, size_t buf_size) {
     int hours = seconds / 3600;
     int minutes = (seconds % 3600) / 60;
     std::snprintf(buf, buf_size, "%dh %02dm", hours, minutes);
+}
+
+void PrintStatusPanel::show_gcode_viewer(bool show) {
+    // Toggle visibility of G-code viewer vs thumbnail + gradient
+    if (gcode_viewer_) {
+        if (show) {
+            lv_obj_remove_flag(gcode_viewer_, LV_OBJ_FLAG_HIDDEN);
+        } else {
+            lv_obj_add_flag(gcode_viewer_, LV_OBJ_FLAG_HIDDEN);
+        }
+    }
+
+    if (print_thumbnail_) {
+        if (show) {
+            lv_obj_add_flag(print_thumbnail_, LV_OBJ_FLAG_HIDDEN);
+        } else {
+            lv_obj_remove_flag(print_thumbnail_, LV_OBJ_FLAG_HIDDEN);
+        }
+    }
+
+    if (gradient_background_) {
+        if (show) {
+            lv_obj_add_flag(gradient_background_, LV_OBJ_FLAG_HIDDEN);
+        } else {
+            lv_obj_remove_flag(gradient_background_, LV_OBJ_FLAG_HIDDEN);
+        }
+    }
+
+    spdlog::debug("[{}] G-code viewer visibility: {}", get_name(), show ? "shown" : "hidden");
+}
+
+void PrintStatusPanel::load_gcode_file(const char* file_path) {
+    if (!gcode_viewer_ || !file_path) {
+        spdlog::warn("[{}] Cannot load G-code: viewer={}, path={}", get_name(),
+                     gcode_viewer_ != nullptr, file_path != nullptr);
+        return;
+    }
+
+    spdlog::info("[{}] Loading G-code file: {}", get_name(), file_path);
+
+    // Register callback to be notified when loading completes
+    ui_gcode_viewer_set_load_callback(
+        gcode_viewer_,
+        [](lv_obj_t* viewer, void* user_data, bool success) {
+            auto* self = static_cast<PrintStatusPanel*>(user_data);
+            if (!success) {
+                spdlog::error("[{}] G-code load failed", self->get_name());
+                return;
+            }
+
+            // Get layer count from loaded geometry
+            int max_layer = ui_gcode_viewer_get_max_layer(viewer);
+            spdlog::info("[{}] G-code loaded: {} layers", self->get_name(), max_layer);
+
+            // Show the viewer (hide gradient and thumbnail)
+            self->show_gcode_viewer(true);
+
+            // Set print progress to layer 0 (entire model in ghost mode initially)
+            ui_gcode_viewer_set_print_progress(viewer, 0);
+
+            // Extract filename from path for display
+            const char* filename = ui_gcode_viewer_get_filename(viewer);
+            if (!filename) {
+                filename = "print.gcode";
+            }
+
+            // Start print via MoonrakerAPI - the mock client will handle all simulation!
+            // PrintStatusPanel's observers will receive temperature, progress, layer updates
+            if (self->api_) {
+                self->api_->start_print(
+                    filename,
+                    []() { spdlog::info("[PrintStatusPanel] Print started via Moonraker"); },
+                    [](const MoonrakerError& err) {
+                        spdlog::error("[PrintStatusPanel] Failed to start print: {}", err.message);
+                    });
+            } else {
+                spdlog::warn("[{}] No API available - using local mock print", self->get_name());
+                // Fallback to local mock if no API (shouldn't happen in normal test mode)
+                self->start_mock_print(filename, max_layer > 0 ? max_layer : 100, 300);
+            }
+        },
+        this);
+
+    // Start loading the file
+    ui_gcode_viewer_load_file(gcode_viewer_, file_path);
 }
 
 void PrintStatusPanel::update_all_displays() {
@@ -598,6 +723,13 @@ void PrintStatusPanel::led_state_observer_cb(lv_observer_t* observer, lv_subject
     }
 }
 
+void PrintStatusPanel::print_layer_observer_cb(lv_observer_t* observer, lv_subject_t* subject) {
+    auto* self = static_cast<PrintStatusPanel*>(lv_observer_get_user_data(observer));
+    if (self) {
+        self->on_print_layer_changed(lv_subject_get_int(subject));
+    }
+}
+
 // ============================================================================
 // OBSERVER INSTANCE METHODS
 // ============================================================================
@@ -696,6 +828,24 @@ void PrintStatusPanel::on_led_state_changed(int state) {
     led_on_ = (state != 0);
     spdlog::debug("[{}] LED state changed: {} (from PrinterState)", get_name(),
                   led_on_ ? "ON" : "OFF");
+}
+
+void PrintStatusPanel::on_print_layer_changed(int current_layer) {
+    // Update internal layer state
+    current_layer_ = current_layer;
+    int total_layers = lv_subject_get_int(printer_state_.get_print_layer_total_subject());
+    total_layers_ = total_layers;
+
+    // Update the layer text display
+    std::snprintf(layer_text_buf_, sizeof(layer_text_buf_), "Layer %d / %d", current_layer_,
+                  total_layers_);
+    lv_subject_copy_string(&layer_text_subject_, layer_text_buf_);
+
+    // Update G-code viewer ghost layer if viewer is active and visible
+    if (gcode_viewer_ && !lv_obj_has_flag(gcode_viewer_, LV_OBJ_FLAG_HIDDEN)) {
+        ui_gcode_viewer_set_print_progress(gcode_viewer_, current_layer);
+        spdlog::trace("[{}] G-code viewer ghost layer updated to {}", get_name(), current_layer);
+    }
 }
 
 // ============================================================================

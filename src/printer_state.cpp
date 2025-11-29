@@ -58,6 +58,8 @@ void PrinterState::reset_for_testing() {
     lv_subject_deinit(&print_progress_);
     lv_subject_deinit(&print_filename_);
     lv_subject_deinit(&print_state_);
+    lv_subject_deinit(&print_layer_current_);
+    lv_subject_deinit(&print_layer_total_);
     lv_subject_deinit(&position_x_);
     lv_subject_deinit(&position_y_);
     lv_subject_deinit(&position_z_);
@@ -93,6 +95,10 @@ void PrinterState::init_subjects(bool register_xml) {
                            sizeof(print_filename_buf_), "");
     lv_subject_init_string(&print_state_, print_state_buf_, nullptr, sizeof(print_state_buf_),
                            "standby");
+
+    // Layer tracking subjects (from Moonraker print_stats.info)
+    lv_subject_init_int(&print_layer_current_, 0);
+    lv_subject_init_int(&print_layer_total_, 0);
 
     // Motion subjects
     lv_subject_init_int(&position_x_, 0);
@@ -134,6 +140,8 @@ void PrinterState::init_subjects(bool register_xml) {
         lv_xml_register_subject(NULL, "print_progress", &print_progress_);
         lv_xml_register_subject(NULL, "print_filename", &print_filename_);
         lv_xml_register_subject(NULL, "print_state", &print_state_);
+        lv_xml_register_subject(NULL, "print_layer_current", &print_layer_current_);
+        lv_xml_register_subject(NULL, "print_layer_total", &print_layer_total_);
         lv_xml_register_subject(NULL, "position_x", &position_x_);
         lv_xml_register_subject(NULL, "position_y", &position_y_);
         lv_xml_register_subject(NULL, "position_z", &position_z_);
@@ -235,6 +243,21 @@ void PrinterState::update_from_status(const json& state) {
         if (stats.contains("filename")) {
             std::string filename = stats["filename"].get<std::string>();
             lv_subject_copy_string(&print_filename_, filename.c_str());
+        }
+
+        // Update layer info from print_stats.info (sent by Moonraker/mock client)
+        if (stats.contains("info") && stats["info"].is_object()) {
+            const auto& info = stats["info"];
+
+            if (info.contains("current_layer")) {
+                int current_layer = info["current_layer"].get<int>();
+                lv_subject_set_int(&print_layer_current_, current_layer);
+            }
+
+            if (info.contains("total_layer")) {
+                int total_layer = info["total_layer"].get<int>();
+                lv_subject_set_int(&print_layer_total_, total_layer);
+            }
         }
     }
 

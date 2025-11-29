@@ -266,6 +266,9 @@ class PrintStatusPanel : public PanelBase {
 
     // Child widgets
     lv_obj_t* progress_bar_ = nullptr;
+    lv_obj_t* gcode_viewer_ = nullptr;
+    lv_obj_t* print_thumbnail_ = nullptr;
+    lv_obj_t* gradient_background_ = nullptr;
 
     // Resize callback registration flag
     bool resize_registered_ = false;
@@ -275,6 +278,8 @@ class PrintStatusPanel : public PanelBase {
     //
 
     void update_all_displays();
+    void show_gcode_viewer(bool show);
+    void load_gcode_file(const char* file_path);
 
     static void format_time(int seconds, char* buf, size_t buf_size);
 
@@ -318,6 +323,7 @@ class PrintStatusPanel : public PanelBase {
     static void speed_factor_observer_cb(lv_observer_t* observer, lv_subject_t* subject);
     static void flow_factor_observer_cb(lv_observer_t* observer, lv_subject_t* subject);
     static void led_state_observer_cb(lv_observer_t* observer, lv_subject_t* subject);
+    static void print_layer_observer_cb(lv_observer_t* observer, lv_subject_t* subject);
 
     //
     // === Observer Instance Methods ===
@@ -330,6 +336,7 @@ class PrintStatusPanel : public PanelBase {
     void on_speed_factor_changed(int speed);
     void on_flow_factor_changed(int flow);
     void on_led_state_changed(int state);
+    void on_print_layer_changed(int current_layer);
 
     //
     // === PrinterState Observers (RAII managed) ===
@@ -345,6 +352,7 @@ class PrintStatusPanel : public PanelBase {
     lv_observer_t* speed_factor_observer_ = nullptr;
     lv_observer_t* flow_factor_observer_ = nullptr;
     lv_observer_t* led_state_observer_ = nullptr;
+    lv_observer_t* print_layer_observer_ = nullptr;
 
     //
     // === LED State ===
