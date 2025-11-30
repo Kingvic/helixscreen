@@ -23,7 +23,7 @@
 # - TEST_PLATFORM_DEPS: Platform-specific (wpa_supplicant on Linux)
 
 # Core test infrastructure (always required)
-TEST_CORE_DEPS := $(TEST_MAIN_OBJ) $(CATCH2_OBJ) $(UI_TEST_UTILS_OBJ) $(LVGL_TEST_FIXTURE_OBJ) $(TEST_OBJS)
+TEST_CORE_DEPS := $(TEST_MAIN_OBJ) $(CATCH2_OBJ) $(UI_TEST_UTILS_OBJ) $(LVGL_TEST_FIXTURE_OBJ) $(TEST_FIXTURES_OBJ) $(TEST_OBJS)
 
 # LVGL + Graphics stack (required for all UI tests)
 TEST_LVGL_DEPS := $(LVGL_OBJS) $(THORVG_OBJS)
@@ -138,7 +138,7 @@ TEST_PLATFORM_DEPS := $(WPA_DEPS)
 # Clean test artifacts
 clean-tests:
 	$(ECHO) "$(YELLOW)Cleaning test artifacts...$(RESET)"
-	$(Q)rm -f $(TEST_BIN) $(TEST_MAIN_OBJ) $(CATCH2_OBJ) $(UI_TEST_UTILS_OBJ) $(TEST_OBJS)
+	$(Q)rm -f $(TEST_BIN) $(TEST_MAIN_OBJ) $(CATCH2_OBJ) $(UI_TEST_UTILS_OBJ) $(LVGL_TEST_FIXTURE_OBJ) $(TEST_FIXTURES_OBJ) $(TEST_OBJS)
 	$(ECHO) "$(GREEN)✓ Test artifacts cleaned$(RESET)"
 
 # Build tests in parallel
@@ -368,6 +368,12 @@ $(UI_TEST_UTILS_OBJ): $(TEST_DIR)/ui_test_utils.cpp
 $(LVGL_TEST_FIXTURE_OBJ): $(TEST_DIR)/lvgl_test_fixture.cpp $(TEST_DIR)/lvgl_test_fixture.h
 	$(Q)mkdir -p $(dir $@)
 	$(ECHO) "$(CYAN)[LVGL-FIXTURE]$(RESET) $<"
+	$(Q)$(CXX) $(CXXFLAGS) -I$(TEST_DIR) $(INCLUDES) -c $< -o $@
+
+# Compile test fixtures (reusable fixtures with mock initialization helpers)
+$(TEST_FIXTURES_OBJ): $(TEST_DIR)/test_fixtures.cpp $(TEST_DIR)/test_fixtures.h $(TEST_DIR)/lvgl_test_fixture.h
+	$(Q)mkdir -p $(dir $@)
+	$(ECHO) "$(CYAN)[TEST-FIXTURE]$(RESET) $<"
 	$(Q)$(CXX) $(CXXFLAGS) -I$(TEST_DIR) $(INCLUDES) -c $< -o $@
 
 # Compile test sources
