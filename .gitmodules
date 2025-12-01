@@ -9,6 +9,7 @@
 [submodule "wpa_supplicant"]
 	path = lib/wpa_supplicant
 	url = https://github.com/fluispotter/hostap.git
+	ignore = dirty
 [submodule "spdlog"]
 	path = lib/spdlog
 	url = https://github.com/gabime/spdlog.git
