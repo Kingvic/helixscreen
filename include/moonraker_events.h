@@ -1,4 +1,4 @@
-// Copyright 2025 HelixScreen
+// Copyright 2025 356C LLC
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #ifndef MOONRAKER_EVENTS_H
