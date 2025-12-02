@@ -134,26 +134,26 @@ lv_obj_clear_flag(controls, LV_OBJ_FLAG_HIDDEN);
 **Custom Material Design icon widget with semantic properties for sizing and color variants.**
 
 **Properties:**
-- `src` - Material icon name (default: `"mat_home"`)
+- `src` - Material icon name (default: `"mat_home_img"`)
 - `size` - Semantic size string: `xs`, `sm`, `md`, `lg`, `xl` (default: `"xl"`)
 - `variant` - Color variant string: `primary`, `secondary`, `accent`, `disabled`, `none` (default: no recoloring)
 - `color` - Custom color override (hex format: `"0xFF0000"` or `"#FF0000"`) - overrides `variant`
 
 ```xml
-<!-- Basic usage with defaults (mat_home, 64px, no recolor) -->
+<!-- Basic usage with defaults (mat_home_img, 64px, no recolor) -->
 <icon/>
 
 <!-- Specify icon source -->
-<icon src="mat_print"/>
+<icon src="mat_print_img"/>
 
 <!-- Semantic sizes with color variants -->
-<icon src="mat_heater" size="lg" variant="primary"/>
-<icon src="mat_back" size="md" variant="secondary"/>
-<icon src="mat_pause" size="sm" variant="disabled"/>
+<icon src="mat_heater_img" size="lg" variant="primary"/>
+<icon src="mat_back_img" size="md" variant="secondary"/>
+<icon src="mat_pause_img" size="sm" variant="disabled"/>
 
 <!-- Custom color overrides variant -->
-<icon src="mat_warning" size="lg" color="0xFFFF00"/>
-<icon src="mat_error" size="md" color="#FF0000"/>
+<icon src="mat_emergency_img" size="lg" color="0xFFFF00"/>
+<icon src="mat_prohibited_img" size="md" color="#FF0000"/>
 ```
 
 **Available Sizes:**
@@ -173,7 +173,7 @@ lv_obj_clear_flag(controls, LV_OBJ_FLAG_HIDDEN);
 **C++ Runtime API:**
 ```cpp
 // Change icon source dynamically
-ui_icon_set_source(icon_widget, "mat_wifi_strength_4");
+ui_icon_set_source(icon_widget, "mat_wifi_strength_4_img");
 
 // Change icon size at runtime
 ui_icon_set_size(icon_widget, "lg");  // xs/sm/md/lg/xl
@@ -186,7 +186,18 @@ ui_icon_set_color(icon_widget, lv_color_hex(0xFF0000), LV_OPA_COVER);
 ```
 
 **Material Icon Names:**
-All icons use `mat_` prefix: `mat_home`, `mat_print`, `mat_pause`, `mat_heater`, `mat_bed`, `mat_fan`, `mat_extruder`, `mat_cancel`, `mat_refresh`, `mat_back`, `mat_delete`, etc. See [material_icons.cpp](../src/material_icons.cpp) for complete list.
+All icons use `mat_*_img` naming convention: `mat_home_img`, `mat_print_img`, `mat_pause_img`, `mat_heater_img`, `mat_bed_img`, `mat_fan_img`, `mat_extruder_img`, `mat_cancel_img`, `mat_refresh_img`, `mat_back_img`, `mat_delete_img`, etc. See [material_icons.cpp](../src/material_icons.cpp) for complete list.
+
+**Adding New Icons:**
+1. Find icon SVG at [Pictogrammers Material Design Icons](https://pictogrammers.com/library/mdi/) (7200+ icons)
+2. Copy the SVG path and create `assets/images/material/<name>.svg`
+3. Convert to LVGL C array:
+   ```bash
+   inkscape assets/images/material/<name>.svg --export-type=png --export-filename=/tmp/<name>.png -w 64 -h 64
+   .venv/bin/python scripts/LVGLImage.py --ofmt C --cf RGB565A8 --compress NONE -o assets/images/material /tmp/<name>.png
+   ```
+4. Add `LV_IMG_DECLARE(<name>);` to `include/material_icons.h`
+5. Register in `src/material_icons.cpp`: `lv_xml_register_image(NULL, "mat_<name>_img", &<name>);`
 
 ### ui_switch Component
 

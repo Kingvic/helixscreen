@@ -32,112 +32,119 @@ void material_icons_register() {
     spdlog::trace("Registering Material Design icons (77 total)...");
 
     // Navigation & Movement
-    lv_xml_register_image(NULL, "mat_home", &home);
-    lv_xml_register_image(NULL, "mat_home_printer", &home_printer);
-    lv_xml_register_image(NULL, "mat_arrow_up", &arrow_up);
-    lv_xml_register_image(NULL, "mat_arrow_down", &arrow_down);
-    lv_xml_register_image(NULL, "mat_arrow_left", &arrow_left);
-    lv_xml_register_image(NULL, "mat_arrow_right", &arrow_right);
-    lv_xml_register_image(NULL, "mat_back", &back);
-    lv_xml_register_image(NULL, "mat_move", &move);
-    lv_xml_register_image(NULL, "mat_z_closer", &z_closer);
-    lv_xml_register_image(NULL, "mat_z_farther", &z_farther);
-    lv_xml_register_image(NULL, "mat_home_z", &home_z);
+    lv_xml_register_image(NULL, "mat_home_img", &home);
+    lv_xml_register_image(NULL, "mat_home_printer_img", &home_printer);
+    lv_xml_register_image(NULL, "mat_arrow_up_img", &arrow_up);
+    lv_xml_register_image(NULL, "mat_arrow_down_img", &arrow_down);
+    lv_xml_register_image(NULL, "mat_arrow_left_img", &arrow_left);
+    lv_xml_register_image(NULL, "mat_arrow_right_img", &arrow_right);
+    lv_xml_register_image(NULL, "mat_back_img", &back);
+    lv_xml_register_image(NULL, "mat_move_img", &move);
+    lv_xml_register_image(NULL, "mat_z_closer_img", &z_closer);
+    lv_xml_register_image(NULL, "mat_z_farther_img", &z_farther);
+    lv_xml_register_image(NULL, "mat_home_z_img", &home_z);
 
     // Print & Files
-    lv_xml_register_image(NULL, "mat_print", &print);
-    lv_xml_register_image(NULL, "mat_list", &list);
-    lv_xml_register_image(NULL, "mat_grid_view", &grid_view);
-    lv_xml_register_image(NULL, "mat_folder", &folder);
-    lv_xml_register_image(NULL, "mat_folder_up", &folder_up);
-    lv_xml_register_image(NULL, "mat_pause", &pause_img);
-    lv_xml_register_image(NULL, "mat_resume", &resume);
-    lv_xml_register_image(NULL, "mat_cancel", &cancel);
-    lv_xml_register_image(NULL, "mat_prohibited", &prohibited);
-    lv_xml_register_image(NULL, "mat_sd", &sd_img);
-    lv_xml_register_image(NULL, "mat_refresh", &refresh_img);
+    lv_xml_register_image(NULL, "mat_print_img", &print);
+    lv_xml_register_image(NULL, "mat_list_img", &list);
+    lv_xml_register_image(NULL, "mat_grid_view_img", &grid_view);
+    lv_xml_register_image(NULL, "mat_folder_img", &folder);
+    lv_xml_register_image(NULL, "mat_folder_up_img", &folder_up);
+    lv_xml_register_image(NULL, "mat_pause_img", &pause_img);
+    lv_xml_register_image(NULL, "mat_resume_img", &resume);
+    lv_xml_register_image(NULL, "mat_cancel_img", &cancel);
+    lv_xml_register_image(NULL, "mat_prohibited_img", &prohibited);
+    lv_xml_register_image(NULL, "mat_sd_img", &sd_img);
+    lv_xml_register_image(NULL, "mat_refresh_img", &refresh_img);
 
     // Temperature & Heating
-    lv_xml_register_image(NULL, "mat_bed", &bed);
-    lv_xml_register_image(NULL, "mat_heater", &heater);
-    lv_xml_register_image(NULL, "mat_cooldown", &cooldown_img);
+    lv_xml_register_image(NULL, "mat_bed_img", &bed);
+    lv_xml_register_image(NULL, "mat_heater_img", &heater);
+    lv_xml_register_image(NULL, "mat_cooldown_img", &cooldown_img);
 
     // Extrusion & Filament
-    lv_xml_register_image(NULL, "mat_extruder", &extruder);
-    lv_xml_register_image(NULL, "mat_extrude", &extrude);
+    lv_xml_register_image(NULL, "mat_extruder_img", &extruder);
+    lv_xml_register_image(NULL, "mat_extrude_img", &extrude);
     lv_xml_register_image(NULL, "mat_extrude_img", &extrude_img);
-    lv_xml_register_image(NULL, "mat_filament", &filament_img);
-    lv_xml_register_image(NULL, "mat_load_filament", &load_filament_img);
-    lv_xml_register_image(NULL, "mat_unload_filament", &unload_filament_img);
-    lv_xml_register_image(NULL, "mat_retract", &retract_img);
+    lv_xml_register_image(NULL, "mat_filament_img", &filament_img);
+    lv_xml_register_image(NULL, "mat_load_filament_img", &load_filament_img);
+    lv_xml_register_image(NULL, "mat_unload_filament_img", &unload_filament_img);
+    lv_xml_register_image(NULL, "mat_retract_img", &retract_img);
 
     // Fan & Cooling
-    lv_xml_register_image(NULL, "mat_fan", &fan);
-    lv_xml_register_image(NULL, "mat_fan_on", &fan_on);
-    lv_xml_register_image(NULL, "mat_fan_off", &fan_off_img);
+    lv_xml_register_image(NULL, "mat_fan_img", &fan);
+    lv_xml_register_image(NULL, "mat_fan_on_img", &fan_on);
+    lv_xml_register_image(NULL, "mat_fan_off_img", &fan_off_img);
 
     // Lighting
-    lv_xml_register_image(NULL, "mat_light", &light_img);
-    lv_xml_register_image(NULL, "mat_light_off", &light_off);
+    lv_xml_register_image(NULL, "mat_light_img", &light_img);
+    lv_xml_register_image(NULL, "mat_light_off_img", &light_off);
 
     // Network & Communication
-    lv_xml_register_image(NULL, "mat_network", &network_img);
-    lv_xml_register_image(NULL, "mat_lan", &lan);
-    lv_xml_register_image(NULL, "mat_router", &router);
-    lv_xml_register_image(NULL, "mat_printer_3d", &printer_3d);
+    lv_xml_register_image(NULL, "mat_network_img", &network_img);
+    lv_xml_register_image(NULL, "mat_lan_img", &lan);
+    lv_xml_register_image(NULL, "mat_router_img", &router);
+    lv_xml_register_image(NULL, "mat_printer_3d_img", &printer_3d);
 
     // Tuning & Adjustments
-    lv_xml_register_image(NULL, "mat_fine_tune", &fine_tune_img);
-    lv_xml_register_image(NULL, "mat_flow_down", &flow_down_img);
-    lv_xml_register_image(NULL, "mat_flow_up", &flow_up_img);
-    lv_xml_register_image(NULL, "mat_speed_down", &speed_down_img);
-    lv_xml_register_image(NULL, "mat_speed_up", &speed_up_img);
-    lv_xml_register_image(NULL, "mat_pa_minus", &pa_minus_img);
-    lv_xml_register_image(NULL, "mat_pa_plus", &pa_plus_img);
+    lv_xml_register_image(NULL, "mat_fine_tune_img", &fine_tune_img);
+    lv_xml_register_image(NULL, "mat_flow_down_img", &flow_down_img);
+    lv_xml_register_image(NULL, "mat_flow_up_img", &flow_up_img);
+    lv_xml_register_image(NULL, "mat_speed_down_img", &speed_down_img);
+    lv_xml_register_image(NULL, "mat_speed_up_img", &speed_up_img);
+    lv_xml_register_image(NULL, "mat_pa_minus_img", &pa_minus_img);
+    lv_xml_register_image(NULL, "mat_pa_plus_img", &pa_plus_img);
 
     // Calibration & Advanced
-    lv_xml_register_image(NULL, "mat_bedmesh", &bedmesh_img);
-    lv_xml_register_image(NULL, "mat_belts_calibration", &belts_calibration_img);
-    lv_xml_register_image(NULL, "mat_inputshaper", &inputshaper_img);
-    lv_xml_register_image(NULL, "mat_limit", &limit_img);
+    lv_xml_register_image(NULL, "mat_bedmesh_img", &bedmesh_img);
+    lv_xml_register_image(NULL, "mat_belts_calibration_img", &belts_calibration_img);
+    lv_xml_register_image(NULL, "mat_inputshaper_img", &inputshaper_img);
+    lv_xml_register_image(NULL, "mat_limit_img", &limit_img);
 
     // System & Info
-    lv_xml_register_image(NULL, "mat_info", &info_img);
-    lv_xml_register_image(NULL, "mat_sysinfo", &sysinfo_img);
-    lv_xml_register_image(NULL, "mat_power_devices", &power_devices_img);
-    lv_xml_register_image(NULL, "mat_motor", &motor_img);
-    lv_xml_register_image(NULL, "mat_motor_off", &motor_off_img);
-    lv_xml_register_image(NULL, "mat_update", &update_img);
-    lv_xml_register_image(NULL, "mat_emergency", &emergency);
-    lv_xml_register_image(NULL, "mat_delete", &delete_img);
+    lv_xml_register_image(NULL, "mat_info_img", &info_img);
+    lv_xml_register_image(NULL, "mat_sysinfo_img", &sysinfo_img);
+    lv_xml_register_image(NULL, "mat_settings_img", &settings);
+    lv_xml_register_image(NULL, "mat_power_devices_img", &power_devices_img);
+    lv_xml_register_image(NULL, "mat_motor_img", &motor_img);
+    lv_xml_register_image(NULL, "mat_motor_off_img", &motor_off_img);
+    lv_xml_register_image(NULL, "mat_update_img", &update_img);
+    lv_xml_register_image(NULL, "mat_emergency_img", &emergency);
+    lv_xml_register_image(NULL, "mat_delete_img", &delete_img);
+    lv_xml_register_image(NULL, "mat_build_img", &build);
+    lv_xml_register_image(NULL, "mat_dashboard_img", &dashboard);
+    lv_xml_register_image(NULL, "mat_speed_img", &speed);
+    lv_xml_register_image(NULL, "mat_inventory_img", &inventory);
+    lv_xml_register_image(NULL, "mat_code_img", &code);
+    lv_xml_register_image(NULL, "mat_terminal_img", &terminal);
 
     // Monitoring & Display
-    lv_xml_register_image(NULL, "mat_chart", &chart_img);
-    lv_xml_register_image(NULL, "mat_layers", &layers_img);
-    lv_xml_register_image(NULL, "mat_clock", &clock_img);
-    lv_xml_register_image(NULL, "mat_hourglass", &hourglass);
+    lv_xml_register_image(NULL, "mat_chart_img", &chart_img);
+    lv_xml_register_image(NULL, "mat_layers_img", &layers_img);
+    lv_xml_register_image(NULL, "mat_clock_img", &clock_img);
+    lv_xml_register_image(NULL, "mat_hourglass_img", &hourglass);
 
     // Misc
-    lv_xml_register_image(NULL, "mat_spoolman", &spoolman_img);
-    lv_xml_register_image(NULL, "mat_printer_3d", &printer_3d);
+    lv_xml_register_image(NULL, "mat_spoolman_img", &spoolman_img);
+    lv_xml_register_image(NULL, "mat_printer_3d_img", &printer_3d);
 
     // WiFi & Network
     spdlog::debug("Registering WiFi icons...");
-    lv_xml_register_image(NULL, "mat_wifi", &wifi);
-    lv_xml_register_image(NULL, "mat_wifi_off", &wifi_off);
-    lv_xml_register_image(NULL, "mat_wifi_lock", &wifi_lock);
-    lv_xml_register_image(NULL, "mat_wifi_check", &wifi_check);
-    lv_xml_register_image(NULL, "mat_wifi_alert", &wifi_alert);
-    lv_xml_register_image(NULL, "mat_wifi_strength_1", &wifi_strength_1);
-    lv_xml_register_image(NULL, "mat_wifi_strength_2", &wifi_strength_2);
-    lv_xml_register_image(NULL, "mat_wifi_strength_3", &wifi_strength_3);
-    lv_xml_register_image(NULL, "mat_wifi_strength_4", &wifi_strength_4);
-    lv_xml_register_image(NULL, "mat_wifi_strength_1_lock", &wifi_strength_1_lock);
-    lv_xml_register_image(NULL, "mat_wifi_strength_2_lock", &wifi_strength_2_lock);
-    lv_xml_register_image(NULL, "mat_wifi_strength_3_lock", &wifi_strength_3_lock);
-    lv_xml_register_image(NULL, "mat_wifi_strength_4_lock", &wifi_strength_4_lock);
+    lv_xml_register_image(NULL, "mat_wifi_img", &wifi);
+    lv_xml_register_image(NULL, "mat_wifi_off_img", &wifi_off);
+    lv_xml_register_image(NULL, "mat_wifi_lock_img", &wifi_lock);
+    lv_xml_register_image(NULL, "mat_wifi_check_img", &wifi_check);
+    lv_xml_register_image(NULL, "mat_wifi_alert_img", &wifi_alert);
+    lv_xml_register_image(NULL, "mat_wifi_strength_1_img", &wifi_strength_1);
+    lv_xml_register_image(NULL, "mat_wifi_strength_2_img", &wifi_strength_2);
+    lv_xml_register_image(NULL, "mat_wifi_strength_3_img", &wifi_strength_3);
+    lv_xml_register_image(NULL, "mat_wifi_strength_4_img", &wifi_strength_4);
+    lv_xml_register_image(NULL, "mat_wifi_strength_1_lock_img", &wifi_strength_1_lock);
+    lv_xml_register_image(NULL, "mat_wifi_strength_2_lock_img", &wifi_strength_2_lock);
+    lv_xml_register_image(NULL, "mat_wifi_strength_3_lock_img", &wifi_strength_3_lock);
+    lv_xml_register_image(NULL, "mat_wifi_strength_4_lock_img", &wifi_strength_4_lock);
     spdlog::trace("WiFi icons registered (13 total)");
 
     spdlog::trace("Material Design icons registered successfully");
-    lv_xml_register_image(NULL, "mat_notifications", &notifications);
+    lv_xml_register_image(NULL, "mat_notifications_img", &notifications);
 }

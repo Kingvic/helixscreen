@@ -20,7 +20,7 @@
       <!-- Filament Spool Visualization Card -->
       <ui_card name="spool_visualization" width="100%" height="320" style_radius="#border_radius_large" flex_flow="column" style_flex_main_place="center" style_flex_cross_place="center">
         <!-- Filament spool placeholder (TODO: add actual image) -->
-        <icon src="mat_filament" size="xl" variant="primary"/>
+        <icon src="mat_filament_img" size="xl" variant="primary"/>
         <text_body text="Filament Spool" style_pad_top="#gap_normal" align="center"/>
       </ui_card>
       <!-- Temperature Status Card -->

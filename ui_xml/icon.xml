@@ -5,10 +5,10 @@
   Icon Component - Material Design Icons with Semantic Sizing and Color Variants
 
   Usage:
-    <icon src="mat_home" size="xl" variant="primary"/>
+    <icon src="mat_home_img" size="xl" variant="primary"/>
 
   Properties:
-    - src: Material icon name (default: "mat_home")
+    - src: Material icon name (default: "mat_home_img")
     - size: Semantic size string - xs, sm, md, lg, xl (default: "xl")
     - variant: Color variant - primary, secondary, accent, disabled, none (default: none/no recoloring)
     - color: Custom color override (e.g., "#header_text", "#FF0000") - takes precedence over variant
@@ -20,7 +20,7 @@
 -->
 <component>
   <api>
-    <prop name="src" type="string" default="mat_home"/>
+    <prop name="src" type="string" default="mat_home_img"/>
     <prop name="size" type="string" default="xl"/>
     <prop name="variant" type="string" default=""/>
     <prop name="color" type="string" default=""/>

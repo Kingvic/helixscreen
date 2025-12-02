@@ -163,8 +163,8 @@ static void* ui_icon_xml_create(lv_xml_parser_state_t* state, const char** attrs
     lv_obj_t* parent = (lv_obj_t*)lv_xml_state_get_parent(state);
     lv_obj_t* obj = lv_image_create(parent);
 
-    // Set default source to mat_home
-    const void* default_src = lv_xml_get_image(NULL, "mat_home");
+    // Set default source to mat_home_img
+    const void* default_src = lv_xml_get_image(NULL, "mat_home_img");
     if (default_src) {
         lv_image_set_src(obj, default_src);
     }

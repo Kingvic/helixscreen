@@ -13,12 +13,12 @@
     <!-- ================================================================== -->
     <!-- CALIBRATION SECTION -->
     <!-- ================================================================== -->
-    <setting_section_header title="CALIBRATION" icon="mat_build"/>
+    <setting_section_header title="CALIBRATION" icon="mat_build_img"/>
 
     <!-- Bed Leveling (always shown - handles capability check internally) -->
     <setting_action_row name="row_bed_leveling"
                         label="Bed Leveling"
-                        icon="mat_bedmesh"
+                        icon="mat_bedmesh_img"
                         description="Auto mesh and manual screw adjustment"/>
 
     <!-- Input Shaping (hidden if no accelerometer) -->
@@ -27,7 +27,7 @@
       <lv_obj-bind_flag_if_eq subject="printer_has_accelerometer" flag="hidden" ref_value="0"/>
       <setting_action_row name="row_input_shaping"
                           label="Input Shaping"
-                          icon="mat_tune"
+                          icon="mat_inputshaper_img"
                           description="Resonance compensation tuning"/>
     </lv_obj>
 
@@ -37,25 +37,25 @@
       <lv_obj-bind_flag_if_eq subject="printer_has_probe" flag="hidden" ref_value="0"/>
       <setting_action_row name="row_z_offset"
                           label="Z-Offset Calibration"
-                          icon="mat_z_closer"
+                          icon="mat_z_closer_img"
                           description="Interactive probe calibration"/>
     </lv_obj>
 
     <!-- ================================================================== -->
     <!-- MOTION SECTION -->
     <!-- ================================================================== -->
-    <setting_section_header title="MOTION" icon="mat_speed"/>
+    <setting_section_header title="MOTION" icon="mat_speed_img"/>
 
     <!-- Machine Limits -->
     <setting_action_row name="row_machine_limits"
                         label="Machine Limits"
-                        icon="mat_dashboard"
+                        icon="mat_dashboard_img"
                         description="Velocity and acceleration limits"/>
 
     <!-- ================================================================== -->
     <!-- FILAMENT SECTION -->
     <!-- ================================================================== -->
-    <setting_section_header title="FILAMENT" icon="mat_filament"/>
+    <setting_section_header title="FILAMENT" icon="mat_filament_img"/>
 
     <!-- Spoolman (hidden if not connected) -->
     <lv_obj name="container_spoolman" width="100%" height="content"
@@ -63,7 +63,7 @@
       <lv_obj-bind_flag_if_eq subject="printer_has_spoolman" flag="hidden" ref_value="0"/>
       <setting_action_row name="row_spoolman"
                           label="Spoolman"
-                          icon="mat_inventory"
+                          icon="mat_inventory_img"
                           description="Filament tracking and inventory"/>
     </lv_obj>
 
@@ -73,36 +73,36 @@
       <lv_obj-bind_flag_if_eq subject="printer_has_spoolman" flag="hidden" ref_value="1"/>
       <setting_info_row name="row_no_spoolman"
                         label="Spoolman"
-                        icon="mat_inventory"
+                        icon="mat_inventory_img"
                         value="Not configured"/>
     </lv_obj>
 
     <!-- ================================================================== -->
     <!-- AUTOMATION SECTION -->
     <!-- ================================================================== -->
-    <setting_section_header title="AUTOMATION" icon="mat_code"/>
+    <setting_section_header title="AUTOMATION" icon="mat_code_img"/>
 
     <!-- Macro Browser -->
     <setting_action_row name="row_macros"
                         label="Macro Browser"
-                        icon="mat_terminal"
+                        icon="mat_terminal_img"
                         description="Execute printer macros"/>
 
     <!-- ================================================================== -->
     <!-- DIAGNOSTICS SECTION -->
     <!-- ================================================================== -->
-    <setting_section_header title="DIAGNOSTICS" icon="mat_sysinfo"/>
+    <setting_section_header title="DIAGNOSTICS" icon="mat_sysinfo_img"/>
 
     <!-- Console / G-code Terminal -->
     <setting_action_row name="row_console"
                         label="G-code Console"
-                        icon="mat_terminal"
+                        icon="mat_terminal_img"
                         description="Send commands directly to printer"/>
 
     <!-- System Restart Options -->
     <setting_action_row name="row_restart"
                         label="Restart Options"
-                        icon="mat_refresh"
+                        icon="mat_refresh_img"
                         description="Restart Klipper or firmware"/>
 
     <!-- Bottom padding for scroll -->

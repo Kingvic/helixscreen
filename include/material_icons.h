@@ -117,12 +117,19 @@ LV_IMG_DECLARE(limit_img);
 // System & Info
 LV_IMG_DECLARE(info_img);
 LV_IMG_DECLARE(sysinfo_img);
+LV_IMG_DECLARE(settings);
 LV_IMG_DECLARE(power_devices_img);
 LV_IMG_DECLARE(motor_img);
 LV_IMG_DECLARE(motor_off_img);
 LV_IMG_DECLARE(update_img);
 LV_IMG_DECLARE(emergency);
 LV_IMG_DECLARE(delete_img);
+LV_IMG_DECLARE(build);
+LV_IMG_DECLARE(dashboard);
+LV_IMG_DECLARE(speed);
+LV_IMG_DECLARE(inventory);
+LV_IMG_DECLARE(code);
+LV_IMG_DECLARE(terminal);
 
 // Monitoring & Display
 LV_IMG_DECLARE(chart_img);

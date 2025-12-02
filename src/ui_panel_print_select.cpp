@@ -236,7 +236,7 @@ void PrintSelectPanel::toggle_view() {
         lv_subject_set_int(&view_mode_subject_, 1);
 
         // Update icon to show grid_view (indicates you can switch back to card view)
-        const void* grid_icon = lv_xml_get_image(NULL, "mat_grid_view");
+        const void* grid_icon = lv_xml_get_image(NULL, "mat_grid_view_img");
         if (grid_icon) {
             lv_image_set_src(view_toggle_icon_, grid_icon);
         }
@@ -249,7 +249,7 @@ void PrintSelectPanel::toggle_view() {
         lv_subject_set_int(&view_mode_subject_, 0);
 
         // Update icon to show list (indicates you can switch to list view)
-        const void* list_icon = lv_xml_get_image(NULL, "mat_list");
+        const void* list_icon = lv_xml_get_image(NULL, "mat_list_img");
         if (list_icon) {
             lv_image_set_src(view_toggle_icon_, list_icon);
         }

@@ -195,13 +195,13 @@ const char* WizardWifiStep::get_status_text(const char* status_name) {
 
 const char* WizardWifiStep::get_wifi_signal_icon(int signal_strength, bool is_secured) {
     if (signal_strength <= 25) {
-        return is_secured ? "mat_wifi_strength_1_lock" : "mat_wifi_strength_1";
+        return is_secured ? "mat_wifi_strength_1_lock_img" : "mat_wifi_strength_1_img";
     } else if (signal_strength <= 50) {
-        return is_secured ? "mat_wifi_strength_2_lock" : "mat_wifi_strength_2";
+        return is_secured ? "mat_wifi_strength_2_lock_img" : "mat_wifi_strength_2_img";
     } else if (signal_strength <= 75) {
-        return is_secured ? "mat_wifi_strength_3_lock" : "mat_wifi_strength_3";
+        return is_secured ? "mat_wifi_strength_3_lock_img" : "mat_wifi_strength_3_img";
     } else {
-        return is_secured ? "mat_wifi_strength_4_lock" : "mat_wifi_strength_4";
+        return is_secured ? "mat_wifi_strength_4_lock_img" : "mat_wifi_strength_4_img";
     }
 }
 
