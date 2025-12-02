@@ -188,6 +188,26 @@ class SettingsManager {
     void clear_restart_pending() { restart_pending_ = false; }
 
     // =========================================================================
+    // SAFETY SETTINGS
+    // =========================================================================
+
+    /**
+     * @brief Get E-Stop confirmation requirement
+     * @return true if confirmation dialog required before E-Stop
+     */
+    bool get_estop_require_confirmation() const;
+
+    /**
+     * @brief Set E-Stop confirmation requirement
+     *
+     * When enabled, the E-Stop button shows a confirmation dialog before
+     * sending M112. When disabled (default), E-Stop executes immediately.
+     *
+     * @param require true to require confirmation, false for immediate action
+     */
+    void set_estop_require_confirmation(bool require);
+
+    // =========================================================================
     // NOTIFICATION SETTINGS (placeholders for future hardware)
     // =========================================================================
 
@@ -240,6 +260,9 @@ class SettingsManager {
     /** @brief Completion alert subject (integer: 0=off, 1=on) */
     lv_subject_t* subject_completion_alert() { return &completion_alert_subject_; }
 
+    /** @brief E-Stop confirmation subject (integer: 0=immediate, 1=require confirm) */
+    lv_subject_t* subject_estop_require_confirmation() { return &estop_require_confirmation_subject_; }
+
     /** @brief Scroll throw subject (integer: 1-99) */
     lv_subject_t* subject_scroll_throw() { return &scroll_throw_subject_; }
 
@@ -285,6 +308,7 @@ class SettingsManager {
     lv_subject_t led_enabled_subject_;
     lv_subject_t sounds_enabled_subject_;
     lv_subject_t completion_alert_subject_;
+    lv_subject_t estop_require_confirmation_subject_;
     lv_subject_t scroll_throw_subject_;
     lv_subject_t scroll_limit_subject_;
 
