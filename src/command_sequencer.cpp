@@ -158,8 +158,7 @@ bool CommandSequencer::cancel() {
             [this]() {
                 spdlog::info("[CommandSequencer] Cancel command sent");
                 // Wait for moves to complete
-                api_.execute_gcode(
-                    "M400", []() {}, [](const MoonrakerError&) {});
+                api_.execute_gcode("M400", []() {}, [](const MoonrakerError&) {});
             },
             [this](const MoonrakerError& err) {
                 spdlog::warn("[CommandSequencer] Cancel failed: {}", err.message);

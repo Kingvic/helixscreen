@@ -1744,8 +1744,7 @@ void MoonrakerAPI::run_z_tilt_adjust(SuccessCallback /*on_success*/, ErrorCallba
     }
 }
 
-void MoonrakerAPI::start_resonance_test(char /*axis*/,
-                                        AdvancedProgressCallback /*on_progress*/,
+void MoonrakerAPI::start_resonance_test(char /*axis*/, AdvancedProgressCallback /*on_progress*/,
                                         InputShaperCallback /*on_complete*/,
                                         ErrorCallback on_error) {
     spdlog::warn("[Moonraker API] start_resonance_test() not yet implemented");
@@ -1814,8 +1813,7 @@ void MoonrakerAPI::set_active_spool(int /*spool_id*/, SuccessCallback /*on_succe
 }
 
 void MoonrakerAPI::get_spool_usage_history(
-    int /*spool_id*/,
-    std::function<void(const std::vector<FilamentUsageRecord>&)> /*on_success*/,
+    int /*spool_id*/, std::function<void(const std::vector<FilamentUsageRecord>&)> /*on_success*/,
     ErrorCallback on_error) {
     spdlog::warn("[Moonraker API] get_spool_usage_history() not yet implemented");
     if (on_error) {

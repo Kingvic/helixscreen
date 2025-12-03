@@ -146,8 +146,8 @@ static void ui_theme_register_color_pairs(lv_xml_component_scope_t* scope, bool 
         }
     }
 
-    spdlog::debug("[Theme] Auto-registered {} theme-aware color pairs (dark_mode={})",
-                  registered, dark_mode);
+    spdlog::debug("[Theme] Auto-registered {} theme-aware color pairs (dark_mode={})", registered,
+                  dark_mode);
 }
 
 /**
@@ -264,11 +264,9 @@ void ui_theme_register_responsive_fonts(lv_display_t* display) {
         lv_xml_register_const(scope, "font_small", font_small);
     }
 
-    spdlog::debug("[Theme] Responsive fonts: {} ({}px) - heading={}, body={}, small={}",
-                  size_label, greater_res,
-                  font_heading ? font_heading : "default",
-                  font_body ? font_body : "default",
-                  font_small ? font_small : "default");
+    spdlog::debug("[Theme] Responsive fonts: {} ({}px) - heading={}, body={}, small={}", size_label,
+                  greater_res, font_heading ? font_heading : "default",
+                  font_body ? font_body : "default", font_small ? font_small : "default");
 }
 
 void ui_theme_init(lv_display_t* display, bool use_dark_mode_param) {
@@ -432,11 +430,12 @@ void ui_theme_toggle_dark_mode() {
     lv_color_t theme_grey = ui_theme_parse_color(theme_grey_str);
     lv_color_t text_primary_color = ui_theme_parse_color(text_primary_str);
 
-    spdlog::debug("[Theme] New colors: screen={}, card={}, grey={}, text={}",
-                  screen_bg_str, card_bg_str, theme_grey_str, text_primary_str);
+    spdlog::debug("[Theme] New colors: screen={}, card={}, grey={}, text={}", screen_bg_str,
+                  card_bg_str, theme_grey_str, text_primary_str);
 
     // Update helix theme styles in-place (triggers lv_obj_report_style_change)
-    helix_theme_update_colors(new_use_dark_mode, screen_bg, card_bg, theme_grey, text_primary_color);
+    helix_theme_update_colors(new_use_dark_mode, screen_bg, card_bg, theme_grey,
+                              text_primary_color);
 
     // Force style refresh on entire widget tree for local/inline styles
     ui_theme_refresh_widget_tree(lv_screen_active());

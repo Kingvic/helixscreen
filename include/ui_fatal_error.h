@@ -23,7 +23,7 @@
  * @param suggestions Array of troubleshooting suggestions (null-terminated)
  * @param display_ms How long to show the error (0 = indefinite until kill)
  */
-void ui_show_fatal_error(const char* title, const char* message,
-                         const char* const* suggestions, uint32_t display_ms);
+void ui_show_fatal_error(const char* title, const char* message, const char* const* suggestions,
+                         uint32_t display_ms);
 
 #endif // __HELIX_UI_FATAL_ERROR_H__

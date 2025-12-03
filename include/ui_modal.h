@@ -188,8 +188,8 @@ void ui_modal_init_subjects();
  * @param primary_text Primary button label (e.g., "OK", "Delete")
  * @param cancel_text Cancel button label (e.g., "Cancel", "No")
  */
-void ui_modal_configure(ui_modal_severity severity, bool show_cancel,
-                        const char* primary_text, const char* cancel_text);
+void ui_modal_configure(ui_modal_severity severity, bool show_cancel, const char* primary_text,
+                        const char* cancel_text);
 
 /**
  * @brief Get dialog_severity subject for direct access

@@ -5,16 +5,17 @@
 #ifdef HELIX_DISPLAY_FBDEV
 
 #include "display_backend_fbdev.h"
+
 #include <spdlog/spdlog.h>
 
 #include <lvgl.h>
 
 // System includes for device access checks
-#include <sys/stat.h>
-#include <unistd.h>
+#include <cstring>
 #include <dirent.h>
 #include <fcntl.h>
-#include <cstring>
+#include <sys/stat.h>
+#include <unistd.h>
 
 DisplayBackendFbdev::DisplayBackendFbdev() = default;
 
@@ -33,8 +34,7 @@ bool DisplayBackendFbdev::is_available() const {
 
     // Check if we can read it (need read access for display)
     if (access(fb_device_.c_str(), R_OK | W_OK) != 0) {
-        spdlog::debug("Framebuffer device {} not accessible (need R/W permissions)",
-                      fb_device_);
+        spdlog::debug("Framebuffer device {} not accessible (need R/W permissions)", fb_device_);
         return false;
     }
 
@@ -102,7 +102,7 @@ std::string DisplayBackendFbdev::auto_detect_touch_device() const {
     DIR* dir = opendir(input_dir);
     if (dir == nullptr) {
         spdlog::debug("Cannot open {}", input_dir);
-        return "/dev/input/event0";  // Default fallback
+        return "/dev/input/event0"; // Default fallback
     }
 
     std::string best_device;

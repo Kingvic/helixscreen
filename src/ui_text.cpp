@@ -72,8 +72,7 @@ static void apply_semantic_style(lv_obj_t* label, const char* font_const_name,
         spdlog::critical("[ui_text] FATAL: Font '{}' (from constant '{}') is not compiled!",
                          font_name, font_const_name);
         if (!size_hint.empty()) {
-            spdlog::critical("[ui_text] FIX: Enable LV_FONT_MONTSERRAT_{} in lv_conf.h",
-                             size_hint);
+            spdlog::critical("[ui_text] FIX: Enable LV_FONT_MONTSERRAT_{} in lv_conf.h", size_hint);
         }
         std::exit(EXIT_FAILURE);
     }
@@ -81,8 +80,8 @@ static void apply_semantic_style(lv_obj_t* label, const char* font_const_name,
     lv_obj_set_style_text_font(label, font, 0);
 
     // Debug: log the actual font being applied
-    spdlog::debug("[ui_text] Applied font '{}' (from '{}') - line_height={}px",
-                  font_name, font_const_name, lv_font_get_line_height(font));
+    spdlog::debug("[ui_text] Applied font '{}' (from '{}') - line_height={}px", font_name,
+                  font_const_name, lv_font_get_line_height(font));
 
     // Apply color
     const char* color_str = lv_xml_get_const(NULL, color_const_name);

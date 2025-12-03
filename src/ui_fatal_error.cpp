@@ -3,13 +3,18 @@
 // HelixScreen - Fatal Error Display Implementation
 
 #include "ui_fatal_error.h"
+
 #include <lvgl.h>
 
 // Portable timing functions
 #ifdef HELIX_DISPLAY_SDL
 #include <SDL.h>
-inline uint32_t fatal_get_ticks() { return SDL_GetTicks(); }
-inline void fatal_delay(uint32_t ms) { SDL_Delay(ms); }
+inline uint32_t fatal_get_ticks() {
+    return SDL_GetTicks();
+}
+inline void fatal_delay(uint32_t ms) {
+    SDL_Delay(ms);
+}
 #else
 #include <time.h>
 inline uint32_t fatal_get_ticks() {
@@ -24,8 +29,8 @@ inline void fatal_delay(uint32_t ms) {
 }
 #endif
 
-void ui_show_fatal_error(const char* title, const char* message,
-                         const char* const* suggestions, uint32_t display_ms) {
+void ui_show_fatal_error(const char* title, const char* message, const char* const* suggestions,
+                         uint32_t display_ms) {
     lv_obj_t* screen = lv_screen_active();
 
     // Red background to indicate error

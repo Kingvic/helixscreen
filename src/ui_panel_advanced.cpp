@@ -3,13 +3,14 @@
 
 #include "ui_panel_advanced.h"
 
+#include "ui_nav.h"
+#include "ui_panel_calibration_zoffset.h"
+#include "ui_toast.h"
+
 #include "moonraker_api.h"
 #include "moonraker_client.h"
 #include "printer_capabilities.h"
 #include "printer_state.h"
-#include "ui_nav.h"
-#include "ui_panel_calibration_zoffset.h"
-#include "ui_toast.h"
 
 #include <spdlog/spdlog.h>
 
@@ -220,40 +221,48 @@ void AdvancedPanel::handle_restart_clicked() {
 
 void AdvancedPanel::on_bed_leveling_clicked(lv_event_t* e) {
     auto* self = static_cast<AdvancedPanel*>(lv_event_get_user_data(e));
-    if (self) self->handle_bed_leveling_clicked();
+    if (self)
+        self->handle_bed_leveling_clicked();
 }
 
 void AdvancedPanel::on_input_shaping_clicked(lv_event_t* e) {
     auto* self = static_cast<AdvancedPanel*>(lv_event_get_user_data(e));
-    if (self) self->handle_input_shaping_clicked();
+    if (self)
+        self->handle_input_shaping_clicked();
 }
 
 void AdvancedPanel::on_z_offset_clicked(lv_event_t* e) {
     auto* self = static_cast<AdvancedPanel*>(lv_event_get_user_data(e));
-    if (self) self->handle_z_offset_clicked();
+    if (self)
+        self->handle_z_offset_clicked();
 }
 
 void AdvancedPanel::on_machine_limits_clicked(lv_event_t* e) {
     auto* self = static_cast<AdvancedPanel*>(lv_event_get_user_data(e));
-    if (self) self->handle_machine_limits_clicked();
+    if (self)
+        self->handle_machine_limits_clicked();
 }
 
 void AdvancedPanel::on_spoolman_clicked(lv_event_t* e) {
     auto* self = static_cast<AdvancedPanel*>(lv_event_get_user_data(e));
-    if (self) self->handle_spoolman_clicked();
+    if (self)
+        self->handle_spoolman_clicked();
 }
 
 void AdvancedPanel::on_macros_clicked(lv_event_t* e) {
     auto* self = static_cast<AdvancedPanel*>(lv_event_get_user_data(e));
-    if (self) self->handle_macros_clicked();
+    if (self)
+        self->handle_macros_clicked();
 }
 
 void AdvancedPanel::on_console_clicked(lv_event_t* e) {
     auto* self = static_cast<AdvancedPanel*>(lv_event_get_user_data(e));
-    if (self) self->handle_console_clicked();
+    if (self)
+        self->handle_console_clicked();
 }
 
 void AdvancedPanel::on_restart_clicked(lv_event_t* e) {
     auto* self = static_cast<AdvancedPanel*>(lv_event_get_user_data(e));
-    if (self) self->handle_restart_clicked();
+    if (self)
+        self->handle_restart_clicked();
 }

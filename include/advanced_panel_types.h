@@ -27,10 +27,11 @@
  * deviation and the required adjustment.
  */
 struct ScrewTiltResult {
-    std::string screw_name;  ///< Screw identifier (e.g., "front_left", "rear_right")
-    float z_height = 0.0f;   ///< Probed Z height at screw position
-    std::string adjustment;  ///< Adjustment string (e.g., "CW 0:15" for clockwise 0 turns 15 minutes)
-    bool is_reference = false;  ///< True if this is the reference screw (no adjustment needed)
+    std::string screw_name; ///< Screw identifier (e.g., "front_left", "rear_right")
+    float z_height = 0.0f;  ///< Probed Z height at screw position
+    std::string
+        adjustment; ///< Adjustment string (e.g., "CW 0:15" for clockwise 0 turns 15 minutes)
+    bool is_reference = false; ///< True if this is the reference screw (no adjustment needed)
 
     /**
      * @brief Check if adjustment is needed
@@ -45,10 +46,10 @@ struct ScrewTiltResult {
  * @brief Bed leveling method selection
  */
 enum class BedLevelingMethod {
-    AUTO_MESH,      ///< BED_MESH_CALIBRATE - Automatic probing grid
-    MANUAL_SCREWS,  ///< SCREWS_TILT_CALCULATE - Manual screw adjustment guidance
-    QUAD_GANTRY,    ///< QUAD_GANTRY_LEVEL - Voron-style gantry leveling
-    Z_TILT          ///< Z_TILT_ADJUST - Multi-motor Z adjustment
+    AUTO_MESH,     ///< BED_MESH_CALIBRATE - Automatic probing grid
+    MANUAL_SCREWS, ///< SCREWS_TILT_CALCULATE - Manual screw adjustment guidance
+    QUAD_GANTRY,   ///< QUAD_GANTRY_LEVEL - Voron-style gantry leveling
+    Z_TILT         ///< Z_TILT_ADJUST - Multi-motor Z adjustment
 };
 
 // ============================================================================
@@ -61,12 +62,12 @@ enum class BedLevelingMethod {
  * Contains the recommended shaper configuration for one axis.
  */
 struct InputShaperResult {
-    char axis = 'X';           ///< Axis tested ('X' or 'Y')
-    std::string shaper_type;   ///< Recommended shaper (e.g., "mzv", "ei", "2hump_ei", "3hump_ei")
-    float shaper_freq = 0.0f;  ///< Recommended frequency in Hz
-    float max_accel = 0.0f;    ///< Maximum recommended acceleration in mm/s²
-    float smoothing = 0.0f;    ///< Smoothing value (0.0-1.0, lower is better)
-    float vibrations = 0.0f;   ///< Remaining vibrations percentage
+    char axis = 'X';          ///< Axis tested ('X' or 'Y')
+    std::string shaper_type;  ///< Recommended shaper (e.g., "mzv", "ei", "2hump_ei", "3hump_ei")
+    float shaper_freq = 0.0f; ///< Recommended frequency in Hz
+    float max_accel = 0.0f;   ///< Maximum recommended acceleration in mm/s²
+    float smoothing = 0.0f;   ///< Smoothing value (0.0-1.0, lower is better)
+    float vibrations = 0.0f;  ///< Remaining vibrations percentage
 
     /// Frequency response data for graphing (frequency Hz, amplitude)
     std::vector<std::pair<float, float>> freq_response;
@@ -87,7 +88,7 @@ struct ShaperAlternative {
     float shaper_freq = 0.0f;
     float max_accel = 0.0f;
     float smoothing = 0.0f;
-    std::string description;  ///< Human-readable description of trade-offs
+    std::string description; ///< Human-readable description of trade-offs
 };
 
 // ============================================================================
@@ -98,16 +99,16 @@ struct ShaperAlternative {
  * @brief Filament spool information from Spoolman
  */
 struct SpoolInfo {
-    int id = 0;                     ///< Spoolman spool ID
-    std::string vendor;             ///< Filament vendor (e.g., "Hatchbox", "Prusament")
-    std::string material;           ///< Material type (e.g., "PLA", "PETG", "ABS", "TPU")
-    std::string color_name;         ///< Color name (e.g., "Galaxy Black", "Jet Black")
-    std::string color_hex;          ///< Hex color code (e.g., "#1A1A2E")
-    double remaining_weight_g = 0;  ///< Remaining filament weight in grams
-    double remaining_length_m = 0;  ///< Remaining filament length in meters
-    double spool_weight_g = 0;      ///< Empty spool weight in grams
-    double initial_weight_g = 0;    ///< Initial filament weight when new
-    bool is_active = false;         ///< True if this is the currently tracked spool
+    int id = 0;                    ///< Spoolman spool ID
+    std::string vendor;            ///< Filament vendor (e.g., "Hatchbox", "Prusament")
+    std::string material;          ///< Material type (e.g., "PLA", "PETG", "ABS", "TPU")
+    std::string color_name;        ///< Color name (e.g., "Galaxy Black", "Jet Black")
+    std::string color_hex;         ///< Hex color code (e.g., "#1A1A2E")
+    double remaining_weight_g = 0; ///< Remaining filament weight in grams
+    double remaining_length_m = 0; ///< Remaining filament length in meters
+    double spool_weight_g = 0;     ///< Empty spool weight in grams
+    double initial_weight_g = 0;   ///< Initial filament weight when new
+    bool is_active = false;        ///< True if this is the currently tracked spool
 
     // Temperature recommendations from filament database
     int nozzle_temp_min = 0;
@@ -122,7 +123,8 @@ struct SpoolInfo {
      * @return Percentage of filament remaining (0-100)
      */
     [[nodiscard]] double remaining_percent() const {
-        if (initial_weight_g <= 0) return 0;
+        if (initial_weight_g <= 0)
+            return 0;
         return (remaining_weight_g / initial_weight_g) * 100.0;
     }
 
@@ -140,9 +142,12 @@ struct SpoolInfo {
      */
     [[nodiscard]] std::string display_name() const {
         std::string name;
-        if (!vendor.empty()) name += vendor + " ";
-        if (!material.empty()) name += material;
-        if (!color_name.empty()) name += " - " + color_name;
+        if (!vendor.empty())
+            name += vendor + " ";
+        if (!material.empty())
+            name += material;
+        if (!color_name.empty())
+            name += " - " + color_name;
         return name.empty() ? "Unknown Spool" : name;
     }
 };
@@ -155,7 +160,7 @@ struct FilamentUsageRecord {
     double used_weight_g = 0;
     double used_length_m = 0;
     std::string print_filename;
-    double timestamp = 0;  ///< Unix timestamp
+    double timestamp = 0; ///< Unix timestamp
 };
 
 // ============================================================================
@@ -169,12 +174,12 @@ struct FilamentUsageRecord {
  * via SET_VELOCITY_LIMIT or permanently via SAVE_CONFIG.
  */
 struct MachineLimits {
-    double max_velocity = 0;         ///< Maximum velocity in mm/s
-    double max_accel = 0;            ///< Maximum acceleration in mm/s²
-    double max_accel_to_decel = 0;   ///< Maximum acceleration to deceleration in mm/s²
-    double square_corner_velocity = 0;  ///< Square corner velocity in mm/s
-    double max_z_velocity = 0;       ///< Maximum Z velocity in mm/s
-    double max_z_accel = 0;          ///< Maximum Z acceleration in mm/s²
+    double max_velocity = 0;           ///< Maximum velocity in mm/s
+    double max_accel = 0;              ///< Maximum acceleration in mm/s²
+    double max_accel_to_decel = 0;     ///< Maximum acceleration to deceleration in mm/s²
+    double square_corner_velocity = 0; ///< Square corner velocity in mm/s
+    double max_z_velocity = 0;         ///< Maximum Z velocity in mm/s
+    double max_z_accel = 0;            ///< Maximum Z acceleration in mm/s²
 
     /**
      * @brief Check if limits contain valid data
@@ -187,12 +192,10 @@ struct MachineLimits {
      * @brief Compare two limit sets for equality
      */
     [[nodiscard]] bool operator==(const MachineLimits& other) const {
-        return max_velocity == other.max_velocity &&
-               max_accel == other.max_accel &&
+        return max_velocity == other.max_velocity && max_accel == other.max_accel &&
                max_accel_to_decel == other.max_accel_to_decel &&
                square_corner_velocity == other.square_corner_velocity &&
-               max_z_velocity == other.max_z_velocity &&
-               max_z_accel == other.max_z_accel;
+               max_z_velocity == other.max_z_velocity && max_z_accel == other.max_z_accel;
     }
 
     [[nodiscard]] bool operator!=(const MachineLimits& other) const {
@@ -208,13 +211,13 @@ struct MachineLimits {
  * @brief Information about a G-code macro
  */
 struct MacroInfo {
-    std::string name;         ///< Macro name (e.g., "CLEAN_NOZZLE", "PRINT_START")
-    std::string description;  ///< Description from gcode_macro description field
-    std::vector<std::string> params;  ///< Detected parameter names
+    std::string name;                ///< Macro name (e.g., "CLEAN_NOZZLE", "PRINT_START")
+    std::string description;         ///< Description from gcode_macro description field
+    std::vector<std::string> params; ///< Detected parameter names
 
-    bool is_helix_macro = false;   ///< True if HELIX_* prefix
-    bool is_system_macro = false;  ///< True if _* prefix (hidden by default)
-    bool is_dangerous = false;     ///< True if potentially destructive (SAVE_CONFIG, etc.)
+    bool is_helix_macro = false;  ///< True if HELIX_* prefix
+    bool is_system_macro = false; ///< True if _* prefix (hidden by default)
+    bool is_dangerous = false;    ///< True if potentially destructive (SAVE_CONFIG, etc.)
 
     /**
      * @brief Check if macro accepts parameters
@@ -228,7 +231,7 @@ struct MacroInfo {
      */
     [[nodiscard]] std::string display_name() const {
         if (is_helix_macro && name.length() > 6) {
-            return name.substr(6);  // Remove "HELIX_" prefix
+            return name.substr(6); // Remove "HELIX_" prefix
         }
         return name;
     }
@@ -238,11 +241,11 @@ struct MacroInfo {
  * @brief Category for grouping macros in the browser
  */
 enum class MacroCategory {
-    COMMON,       ///< Frequently used (G28, G32, CLEAN_NOZZLE, etc.)
-    CALIBRATION,  ///< Calibration macros (BED_MESH_CALIBRATE, Z_TILT_ADJUST, etc.)
-    HELIX,        ///< HelixScreen helper macros (HELIX_*)
-    USER,         ///< User-defined macros
-    SYSTEM        ///< System/internal macros (_* prefix)
+    COMMON,      ///< Frequently used (G28, G32, CLEAN_NOZZLE, etc.)
+    CALIBRATION, ///< Calibration macros (BED_MESH_CALIBRATE, Z_TILT_ADJUST, etc.)
+    HELIX,       ///< HelixScreen helper macros (HELIX_*)
+    USER,        ///< User-defined macros
+    SYSTEM       ///< System/internal macros (_* prefix)
 };
 
 // ============================================================================

@@ -558,8 +558,9 @@ void PrinterState::set_printer_capabilities(const PrinterCapabilities& caps) {
     // Spoolman requires async check - default to 0, updated separately
     // TODO: Add set_spoolman_available() method when Spoolman API is implemented
 
-    spdlog::info("[PrinterState] Capabilities set: probe={}, heater_bed={}, LED={}, accelerometer={}",
-                 caps.has_probe(), caps.has_heater_bed(), caps.has_led(), caps.has_accelerometer());
+    spdlog::info(
+        "[PrinterState] Capabilities set: probe={}, heater_bed={}, LED={}, accelerometer={}",
+        caps.has_probe(), caps.has_heater_bed(), caps.has_led(), caps.has_accelerometer());
     spdlog::info("[PrinterState] Capabilities set (with overrides): {}",
                  capability_overrides_.summary());
 }

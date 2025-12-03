@@ -3,7 +3,9 @@
 // HelixScreen - Display Backend Factory Implementation
 
 #include "display_backend.h"
+
 #include <spdlog/spdlog.h>
+
 #include <cstdlib>
 #include <cstring>
 
@@ -14,27 +16,27 @@
 std::unique_ptr<DisplayBackend> DisplayBackend::create(DisplayBackendType type) {
     switch (type) {
 #ifdef HELIX_DISPLAY_SDL
-        case DisplayBackendType::SDL:
-            return std::make_unique<DisplayBackendSDL>();
+    case DisplayBackendType::SDL:
+        return std::make_unique<DisplayBackendSDL>();
 #endif
 
 #ifdef HELIX_DISPLAY_FBDEV
-        case DisplayBackendType::FBDEV:
-            return std::make_unique<DisplayBackendFbdev>();
+    case DisplayBackendType::FBDEV:
+        return std::make_unique<DisplayBackendFbdev>();
 #endif
 
 #ifdef HELIX_DISPLAY_DRM
-        case DisplayBackendType::DRM:
-            return std::make_unique<DisplayBackendDRM>();
+    case DisplayBackendType::DRM:
+        return std::make_unique<DisplayBackendDRM>();
 #endif
 
-        case DisplayBackendType::AUTO:
-            return create_auto();
+    case DisplayBackendType::AUTO:
+        return create_auto();
 
-        default:
-            spdlog::error("Display backend type {} not compiled in",
-                          display_backend_type_to_string(type));
-            return nullptr;
+    default:
+        spdlog::error("Display backend type {} not compiled in",
+                      display_backend_type_to_string(type));
+        return nullptr;
     }
 }
 

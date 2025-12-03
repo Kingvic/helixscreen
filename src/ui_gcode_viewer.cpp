@@ -79,7 +79,9 @@ class GCodeViewerState {
      * @brief Check if a build operation can be cancelled
      * @return true if cancellation was requested
      */
-    bool is_cancelled() const { return cancel_flag_.load(); }
+    bool is_cancelled() const {
+        return cancel_flag_.load();
+    }
 
     /**
      * @brief Start an async geometry build operation
@@ -115,7 +117,9 @@ class GCodeViewerState {
         }
     }
 
-    bool is_building() const { return building_.load(); }
+    bool is_building() const {
+        return building_.load();
+    }
 
     // ========================================================================
     // Public State (accessed by static callbacks)
@@ -710,7 +714,7 @@ static void ui_gcode_viewer_load_file_async(lv_obj_t* obj, const char* file_path
 #ifdef ENABLE_TINYGL_3D
                 spdlog::debug("GCodeViewer: Calling set_prebuilt_geometry");
                 st->renderer_->set_prebuilt_geometry(std::move(r->geometry),
-                                                    st->gcode_file->filename);
+                                                     st->gcode_file->filename);
 #endif
 
                 // Fit camera to model bounds

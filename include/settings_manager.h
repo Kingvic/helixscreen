@@ -182,12 +182,16 @@ class SettingsManager {
      * @brief Check if restart is pending due to settings changes
      * @return true if settings changed that require restart
      */
-    bool is_restart_pending() const { return restart_pending_; }
+    bool is_restart_pending() const {
+        return restart_pending_;
+    }
 
     /**
      * @brief Clear restart pending flag
      */
-    void clear_restart_pending() { restart_pending_ = false; }
+    void clear_restart_pending() {
+        restart_pending_ = false;
+    }
 
     // =========================================================================
     // SAFETY SETTINGS
@@ -275,10 +279,14 @@ class SettingsManager {
     }
 
     /** @brief Scroll throw subject (integer: 1-99) */
-    lv_subject_t* subject_scroll_throw() { return &scroll_throw_subject_; }
+    lv_subject_t* subject_scroll_throw() {
+        return &scroll_throw_subject_;
+    }
 
     /** @brief Scroll limit subject (integer: pixels) */
-    lv_subject_t* subject_scroll_limit() { return &scroll_limit_subject_; }
+    lv_subject_t* subject_scroll_limit() {
+        return &scroll_limit_subject_;
+    }
 
     /** @brief E-Stop confirmation subject (integer: 0=immediate, 1=require confirm) */
     lv_subject_t* subject_estop_require_confirmation() {

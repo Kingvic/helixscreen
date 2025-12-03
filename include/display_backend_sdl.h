@@ -36,8 +36,12 @@ class DisplayBackendSDL : public DisplayBackend {
     lv_indev_t* create_input_keyboard() override;
 
     // Backend info
-    DisplayBackendType type() const override { return DisplayBackendType::SDL; }
-    const char* name() const override { return "SDL2"; }
+    DisplayBackendType type() const override {
+        return DisplayBackendType::SDL;
+    }
+    const char* name() const override {
+        return "SDL2";
+    }
     bool is_available() const override;
 
   private:

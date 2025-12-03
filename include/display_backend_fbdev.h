@@ -10,6 +10,7 @@
 #ifdef HELIX_DISPLAY_FBDEV
 
 #include "display_backend.h"
+
 #include <string>
 
 /**
@@ -56,17 +57,25 @@ class DisplayBackendFbdev : public DisplayBackend {
     lv_indev_t* create_input_pointer() override;
 
     // Backend info
-    DisplayBackendType type() const override { return DisplayBackendType::FBDEV; }
-    const char* name() const override { return "Linux Framebuffer"; }
+    DisplayBackendType type() const override {
+        return DisplayBackendType::FBDEV;
+    }
+    const char* name() const override {
+        return "Linux Framebuffer";
+    }
     bool is_available() const override;
 
     // Configuration
-    void set_fb_device(const std::string& path) { fb_device_ = path; }
-    void set_touch_device(const std::string& path) { touch_device_ = path; }
+    void set_fb_device(const std::string& path) {
+        fb_device_ = path;
+    }
+    void set_touch_device(const std::string& path) {
+        touch_device_ = path;
+    }
 
   private:
     std::string fb_device_ = "/dev/fb0";
-    std::string touch_device_;  // Empty = auto-detect
+    std::string touch_device_; // Empty = auto-detect
     lv_display_t* display_ = nullptr;
     lv_indev_t* touch_ = nullptr;
 

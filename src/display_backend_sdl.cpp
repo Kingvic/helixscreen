@@ -5,6 +5,7 @@
 #ifdef HELIX_DISPLAY_SDL
 
 #include "display_backend_sdl.h"
+
 #include <spdlog/spdlog.h>
 
 // LVGL SDL driver

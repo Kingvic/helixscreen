@@ -34,10 +34,11 @@
 
 #include "app_globals.h"
 
+#include "ui_modal.h"
+
 #include "moonraker_api.h"
 #include "moonraker_client.h"
 #include "printer_state.h"
-#include "ui_modal.h"
 
 #include <spdlog/spdlog.h>
 
@@ -48,7 +49,7 @@
 
 // Platform-specific includes for process restart
 #if defined(__unix__) || defined(__APPLE__)
-#include <unistd.h>  // fork, execv, usleep
+#include <unistd.h> // fork, execv, usleep
 #endif
 
 // Global singleton instances (extern declarations in header, definitions here)
@@ -133,7 +134,7 @@ void app_request_restart() {
 
     if (g_stored_argv.empty() || g_executable_path.empty()) {
         spdlog::error("Cannot restart: argv not stored. Call app_store_argv() at startup.");
-        g_quit_requested = true;  // Fall back to quit
+        g_quit_requested = true; // Fall back to quit
         return;
     }
 
@@ -144,20 +145,20 @@ void app_request_restart() {
     if (pid < 0) {
         // Fork failed
         spdlog::error("Fork failed during restart: {}", strerror(errno));
-        g_quit_requested = true;  // Fall back to quit
+        g_quit_requested = true; // Fall back to quit
         return;
     }
 
     if (pid == 0) {
         // Child process - exec the new instance
         // Small delay to let parent start cleanup
-        usleep(100000);  // 100ms
+        usleep(100000); // 100ms
 
         execv(g_executable_path.c_str(), g_stored_argv.data());
 
         // If execv returns, it failed
         spdlog::error("execv failed during restart: {}", strerror(errno));
-        _exit(1);  // Exit child without cleanup
+        _exit(1); // Exit child without cleanup
     }
 
     // Parent process - signal main loop to exit cleanly
@@ -185,7 +186,7 @@ static std::vector<char*> build_theme_restart_argv() {
     for (size_t i = 0; i < g_stored_argv.size(); ++i) {
         char* arg = g_stored_argv[i];
         if (!arg) {
-            continue;  // Skip null terminator during iteration
+            continue; // Skip null terminator during iteration
         }
 
         // Skip if previous arg was -p/--panel (this is the panel value)
@@ -248,7 +249,8 @@ void app_request_restart_for_theme() {
     std::string cmd_line;
     for (char* arg : theme_argv) {
         if (arg) {
-            if (!cmd_line.empty()) cmd_line += " ";
+            if (!cmd_line.empty())
+                cmd_line += " ";
             cmd_line += arg;
         }
     }
@@ -265,7 +267,7 @@ void app_request_restart_for_theme() {
 
     if (pid == 0) {
         // Child process
-        usleep(100000);  // 100ms delay for parent cleanup
+        usleep(100000); // 100ms delay for parent cleanup
         execv(g_executable_path.c_str(), theme_argv.data());
         spdlog::error("execv failed during theme restart: {}", strerror(errno));
         _exit(1);

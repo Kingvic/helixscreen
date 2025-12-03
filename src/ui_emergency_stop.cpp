@@ -41,14 +41,18 @@ void EmergencyStopOverlay::init_subjects() {
     lv_xml_register_event_cb(nullptr, "emergency_stop_clicked", emergency_stop_clicked);
     lv_xml_register_event_cb(nullptr, "estop_dialog_cancel_clicked", estop_dialog_cancel_clicked);
     lv_xml_register_event_cb(nullptr, "estop_dialog_confirm_clicked", estop_dialog_confirm_clicked);
-    lv_xml_register_event_cb(nullptr, "recovery_restart_klipper_clicked", recovery_restart_klipper_clicked);
-    lv_xml_register_event_cb(nullptr, "recovery_firmware_restart_clicked", recovery_firmware_restart_clicked);
+    lv_xml_register_event_cb(nullptr, "recovery_restart_klipper_clicked",
+                             recovery_restart_klipper_clicked);
+    lv_xml_register_event_cb(nullptr, "recovery_firmware_restart_clicked",
+                             recovery_firmware_restart_clicked);
     lv_xml_register_event_cb(nullptr, "recovery_dismiss_clicked", recovery_dismiss_clicked);
 
     // Advanced panel button callbacks (reuse same logic)
     lv_xml_register_event_cb(nullptr, "advanced_estop_clicked", advanced_estop_clicked);
-    lv_xml_register_event_cb(nullptr, "advanced_restart_klipper_clicked", advanced_restart_klipper_clicked);
-    lv_xml_register_event_cb(nullptr, "advanced_firmware_restart_clicked", advanced_firmware_restart_clicked);
+    lv_xml_register_event_cb(nullptr, "advanced_restart_klipper_clicked",
+                             advanced_restart_klipper_clicked);
+    lv_xml_register_event_cb(nullptr, "advanced_firmware_restart_clicked",
+                             advanced_firmware_restart_clicked);
 
     subjects_initialized_ = true;
     spdlog::debug("[EmergencyStop] Subjects initialized");
@@ -78,8 +82,8 @@ void EmergencyStopOverlay::create() {
     lv_obj_move_foreground(button_);
 
     // Subscribe to print state changes for automatic visibility updates
-    print_state_observer_ =
-        ObserverGuard(printer_state_->get_print_state_enum_subject(), print_state_observer_cb, this);
+    print_state_observer_ = ObserverGuard(printer_state_->get_print_state_enum_subject(),
+                                          print_state_observer_cb, this);
 
     // Subscribe to klippy state changes for recovery dialog auto-popup
     klippy_state_observer_ =
@@ -235,8 +239,8 @@ void EmergencyStopOverlay::restart_klipper() {
         },
         [](const MoonrakerError& err) {
             spdlog::error("[KlipperRecovery] Klipper restart failed: {}", err.message);
-            ui_toast_show(ToastSeverity::ERROR,
-                          ("Restart failed: " + err.user_message()).c_str(), 5000);
+            ui_toast_show(ToastSeverity::ERROR, ("Restart failed: " + err.user_message()).c_str(),
+                          5000);
         });
 }
 
@@ -332,7 +336,8 @@ void EmergencyStopOverlay::print_state_observer_cb(lv_observer_t* observer, lv_s
     }
 }
 
-void EmergencyStopOverlay::klippy_state_observer_cb(lv_observer_t* observer, lv_subject_t* subject) {
+void EmergencyStopOverlay::klippy_state_observer_cb(lv_observer_t* observer,
+                                                    lv_subject_t* subject) {
     auto* self = static_cast<EmergencyStopOverlay*>(lv_observer_get_user_data(observer));
     if (!self) {
         return;

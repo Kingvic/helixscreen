@@ -49,10 +49,9 @@ void PrinterCapabilities::parse_objects(const json& objects) {
             spdlog::debug("[PrinterCapabilities] Detected screws_tilt_adjust");
         }
         // Accelerometer detection for input shaping
-        else if (name == "adxl345" || name.rfind("adxl345 ", 0) == 0 ||
-                 name == "lis2dw" || name.rfind("lis2dw ", 0) == 0 ||
-                 name == "mpu9250" || name.rfind("mpu9250 ", 0) == 0 ||
-                 name == "resonance_tester") {
+        else if (name == "adxl345" || name.rfind("adxl345 ", 0) == 0 || name == "lis2dw" ||
+                 name.rfind("lis2dw ", 0) == 0 || name == "mpu9250" ||
+                 name.rfind("mpu9250 ", 0) == 0 || name == "resonance_tester") {
             has_accelerometer_ = true;
             spdlog::debug("[PrinterCapabilities] Detected accelerometer: {}", name);
         }

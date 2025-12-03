@@ -23,12 +23,12 @@
 
 #include "ui_bed_mesh.h"
 #include "ui_card.h"
-#include "ui_emergency_stop.h"
-#include "ui_fatal_error.h"
 #include "ui_component_header_bar.h"
 #include "ui_component_keypad.h"
 #include "ui_dialog.h"
+#include "ui_emergency_stop.h"
 #include "ui_error_reporting.h"
+#include "ui_fatal_error.h"
 #include "ui_fonts.h"
 #include "ui_gcode_viewer.h"
 #include "ui_gradient_canvas.h"
@@ -59,15 +59,16 @@
 #include "ui_severity_card.h"
 #include "ui_status_bar.h"
 #include "ui_switch.h"
-#include "ui_toast.h"
 #include "ui_text.h"
 #include "ui_theme.h"
+#include "ui_toast.h"
 #include "ui_utils.h"
 #include "ui_wizard.h"
 #include "ui_wizard_wifi.h"
 
 #include "app_globals.h"
 #include "config.h"
+#include "display_backend.h"
 #include "gcode_file_modifier.h"
 #include "lvgl/lvgl.h"
 #include "lvgl/src/libs/svg/lv_svg_decoder.h"
@@ -84,13 +85,12 @@
 #include "usb_backend_mock.h"
 #include "usb_manager.h"
 
-#include "display_backend.h"
-
 #include <spdlog/spdlog.h>
 
 #ifdef HELIX_DISPLAY_SDL
 #include <SDL.h>
 #endif
+#include <cerrno>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -99,9 +99,8 @@
 #include <memory>
 #include <mutex>
 #include <queue>
-#include <unistd.h>
 #include <signal.h>
-#include <cerrno>
+#include <unistd.h>
 
 #ifdef __APPLE__
 #include <mach-o/dyld.h>
@@ -110,8 +109,12 @@
 // Portable timing functions (SDL-independent for embedded builds)
 #ifdef HELIX_DISPLAY_SDL
 // Use SDL timing when available (more precise on desktop)
-inline uint32_t helix_get_ticks() { return SDL_GetTicks(); }
-inline void helix_delay(uint32_t ms) { SDL_Delay(ms); }
+inline uint32_t helix_get_ticks() {
+    return SDL_GetTicks();
+}
+inline void helix_delay(uint32_t ms) {
+    SDL_Delay(ms);
+}
 #else
 // POSIX fallback for embedded Linux
 #include <time.h>
@@ -793,14 +796,17 @@ static void register_fonts_and_images() {
     // - text_small uses font_small (12/16/18 for small/medium/large breakpoints)
     // ALL sizes used by the responsive typography system MUST be registered here!
     lv_xml_register_font(NULL, "montserrat_10", &lv_font_montserrat_10);
-    lv_xml_register_font(NULL, "montserrat_12", &lv_font_montserrat_12);  // text_small (small)
-    lv_xml_register_font(NULL, "montserrat_14", &lv_font_montserrat_14);  // text_body (small)
-    lv_xml_register_font(NULL, "montserrat_16", &lv_font_montserrat_16);  // text_small (medium)
-    lv_xml_register_font(NULL, "montserrat_18", &lv_font_montserrat_18);  // text_body (medium), text_small (large)
-    lv_xml_register_font(NULL, "montserrat_20", &lv_font_montserrat_20);  // text_heading (small), text_body (large)
+    lv_xml_register_font(NULL, "montserrat_12", &lv_font_montserrat_12); // text_small (small)
+    lv_xml_register_font(NULL, "montserrat_14", &lv_font_montserrat_14); // text_body (small)
+    lv_xml_register_font(NULL, "montserrat_16", &lv_font_montserrat_16); // text_small (medium)
+    lv_xml_register_font(NULL, "montserrat_18",
+                         &lv_font_montserrat_18); // text_body (medium), text_small (large)
+    lv_xml_register_font(NULL, "montserrat_20",
+                         &lv_font_montserrat_20); // text_heading (small), text_body (large)
     lv_xml_register_font(NULL, "montserrat_24", &lv_font_montserrat_24);
-    lv_xml_register_font(NULL, "montserrat_26", &lv_font_montserrat_26);  // text_heading (medium)
-    lv_xml_register_font(NULL, "montserrat_28", &lv_font_montserrat_28);  // text_heading (large), numeric displays
+    lv_xml_register_font(NULL, "montserrat_26", &lv_font_montserrat_26); // text_heading (medium)
+    lv_xml_register_font(NULL, "montserrat_28",
+                         &lv_font_montserrat_28); // text_heading (large), numeric displays
     lv_xml_register_image(NULL, "A:assets/images/printer_400.png",
                           "A:assets/images/printer_400.png");
     lv_xml_register_image(NULL, "filament_spool", "A:assets/images/filament_spool.png");
@@ -920,13 +926,13 @@ static void initialize_subjects() {
     get_printer_state()
         .init_subjects(); // Printer state subjects (CRITICAL: must be before panel creation)
 
-    get_global_home_panel().init_subjects();     // Home panel data bindings
-    get_global_controls_panel().init_subjects(); // Controls panel launcher
-    get_global_filament_panel().init_subjects(); // Filament panel
-    get_global_settings_panel().init_subjects(); // Settings panel launcher
+    get_global_home_panel().init_subjects();                  // Home panel data bindings
+    get_global_controls_panel().init_subjects();              // Controls panel launcher
+    get_global_filament_panel().init_subjects();              // Filament panel
+    get_global_settings_panel().init_subjects();              // Settings panel launcher
     init_global_advanced_panel(get_printer_state(), nullptr); // Initialize advanced panel instance
-    get_global_advanced_panel().init_subjects(); // Advanced panel capability subjects
-    ui_wizard_init_subjects();                   // Wizard subjects (for first-run config)
+    get_global_advanced_panel().init_subjects();              // Advanced panel capability subjects
+    ui_wizard_init_subjects(); // Wizard subjects (for first-run config)
 
     // Panels that need MoonrakerAPI - store pointers for deferred set_api()
     print_select_panel = get_print_select_panel(get_printer_state(), nullptr);
@@ -1037,15 +1043,13 @@ static bool init_lvgl() {
             "Check touchscreen driver is loaded: dmesg | grep -i touch",
             "Set HELIX_TOUCH_DEVICE=/dev/input/eventX to override",
             "Add \"touch_device\": \"/dev/input/event1\" to helixconfig.json",
-            nullptr
-        };
+            nullptr};
 
-        ui_show_fatal_error(
-            "No Input Device",
-            "Could not find or open a touch/pointer input device.\n"
-            "The UI requires an input device to function.",
-            suggestions,
-            30000  // Show for 30 seconds then exit
+        ui_show_fatal_error("No Input Device",
+                            "Could not find or open a touch/pointer input device.\n"
+                            "The UI requires an input device to function.",
+                            suggestions,
+                            30000 // Show for 30 seconds then exit
         );
 
         return false;
@@ -1407,8 +1411,8 @@ int main(int argc, char** argv) {
     int screenshot_delay_sec = 2;    // Screenshot delay in seconds (default: 2)
     int timeout_sec = 0;             // Auto-quit timeout in seconds (0 = disabled)
     int verbosity = 0;               // Verbosity level (0=warn, 1=info, 2=debug, 3=trace)
-    int dark_mode_cli = -1; // Theme from CLI: -1=not set, 0=light, 1=dark
-    int dpi = -1;           // Display DPI (-1 means use LV_DPI_DEF from lv_conf.h)
+    int dark_mode_cli = -1;          // Theme from CLI: -1=not set, 0=light, 1=dark
+    int dpi = -1;                    // Display DPI (-1 means use LV_DPI_DEF from lv_conf.h)
 
     // Parse command-line arguments (returns false for help/error)
     if (!parse_command_line_args(

@@ -382,16 +382,18 @@ void ui_modal_init_subjects() {
     spdlog::info("[Modal] Modal dialog subjects registered");
 }
 
-void ui_modal_configure(ui_modal_severity severity, bool show_cancel,
-                        const char* primary_text, const char* cancel_text) {
+void ui_modal_configure(ui_modal_severity severity, bool show_cancel, const char* primary_text,
+                        const char* cancel_text) {
     if (!g_subjects_initialized) {
-        spdlog::error("[Modal] Cannot configure - subjects not initialized! Call ui_modal_init_subjects() first");
+        spdlog::error("[Modal] Cannot configure - subjects not initialized! Call "
+                      "ui_modal_init_subjects() first");
         return;
     }
 
-    spdlog::debug("[Modal] Configuring dialog: severity={}, show_cancel={}, primary='{}', cancel='{}'",
-                  (int)severity, show_cancel, primary_text ? primary_text : "(null)",
-                  cancel_text ? cancel_text : "(null)");
+    spdlog::debug(
+        "[Modal] Configuring dialog: severity={}, show_cancel={}, primary='{}', cancel='{}'",
+        (int)severity, show_cancel, primary_text ? primary_text : "(null)",
+        cancel_text ? cancel_text : "(null)");
 
     lv_subject_set_int(&g_dialog_severity, severity);
     lv_subject_set_int(&g_dialog_show_cancel, show_cancel ? 1 : 0);

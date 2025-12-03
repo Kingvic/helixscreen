@@ -10,6 +10,7 @@
 #ifdef HELIX_DISPLAY_DRM
 
 #include "display_backend.h"
+
 #include <string>
 
 /**
@@ -61,12 +62,18 @@ class DisplayBackendDRM : public DisplayBackend {
     lv_indev_t* create_input_pointer() override;
 
     // Backend info
-    DisplayBackendType type() const override { return DisplayBackendType::DRM; }
-    const char* name() const override { return "Linux DRM/KMS"; }
+    DisplayBackendType type() const override {
+        return DisplayBackendType::DRM;
+    }
+    const char* name() const override {
+        return "Linux DRM/KMS";
+    }
     bool is_available() const override;
 
     // Configuration
-    void set_drm_device(const std::string& path) { drm_device_ = path; }
+    void set_drm_device(const std::string& path) {
+        drm_device_ = path;
+    }
 
   private:
     std::string drm_device_ = "/dev/dri/card0";

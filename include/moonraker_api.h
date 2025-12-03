@@ -774,8 +774,9 @@ class MoonrakerAPI {
      * @param on_success Called with (connected, active_spool_id)
      * @param on_error Called on failure
      */
-    virtual void get_spoolman_status(std::function<void(bool connected, int active_spool_id)> on_success,
-                                     ErrorCallback on_error);
+    virtual void
+    get_spoolman_status(std::function<void(bool connected, int active_spool_id)> on_success,
+                        ErrorCallback on_error);
 
     /**
      * @brief Get list of spools from Spoolman
@@ -801,9 +802,10 @@ class MoonrakerAPI {
      * @param on_success Called with usage records
      * @param on_error Called on failure
      */
-    virtual void get_spool_usage_history(
-        int spool_id, std::function<void(const std::vector<FilamentUsageRecord>&)> on_success,
-        ErrorCallback on_error);
+    virtual void
+    get_spool_usage_history(int spool_id,
+                            std::function<void(const std::vector<FilamentUsageRecord>&)> on_success,
+                            ErrorCallback on_error);
 
     // ========================================================================
     // Advanced Panel Operations - Machine Limits

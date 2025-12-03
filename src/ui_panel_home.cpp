@@ -307,9 +307,8 @@ void HomePanel::handle_tip_text_clicked() {
                                 .persistent = false,
                                 .on_close = nullptr};
 
-    const char* attrs[] = {"title",   current_tip_.title.c_str(),
-                           "message", current_tip_.content.c_str(),
-                           nullptr};
+    const char* attrs[] = {"title", current_tip_.title.c_str(), "message",
+                           current_tip_.content.c_str(), nullptr};
 
     ui_modal_configure(UI_MODAL_SEVERITY_INFO, false, "Ok", nullptr);
     lv_obj_t* tip_dialog = ui_modal_show("modal_dialog", &config, attrs);

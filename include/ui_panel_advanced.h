@@ -110,7 +110,7 @@ class AdvancedPanel : public PanelBase {
     lv_obj_t* machine_limits_panel_ = nullptr;
     lv_obj_t* spoolman_panel_ = nullptr;
     lv_obj_t* macro_browser_panel_ = nullptr;
-    lv_obj_t* zoffset_cal_panel_ = nullptr;  // Reuses existing panel
+    lv_obj_t* zoffset_cal_panel_ = nullptr; // Reuses existing panel
 
     //
     // === Setup Helpers ===

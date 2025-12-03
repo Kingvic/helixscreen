@@ -24,7 +24,7 @@
 #ifndef RUNTIME_CONFIG_H
 #define RUNTIME_CONFIG_H
 
-#include <sys/types.h>  // For pid_t
+#include <sys/types.h> // For pid_t
 
 /**
  * @brief Runtime configuration for development and testing

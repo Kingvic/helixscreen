@@ -5,19 +5,21 @@
 #ifdef HELIX_DISPLAY_DRM
 
 #include "display_backend_drm.h"
+
 #include "config.h"
+
 #include <spdlog/spdlog.h>
 
 #include <lvgl.h>
 
 // System includes for device access checks and DRM capability detection
-#include <sys/stat.h>
-#include <unistd.h>
-#include <fcntl.h>
+#include <algorithm>
 #include <cstring>
 #include <dirent.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #include <vector>
-#include <algorithm>
 #include <xf86drm.h>
 #include <xf86drmMode.h>
 
@@ -61,11 +63,12 @@ bool drm_device_supports_display(const std::string& device_path) {
         if (connector) {
             if (connector->connection == DRM_MODE_CONNECTED) {
                 has_connected = true;
-                spdlog::debug("{}: found connected connector type {}",
-                             device_path, connector->connector_type);
+                spdlog::debug("{}: found connected connector type {}", device_path,
+                              connector->connector_type);
             }
             drmModeFreeConnector(connector);
-            if (has_connected) break;
+            if (has_connected)
+                break;
         }
     }
 
@@ -141,11 +144,9 @@ std::string auto_detect_drm_device() {
 
 } // namespace
 
-DisplayBackendDRM::DisplayBackendDRM()
-    : drm_device_(auto_detect_drm_device()) {}
+DisplayBackendDRM::DisplayBackendDRM() : drm_device_(auto_detect_drm_device()) {}
 
-DisplayBackendDRM::DisplayBackendDRM(const std::string& drm_device)
-    : drm_device_(drm_device) {}
+DisplayBackendDRM::DisplayBackendDRM(const std::string& drm_device) : drm_device_(drm_device) {}
 
 bool DisplayBackendDRM::is_available() const {
     struct stat st;

@@ -3,7 +3,9 @@
 
 #include "ui_panel_settings.h"
 
+#include "ui_emergency_stop.h"
 #include "ui_event_safety.h"
+#include "ui_modal.h"
 #include "ui_nav.h"
 #include "ui_panel_bed_mesh.h"
 #include "ui_panel_calibration_pid.h"
@@ -14,8 +16,6 @@
 #include "moonraker_client.h"
 #include "printer_state.h"
 #include "settings_manager.h"
-#include "ui_emergency_stop.h"
-#include "ui_modal.h"
 
 #include <spdlog/spdlog.h>
 
@@ -357,9 +357,8 @@ void SettingsPanel::show_theme_restart_dialog() {
         ui_modal_configure(UI_MODAL_SEVERITY_INFO, true, "Restart", "Later");
 
         // Create modal_dialog with title/message props
-        const char* attrs[] = {"title",   "Theme Changed",
-                               "message", "Restart the app to apply the new theme.",
-                               nullptr};
+        const char* attrs[] = {"title", "Theme Changed", "message",
+                               "Restart the app to apply the new theme.", nullptr};
         theme_restart_dialog_ =
             static_cast<lv_obj_t*>(lv_xml_create(parent_screen_, "modal_dialog", attrs));
 
@@ -390,7 +389,8 @@ void SettingsPanel::show_theme_restart_dialog() {
                         if (dialog) {
                             lv_obj_add_flag(dialog, LV_OBJ_FLAG_HIDDEN);
                         }
-                        spdlog::debug("[SettingsPanel] Theme restart dialog dismissed (will restart later)");
+                        spdlog::debug(
+                            "[SettingsPanel] Theme restart dialog dismissed (will restart later)");
                     },
                     LV_EVENT_CLICKED, nullptr);
             }
@@ -789,10 +789,10 @@ void SettingsPanel::handle_factory_reset_clicked() {
                                 .on_close = nullptr};
 
     // Factory reset is a destructive action - use ERROR severity with confirm/cancel
-    const char* attrs[] = {
-        "title", "Factory Reset",
-        "message", "This will reset all device and Klipper configurations to defaults. This action cannot be undone.",
-        nullptr};
+    const char* attrs[] = {"title", "Factory Reset", "message",
+                           "This will reset all device and Klipper configurations to defaults. "
+                           "This action cannot be undone.",
+                           nullptr};
 
     ui_modal_configure(UI_MODAL_SEVERITY_ERROR, true, "Reset", "Cancel");
     factory_reset_dialog_ = ui_modal_show("modal_dialog", &config, attrs);

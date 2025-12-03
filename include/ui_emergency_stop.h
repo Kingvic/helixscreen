@@ -3,10 +3,11 @@
 
 #pragma once
 
+#include "ui_observer_guard.h"
+
 #include "lvgl.h"
 #include "moonraker_api.h"
 #include "printer_state.h"
-#include "ui_observer_guard.h"
 
 #include <string>
 #include <unordered_set>

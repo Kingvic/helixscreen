@@ -18,10 +18,10 @@
  * @brief Display backend types supported by HelixScreen
  */
 enum class DisplayBackendType {
-    SDL,    ///< SDL2 for desktop development (macOS/Linux with X11/Wayland)
-    FBDEV,  ///< Linux framebuffer (/dev/fb0) - works on most embedded Linux
-    DRM,    ///< Linux DRM/KMS - modern display API, better for Pi
-    AUTO    ///< Auto-detect best available backend
+    SDL,   ///< SDL2 for desktop development (macOS/Linux with X11/Wayland)
+    FBDEV, ///< Linux framebuffer (/dev/fb0) - works on most embedded Linux
+    DRM,   ///< Linux DRM/KMS - modern display API, better for Pi
+    AUTO   ///< Auto-detect best available backend
 };
 
 /**
@@ -29,16 +29,16 @@ enum class DisplayBackendType {
  */
 inline const char* display_backend_type_to_string(DisplayBackendType type) {
     switch (type) {
-        case DisplayBackendType::SDL:
-            return "SDL";
-        case DisplayBackendType::FBDEV:
-            return "Framebuffer";
-        case DisplayBackendType::DRM:
-            return "DRM/KMS";
-        case DisplayBackendType::AUTO:
-            return "Auto";
-        default:
-            return "Unknown";
+    case DisplayBackendType::SDL:
+        return "SDL";
+    case DisplayBackendType::FBDEV:
+        return "Framebuffer";
+    case DisplayBackendType::DRM:
+        return "DRM/KMS";
+    case DisplayBackendType::AUTO:
+        return "Auto";
+    default:
+        return "Unknown";
     }
 }
 
@@ -101,7 +101,9 @@ class DisplayBackend {
      *
      * @return LVGL input device, or nullptr if not supported
      */
-    virtual lv_indev_t* create_input_keyboard() { return nullptr; }
+    virtual lv_indev_t* create_input_keyboard() {
+        return nullptr;
+    }
 
     // ========================================================================
     // Backend Information
@@ -137,7 +139,9 @@ class DisplayBackend {
      *
      * @return true if display is still active, false if taken over
      */
-    virtual bool is_active() const { return true; }
+    virtual bool is_active() const {
+        return true;
+    }
 
     // ========================================================================
     // Factory Methods
@@ -169,7 +173,9 @@ class DisplayBackend {
      *
      * Same as create_auto(), provided for simpler calling code.
      */
-    static std::unique_ptr<DisplayBackend> create() { return create_auto(); }
+    static std::unique_ptr<DisplayBackend> create() {
+        return create_auto();
+    }
 };
 
 // ============================================================================

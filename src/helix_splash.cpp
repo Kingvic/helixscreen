@@ -18,14 +18,14 @@
  * This binary is only built and used on embedded Linux targets.
  */
 
+#include "display_backend.h"
+
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <lvgl.h>
 #include <signal.h>
 #include <unistd.h>
-#include <cstring>
-#include <cstdlib>
-#include <cstdio>
-
-#include "display_backend.h"
 
 // Signal handling for graceful shutdown
 // SIGTERM/SIGINT: graceful shutdown (e.g., system shutdown)
@@ -42,8 +42,8 @@ static constexpr int DEFAULT_WIDTH = 800;
 static constexpr int DEFAULT_HEIGHT = 480;
 
 // Splash timing
-static constexpr int FADE_DURATION_MS = 300;   // Fast fade-in
-static constexpr int FRAME_DELAY_US = 16000;   // ~60 FPS
+static constexpr int FADE_DURATION_MS = 300; // Fast fade-in
+static constexpr int FRAME_DELAY_US = 16000; // ~60 FPS
 
 // Dark theme background color (matches app theme)
 static constexpr uint32_t BG_COLOR_DARK = 0x121212;
@@ -89,7 +89,7 @@ static lv_obj_t* create_splash_ui(lv_obj_t* screen, int width, int height) {
     lv_obj_set_style_border_width(container, 0, LV_PART_MAIN);
     lv_obj_set_style_pad_all(container, 0, LV_PART_MAIN);
     lv_obj_clear_flag(container, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_set_style_opa(container, LV_OPA_TRANSP, LV_PART_MAIN);  // Start invisible
+    lv_obj_set_style_opa(container, LV_OPA_TRANSP, LV_PART_MAIN); // Start invisible
     lv_obj_center(container);
 
     // Create logo image
@@ -100,15 +100,15 @@ static lv_obj_t* create_splash_ui(lv_obj_t* screen, int width, int height) {
     // Scale logo to 60% of screen width (50% on tiny screens)
     lv_image_header_t header;
     if (lv_image_decoder_get_info(logo_path, &header) == LV_RESULT_OK) {
-        int target_size = (width * 3) / 5;  // 60%
+        int target_size = (width * 3) / 5; // 60%
         if (height < 500) {
-            target_size = width / 2;  // 50% on tiny screens
+            target_size = width / 2; // 50% on tiny screens
         }
         int scale = (target_size * 256) / header.w;
         lv_image_set_scale(logo, scale);
     } else {
         // Fallback if we can't get dimensions
-        lv_image_set_scale(logo, 128);  // 50%
+        lv_image_set_scale(logo, 128); // 50%
     }
 
     // Start fade-in animation
@@ -157,7 +157,7 @@ int main(int argc, char** argv) {
     // Create splash UI
     lv_obj_t* screen = lv_screen_active();
     lv_obj_t* container = create_splash_ui(screen, width, height);
-    (void)container;  // Used by animation, no need to track
+    (void)container; // Used by animation, no need to track
 
     // Main loop - run until signaled to quit
     // Exit signals: SIGTERM, SIGINT (shutdown), SIGUSR1 (main app ready)

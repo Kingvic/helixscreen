@@ -82,7 +82,8 @@ void SettingsManager::init_subjects() {
     lv_xml_register_subject(nullptr, "settings_led_enabled", &led_enabled_subject_);
     lv_xml_register_subject(nullptr, "settings_sounds_enabled", &sounds_enabled_subject_);
     lv_xml_register_subject(nullptr, "settings_completion_alert", &completion_alert_subject_);
-    lv_xml_register_subject(nullptr, "settings_estop_confirm", &estop_require_confirmation_subject_);
+    lv_xml_register_subject(nullptr, "settings_estop_confirm",
+                            &estop_require_confirmation_subject_);
     lv_xml_register_subject(nullptr, "settings_scroll_throw", &scroll_throw_subject_);
     lv_xml_register_subject(nullptr, "settings_scroll_limit", &scroll_limit_subject_);
 
@@ -116,7 +117,8 @@ void SettingsManager::set_dark_mode(bool enabled) {
     config->set<bool>("/dark_mode", enabled);
     config->save();
 
-    spdlog::debug("[SettingsManager] Dark mode {} saved (restart required)", enabled ? "enabled" : "disabled");
+    spdlog::debug("[SettingsManager] Dark mode {} saved (restart required)",
+                  enabled ? "enabled" : "disabled");
 }
 
 int SettingsManager::get_display_sleep_sec() const {

@@ -134,13 +134,17 @@ class PrinterCapabilities {
      * @brief Check if printer has an accelerometer for input shaping
      * @return true if adxl345, lis2dw, mpu9250, or resonance_tester was detected
      */
-    [[nodiscard]] bool has_accelerometer() const { return has_accelerometer_; }
+    [[nodiscard]] bool has_accelerometer() const {
+        return has_accelerometer_;
+    }
 
     /**
      * @brief Check if printer has screws_tilt_adjust for manual bed leveling
      * @return true if screws_tilt_adjust object was detected
      */
-    [[nodiscard]] bool has_screws_tilt() const { return has_screws_tilt_; }
+    [[nodiscard]] bool has_screws_tilt() const {
+        return has_screws_tilt_;
+    }
 
     /**
      * @brief Check if Klippain Shake&Tune is installed
@@ -150,7 +154,9 @@ class PrinterCapabilities {
      *
      * @return true if AXES_SHAPER_CALIBRATION macro was detected
      */
-    [[nodiscard]] bool has_klippain_shaketune() const { return has_klippain_shaketune_; }
+    [[nodiscard]] bool has_klippain_shaketune() const {
+        return has_klippain_shaketune_;
+    }
 
     /**
      * @brief Check if printer supports any form of bed leveling
