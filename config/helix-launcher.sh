@@ -10,7 +10,15 @@
 # Usage:
 #   ./helix-launcher.sh [options]
 #
-# All options are passed through to helix-screen.
+# Launcher-specific options:
+#   --debug              Enable trace-level logging (-vvv)
+#   --log=<file>         Log output to file (uses tee for both console and file)
+#
+# Environment variables:
+#   HELIX_DEBUG=1        Same as --debug
+#   HELIX_LOG_FILE=<f>   Same as --log=<file>
+#
+# All other options are passed through to helix-screen.
 #
 # Installation:
 #   Copy to /opt/helixscreen/bin/ or similar
@@ -18,6 +26,26 @@
 #   Use with systemd service: config/helixscreen.service
 
 set -e
+
+# Debug/verbose mode - pass -vvv to helix-screen for trace-level logging
+DEBUG_MODE="${HELIX_DEBUG:-0}"
+LOG_FILE="${HELIX_LOG_FILE:-}"
+
+# Parse launcher-specific arguments
+PASSTHROUGH_ARGS=()
+for arg in "$@"; do
+    case "$arg" in
+        --debug)
+            DEBUG_MODE=1
+            ;;
+        --log=*)
+            LOG_FILE="${arg#--log=}"
+            ;;
+        *)
+            PASSTHROUGH_ARGS+=("$arg")
+            ;;
+    esac
+done
 
 # Determine script and binary locations
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -85,8 +113,23 @@ fi
 # Start main application
 # Main app will send SIGUSR1 to splash when it takes over the display
 log "Starting main application"
-"${MAIN_BIN}" ${SPLASH_ARGS} "$@"
-EXIT_CODE=$?
+
+# Build command with debug flags if requested
+DEBUG_FLAGS=""
+if [ "${DEBUG_MODE}" = "1" ]; then
+    DEBUG_FLAGS="-vvv"
+    log "Debug mode enabled (trace-level logging)"
+fi
+
+# Run with optional logging to file
+if [ -n "${LOG_FILE}" ]; then
+    log "Logging output to: ${LOG_FILE}"
+    "${MAIN_BIN}" ${SPLASH_ARGS} ${DEBUG_FLAGS} "${PASSTHROUGH_ARGS[@]}" 2>&1 | tee "${LOG_FILE}"
+    EXIT_CODE=${PIPESTATUS[0]}
+else
+    "${MAIN_BIN}" ${SPLASH_ARGS} ${DEBUG_FLAGS} "${PASSTHROUGH_ARGS[@]}"
+    EXIT_CODE=$?
+fi
 
 # Ensure splash is terminated (should have exited when main app took display)
 if [ -n "${SPLASH_PID}" ] && kill -0 "${SPLASH_PID}" 2>/dev/null; then
