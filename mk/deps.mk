@@ -290,7 +290,13 @@ $(SDL2_LIB):
 # Build wpa_supplicant client library (Linux and cross-compilation targets)
 # This is needed for WiFi control on embedded Linux systems
 # Output: $(BUILD_DIR)/lib/libwpa_client.a for architecture isolation
-ifneq ($(UNAME_S),Darwin)
+#
+# NOTE: Make conditionals (ifneq/else/endif) CANNOT be used inside recipes!
+# They are processed at parse time, not run time. Use shell conditionals instead.
+
+# Linux native build (not macOS, not cross-compiling)
+ifeq ($(UNAME_S),Linux)
+ifndef CROSS_COMPILE
 $(WPA_CLIENT_LIB): | $(BUILD_DIR)/lib
 	$(ECHO) "$(BOLD)$(BLUE)[WPA]$(RESET) Building wpa_supplicant client library..."
 	$(Q)if [ ! -f "$(WPA_DIR)/wpa_supplicant/.config" ]; then \
@@ -303,22 +309,15 @@ $(WPA_CLIENT_LIB): | $(BUILD_DIR)/lib
 			exit 1; \
 		fi; \
 	fi
-ifneq ($(CROSS_COMPILE),)
-	# Cross-compilation mode - clean in-tree artifacts first to avoid architecture mismatch
-	$(Q)if [ -f "$(WPA_DIR)/wpa_supplicant/libwpa_client.a" ]; then \
-		echo "$(YELLOW)→ Cleaning wpa_supplicant in-tree artifacts for cross-compilation...$(RESET)"; \
-		$(MAKE) -C $(WPA_DIR)/wpa_supplicant clean; \
-	fi
-	$(Q)CC=$(CC) CFLAGS="$(TARGET_CFLAGS)" $(MAKE) -C $(WPA_DIR)/wpa_supplicant libwpa_client.a
-else
 	$(Q)$(MAKE) -C $(WPA_DIR)/wpa_supplicant libwpa_client.a
-endif
-	# Copy to architecture-specific output directory and ensure index is present
 	$(Q)cp $(WPA_DIR)/wpa_supplicant/libwpa_client.a $(BUILD_DIR)/lib/libwpa_client.a
 	$(Q)$(RANLIB) $(BUILD_DIR)/lib/libwpa_client.a
 	$(ECHO) "$(GREEN)✓ libwpa_client.a built: $(BUILD_DIR)/lib/libwpa_client.a$(RESET)"
-else ifneq ($(CROSS_COMPILE),)
-# Cross-compilation from macOS to Linux - need wpa_supplicant
+endif
+endif
+
+# Cross-compilation build (from any host to Linux target)
+ifdef CROSS_COMPILE
 $(WPA_CLIENT_LIB): | $(BUILD_DIR)/lib
 	$(ECHO) "$(BOLD)$(BLUE)[WPA]$(RESET) Building wpa_supplicant client library (cross-compile)..."
 	$(Q)if [ ! -f "$(WPA_DIR)/wpa_supplicant/.config" ]; then \
@@ -330,13 +329,11 @@ $(WPA_CLIENT_LIB): | $(BUILD_DIR)/lib
 			exit 1; \
 		fi; \
 	fi
-	# Clean in-tree artifacts first to avoid architecture mismatch
 	$(Q)if [ -f "$(WPA_DIR)/wpa_supplicant/libwpa_client.a" ]; then \
 		echo "$(YELLOW)→ Cleaning wpa_supplicant in-tree artifacts for cross-compilation...$(RESET)"; \
 		$(MAKE) -C $(WPA_DIR)/wpa_supplicant clean; \
 	fi
 	$(Q)CC=$(CC) CFLAGS="$(TARGET_CFLAGS)" $(MAKE) -C $(WPA_DIR)/wpa_supplicant libwpa_client.a
-	# Copy to architecture-specific output directory and ensure index is present
 	$(Q)cp $(WPA_DIR)/wpa_supplicant/libwpa_client.a $(BUILD_DIR)/lib/libwpa_client.a
 	$(Q)$(RANLIB) $(BUILD_DIR)/lib/libwpa_client.a
 	$(ECHO) "$(GREEN)✓ libwpa_client.a built: $(BUILD_DIR)/lib/libwpa_client.a$(RESET)"

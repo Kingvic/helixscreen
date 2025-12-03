@@ -15,6 +15,18 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
+    - name: Install clang-format 18
+      run: |
+        # Install clang-format 18 from LLVM apt repository for consistent formatting
+        # Version must match .clang-format file expectations
+        wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo gpg --dearmor -o /usr/share/keyrings/llvm-archive-keyring.gpg
+        echo "deb [signed-by=/usr/share/keyrings/llvm-archive-keyring.gpg] http://apt.llvm.org/jammy/ llvm-toolchain-jammy-18 main" | sudo tee /etc/apt/sources.list.d/llvm-18.list
+        sudo apt-get update
+        sudo apt-get install -y clang-format-18
+        # Make clang-format-18 the default
+        sudo update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-18 100
+        clang-format --version
+
     - name: Run quality checks
       run: |
         # Use shared script - single source of truth for pre-commit and CI
