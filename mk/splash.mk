@@ -10,9 +10,10 @@ SPLASH_SRC := src/helix_splash.cpp
 SPLASH_OBJ := $(BUILD_DIR)/splash/helix_splash.o
 SPLASH_BIN := $(BUILD_DIR)/bin/helix-splash
 
-# Splash needs LVGL and display library, nothing else
-SPLASH_CXXFLAGS := $(CXXFLAGS) $(LVGL_INC) -DHELIX_SPLASH_ONLY
-SPLASH_LDFLAGS := $(DISPLAY_LIB) $(LVGL_LIB) -lm -lpthread
+# Splash needs LVGL, display library, project includes, and libhv (for config.h -> json.hpp)
+SPLASH_CXXFLAGS := $(CXXFLAGS) -I$(INC_DIR) $(LVGL_INC) $(SPDLOG_INC) $(LIBHV_INC) -DHELIX_SPLASH_ONLY
+# Note: LVGL is compiled as objects, not a library - link directly against LVGL_OBJS
+SPLASH_LDFLAGS := -lm -lpthread
 
 # Add platform-specific libraries for display backend
 ifneq ($(UNAME_S),Darwin)
@@ -31,13 +32,23 @@ $(BUILD_DIR)/splash/%.o: src/%.cpp | $(BUILD_DIR)/splash
 	@echo "[CXX] $< (splash)"
 	$(Q)$(CXX) $(SPLASH_CXXFLAGS) -c $< -o $@
 
-# Link splash binary
-$(SPLASH_BIN): $(SPLASH_OBJ) $(DISPLAY_LIB) $(LVGL_LIB) | $(BUILD_DIR)/bin
-	@echo "[LD] $@"
-	$(Q)$(CXX) $(SPLASH_OBJ) -o $@ $(SPLASH_LDFLAGS)
+# Splash needs config.o (display_backend_drm.cpp uses Config) and a UI notification stub
+# (config.cpp calls ui_notification_error on save failures)
+SPLASH_EXTRA_OBJS := $(OBJ_DIR)/config.o $(BUILD_DIR)/splash/ui_notification_stub.o
 
-# Create build directory
-$(BUILD_DIR)/splash:
+# Compile notification stub for splash
+$(BUILD_DIR)/splash/ui_notification_stub.o: tools/ui_notification_stub.cpp | $(BUILD_DIR)/splash
+	@echo "[CXX] $< (splash stub)"
+	$(Q)$(CXX) $(SPLASH_CXXFLAGS) -c $< -o $@
+
+# Link splash binary
+# Dependencies: splash object, display library, LVGL objects (compiled from source)
+$(SPLASH_BIN): $(SPLASH_OBJ) $(DISPLAY_LIB) $(LVGL_OBJS) $(THORVG_OBJS) $(SPLASH_EXTRA_OBJS) | $(BUILD_DIR)/bin
+	@echo "[LD] $@"
+	$(Q)$(CXX) $(SPLASH_OBJ) $(DISPLAY_LIB) $(LVGL_OBJS) $(THORVG_OBJS) $(SPLASH_EXTRA_OBJS) -o $@ $(SPLASH_LDFLAGS)
+
+# Create build directories
+$(BUILD_DIR)/splash $(BUILD_DIR)/bin:
 	$(Q)mkdir -p $@
 
 # Build splash binary

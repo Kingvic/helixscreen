@@ -82,11 +82,15 @@ $(TARGET): $(SDL2_LIB) $(LIBHV_LIB) $(TINYGL_LIB) $(APP_C_OBJS) $(APP_OBJS) $(OB
 		exit 1; \
 	}
 
-# Collect all header dependencies
-HEADERS := $(shell find $(INC_DIR) -name "*.h" 2>/dev/null)
+# Collect all .d dependency files for proper header tracking
+# These are generated during compilation with -MMD -MP flags
+DEPFILES := $(wildcard $(OBJ_DIR)/*.d $(OBJ_DIR)/**/*.d)
 
 # Precompiled header rule (must be built before any C++ compilation)
-$(PCH): $(PCH_HEADER) $(HEADERS) $(LIBHV_LIB)
+# PCH only depends on its source header and external libraries (LVGL, spdlog)
+# Project headers are NOT included - changing app headers should not invalidate PCH
+# The PCH contains only stable, rarely-changing includes (see include/lvgl_pch.h)
+$(PCH): $(PCH_HEADER) $(LIBHV_LIB)
 	$(Q)mkdir -p $(dir $@)
 	$(ECHO) "$(MAGENTA)$(BOLD)[PCH]$(RESET) $<"
 ifeq ($(V),1)
@@ -97,42 +101,45 @@ endif
 		exit 1; \
 	}
 
-# Compile app C sources (depend on headers and libhv for hv/json.hpp)
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c $(HEADERS) $(LIBHV_LIB)
+# Compile app C sources
+# Uses DEPFLAGS to generate .d files for header dependency tracking
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c $(LIBHV_LIB)
 	$(Q)mkdir -p $(dir $@)
 	$(ECHO) "$(BLUE)[CC]$(RESET) $<"
 ifeq ($(V),1)
-	$(Q)echo "$(YELLOW)Command:$(RESET) $(CC) $(CFLAGS) $(INCLUDES) $(LV_CONF) -c $< -o $@"
+	$(Q)echo "$(YELLOW)Command:$(RESET) $(CC) $(CFLAGS) $(DEPFLAGS) $(INCLUDES) $(LV_CONF) -c $< -o $@"
 endif
-	$(Q)$(CC) $(CFLAGS) $(INCLUDES) $(LV_CONF) -c $< -o $@ || { \
+	$(Q)$(CC) $(CFLAGS) $(DEPFLAGS) $(INCLUDES) $(LV_CONF) -c $< -o $@ || { \
 		echo "$(RED)$(BOLD)✗ Compilation failed:$(RESET) $<"; \
-		echo "$(YELLOW)Command:$(RESET) $(CC) $(CFLAGS) $(INCLUDES) $(LV_CONF) -c $< -o $@"; \
+		echo "$(YELLOW)Command:$(RESET) $(CC) $(CFLAGS) $(DEPFLAGS) $(INCLUDES) $(LV_CONF) -c $< -o $@"; \
 		exit 1; \
 	}
 
-# Compile app C++ sources (depend on headers, libhv, and PCH)
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(HEADERS) $(LIBHV_LIB) $(PCH)
+# Compile app C++ sources (depend on libhv and PCH)
+# Uses DEPFLAGS to generate .d files for header dependency tracking
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(LIBHV_LIB) $(PCH)
 	$(Q)mkdir -p $(dir $@)
 	$(ECHO) "$(BLUE)[CXX]$(RESET) $<"
 ifeq ($(V),1)
-	$(Q)echo "$(YELLOW)Command:$(RESET) $(CXX) $(CXXFLAGS) $(PCH_FLAGS) $(INCLUDES) $(LV_CONF) -c $< -o $@"
+	$(Q)echo "$(YELLOW)Command:$(RESET) $(CXX) $(CXXFLAGS) $(DEPFLAGS) $(PCH_FLAGS) $(INCLUDES) $(LV_CONF) -c $< -o $@"
 endif
-	$(Q)$(CXX) $(CXXFLAGS) $(PCH_FLAGS) $(INCLUDES) $(LV_CONF) -c $< -o $@ || { \
+	$(Q)$(CXX) $(CXXFLAGS) $(DEPFLAGS) $(PCH_FLAGS) $(INCLUDES) $(LV_CONF) -c $< -o $@ || { \
 		echo "$(RED)$(BOLD)✗ Compilation failed:$(RESET) $<"; \
-		echo "$(YELLOW)Command:$(RESET) $(CXX) $(CXXFLAGS) $(PCH_FLAGS) $(INCLUDES) $(LV_CONF) -c $< -o $@"; \
+		echo "$(YELLOW)Command:$(RESET) $(CXX) $(CXXFLAGS) $(DEPFLAGS) $(PCH_FLAGS) $(INCLUDES) $(LV_CONF) -c $< -o $@"; \
 		exit 1; \
 	}
 
-# Compile app Objective-C++ sources (macOS .mm files, depend on headers, libhv, and PCH)
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.mm $(HEADERS) $(LIBHV_LIB) $(PCH)
+# Compile app Objective-C++ sources (macOS .mm files)
+# Uses DEPFLAGS to generate .d files for header dependency tracking
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.mm $(LIBHV_LIB) $(PCH)
 	$(Q)mkdir -p $(dir $@)
 	$(ECHO) "$(BLUE)[OBJCXX]$(RESET) $<"
 ifeq ($(V),1)
-	$(Q)echo "$(YELLOW)Command:$(RESET) $(CXX) $(CXXFLAGS) $(PCH_FLAGS) $(INCLUDES) $(LV_CONF) -c $< -o $@"
+	$(Q)echo "$(YELLOW)Command:$(RESET) $(CXX) $(CXXFLAGS) $(DEPFLAGS) $(PCH_FLAGS) $(INCLUDES) $(LV_CONF) -c $< -o $@"
 endif
-	$(Q)$(CXX) $(CXXFLAGS) $(PCH_FLAGS) $(INCLUDES) $(LV_CONF) -c $< -o $@ || { \
+	$(Q)$(CXX) $(CXXFLAGS) $(DEPFLAGS) $(PCH_FLAGS) $(INCLUDES) $(LV_CONF) -c $< -o $@ || { \
 		echo "$(RED)$(BOLD)✗ Compilation failed:$(RESET) $<"; \
-		echo "$(YELLOW)Command:$(RESET) $(CXX) $(CXXFLAGS) $(PCH_FLAGS) $(INCLUDES) $(LV_CONF) -c $< -o $@"; \
+		echo "$(YELLOW)Command:$(RESET) $(CXX) $(CXXFLAGS) $(DEPFLAGS) $(PCH_FLAGS) $(INCLUDES) $(LV_CONF) -c $< -o $@"; \
 		exit 1; \
 	}
 
@@ -268,3 +275,12 @@ compile_commands:
 	$(ECHO) "$(GREEN)✓ compile_commands.json generated$(RESET)"
 	$(ECHO) ""
 	$(ECHO) "$(CYAN)IDE/LSP integration ready. Restart your editor to pick up changes.$(RESET)"
+
+# ============================================================================
+# Automatic Header Dependency Tracking
+# ============================================================================
+# Include generated .d files for proper header dependency tracking.
+# The - prefix means don't error if files don't exist (first build).
+# Files are generated during compilation with -MMD -MP flags.
+-include $(wildcard $(OBJ_DIR)/*.d)
+-include $(wildcard $(OBJ_DIR)/*/*.d)

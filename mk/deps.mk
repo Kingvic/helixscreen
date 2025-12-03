@@ -370,3 +370,49 @@ venv-setup:
 
 $(VENV_PYTHON):
 	$(Q)$(MAKE) venv-setup
+
+# ============================================================================
+# Build/Dependency Help
+# ============================================================================
+
+.PHONY: help-build
+help-build:
+	@if [ -t 1 ] && [ -n "$(TERM)" ] && [ "$(TERM)" != "dumb" ]; then \
+		B='$(BOLD)'; G='$(GREEN)'; Y='$(YELLOW)'; C='$(CYAN)'; X='$(RESET)'; \
+	else \
+		B=''; G=''; Y=''; C=''; X=''; \
+	fi; \
+	echo "$${B}Build & Dependency Targets$${X}"; \
+	echo ""; \
+	echo "$${C}Core Build:$${X}"; \
+	echo "  $${G}all$${X}                 - Build main binary (default)"; \
+	echo "  $${G}build$${X}               - Clean build with progress"; \
+	echo "  $${G}clean$${X}               - Remove all build artifacts"; \
+	echo "  $${G}run$${X}                 - Build and run the UI"; \
+	echo ""; \
+	echo "$${C}Dependency Management:$${X}"; \
+	echo "  $${G}check-deps$${X}          - Verify all dependencies installed"; \
+	echo "  $${G}install-deps$${X}        - Auto-install missing dependencies"; \
+	echo "  $${G}libhv-build$${X}         - Build libhv WebSocket library"; \
+	echo "  $${G}sdl2-build$${X}          - Build SDL2 from submodule"; \
+	echo "  $${G}venv-setup$${X}          - Set up Python virtual environment"; \
+	echo ""; \
+	echo "$${C}Patches:$${X}"; \
+	echo "  $${G}apply-patches$${X}       - Apply LVGL patches (idempotent)"; \
+	echo "  $${G}reset-patches$${X}       - Reset patched files to upstream"; \
+	echo "  $${G}reapply-patches$${X}     - Force reapply all patches"; \
+	echo ""; \
+	echo "$${C}Code Quality:$${X}"; \
+	echo "  $${G}format$${X}              - Auto-format all C/C++ and XML"; \
+	echo "  $${G}format-staged$${X}       - Format only staged files"; \
+	echo "  $${G}compile_commands$${X}    - Generate compile_commands.json"; \
+	echo ""; \
+	echo "$${C}Libraries (embedded targets):$${X}"; \
+	echo "  $${G}display-lib$${X}         - Build display backend library"; \
+	echo "  $${G}splash$${X}              - Build splash screen binary"; \
+	echo ""; \
+	echo "$${C}Build Options:$${X}"; \
+	echo "  $${Y}V=1$${X}                 - Verbose (show compiler commands)"; \
+	echo "  $${Y}JOBS=N$${X}              - Parallel job count"; \
+	echo "  $${Y}NO_COLOR=1$${X}          - Disable colored output"; \
+	echo "  $${Y}ENABLE_TINYGL_3D$${X}=no - Disable 3D rendering"

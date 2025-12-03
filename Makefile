@@ -107,11 +107,18 @@ ifneq ($(CCACHE),)
     CXX := ccache $(CXX)
 endif
 
+# Dependency generation flags for proper header tracking
+# -MMD: Generate .d dependency files for user headers (not system headers)
+# -MP: Add phony targets for headers (prevents errors when headers are deleted)
+# Note: -MF path is computed in the pattern rules to get the correct output path
+DEPFLAGS = -MMD -MP
+
 CFLAGS := -std=c11 -Wall -Wextra -O2 -g -D_GNU_SOURCE
 CXXFLAGS := -std=c++17 -Wall -Wextra -O2 -g
 
 # Submodule flags - suppress warnings from third-party code we don't control
 # Uses -w to completely silence warnings (cleaner build output)
+# Note: No DEPFLAGS for submodules - we don't track their internal dependencies
 SUBMODULE_CFLAGS := -std=c11 -O2 -g -D_GNU_SOURCE -w
 SUBMODULE_CXXFLAGS := -std=c++17 -O2 -g -w
 
@@ -391,68 +398,53 @@ MOCK_OBJS := $(patsubst $(TEST_MOCK_DIR)/%.cpp,$(OBJ_DIR)/tests/mocks/%.o,$(MOCK
 
 .PHONY: all build clean run test tests test-integration test-cards test-print-select test-size-content demo compile_commands libhv-build apply-patches generate-fonts help check-deps install-deps venv-setup icon format format-staged screenshots tools moonraker-inspector
 
-# Help target - checks stdout dynamically to avoid colors when piped
+# Help target - shows common commands, references topic-specific help
 help:
 	@if [ -t 1 ] && [ -n "$(TERM)" ] && [ "$(TERM)" != "dumb" ]; then \
-		B='$(BOLD)'; R='$(RED)'; G='$(GREEN)'; Y='$(YELLOW)'; BL='$(BLUE)'; M='$(MAGENTA)'; C='$(CYAN)'; X='$(RESET)'; \
+		B='$(BOLD)'; R='$(RED)'; G='$(GREEN)'; Y='$(YELLOW)'; BL='$(BLUE)'; M='$(MAGENTA)'; C='$(CYAN)'; X='$(RESET)'; D='$(shell printf "\033[2m")'; \
 	else \
-		B=''; R=''; G=''; Y=''; BL=''; M=''; C=''; X=''; \
+		B=''; R=''; G=''; Y=''; BL=''; M=''; C=''; X=''; D=''; \
 	fi; \
-	echo "$${B}HelixScreen UI Prototype Build System$${X}"; \
+	echo "$${B}HelixScreen Build System$${X}"; \
 	echo ""; \
-	echo "$${C}Build Targets:$${X}"; \
-	echo "  $${G}all$${X}              - Build the main binary (default)"; \
-	echo "  $${G}build$${X}            - Clean build with progress (parallel: -j$(NPROC))"; \
-	echo "  $${G}clean$${X}            - Remove all build artifacts"; \
-	echo "  $${G}demo$${X}             - Build LVGL demo widgets"; \
+	echo "$${C}Quick Start:$${X}"; \
+	echo "  $${G}make -j$${X}           - Build (parallel, auto-detects cores)"; \
+	echo "  $${G}make run$${X}          - Build and run the UI"; \
+	echo "  $${G}make test$${X}         - Run unit tests"; \
+	echo "  $${G}make clean$${X}        - Remove build artifacts"; \
 	echo ""; \
-	echo "$${C}Test Targets:$${X}"; \
-	echo "  $${G}test$${X}             - Run unit tests"; \
-	echo "  $${G}test-fast$${X}        - Run fast tests only (skip [slow])"; \
-	echo "  $${G}test-slow$${X}        - Run only slow tests"; \
-	echo "  $${G}test-timing$${X}      - Show slowest tests (top 20)"; \
-	echo "  $${G}test-summary$${X}     - Show test coverage by tag"; \
-	echo "  $${G}test-integration$${X} - Run integration tests (with mocks)"; \
-	echo "  $${G}test-cards$${X}       - Test dynamic card instantiation"; \
-	echo "  $${G}test-print-select$${X} - Test print select panel"; \
+	echo "$${C}Common Tasks:$${X}"; \
+	echo "  $${G}check-deps$${X}        - Verify dependencies are installed"; \
+	echo "  $${G}install-deps$${X}      - Auto-install missing dependencies"; \
+	echo "  $${G}format$${X}            - Auto-format C/C++ and XML files"; \
+	echo "  $${G}compile_commands$${X}  - Generate compile_commands.json for IDE"; \
 	echo ""; \
-	echo "$${C}Run Targets:$${X}"; \
-	echo "  $${G}run$${X}              - Build and run the UI prototype"; \
-	echo ""; \
-	echo "$${C}Tool Targets:$${X}"; \
-	echo "  $${G}tools$${X}            - Build all diagnostic tools"; \
+	echo "$${C}Tools:$${X}"; \
+	echo "  $${G}tools$${X}             - Build diagnostic tools"; \
 	echo "  $${G}moonraker-inspector$${X} - Query Moonraker printer metadata"; \
+	echo "  $${G}generate-fonts$${X}    - Regenerate FontAwesome fonts"; \
+	echo "  $${G}icon$${X}              - Generate app icon from logo"; \
 	echo ""; \
-	echo "$${C}Development Targets:$${X}"; \
-	echo "  $${G}compile_commands$${X} - Generate compile_commands.json for IDE/LSP"; \
-	echo "  $${G}format$${X}           - Auto-format all C/C++ and XML files"; \
-	echo "  $${G}format-staged$${X}    - Auto-format only staged files (pre-commit)"; \
-	echo "  $${G}check-deps$${X}       - Verify all dependencies are installed"; \
-	echo "  $${G}install-deps$${X}     - Auto-install missing dependencies (interactive)"; \
-	echo "  $${G}apply-patches$${X}    - Apply LVGL patches (idempotent)"; \
-	echo "  $${G}reset-patches$${X}    - Reset patched files to upstream state"; \
-	echo "  $${G}reapply-patches$${X}  - Force reapply all patches (reset + apply)"; \
-	echo "  $${G}generate-fonts$${X}   - Regenerate FontAwesome fonts from package.json"; \
-	echo "  $${G}icon$${X}             - Generate macOS .icns icon from logo"; \
-	echo "  $${G}material-icons-list$${X} - List all registered Material Design icons"; \
-	echo "  $${G}material-icons-convert$${X} - Convert SVGs to LVGL C arrays (SVGS=...)"; \
-	echo "  $${G}material-icons-add$${X} - Download and add Material icons (ICONS=...)"; \
+	echo "$${C}More Help:$${X}  $${D}(use these for detailed target lists)$${X}"; \
+	echo "  $${Y}make help-build$${X}   - Build system, dependencies, patches"; \
+	echo "  $${Y}make help-test$${X}    - All test targets and options"; \
+	echo "  $${Y}make help-cross$${X}   - Cross-compilation and Pi deployment"; \
+	echo "  $${Y}make help-all$${X}     - Show everything"; \
 	echo ""; \
-	echo "$${C}Documentation Targets:$${X}"; \
-	echo "  $${G}screenshots$${X}      - Generate all documentation screenshots (docs/images/)"; \
-	echo ""; \
-	echo "$${C}Build Options:$${X}"; \
-	echo "  $${Y}V=1$${X}              - Verbose mode (show full compiler commands)"; \
-	echo "  $${Y}JOBS=N$${X}           - Set parallel job count (default: $(NPROC))"; \
-	echo "  $${Y}NO_COLOR=1$${X}       - Disable colored output (auto-detected for non-TTY)"; \
-	echo ""; \
-	echo "$${C}Examples:$${X}"; \
-	echo "  make -j$(NPROC)          # Parallel build with all cores"; \
-	echo "  make V=1           # Verbose build"; \
-	echo "  make clean all     # Clean rebuild"; \
-	echo "  make run           # Build and run"; \
-	echo ""; \
-	echo "$${C}Platform:$${X} $(PLATFORM) ($(NPROC) cores available)"
+	echo "$${C}Platform:$${X} $(PLATFORM) $${D}($(NPROC) cores)$${X}"
+
+# Show all help topics combined
+.PHONY: help-all
+help-all: help-build help-test help-cross
+	@echo ""
+	@if [ -t 1 ] && [ -n "$(TERM)" ] && [ "$(TERM)" != "dumb" ]; then \
+		echo "$(CYAN)Material Icons:$(RESET)"; \
+	else \
+		echo "Material Icons:"; \
+	fi
+	@echo "  material-icons-list    - List registered icons"
+	@echo "  material-icons-add     - Download and add icons (ICONS=...)"
+	@echo "  material-icons-convert - Convert SVGs to C arrays (SVGS=...)"
 
 # Documentation screenshot generation
 screenshots: $(BIN)

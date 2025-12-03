@@ -194,26 +194,45 @@ docker-toolchain-ad5m:
 	@echo "$(CYAN)Building Adventurer 5M toolchain Docker image...$(RESET)"
 	$(Q)docker build -t helixscreen/toolchain-ad5m -f docker/Dockerfile.ad5m docker/
 
-# Display cross-compilation info
-cross-info:
-	@echo "Cross-Compilation Targets:"
-	@echo "  make pi              - Raspberry Pi (aarch64) - requires toolchain"
-	@echo "  make ad5m            - Adventurer 5M (armv7-a) - requires toolchain"
-	@echo "  make pi-docker       - Raspberry Pi via Docker (recommended)"
-	@echo "  make ad5m-docker     - Adventurer 5M via Docker (recommended)"
-	@echo ""
-	@echo "Docker Setup:"
-	@echo "  make docker-toolchains  - Build all Docker toolchain images"
-	@echo ""
-	@echo "Pi Deployment:"
-	@echo "  make deploy-pi       - Deploy binary to Pi"
-	@echo "  make deploy-pi-run   - Deploy and run in foreground"
-	@echo "  make pi-test         - Full cycle: build + deploy + run"
-	@echo "  make pi-ssh          - SSH into the Pi"
-	@echo ""
-	@echo "Current PLATFORM_TARGET: $(PLATFORM_TARGET)"
-	@echo "Display backend: $(DISPLAY_BACKEND)"
-	@echo "SDL enabled: $(ENABLE_SDL)"
+# Display cross-compilation info (alias for help-cross)
+cross-info: help-cross
+
+# Cross-compilation help
+.PHONY: help-cross
+help-cross:
+	@if [ -t 1 ] && [ -n "$(TERM)" ] && [ "$(TERM)" != "dumb" ]; then \
+		B='$(BOLD)'; G='$(GREEN)'; Y='$(YELLOW)'; C='$(CYAN)'; X='$(RESET)'; \
+	else \
+		B=''; G=''; Y=''; C=''; X=''; \
+	fi; \
+	echo "$${B}Cross-Compilation & Deployment$${X}"; \
+	echo ""; \
+	echo "$${C}Docker Cross-Compilation (recommended):$${X}"; \
+	echo "  $${G}pi-docker$${X}            - Build for Raspberry Pi (aarch64) via Docker"; \
+	echo "  $${G}ad5m-docker$${X}          - Build for Adventurer 5M (armv7-a) via Docker"; \
+	echo "  $${G}docker-toolchains$${X}    - Build all Docker toolchain images"; \
+	echo "  $${G}docker-toolchain-pi$${X}  - Build Pi toolchain image only"; \
+	echo "  $${G}docker-toolchain-ad5m$${X} - Build AD5M toolchain image only"; \
+	echo ""; \
+	echo "$${C}Direct Cross-Compilation (requires local toolchain):$${X}"; \
+	echo "  $${G}pi$${X}                   - Cross-compile for Raspberry Pi"; \
+	echo "  $${G}ad5m$${X}                 - Cross-compile for Adventurer 5M"; \
+	echo ""; \
+	echo "$${C}Pi Deployment:$${X}"; \
+	echo "  $${G}deploy-pi$${X}            - Deploy binaries + assets to Pi via rsync"; \
+	echo "  $${G}deploy-pi-run$${X}        - Deploy and run in foreground"; \
+	echo "  $${G}pi-test$${X}              - Full cycle: build + deploy + run"; \
+	echo "  $${G}pi-ssh$${X}               - SSH into the Pi"; \
+	echo ""; \
+	echo "$${C}Deployment Options:$${X}"; \
+	echo "  $${Y}PI_HOST$${X}=hostname     - Pi hostname (default: helixpi.local)"; \
+	echo "  $${Y}PI_USER$${X}=user         - Pi username (default: from SSH config)"; \
+	echo "  $${Y}PI_DEPLOY_DIR$${X}=path   - Deployment directory (default: ~/helixscreen)"; \
+	echo ""; \
+	echo "$${C}Current Configuration:$${X}"; \
+	echo "  Platform target: $(PLATFORM_TARGET)"; \
+	echo "  Display backend: $(DISPLAY_BACKEND)"; \
+	echo "  SDL enabled: $(ENABLE_SDL)"
 
 # =============================================================================
 # Pi Deployment Configuration

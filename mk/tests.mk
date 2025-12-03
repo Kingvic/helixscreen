@@ -642,3 +642,49 @@ clean-tinygl-tests:
 	$(Q)rm -f $(TINYGL_TEST_FRAMEWORK_BIN) $(TINYGL_TEST_FRAMEWORK_OBJS)
 	$(Q)rm -rf $(TINYGL_TEST_DIR)/output $(TINYGL_TEST_DIR)/reference
 	$(ECHO) "$(GREEN)✓ TinyGL test artifacts cleaned$(RESET)"
+
+# ============================================================================
+# Test Help
+# ============================================================================
+
+.PHONY: help-test
+help-test:
+	@if [ -t 1 ] && [ -n "$(TERM)" ] && [ "$(TERM)" != "dumb" ]; then \
+		B='$(BOLD)'; G='$(GREEN)'; Y='$(YELLOW)'; C='$(CYAN)'; X='$(RESET)'; \
+	else \
+		B=''; G=''; Y=''; C=''; X=''; \
+	fi; \
+	echo "$${B}Test Targets$${X}"; \
+	echo ""; \
+	echo "$${C}Main Test Targets:$${X}"; \
+	echo "  $${G}test$${X}                 - Run all unit tests (excludes hidden/slow)"; \
+	echo "  $${G}test-fast$${X}            - Run fast tests only (skip [slow] tagged)"; \
+	echo "  $${G}test-slow$${X}            - Run only slow tests"; \
+	echo "  $${G}test-verbose$${X}         - Run with per-test timing"; \
+	echo "  $${G}test-build$${X}           - Build tests without running"; \
+	echo ""; \
+	echo "$${C}Component Tests:$${X}"; \
+	echo "  $${G}test-gcode$${X}           - G-code parsing and geometry tests"; \
+	echo "  $${G}test-ui$${X}              - UI navigation, theme, wizard tests"; \
+	echo "  $${G}test-moonraker$${X}       - Moonraker client and mock tests"; \
+	echo "  $${G}test-network$${X}         - WiFi and Ethernet tests"; \
+	echo "  $${G}test-security$${X}        - Security and injection tests"; \
+	echo "  $${G}test-config$${X}          - Configuration tests"; \
+	echo "  $${G}test-integration$${X}     - Integration tests (with mocks)"; \
+	echo ""; \
+	echo "$${C}TinyGL 3D Tests:$${X}"; \
+	echo "  $${G}test-tinygl-triangle$${X} - Basic TinyGL rendering test"; \
+	echo "  $${G}test-gcode-geometry$${X}  - G-code to 3D geometry test"; \
+	echo "  $${G}test-tinygl-framework$${X} - Comprehensive TinyGL test suite"; \
+	echo "  $${G}test-tinygl-quality$${X}  - Rendering quality tests"; \
+	echo "  $${G}test-tinygl-performance$${X} - Performance benchmarks"; \
+	echo ""; \
+	echo "$${C}Discovery:$${X}"; \
+	echo "  $${G}test-list$${X}            - List all test cases"; \
+	echo "  $${G}test-list-tags$${X}       - List available test tags"; \
+	echo "  $${G}test-timing$${X}          - Show slowest tests (top 20)"; \
+	echo "  $${G}test-summary$${X}         - Test coverage by tag"; \
+	echo ""; \
+	echo "$${C}Cleanup:$${X}"; \
+	echo "  $${G}clean-tests$${X}          - Remove test build artifacts"; \
+	echo "  $${G}clean-tinygl-tests$${X}   - Remove TinyGL test artifacts"
