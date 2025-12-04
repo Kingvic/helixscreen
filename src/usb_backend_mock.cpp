@@ -32,7 +32,9 @@ UsbBackendMock::UsbBackendMock() : running_(false) {
 }
 
 UsbBackendMock::~UsbBackendMock() {
-    stop();
+    // Don't call stop() - it locks mutex_ which may be in invalid state during
+    // static destruction. Just mark as not running (no lock needed in destructor).
+    running_ = false;
 }
 
 UsbError UsbBackendMock::start() {

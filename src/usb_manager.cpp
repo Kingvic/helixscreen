@@ -30,7 +30,10 @@ UsbManager::UsbManager(bool force_mock) : force_mock_(force_mock) {
 }
 
 UsbManager::~UsbManager() {
-    stop();
+    // Don't call stop() which locks mutex_ - during static destruction
+    // the mutex may already be destroyed, causing "mutex lock failed" crash.
+    // Just reset the backend - its destructor will handle cleanup without locking.
+    backend_.reset();
 }
 
 bool UsbManager::start() {
