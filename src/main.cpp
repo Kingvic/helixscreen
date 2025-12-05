@@ -1726,8 +1726,7 @@ int main(int argc, char** argv) {
     ui_nav_init_overlay_backdrop(screen);
 
     // Find widgets by name (robust to XML structure changes)
-    lv_obj_t* navbar =
-        lv_obj_get_child(app_layout, 0); // navbar is first child (no name attr on component)
+    lv_obj_t* navbar = lv_obj_find_by_name(app_layout, "navbar");
     lv_obj_t* content_area = lv_obj_find_by_name(app_layout, "content_area");
 
     if (!navbar || !content_area) {
@@ -1739,8 +1738,8 @@ int main(int argc, char** argv) {
     // Wire up navigation button click handlers and trigger initial color update
     ui_nav_wire_events(navbar);
 
-    // Wire up status icons (printer, network, notification) with responsive scaling
-    ui_nav_wire_status_icons(navbar);
+    // NOTE: Status icons (printer, network, notification) are now in home_panel.xml
+    // They use XML-defined event callbacks and don't need C++ wiring
 
     // Find panel container by name (robust to layout changes like removing status_bar)
     lv_obj_t* panel_container = lv_obj_find_by_name(content_area, "panel_container");

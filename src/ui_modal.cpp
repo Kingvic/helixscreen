@@ -265,9 +265,9 @@ void ui_modal_hide(lv_obj_t* modal) {
 
     if (it == g_modal_stack.end()) {
         spdlog::warn("[Modal] Modal not found in stack: {}", (void*)modal);
-        // Still try to hide/delete it
+        // Still try to hide/delete it (async to avoid use-after-free in event handlers)
         if (lv_obj_is_valid(modal)) {
-            lv_obj_delete(modal);
+            lv_obj_delete_async(modal);
         }
         return;
     }
@@ -288,12 +288,16 @@ void ui_modal_hide(lv_obj_t* modal) {
     g_modal_stack.erase(it);
 
     // Hide or delete based on lifecycle policy
+    // Note: We use lv_obj_delete_async() for non-persistent modals to avoid
+    // crashing when ui_modal_hide() is called from within an event handler
+    // (e.g., a button click callback). Synchronous deletion would free the
+    // button while LVGL is still processing its event, causing use-after-free.
     if (was_persistent) {
         spdlog::debug("[Modal] Persistent modal - hiding");
         lv_obj_add_flag(modal, LV_OBJ_FLAG_HIDDEN);
     } else {
-        spdlog::debug("[Modal] Non-persistent modal - deleting");
-        lv_obj_delete(modal);
+        spdlog::debug("[Modal] Non-persistent modal - async delete");
+        lv_obj_delete_async(modal);
     }
 
     spdlog::info("[Modal] Modal hidden (stack depth: {})", g_modal_stack.size());
