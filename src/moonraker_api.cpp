@@ -26,11 +26,13 @@
 #include "ui_error_reporting.h"
 #include "ui_notification.h"
 
+#include "hv/hurl.h"     // libhv URL encoding utilities
 #include "hv/requests.h" // libhv HTTP client for file transfers
 #include "spdlog/spdlog.h"
 
 #include <algorithm>
 #include <cctype>
+#include <fstream>
 #include <iomanip>
 #include <set>
 #include <sstream>
@@ -1165,6 +1167,115 @@ void MoonrakerAPI::download_file(const std::string& root, const std::string& pat
     });
 }
 
+void MoonrakerAPI::download_thumbnail(const std::string& thumbnail_path,
+                                      const std::string& cache_path, StringCallback on_success,
+                                      ErrorCallback on_error) {
+    // Validate inputs
+    if (thumbnail_path.empty()) {
+        spdlog::warn("[Moonraker API] Empty thumbnail path");
+        if (on_error) {
+            MoonrakerError err;
+            err.type = MoonrakerErrorType::VALIDATION_ERROR;
+            err.message = "Empty thumbnail path";
+            err.method = "download_thumbnail";
+            on_error(err);
+        }
+        return;
+    }
+
+    if (http_base_url_.empty()) {
+        spdlog::error(
+            "[Moonraker API] HTTP base URL not configured - call set_http_base_url first");
+        if (on_error) {
+            MoonrakerError err;
+            err.type = MoonrakerErrorType::CONNECTION_LOST;
+            err.message = "HTTP base URL not configured";
+            err.method = "download_thumbnail";
+            on_error(err);
+        }
+        return;
+    }
+
+    // Build URL: http://host:port/server/files/gcodes/{thumbnail_path}
+    // Thumbnail paths from metadata are relative to gcodes root
+    // URL-encode the path to handle spaces and special characters
+    // Leave /.-_ unescaped as they're valid in URL paths
+    std::string encoded_path = HUrl::escape(thumbnail_path, "/.-_");
+    std::string url = http_base_url_ + "/server/files/gcodes/" + encoded_path;
+
+    spdlog::debug("[Moonraker API] Downloading thumbnail: {} -> {}", url, cache_path);
+
+    // Run HTTP request in a tracked thread to ensure clean shutdown
+    launch_http_thread([url, thumbnail_path, cache_path, on_success, on_error]() {
+        auto resp = requests::get(url.c_str());
+
+        if (!resp) {
+            spdlog::error("[Moonraker API] HTTP request failed for thumbnail: {}", url);
+            if (on_error) {
+                MoonrakerError err;
+                err.type = MoonrakerErrorType::CONNECTION_LOST;
+                err.message = "HTTP request failed";
+                err.method = "download_thumbnail";
+                on_error(err);
+            }
+            return;
+        }
+
+        if (resp->status_code == 404) {
+            spdlog::warn("[Moonraker API] Thumbnail not found: {}", thumbnail_path);
+            if (on_error) {
+                MoonrakerError err;
+                err.type = MoonrakerErrorType::FILE_NOT_FOUND;
+                err.code = resp->status_code;
+                err.message = "Thumbnail not found: " + thumbnail_path;
+                err.method = "download_thumbnail";
+                on_error(err);
+            }
+            return;
+        }
+
+        if (resp->status_code != 200) {
+            spdlog::error("[Moonraker API] HTTP {} downloading thumbnail {}: {}",
+                          static_cast<int>(resp->status_code), thumbnail_path,
+                          resp->status_message());
+            if (on_error) {
+                MoonrakerError err;
+                err.type = MoonrakerErrorType::UNKNOWN;
+                err.code = static_cast<int>(resp->status_code);
+                err.message = "HTTP " + std::to_string(static_cast<int>(resp->status_code)) + ": " +
+                              resp->status_message();
+                err.method = "download_thumbnail";
+                on_error(err);
+            }
+            return;
+        }
+
+        // Write to cache file
+        std::ofstream file(cache_path, std::ios::binary);
+        if (!file) {
+            spdlog::error("[Moonraker API] Failed to create cache file: {}", cache_path);
+            if (on_error) {
+                MoonrakerError err;
+                err.type = MoonrakerErrorType::UNKNOWN;
+                err.message = "Failed to create cache file: " + cache_path;
+                err.method = "download_thumbnail";
+                on_error(err);
+            }
+            return;
+        }
+
+        file.write(resp->body.data(), static_cast<std::streamsize>(resp->body.size()));
+        file.close();
+
+        spdlog::debug("[Moonraker API] Cached thumbnail {} bytes -> {}", resp->body.size(),
+                      cache_path);
+
+        if (on_success) {
+            on_success(cache_path);
+        }
+    });
+}
+
 void MoonrakerAPI::upload_file(const std::string& root, const std::string& path,
                                const std::string& content, SuccessCallback on_success,
                                ErrorCallback on_error) {
@@ -1286,7 +1397,38 @@ std::vector<FileInfo> MoonrakerAPI::parse_file_list(const json& response) {
 
     const json& result = response["result"];
 
-    // Parse directory items
+    // Moonraker returns a flat array of file/directory objects in "result"
+    // Each object has: path, modified, size, permissions
+    // Directories are NOT returned by server.files.list - only by server.files.get_directory
+    if (result.is_array()) {
+        for (const auto& item : result) {
+            FileInfo info;
+            if (item.contains("path")) {
+                info.path = item["path"].get<std::string>();
+                // filename is the last component of the path
+                size_t last_slash = info.path.rfind('/');
+                info.filename = (last_slash != std::string::npos) ? info.path.substr(last_slash + 1)
+                                                                  : info.path;
+            } else if (item.contains("filename")) {
+                info.filename = item["filename"].get<std::string>();
+            }
+            if (item.contains("size")) {
+                info.size = item["size"].get<uint64_t>();
+            }
+            if (item.contains("modified")) {
+                info.modified = item["modified"].get<double>();
+            }
+            if (item.contains("permissions")) {
+                info.permissions = item["permissions"].get<std::string>();
+            }
+            info.is_dir = false; // server.files.list only returns files
+            files.push_back(info);
+        }
+        return files;
+    }
+
+    // Legacy format: result is an object with "dirs" and "files" arrays
+    // (may be used by server.files.get_directory or older Moonraker versions)
     if (result.contains("dirs")) {
         for (const auto& dir : result["dirs"]) {
             FileInfo info;
@@ -1304,7 +1446,6 @@ std::vector<FileInfo> MoonrakerAPI::parse_file_list(const json& response) {
         }
     }
 
-    // Parse file items
     if (result.contains("files")) {
         for (const auto& file : result["files"]) {
             FileInfo info;
@@ -1364,7 +1505,7 @@ FileMetadata MoonrakerAPI::parse_file_metadata(const json& response) {
         metadata.print_start_time = result["print_start_time"].get<double>();
     }
     if (result.contains("job_id")) {
-        metadata.job_id = result["job_id"].get<double>();
+        metadata.job_id = result["job_id"].get<std::string>();
     }
     if (result.contains("layer_count")) {
         metadata.layer_count = result["layer_count"].get<uint32_t>();
@@ -1407,11 +1548,21 @@ FileMetadata MoonrakerAPI::parse_file_metadata(const json& response) {
         metadata.gcode_end_byte = result["gcode_end_byte"].get<uint64_t>();
     }
 
-    // Thumbnails
+    // Thumbnails - parse with dimensions for selecting largest
     if (result.contains("thumbnails")) {
         for (const auto& thumb : result["thumbnails"]) {
             if (thumb.contains("relative_path")) {
-                metadata.thumbnails.push_back(thumb["relative_path"].get<std::string>());
+                ThumbnailInfo info;
+                info.relative_path = thumb["relative_path"].get<std::string>();
+                if (thumb.contains("width")) {
+                    info.width = thumb["width"].get<int>();
+                }
+                if (thumb.contains("height")) {
+                    info.height = thumb["height"].get<int>();
+                }
+                metadata.thumbnails.push_back(info);
+                spdlog::trace("[Moonraker API] Found thumbnail {}x{}: {}", info.width, info.height,
+                              info.relative_path);
             }
         }
     }

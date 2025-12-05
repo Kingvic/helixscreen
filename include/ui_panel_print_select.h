@@ -193,6 +193,14 @@ class PrintSelectPanel : public PanelBase {
     void refresh_files();
 
     /**
+     * @brief Fetch metadata for all files in the current list
+     *
+     * Called from main thread after views are populated.
+     * Triggers async metadata + thumbnail fetches.
+     */
+    void fetch_all_metadata();
+
+    /**
      * @brief Navigate into a subdirectory
      *
      * @param dirname Directory name to navigate into
@@ -318,7 +326,7 @@ class PrintSelectPanel : public PanelBase {
 
     static constexpr const char* CARD_COMPONENT_NAME = "print_file_card";
     static constexpr int CARD_GAP = 20;
-    static constexpr int CARD_MIN_WIDTH = 155; // Lowered from 165 to fit 4 columns on 800px screens
+    static constexpr int CARD_MIN_WIDTH = 150; // Lowered to fit 4 columns on 670px container width
     static constexpr int CARD_MAX_WIDTH = 230;
     static constexpr int CARD_DEFAULT_HEIGHT = 245;
     static constexpr int ROW_COUNT_3_MIN_HEIGHT = 520;

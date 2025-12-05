@@ -3,6 +3,7 @@
 
 #include "ui_panel_print_select.h"
 
+#include "ui_async_callback.h"
 #include "ui_error_reporting.h"
 #include "ui_fonts.h"
 #include "ui_modal.h"
@@ -221,6 +222,48 @@ void PrintSelectPanel::setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
         update_empty_state();
     }
 
+    // Register observer on active_panel subject to trigger on_activate() when panel becomes visible
+    // This is needed because ui_nav doesn't call lifecycle hooks on C++ panel classes
+    lv_subject_t* active_panel_subject = lv_xml_get_subject(NULL, "active_panel");
+    if (active_panel_subject) {
+        // Use static trampoline pattern (same as resize handler)
+        static PrintSelectPanel* activate_self = nullptr;
+        activate_self = this;
+        lv_subject_add_observer(
+            active_panel_subject,
+            [](lv_observer_t* /*observer*/, lv_subject_t* subject) {
+                int32_t panel_id = lv_subject_get_int(subject);
+                if (panel_id == UI_PANEL_PRINT_SELECT && activate_self) {
+                    activate_self->on_activate();
+                }
+            },
+            NULL);
+        spdlog::debug("[{}] Registered observer on active_panel subject for lazy file loading",
+                      get_name());
+    }
+
+    // Register observer on connection state to refresh files when printer connects
+    // This handles the race condition where panel activates before WebSocket connection
+    lv_subject_t* connection_subject = printer_state_.get_printer_connection_state_subject();
+    if (connection_subject) {
+        static PrintSelectPanel* connect_self = nullptr;
+        connect_self = this;
+        lv_subject_add_observer(
+            connection_subject,
+            [](lv_observer_t* /*observer*/, lv_subject_t* subject) {
+                int32_t state = lv_subject_get_int(subject);
+                // PrinterStatus::CONNECTED = 2
+                if (state == 2 && connect_self && connect_self->file_list_.empty() &&
+                    connect_self->current_source_ == FileSource::PRINTER) {
+                    spdlog::info("[{}] Connection established, refreshing file list",
+                                 connect_self->get_name());
+                    connect_self->refresh_files();
+                }
+            },
+            NULL);
+        spdlog::debug("[{}] Registered observer on connection state for auto-refresh", get_name());
+    }
+
     spdlog::debug("[{}] Setup complete", get_name());
 }
 
@@ -364,34 +407,7 @@ void PrintSelectPanel::refresh_files() {
                 self->file_list_.push_back(data);
             }
 
-            // Show files immediately with placeholder metadata
-            self->apply_sort();
-            self->update_sort_indicators();
-            self->populate_card_view();
-            self->populate_list_view();
-            self->update_empty_state();
-
-            // Check for pending file selection (--select-file flag or API call)
-            std::string pending;
-            if (!self->pending_file_selection_.empty()) {
-                pending = self->pending_file_selection_;
-                self->pending_file_selection_.clear(); // Clear to avoid repeat
-            } else if (get_runtime_config().select_file != nullptr) {
-                // Check runtime config on first load (--select-file CLI flag)
-                static bool select_file_checked = false;
-                if (!select_file_checked) {
-                    pending = get_runtime_config().select_file;
-                    select_file_checked = true;
-                }
-            }
-            if (!pending.empty()) {
-                if (!self->select_file_by_name(pending)) {
-                    spdlog::warn("[{}] Pending file selection '{}' not found in file list",
-                                 self->get_name(), pending);
-                }
-            }
-
-            // Count files vs directories
+            // Count files vs directories (can be done on any thread)
             size_t dir_count = 0, file_count = 0;
             for (const auto& item : self->file_list_) {
                 if (item.is_dir)
@@ -402,70 +418,43 @@ void PrintSelectPanel::refresh_files() {
             spdlog::info("[{}] File list updated: {} directories, {} G-code files",
                          self->get_name(), dir_count, file_count);
 
-            // Fetch metadata for files only (not directories)
-            for (size_t i = 0; i < self->file_list_.size(); i++) {
-                if (self->file_list_[i].is_dir)
-                    continue; // Skip directories
+            // Dispatch LVGL operations to main thread (LVGL is not thread-safe)
+            lv_async_call(
+                [](void* user_data) {
+                    auto* panel = static_cast<PrintSelectPanel*>(user_data);
 
-                const std::string filename = self->file_list_[i].filename;
+                    // Show files immediately with placeholder metadata
+                    panel->apply_sort();
+                    panel->update_sort_indicators();
+                    panel->populate_card_view();
+                    panel->populate_list_view();
+                    panel->update_empty_state();
 
-                self->api_->get_file_metadata(
-                    filename,
-                    // Metadata success callback
-                    [self, i, filename](const FileMetadata& metadata) {
-                        // Bounds check (file_list could change during async operation)
-                        if (i >= self->file_list_.size() ||
-                            self->file_list_[i].filename != filename) {
-                            spdlog::warn("[{}] File list changed during metadata fetch for {}",
-                                         self->get_name(), filename);
-                            return;
+                    // Check for pending file selection (--select-file flag or API call)
+                    std::string pending;
+                    if (!panel->pending_file_selection_.empty()) {
+                        pending = panel->pending_file_selection_;
+                        panel->pending_file_selection_.clear(); // Clear to avoid repeat
+                    } else if (get_runtime_config().select_file != nullptr) {
+                        // Check runtime config on first load (--select-file CLI flag)
+                        static bool select_file_checked = false;
+                        if (!select_file_checked) {
+                            pending = get_runtime_config().select_file;
+                            select_file_checked = true;
                         }
-
-                        // Update metadata fields
-                        self->file_list_[i].print_time_minutes =
-                            static_cast<int>(metadata.estimated_time / 60.0);
-                        self->file_list_[i].filament_grams =
-                            static_cast<float>(metadata.filament_weight_total);
-                        self->file_list_[i].filament_type = metadata.filament_type;
-
-                        // Update formatted strings
-                        self->file_list_[i].print_time_str =
-                            format_print_time(self->file_list_[i].print_time_minutes);
-                        self->file_list_[i].filament_str =
-                            format_filament_weight(self->file_list_[i].filament_grams);
-
-                        spdlog::debug(
-                            "[{}] Updated metadata for {}: {}min, {}g, type={}", self->get_name(),
-                            filename, self->file_list_[i].print_time_minutes,
-                            self->file_list_[i].filament_grams, self->file_list_[i].filament_type);
-
-                        // Use thumbnail if available (add LVGL filesystem prefix)
-                        if (!metadata.thumbnails.empty()) {
-                            self->file_list_[i].thumbnail_path = "A:" + metadata.thumbnails[0];
-                            spdlog::debug("[{}] Thumbnail for {}: {}", self->get_name(), filename,
-                                          self->file_list_[i].thumbnail_path);
+                    }
+                    if (!pending.empty()) {
+                        if (!panel->select_file_by_name(pending)) {
+                            spdlog::warn("[{}] Pending file selection '{}' not found in file list",
+                                         panel->get_name(), pending);
                         }
+                    }
 
-                        // Schedule debounced view refresh (avoids O(n²) rebuilds)
-                        self->schedule_view_refresh();
-
-                        // Also update detail view if this file is currently selected
-                        if (strcmp(self->selected_filename_buffer_, filename.c_str()) == 0) {
-                            spdlog::debug("[{}] Updating detail view for selected file: {}",
-                                          self->get_name(), filename);
-                            self->set_selected_file(filename.c_str(),
-                                                    self->file_list_[i].thumbnail_path.c_str(),
-                                                    self->file_list_[i].print_time_str.c_str(),
-                                                    self->file_list_[i].filament_str.c_str());
-                        }
-                    },
-                    // Metadata error callback
-                    [self, filename](const MoonrakerError& error) {
-                        spdlog::warn("[{}] Failed to get metadata for {}: {} ({})",
-                                     self->get_name(), filename, error.message,
-                                     error.get_type_string());
-                    });
-            }
+                    // Now that views are populated, trigger metadata fetch
+                    // This ensures thumbnails arrive AFTER cards exist
+                    panel->fetch_all_metadata();
+                },
+                self);
         },
         // Error callback
         [self](const MoonrakerError& error) {
@@ -473,6 +462,133 @@ void PrintSelectPanel::refresh_files() {
             LOG_ERROR_INTERNAL("[{}] File list refresh error: {} ({})", self->get_name(),
                                error.message, error.get_type_string());
         });
+}
+
+void PrintSelectPanel::fetch_all_metadata() {
+    if (!api_) {
+        return;
+    }
+
+    auto* self = this;
+
+    // Fetch metadata for files only (not directories)
+    for (size_t i = 0; i < file_list_.size(); i++) {
+        if (file_list_[i].is_dir)
+            continue; // Skip directories
+
+        const std::string filename = file_list_[i].filename;
+
+        api_->get_file_metadata(
+            filename,
+            // Metadata success callback
+            [self, i, filename](const FileMetadata& metadata) {
+                // Bounds check (file_list could change during async operation)
+                if (i >= self->file_list_.size() || self->file_list_[i].filename != filename) {
+                    spdlog::warn("[{}] File list changed during metadata fetch for {}",
+                                 self->get_name(), filename);
+                    return;
+                }
+
+                // Update metadata fields
+                self->file_list_[i].print_time_minutes =
+                    static_cast<int>(metadata.estimated_time / 60.0);
+                self->file_list_[i].filament_grams =
+                    static_cast<float>(metadata.filament_weight_total);
+                self->file_list_[i].filament_type = metadata.filament_type;
+
+                // Update formatted strings
+                self->file_list_[i].print_time_str =
+                    format_print_time(self->file_list_[i].print_time_minutes);
+                self->file_list_[i].filament_str =
+                    format_filament_weight(self->file_list_[i].filament_grams);
+
+                spdlog::debug("[{}] Updated metadata for {}: {}min, {}g, type={}", self->get_name(),
+                              filename, self->file_list_[i].print_time_minutes,
+                              self->file_list_[i].filament_grams,
+                              self->file_list_[i].filament_type);
+
+                // Handle thumbnail if available - use largest for best quality
+                std::string thumb_path = metadata.get_largest_thumbnail();
+                if (!thumb_path.empty() && self->api_) {
+                    // Check if this is already a local file (mock mode returns local paths)
+                    // Mock paths: "build/thumbnail_cache/..."
+                    // Real Moonraker paths: ".thumbnails/..." (relative to gcodes)
+                    if (std::filesystem::exists(thumb_path)) {
+                        // Local file exists - use directly (mock mode)
+                        self->file_list_[i].thumbnail_path = "A:" + thumb_path;
+                        spdlog::debug("[{}] Using local thumbnail for {}: {}", self->get_name(),
+                                      filename, self->file_list_[i].thumbnail_path);
+                    } else {
+                        // Remote path - download from Moonraker
+                        std::hash<std::string> hasher;
+                        size_t hash = hasher(thumb_path);
+                        std::string cache_file =
+                            "/tmp/helix_thumbs/" + std::to_string(hash) + ".png";
+
+                        // Ensure cache directory exists
+                        std::filesystem::create_directories("/tmp/helix_thumbs");
+
+                        spdlog::debug("[{}] Downloading thumbnail for {}: {} -> {}",
+                                      self->get_name(), filename, thumb_path, cache_file);
+
+                        // Capture index for callback
+                        size_t file_idx = i;
+                        self->api_->download_thumbnail(
+                            thumb_path, cache_file,
+                            // Success callback
+                            [self, file_idx, filename](const std::string& local_path) {
+                                if (file_idx < self->file_list_.size()) {
+                                    // Add LVGL filesystem prefix
+                                    self->file_list_[file_idx].thumbnail_path = "A:" + local_path;
+                                    spdlog::debug("[{}] Thumbnail cached for {}: {}",
+                                                  self->get_name(), filename,
+                                                  self->file_list_[file_idx].thumbnail_path);
+                                    // Refresh view with new thumbnail
+                                    self->schedule_view_refresh();
+                                }
+                            },
+                            // Error callback
+                            [self, filename](const MoonrakerError& error) {
+                                spdlog::warn("[{}] Failed to download thumbnail for {}: {}",
+                                             self->get_name(), filename, error.message);
+                            });
+                    }
+                }
+
+                // Schedule debounced view refresh (avoids O(n²) rebuilds)
+                // schedule_view_refresh is already thread-safe (uses lv_async_call internally)
+                self->schedule_view_refresh();
+
+                // Also update detail view if this file is currently selected
+                // Must dispatch to main thread since set_selected_file modifies LVGL widgets
+                if (strcmp(self->selected_filename_buffer_, filename.c_str()) == 0) {
+                    spdlog::debug("[{}] Updating detail view for selected file: {}",
+                                  self->get_name(), filename);
+
+                    // Capture values for async call (can't use references across threads)
+                    struct UpdateData {
+                        PrintSelectPanel* panel;
+                        std::string filename;
+                        std::string thumbnail;
+                        std::string time;
+                        std::string filament;
+                    };
+                    ui_async_call_safe<UpdateData>(
+                        std::make_unique<UpdateData>(UpdateData{
+                            self, filename, self->file_list_[i].thumbnail_path,
+                            self->file_list_[i].print_time_str, self->file_list_[i].filament_str}),
+                        [](UpdateData* d) {
+                            d->panel->set_selected_file(d->filename.c_str(), d->thumbnail.c_str(),
+                                                        d->time.c_str(), d->filament.c_str());
+                        });
+                }
+            },
+            // Metadata error callback
+            [self, filename](const MoonrakerError& error) {
+                spdlog::warn("[{}] Failed to get metadata for {}: {} ({})", self->get_name(),
+                             filename, error.message, error.get_type_string());
+            });
+    }
 }
 
 void PrintSelectPanel::set_api(MoonrakerAPI* api) {
@@ -653,6 +769,8 @@ CardDimensions PrintSelectPanel::calculate_card_dimensions() {
     }
 
     lv_coord_t container_width = lv_obj_get_content_width(card_view_container_);
+    spdlog::debug("[{}] Container content width: {}px (MIN={}, MAX={}, GAP={})", get_name(),
+                  container_width, CARD_MIN_WIDTH, CARD_MAX_WIDTH, CARD_GAP);
 
     // Calculate available height from parent panel dimensions
     lv_obj_t* panel_root = lv_obj_get_parent(card_view_container_);
@@ -706,31 +824,45 @@ CardDimensions PrintSelectPanel::calculate_card_dimensions() {
 }
 
 void PrintSelectPanel::schedule_view_refresh() {
-    // If a timer is already pending, reset it (debounce)
-    if (refresh_timer_) {
-        lv_timer_reset(refresh_timer_);
-        return;
-    }
+    // Use lv_async_call to ensure thread-safety (this may be called from WebSocket thread)
+    lv_async_call(
+        [](void* user_data) {
+            auto* self = static_cast<PrintSelectPanel*>(user_data);
 
-    // Create a one-shot timer to refresh views after debounce period
-    refresh_timer_ = lv_timer_create(
-        [](lv_timer_t* timer) {
-            auto* self = static_cast<PrintSelectPanel*>(lv_timer_get_user_data(timer));
-            self->refresh_timer_ = nullptr; // Clear before callback (timer auto-deletes)
+            // If a timer is already pending, reset it (debounce)
+            if (self->refresh_timer_) {
+                lv_timer_reset(self->refresh_timer_);
+                return;
+            }
 
-            // Now actually refresh the views
-            self->populate_card_view();
-            self->populate_list_view();
+            // Create a one-shot timer to refresh views after debounce period
+            self->refresh_timer_ = lv_timer_create(
+                [](lv_timer_t* timer) {
+                    auto* panel = static_cast<PrintSelectPanel*>(lv_timer_get_user_data(timer));
+                    panel->refresh_timer_ = nullptr; // Clear before callback (timer auto-deletes)
+
+                    spdlog::debug("[{}] Debounced view refresh triggered - refreshing cards with "
+                                  "updated metadata",
+                                  panel->get_name());
+
+                    // Now actually refresh the views
+                    panel->populate_card_view();
+                    panel->populate_list_view();
+                },
+                REFRESH_DEBOUNCE_MS, self);
+
+            // Make it a one-shot timer
+            lv_timer_set_repeat_count(self->refresh_timer_, 1);
         },
-        REFRESH_DEBOUNCE_MS, this);
-
-    // Make it a one-shot timer
-    lv_timer_set_repeat_count(refresh_timer_, 1);
+        this);
 }
 
 void PrintSelectPanel::populate_card_view() {
     if (!card_view_container_)
         return;
+
+    spdlog::debug("[{}] populate_card_view() starting with {} files", get_name(),
+                  file_list_.size());
 
     // Clear existing cards
     lv_obj_clean(card_view_container_);
@@ -746,6 +878,9 @@ void PrintSelectPanel::populate_card_view() {
 
     for (size_t i = 0; i < file_list_.size(); i++) {
         const auto& file = file_list_[i];
+
+        spdlog::debug("[{}] Creating card {}/{}: '{}' thumb='{}' is_dir={}", get_name(), i + 1,
+                      file_list_.size(), file.filename, file.thumbnail_path, file.is_dir);
 
         // For directories, append "/" to indicate navigable folder
         // For files, strip extension for cleaner display
@@ -765,17 +900,25 @@ void PrintSelectPanel::populate_card_view() {
         lv_obj_t* card =
             static_cast<lv_obj_t*>(lv_xml_create(card_view_container_, CARD_COMPONENT_NAME, attrs));
 
+        spdlog::debug("[{}] Card {} created: {}", get_name(), i + 1, card ? "success" : "FAILED");
+
         if (card) {
             // Manually set thumbnail src - XML can only resolve pre-registered images,
             // not dynamic file paths like cached thumbnails
             lv_obj_t* thumb_img = lv_obj_find_by_name(card, "thumbnail");
+            spdlog::debug("[{}] Card {} thumb_img lookup: {}", get_name(), i + 1,
+                          thumb_img ? "found" : "not found");
             if (thumb_img && !file.thumbnail_path.empty()) {
+                spdlog::debug("[{}] Card {} setting thumbnail src: '{}'", get_name(), i + 1,
+                              file.thumbnail_path);
                 lv_image_set_src(thumb_img, file.thumbnail_path.c_str());
             }
 
             lv_obj_set_width(card, dims.card_width);
             lv_obj_set_height(card, dims.card_height);
             lv_obj_set_style_flex_grow(card, 0, LV_PART_MAIN);
+            spdlog::debug("[{}] Card {} sized: {}x{}", get_name(), i + 1, dims.card_width,
+                          dims.card_height);
 
             // For directories: recolor icon, hide metadata, reduce overlay height
             if (file.is_dir) {

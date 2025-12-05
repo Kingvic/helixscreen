@@ -79,6 +79,20 @@ struct FileInfo {
 };
 
 /**
+ * @brief Thumbnail info with dimensions
+ */
+struct ThumbnailInfo {
+    std::string relative_path;
+    int width = 0;
+    int height = 0;
+
+    /// Calculate pixel count for comparison
+    int pixel_count() const {
+        return width * height;
+    }
+};
+
+/**
  * @brief File metadata structure (detailed file info)
  */
 struct FileMetadata {
@@ -88,7 +102,7 @@ struct FileMetadata {
     std::string slicer;
     std::string slicer_version;
     double print_start_time = 0.0;
-    double job_id = 0.0;
+    std::string job_id; // Moonraker returns hex string like "00000D"
     uint32_t layer_count = 0;
     double object_height = 0.0;         // mm
     double estimated_time = 0.0;        // seconds
@@ -99,7 +113,23 @@ struct FileMetadata {
     double first_layer_extr_temp = 0.0;
     uint64_t gcode_start_byte = 0;
     uint64_t gcode_end_byte = 0;
-    std::vector<std::string> thumbnails; // Base64 or paths
+    std::vector<ThumbnailInfo> thumbnails; // Thumbnails with dimensions
+
+    /**
+     * @brief Get the largest thumbnail path
+     * @return Path to largest thumbnail, or empty string if none available
+     */
+    std::string get_largest_thumbnail() const {
+        if (thumbnails.empty())
+            return "";
+        const ThumbnailInfo* best = &thumbnails[0];
+        for (const auto& t : thumbnails) {
+            if (t.pixel_count() > best->pixel_count()) {
+                best = &t;
+            }
+        }
+        return best->relative_path;
+    }
 };
 
 /**
@@ -482,6 +512,23 @@ class MoonrakerAPI {
      */
     virtual void download_file(const std::string& root, const std::string& path,
                                StringCallback on_success, ErrorCallback on_error);
+
+    /**
+     * @brief Download a thumbnail image and cache it locally
+     *
+     * Downloads thumbnail from Moonraker's HTTP server and saves to a local cache file.
+     * The callback receives the local file path (suitable for LVGL image loading).
+     *
+     * Virtual to allow mocking in tests.
+     *
+     * @param thumbnail_path Relative path from metadata (e.g., ".thumbnails/file.png")
+     * @param cache_path Local filesystem path to save the thumbnail
+     * @param on_success Callback with local cache path
+     * @param on_error Error callback
+     */
+    virtual void download_thumbnail(const std::string& thumbnail_path,
+                                    const std::string& cache_path, StringCallback on_success,
+                                    ErrorCallback on_error);
 
     /**
      * @brief Upload file content to the printer via HTTP multipart form
