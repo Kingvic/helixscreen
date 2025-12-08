@@ -58,6 +58,15 @@ static void on_completion_alert_dropdown_changed(lv_event_t* e) {
     SettingsManager::instance().set_completion_alert_mode(mode);
 }
 
+// Static callback for display sleep dropdown
+static void on_display_sleep_dropdown_changed(lv_event_t* e) {
+    lv_obj_t* dropdown = static_cast<lv_obj_t*>(lv_event_get_current_target(e));
+    int index = static_cast<int>(lv_dropdown_get_selected(dropdown));
+    int seconds = SettingsManager::index_to_sleep_seconds(index);
+    spdlog::info("[SettingsPanel] Display sleep changed: index {} = {}s", index, seconds);
+    SettingsManager::instance().set_display_sleep_sec(seconds);
+}
+
 void SettingsPanel::init_subjects() {
     if (subjects_initialized_) {
         spdlog::warn("[{}] init_subjects() called twice - ignoring", get_name());
@@ -70,6 +79,8 @@ void SettingsPanel::init_subjects() {
     // Register XML event callbacks
     lv_xml_register_event_cb(nullptr, "on_completion_alert_changed",
                              on_completion_alert_dropdown_changed);
+    lv_xml_register_event_cb(nullptr, "on_display_sleep_changed",
+                             on_display_sleep_dropdown_changed);
 
     // Note: BedMeshPanel subjects are initialized in main.cpp during startup
 
@@ -594,32 +605,19 @@ void SettingsPanel::handle_display_settings_clicked() {
                     LV_EVENT_VALUE_CHANGED, nullptr);
             }
 
-            // Wire up timeout preset buttons
-            static constexpr struct {
-                const char* name;
-                int seconds;
-            } timeouts[] = {
-                {"timeout_never", 0},   {"timeout_1min", 60},    {"timeout_5min", 300},
-                {"timeout_10min", 600}, {"timeout_30min", 1800},
-            };
-
-            for (const auto& t : timeouts) {
-                lv_obj_t* btn = lv_obj_find_by_name(display_settings_overlay_, t.name);
-                if (btn) {
-                    // Store timeout value as user data (cast int to pointer)
-                    lv_obj_set_user_data(btn,
-                                         reinterpret_cast<void*>(static_cast<intptr_t>(t.seconds)));
-                    lv_obj_add_event_cb(
-                        btn,
-                        [](lv_event_t* e) {
-                            auto* button = static_cast<lv_obj_t*>(lv_event_get_current_target(e));
-                            int seconds = static_cast<int>(
-                                reinterpret_cast<intptr_t>(lv_obj_get_user_data(button)));
-                            SettingsManager::instance().set_display_sleep_sec(seconds);
-                            spdlog::info("Display sleep set to {}s", seconds);
-                        },
-                        LV_EVENT_CLICKED, nullptr);
-                }
+            // Initialize sleep timeout dropdown
+            lv_obj_t* sleep_dropdown =
+                lv_obj_find_by_name(display_settings_overlay_, "sleep_timeout_dropdown");
+            if (sleep_dropdown) {
+                // Set dropdown options
+                lv_dropdown_set_options(sleep_dropdown,
+                                        "Never\n1 minute\n5 minutes\n10 minutes\n30 minutes");
+                // Set initial selection based on current setting
+                int current_sec = SettingsManager::instance().get_display_sleep_sec();
+                int index = SettingsManager::sleep_seconds_to_index(current_sec);
+                lv_dropdown_set_selected(sleep_dropdown, index);
+                spdlog::debug("[{}] Sleep dropdown initialized to index {} ({}s)", get_name(),
+                              index, current_sec);
             }
 
             // Initially hidden
