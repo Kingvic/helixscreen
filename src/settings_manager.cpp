@@ -267,8 +267,8 @@ void SettingsManager::init_subjects() {
     bool dark_mode = config->get<bool>("/dark_mode", true);
     lv_subject_init_int(&dark_mode_subject_, dark_mode ? 1 : 0);
 
-    // Display sleep (default: 600 seconds = 10 minutes)
-    int sleep_sec = config->get<int>("/display_sleep_sec", 600);
+    // Display sleep (default: 1800 seconds = 30 minutes)
+    int sleep_sec = config->get<int>("/display_sleep_sec", 1800);
     lv_subject_init_int(&display_sleep_subject_, sleep_sec);
 
     // Brightness: Read from hardware first (Pi/Linux), fall back to config
