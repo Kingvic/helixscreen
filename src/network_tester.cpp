@@ -1,0 +1,297 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2025 HelixScreen Contributors
+
+#include "network_tester.h"
+
+#include "ui_async_callback.h"
+
+#include "spdlog/spdlog.h"
+
+#include <array>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <fstream>
+#include <sstream>
+
+#ifdef __APPLE__
+#include <cstdlib>
+#endif
+
+// ============================================================================
+// Constructor / Destructor
+// ============================================================================
+
+NetworkTester::NetworkTester() {
+    spdlog::debug("[NetworkTester] Initialized");
+}
+
+NetworkTester::~NetworkTester() {
+    spdlog::debug("[NetworkTester] Destructor called");
+
+    // Cancel any running test
+    if (running_) {
+        cancel();
+    }
+}
+
+void NetworkTester::init_self_reference(std::shared_ptr<NetworkTester> self) {
+    self_ = self;
+    spdlog::debug("[NetworkTester] Self-reference initialized for async callback safety");
+}
+
+// ============================================================================
+// Public API
+// ============================================================================
+
+void NetworkTester::start_test(Callback callback) {
+    if (running_) {
+        spdlog::warn("[NetworkTester] Test already running, ignoring start_test");
+        return;
+    }
+
+    spdlog::info("[NetworkTester] Starting network connectivity test");
+
+    callback_ = callback;
+    running_ = true;
+    cancelled_ = false;
+
+    // Clear previous results
+    result_ = TestResult{};
+
+    // Spawn worker thread
+    worker_thread_ = std::thread(&NetworkTester::run_test, this);
+}
+
+void NetworkTester::cancel() {
+    if (!running_) {
+        return;
+    }
+
+    spdlog::debug("[NetworkTester] Cancelling test");
+    cancelled_ = true;
+
+    // Wait for thread to exit
+    if (worker_thread_.joinable()) {
+        worker_thread_.join();
+    }
+
+    running_ = false;
+    spdlog::debug("[NetworkTester] Test cancelled");
+}
+
+bool NetworkTester::is_running() const {
+    return running_;
+}
+
+// ============================================================================
+// Worker Thread
+// ============================================================================
+
+void NetworkTester::run_test() {
+    spdlog::debug("[NetworkTester] Worker thread started");
+
+    // Step 1: Test gateway connectivity
+    report_state(TestState::TESTING_GATEWAY);
+
+    result_.gateway_ip = get_default_gateway();
+    if (result_.gateway_ip.empty()) {
+        result_.error_message = "No default gateway found";
+        spdlog::warn("[NetworkTester] {}", result_.error_message);
+        report_state(TestState::FAILED);
+        running_ = false;
+        return;
+    }
+
+    if (cancelled_) {
+        spdlog::debug("[NetworkTester] Test cancelled during gateway lookup");
+        running_ = false;
+        return;
+    }
+
+    spdlog::debug("[NetworkTester] Testing gateway: {}", result_.gateway_ip);
+    result_.gateway_ok = ping_host(result_.gateway_ip, 2);
+
+    if (!result_.gateway_ok) {
+        result_.error_message = "Gateway unreachable: " + result_.gateway_ip;
+        spdlog::warn("[NetworkTester] {}", result_.error_message);
+        report_state(TestState::FAILED);
+        running_ = false;
+        return;
+    }
+
+    if (cancelled_) {
+        spdlog::debug("[NetworkTester] Test cancelled after gateway test");
+        running_ = false;
+        return;
+    }
+
+    // Step 2: Test internet connectivity
+    report_state(TestState::TESTING_INTERNET);
+
+    // Try Google DNS first, fallback to Cloudflare
+    spdlog::debug("[NetworkTester] Testing internet: 8.8.8.8");
+    result_.internet_ok = ping_host("8.8.8.8", 2);
+
+    if (!result_.internet_ok && !cancelled_) {
+        spdlog::debug("[NetworkTester] Testing internet: 1.1.1.1 (fallback)");
+        result_.internet_ok = ping_host("1.1.1.1", 2);
+    }
+
+    if (cancelled_) {
+        spdlog::debug("[NetworkTester] Test cancelled during internet test");
+        running_ = false;
+        return;
+    }
+
+    if (!result_.internet_ok) {
+        result_.error_message = "Internet unreachable (gateway OK)";
+        spdlog::warn("[NetworkTester] {}", result_.error_message);
+    } else {
+        spdlog::info("[NetworkTester] Network connectivity test passed");
+    }
+
+    // Report final state
+    report_state(result_.internet_ok ? TestState::COMPLETED : TestState::FAILED);
+    running_ = false;
+
+    spdlog::debug("[NetworkTester] Worker thread finished");
+}
+
+void NetworkTester::report_state(TestState state) {
+    if (!callback_) {
+        spdlog::warn("[NetworkTester] No callback registered, ignoring state change");
+        return;
+    }
+
+    // CRITICAL: This is called from worker thread - must dispatch to LVGL thread!
+    spdlog::debug("[NetworkTester] Reporting state: {} (from worker thread)",
+                  static_cast<int>(state));
+
+    // Helper struct for async callback dispatch
+    struct CallbackData {
+        std::weak_ptr<NetworkTester> tester;
+        TestState state;
+        TestResult result;
+    };
+
+    // Use RAII-safe async callback wrapper
+    ui_async_call_safe<CallbackData>(
+        std::make_unique<CallbackData>(CallbackData{self_, state, result_}),
+        [](CallbackData* data) {
+            spdlog::debug("[NetworkTester] Async callback executing in LVGL thread");
+
+            // Safely check if tester still exists
+            if (auto tester = data->tester.lock()) {
+                if (tester->callback_) {
+                    tester->callback_(data->state, data->result);
+                } else {
+                    spdlog::warn("[NetworkTester] Callback was cleared before async dispatch");
+                }
+            } else {
+                spdlog::debug(
+                    "[NetworkTester] Tester destroyed before async callback - safely ignored");
+            }
+        });
+}
+
+// ============================================================================
+// Platform-Specific Helpers
+// ============================================================================
+
+std::string NetworkTester::get_default_gateway() {
+#ifdef __APPLE__
+    // macOS: Use 'route -n get default' and parse the 'gateway:' line
+    FILE* pipe = popen("route -n get default 2>/dev/null", "r");
+    if (!pipe) {
+        spdlog::error("[NetworkTester] Failed to run 'route' command");
+        return "";
+    }
+
+    std::array<char, 256> buffer;
+    std::string result;
+    while (fgets(buffer.data(), buffer.size(), pipe) != nullptr) {
+        result += buffer.data();
+    }
+
+    int ret = pclose(pipe);
+    if (ret != 0) {
+        spdlog::warn("[NetworkTester] 'route' command failed with code {}", ret);
+        return "";
+    }
+
+    // Parse output for "gateway: X.X.X.X"
+    std::istringstream iss(result);
+    std::string line;
+    while (std::getline(iss, line)) {
+        if (line.find("gateway:") != std::string::npos) {
+            // Extract IP after "gateway: "
+            size_t pos = line.find(':');
+            if (pos != std::string::npos) {
+                std::string gateway = line.substr(pos + 1);
+                // Trim whitespace
+                gateway.erase(0, gateway.find_first_not_of(" \t\r\n"));
+                gateway.erase(gateway.find_last_not_of(" \t\r\n") + 1);
+                spdlog::debug("[NetworkTester] Found gateway: {}", gateway);
+                return gateway;
+            }
+        }
+    }
+
+    spdlog::warn("[NetworkTester] No gateway found in route output");
+    return "";
+
+#else
+    // Linux: Parse /proc/net/route for line with destination 00000000
+    std::ifstream route_file("/proc/net/route");
+    if (!route_file.is_open()) {
+        spdlog::error("[NetworkTester] Failed to open /proc/net/route");
+        return "";
+    }
+
+    std::string line;
+    std::getline(route_file, line); // Skip header
+
+    while (std::getline(route_file, line)) {
+        std::istringstream iss(line);
+        std::string iface, destination, gateway;
+        iss >> iface >> destination >> gateway;
+
+        // Default route has destination 00000000
+        if (destination == "00000000") {
+            // Gateway is in hex (little-endian), convert to IP
+            if (gateway.length() == 8) {
+                unsigned long gw_hex = std::strtoul(gateway.c_str(), nullptr, 16);
+                char ip[16];
+                snprintf(ip, sizeof(ip), "%lu.%lu.%lu.%lu", (gw_hex & 0xFF), (gw_hex >> 8) & 0xFF,
+                         (gw_hex >> 16) & 0xFF, (gw_hex >> 24) & 0xFF);
+                spdlog::debug("[NetworkTester] Found gateway: {}", ip);
+                return ip;
+            }
+        }
+    }
+
+    spdlog::warn("[NetworkTester] No default gateway found in /proc/net/route");
+    return "";
+#endif
+}
+
+bool NetworkTester::ping_host(const std::string& host, int timeout_sec) {
+#ifdef __APPLE__
+    // macOS: ping -c 1 -t timeout host
+    std::string cmd =
+        "ping -c 1 -t " + std::to_string(timeout_sec) + " " + host + " >/dev/null 2>&1";
+#else
+    // Linux: ping -c 1 -W timeout host
+    std::string cmd =
+        "ping -c 1 -W " + std::to_string(timeout_sec) + " " + host + " >/dev/null 2>&1";
+#endif
+
+    spdlog::debug("[NetworkTester] Running: {}", cmd);
+
+    int ret = system(cmd.c_str());
+    bool success = (ret == 0);
+
+    spdlog::debug("[NetworkTester] Ping {} {}", host, success ? "succeeded" : "failed");
+    return success;
+}

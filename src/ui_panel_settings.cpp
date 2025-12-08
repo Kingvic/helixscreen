@@ -17,6 +17,7 @@
 #include "printer_state.h"
 #include "settings_manager.h"
 #include "sound_manager.h"
+#include "wifi_settings_overlay.h"
 
 #include <spdlog/spdlog.h>
 
@@ -719,69 +720,15 @@ void SettingsPanel::handle_pid_tuning_clicked() {
 void SettingsPanel::handle_network_clicked() {
     spdlog::debug("[{}] Network Settings clicked", get_name());
 
-    // Create network settings overlay on first access (lazy initialization)
-    if (!network_settings_overlay_ && parent_screen_) {
-        spdlog::debug("[{}] Creating network settings overlay...", get_name());
+    auto& overlay = get_wifi_settings_overlay();
 
-        // Create from XML
-        network_settings_overlay_ = static_cast<lv_obj_t*>(
-            lv_xml_create(parent_screen_, "network_settings_overlay", nullptr));
-
-        if (network_settings_overlay_) {
-            // Wire up header bar back button to use nav stack
-            lv_obj_t* header = lv_obj_find_by_name(network_settings_overlay_, "overlay_header");
-            if (header) {
-                lv_obj_t* back_btn = lv_obj_find_by_name(header, "back_button");
-                if (back_btn) {
-                    lv_obj_add_event_cb(
-                        back_btn, [](lv_event_t*) { ui_nav_go_back(); }, LV_EVENT_CLICKED, nullptr);
-                }
-            }
-
-            // Wire up Scan button
-            lv_obj_t* scan_btn = lv_obj_find_by_name(network_settings_overlay_, "scan_btn");
-            if (scan_btn) {
-                lv_obj_add_event_cb(
-                    scan_btn,
-                    [](lv_event_t*) {
-                        spdlog::info("[SettingsPanel] Network scan requested");
-                        // TODO: Trigger WiFiManager scan
-                        // WiFiManager::instance().start_scan(...);
-                    },
-                    LV_EVENT_CLICKED, nullptr);
-            }
-
-            // Wire up Disconnect button
-            lv_obj_t* disconnect_btn =
-                lv_obj_find_by_name(network_settings_overlay_, "disconnect_btn");
-            if (disconnect_btn) {
-                lv_obj_add_event_cb(
-                    disconnect_btn,
-                    [](lv_event_t*) {
-                        spdlog::info("[SettingsPanel] WiFi disconnect requested");
-                        // TODO: Disconnect via WiFiManager
-                        // WiFiManager::instance().disconnect();
-                    },
-                    LV_EVENT_CLICKED, nullptr);
-            }
-
-            // Initially hidden
-            lv_obj_add_flag(network_settings_overlay_, LV_OBJ_FLAG_HIDDEN);
-            spdlog::info("[{}] Network settings overlay created", get_name());
-        } else {
-            spdlog::error("[{}] Failed to create network settings overlay from XML", get_name());
-            return;
-        }
+    if (!overlay.is_created()) {
+        overlay.init_subjects();
+        overlay.register_callbacks();
+        overlay.create(parent_screen_);
     }
 
-    // Push overlay onto navigation history and show it with slide animation
-    if (network_settings_overlay_) {
-        ui_nav_push_overlay(network_settings_overlay_);
-
-        // TODO: Update connection status display
-        // Update connected_ssid, connected_ip labels based on WiFiManager state
-        // Show/hide connected_info vs disconnected_info based on connection state
-    }
+    overlay.show();
 }
 
 void SettingsPanel::handle_factory_reset_clicked() {

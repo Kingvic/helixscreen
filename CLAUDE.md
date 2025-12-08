@@ -66,6 +66,7 @@
 | 9 | Class-based architecture | `ui_panel_*_init()` functions | Classes: `MotionPanel`, `WiFiManager` |
 | 10 | Clang-format | Inconsistent formatting | Let pre-commit hook fix it |
 | 11 | **Icon font sync** | Add icon, forget `make regen-fonts` | Add to codepoints.h + regen_mdi_fonts.sh, run `make regen-fonts`, rebuild |
+| 12 | **XML event_cb** | `lv_obj_add_event_cb()` in C++ | `<event_cb trigger="clicked" callback="..."/>` in XML |
 
 **Rule 1 - Design Tokens (MANDATORY):**
 
@@ -76,6 +77,8 @@
 | **Typography** | `<lv_label style_text_font="montserrat_18">` | `<text_heading>`, `<text_body>`, `<text_small>` |
 
 **Typography exceptions:** FontAwesome icons (`fa_icons_*`), large numeric displays (`montserrat_28`)
+
+**Rule 12 - XML event_cb:** Events ALWAYS in XML `<event_cb trigger="clicked" callback="name"/>`, register in C++ with `lv_xml_register_event_cb(nullptr, "name", func)`. **NEVER** `lv_obj_add_event_cb()`. See `hidden_network_modal.xml` + `ui_toast.cpp`.
 
 ---
 

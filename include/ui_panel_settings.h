@@ -107,7 +107,6 @@ class SettingsPanel : public PanelBase {
 
     // Lazily-created overlay panels
     lv_obj_t* display_settings_overlay_ = nullptr;
-    lv_obj_t* network_settings_overlay_ = nullptr;
     lv_obj_t* bed_mesh_panel_ = nullptr;
     lv_obj_t* zoffset_cal_panel_ = nullptr;
     lv_obj_t* pid_cal_panel_ = nullptr;

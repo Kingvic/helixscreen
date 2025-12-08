@@ -949,7 +949,10 @@ static void register_xml_components() {
     spdlog::debug("[XML] bed_mesh_panel.xml registration returned: {}", (int)ret);
     // Settings overlay panels (launched from settings rows)
     lv_xml_register_component_from_file("A:ui_xml/display_settings_overlay.xml");
-    lv_xml_register_component_from_file("A:ui_xml/network_settings_overlay.xml");
+    // WiFi settings components (wifi_settings_overlay replaces network_settings_overlay)
+    lv_xml_register_component_from_file("A:ui_xml/wifi_settings_overlay.xml");
+    lv_xml_register_component_from_file("A:ui_xml/hidden_network_modal.xml");
+    lv_xml_register_component_from_file("A:ui_xml/wifi_network_item.xml");
     // Note: factory_reset_dialog.xml removed - use modal_dialog instead
     lv_xml_register_component_from_file("A:ui_xml/advanced_panel.xml");
     lv_xml_register_component_from_file("A:ui_xml/test_panel.xml");
