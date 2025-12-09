@@ -337,6 +337,19 @@ void MoonrakerClientMock::discover_printer(std::function<void()> on_complete) {
         break;
     }
 
+    // Add common macros for all printer types (for testing macro panel)
+    mock_objects.push_back("gcode_macro START_PRINT");
+    mock_objects.push_back("gcode_macro END_PRINT");
+    mock_objects.push_back("gcode_macro PAUSE");
+    mock_objects.push_back("gcode_macro RESUME");
+    mock_objects.push_back("gcode_macro CANCEL_PRINT");
+    mock_objects.push_back("gcode_macro LOAD_FILAMENT");
+    mock_objects.push_back("gcode_macro UNLOAD_FILAMENT");
+    mock_objects.push_back("gcode_macro BED_MESH_CALIBRATE");
+    mock_objects.push_back("gcode_macro G28");       // Home all
+    mock_objects.push_back("gcode_macro M600");      // Filament change
+    mock_objects.push_back("gcode_macro _SYSTEM_MACRO");  // System macro (hidden by default)
+
     capabilities_.parse_objects(mock_objects);
 
     // Log discovered hardware
