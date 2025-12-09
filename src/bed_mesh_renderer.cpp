@@ -1661,11 +1661,12 @@ static void render_reference_grids(lv_layer_t* layer, const bed_mesh_renderer_t*
     double z_max_world =
         mesh_z_to_world_z(renderer->mesh_max_z, z_center, renderer->view_state.z_scale);
 
-    // Grid boundaries (aligned with mesh edges)
-    double x_min = -mesh_half_width;
-    double x_max = mesh_half_width;
-    double y_min = -mesh_half_height;
-    double y_max = mesh_half_height;
+    // Grid boundaries (extend slightly past mesh edges to account for AA and rounding)
+    constexpr double GRID_MARGIN = 5.0; // Small margin in world units
+    double x_min = -mesh_half_width - GRID_MARGIN;
+    double x_max = mesh_half_width + GRID_MARGIN;
+    double y_min = -mesh_half_height - GRID_MARGIN;
+    double y_max = mesh_half_height + GRID_MARGIN;
     double z_min = z_min_world;
     // Mainsail-style: wall extends to 2x the mesh Z range above z_min
     // This gives visual headroom above the mesh surface
