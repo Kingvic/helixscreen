@@ -556,8 +556,9 @@ void ui_nav_wire_status_icons(lv_obj_t* navbar) {
     }
 
     // Status icon button and icon names (must match XML and ui_status_bar_init() expectations)
+    // Note: status_notification_icon is now a clickable icon (no wrapper button)
     const char* button_names[] = {"status_btn_printer", "status_btn_network",
-                                  "status_btn_notification"};
+                                  "status_notification_icon"};
     const char* icon_names[] = {"status_printer_icon", "status_network_icon",
                                 "status_notification_icon"};
     const int status_icon_count = 3;

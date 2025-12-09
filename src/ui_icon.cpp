@@ -325,3 +325,17 @@ void ui_icon_set_color(lv_obj_t* icon, lv_color_t color, lv_opa_t opa) {
     lv_obj_set_style_text_opa(icon, opa, LV_PART_MAIN);
     spdlog::trace("[Icon] Set custom color (opa: {})", opa);
 }
+
+void ui_icon_set_clickable(lv_obj_t* icon, bool clickable) {
+    if (!icon) {
+        spdlog::error("[Icon] Invalid icon parameter to ui_icon_set_clickable");
+        return;
+    }
+
+    if (clickable) {
+        lv_obj_add_flag(icon, LV_OBJ_FLAG_CLICKABLE);
+    } else {
+        lv_obj_remove_flag(icon, LV_OBJ_FLAG_CLICKABLE);
+    }
+    spdlog::trace("[Icon] Set clickable: {}", clickable);
+}

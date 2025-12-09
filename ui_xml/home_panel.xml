@@ -102,10 +102,9 @@
           <!-- Notification (above light column) -->
           <lv_obj flex_grow="1" height="100%" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="column" style_flex_main_place="center" style_flex_track_place="center">
             <lv_obj name="status_notification_container" width="content" height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0">
-              <lv_button name="status_btn_notification" align="center" style_bg_opa="0" style_shadow_width="0" style_border_width="0" style_radius="0" style_pad_all="0">
+              <icon name="status_notification_icon" src="notifications" size="#icon_size_card" variant="secondary" align="center" clickable="true">
                 <event_cb trigger="clicked" callback="status_notification_history_clicked"/>
-                <icon name="status_notification_icon" src="notifications" size="#icon_size_card" variant="secondary" align="center"/>
-              </lv_button>
+              </icon>
               <!-- Notification Count Badge -->
               <lv_obj name="notification_badge" width="18" height="18" align="top_right" x="4" y="-4" style_radius="9" style_border_width="0" style_pad_all="0" hidden="true" scrollable="false" clickable="true">
                 <lv_obj-bind_flag_if_eq subject="notification_count" flag="hidden" ref_value="0"/>

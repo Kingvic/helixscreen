@@ -18,6 +18,7 @@
  *   - variant: Color variant - "primary", "secondary", "accent", "disabled",
  *              "success", "warning", "error", "none"
  *   - color: Custom color override (e.g., "0xFF0000", "#FF0000")
+ *   - clickable: Boolean to enable/disable click events ("true" or "false")
  *
  * Size mapping (uses mdi_icons_* fonts):
  *   xs: 16px (mdi_icons_16)
@@ -78,3 +79,15 @@ void ui_icon_set_variant(lv_obj_t* icon, const char* variant_str);
  * @param opa    Opacity (0-255, use LV_OPA_COVER for full opacity)
  */
 void ui_icon_set_color(lv_obj_t* icon, lv_color_t color, lv_opa_t opa);
+
+/**
+ * Set clickable state for icon at runtime.
+ *
+ * When clickable is enabled, the icon can receive click events and be used
+ * as an interactive element. Icons are non-clickable by default (they inherit
+ * from lv_label which has no click flag set).
+ *
+ * @param icon      Icon widget
+ * @param clickable true to enable click events, false to disable
+ */
+void ui_icon_set_clickable(lv_obj_t* icon, bool clickable);
