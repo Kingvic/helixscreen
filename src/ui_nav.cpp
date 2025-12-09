@@ -77,12 +77,18 @@ static bool is_printer_connected() {
 // Forward declarations
 static void clear_overlay_stack();
 
+// Track previous connection state for detecting disconnection (vs startup)
+static int previous_connection_state = -1; // -1 = uninitialized
+
 // Connection state observer - auto-navigate to home when connection drops on gated panel
+// Only triggers on transition FROM connected (2) TO not-connected, not during startup
 static void connection_state_observer_cb(lv_observer_t* /*observer*/, lv_subject_t* subject) {
     int state = lv_subject_get_int(subject);
-    bool connected = (state == 2); // CONNECTED
+    bool was_connected = (previous_connection_state == 2);
+    bool is_connected = (state == 2);
 
-    if (!connected && panel_requires_connection(active_panel)) {
+    // Only redirect if we were previously connected and are now disconnected
+    if (was_connected && !is_connected && panel_requires_connection(active_panel)) {
         spdlog::info("[NAV] Connection lost on panel {} - navigating to home",
                      static_cast<int>(active_panel));
 
@@ -92,6 +98,8 @@ static void connection_state_observer_cb(lv_observer_t* /*observer*/, lv_subject
         // Navigate to home
         ui_nav_set_active(UI_PANEL_HOME);
     }
+
+    previous_connection_state = state;
 }
 
 // Observer callback - handles panel show/hide when active panel changes

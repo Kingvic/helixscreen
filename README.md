@@ -16,7 +16,7 @@
 
 HelixScreen is a next-generation printer control interface built from the ground up using LVGL 9's declarative XML system. Designed for embedded hardware with limited resources, it brings advanced Klipper features to printers that ship with restrictive vendor UIs.
 
-> ⚠️ **Development Status:** This project is in active development (Alpha/Prototype phase). Core functionality works, but expect breaking changes and incomplete features. See [Project Status](#project-status) for details.
+> 🚀 **Development Status:** Beta - Core functionality is complete with 14 production panels, 18 settings, and full Moonraker integration. Ready for testing on real hardware. See [Project Status](#project-status) for details.
 
 **Quick Links:** [Features](#key-features) · [Screenshots](#screenshots) · [Getting Started](#quick-start) · [Requirements](#requirements) · [Documentation](#documentation) · [FAQ](#faq) · [Contributing](docs/CONTRIBUTING.md) · [Roadmap](docs/ROADMAP.md)
 
@@ -100,28 +100,24 @@ HelixScreen is a next-generation printer control interface built from the ground
 
 > 📸 **Note:** Screenshots auto-generated with `make screenshots` - regenerate after UI changes
 
-## Key Features (What's Working Now)
+## Key Features
 
-### ✅ Complete & Working
-- **Print File Browser** - Card and list views with sorting, filtering, and metadata display
-- **File Management** - View print files, check metadata (time, filament), delete files
-- **First-Run Wizard** - Auto-discovery of printer components with guided setup
-- **Moonraker Integration** - Real-time WebSocket connection with auto-reconnect
-- **Temperature Monitoring** - Live temperature display for hotend and bed
-- **3D Visualizations** - G-code preview and bed mesh analysis with touch controls
+### ✅ Complete & Production-Ready
+- **14 Production Panels** - Home, Controls, Motion, Temps, Extrusion, Filament, Print Select, Print Status, Settings, Advanced, and more
+- **18 Settings** - Theme, display, sound, network, safety, calibration options
+- **First-Run Wizard** - 7-step guided setup with auto-discovery
+- **Full Moonraker Integration** - 30+ API methods with WebSocket auto-reconnect
+- **Print Job Control** - Start, pause, resume, cancel with live progress
+- **Motion Controls** - XYZ jog pad, homing, bed leveling with safety checks
+- **Temperature Controls** - Presets, custom temps, live graphs, animated heating indicator
+- **3D Visualizations** - G-code preview and bed mesh analysis with touch rotation
+- **Connection-Aware UI** - Graceful handling of disconnects with auto-recovery toasts
 - **Declarative XML UI** - Complete UI defined in XML with reactive data binding
 - **Responsive Design** - Multiple screen sizes (480×320 to 1024×800+)
 - **Light/Dark Themes** - Runtime theme switching with global color system
-- **Touch-Optimized** - Numeric keypad, confirmation dialogs, overlay panels
 
-### 🚧 In Progress
-- **Motion Controls** - Manual printer control (jog, home, positioning)
-- **Temperature Controls** - Preset and custom temperature management
-- **Extrusion Controls** - Manual extrude/retract with safety checks
-- **Print Job Control** - Start, pause, resume, cancel operations
-
-### 📅 Planned
-- Fan control, filament management, advanced settings
+### 🚧 In Development
+- **AMS/Multi-Material Support** - Happy Hare and AFC-Klipper integration (see `feature/ams` branch)
 - See [ROADMAP.md](docs/ROADMAP.md) for complete feature timeline
 
 ## Target Hardware
@@ -282,28 +278,27 @@ Change the entire UI appearance by editing one file (`ui_xml/globals.xml`):
 
 ## Project Status
 
-**Current Development Phase:** Alpha / Prototype
+**Current Development Phase:** Beta
 
-**Completed Phases:**
-- ✅ Phase 1-4: Foundation, navigation, print select panel with views
-- ✅ Phase 8 (Partial): Moonraker WebSocket integration, file operations
-- ✅ Phase 9 (Partial): Theme system, responsive layouts
-- ✅ Phase 11 (Partial): First-run wizard with auto-discovery
+**What's Complete:**
+- ✅ 14 production panels covering all core printer operations
+- ✅ 18 settings across 8 categories
+- ✅ 7-step first-run wizard with auto-discovery
+- ✅ Full Moonraker API integration (30+ methods)
+- ✅ Connection-aware navigation with graceful error recovery
+- ✅ Cross-platform builds (macOS, Linux, Pi, Adventurer 5M)
 
-**In Progress:**
-- 🚧 Phase 5: Controls panel (motion, temperature, extrusion)
-- 🚧 Phase 8: Full backend integration (job control, system management)
-- 🚧 Phase 11: Wizard completion and testing
+**In Active Development:**
+- 🚧 AMS/Multi-Material support (Happy Hare, AFC-Klipper)
+- 🚧 Production hardening (structured logging, edge case testing)
 
 **What This Means:**
-- Core UI framework is solid and feature-complete
-- Basic printer monitoring and file management works
-- Active development on printer control features
-- API may have breaking changes before 1.0 release
-- Ready for developer testing and contributions
-- Not yet recommended for production use
+- Core functionality is complete and tested
+- Ready for real-world testing on supported hardware
+- API is stabilizing, minimal breaking changes expected
+- Suitable for enthusiasts willing to provide feedback
 
-See [ROADMAP.md](docs/ROADMAP.md) for detailed phase breakdown and upcoming features.
+See [ROADMAP.md](docs/ROADMAP.md) for detailed feature status.
 
 **Performance Metrics** (Current benchmarks):
 - G-code Viewer: 99ms first render, 10.85MB memory, 30+ FPS
@@ -313,7 +308,7 @@ See [ROADMAP.md](docs/ROADMAP.md) for detailed phase breakdown and upcoming feat
 ## FAQ
 
 **Q: Is HelixScreen production-ready?**
-A: Not yet. It's in active development (alpha/prototype phase). Core functionality works, but expect bugs and breaking changes. Suitable for developer testing and contributions.
+A: It's in beta. Core functionality is complete with 14 panels and full Moonraker integration. Ready for testing on real hardware by enthusiasts willing to provide feedback.
 
 **Q: How is this different from GuppyScreen and KlipperScreen?**
 A: HelixScreen uses LVGL 9's declarative XML system for complete UI definition, enabling changes without recompilation. It's built specifically for resource-constrained embedded devices with a modern reactive architecture. GuppyScreen uses LVGL 8 with C++ layouts. KlipperScreen uses Gtk which has higher resource requirements.
