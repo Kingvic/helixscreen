@@ -178,6 +178,51 @@ Future Modals (Phase 3+):
 
 ---
 
+### ✅ Phase 2.5: Spool Visualization (COMPLETE)
+
+**Goal:** Bambu-style pseudo-3D filament spool widget
+
+**Files Created:**
+- [x] `include/ui_spool_canvas.h` - Spool canvas widget header
+- [x] `src/ui_spool_canvas.cpp` - Custom LVGL XML widget implementation
+  - Coverage-based anti-aliasing for smooth ellipse edges
+  - Physically correct side-view rendering
+  - Gradient lighting effects (filament + hub hole)
+- [x] `include/ui_ams_slot.h` - C++ AMS slot component
+- [x] `src/ui_ams_slot.cpp` - Dynamic data binding for slots
+- [x] `ui_xml/test_panel.xml` - Side-by-side comparison test
+- [x] `ui_xml/spool_test.xml` - Dedicated spool testing
+
+**Spool Canvas Features:**
+| Feature | Implementation |
+|---------|----------------|
+| 3D perspective | Narrow ellipses (45% horizontal compression) |
+| Physical correctness | Front flange solid, filament only visible from side |
+| Fill level | 0.0-1.0 controls wound filament radius |
+| Filament gradient | Lighter top → darker bottom (3D lighting) |
+| Hub hole gradient | Dark top → light bottom (interior shadow) |
+| Anti-aliasing | Coverage-based edge smoothing on all ellipses |
+| XML attributes | `color`, `fill_level`, `size` |
+
+**Drawing Algorithm (back-to-front):**
+1. Back flange (solid gray ellipse)
+2. Filament cylinder with gradient (back ellipse + rectangle + front ellipse)
+3. Front flange (solid gray ellipse - covers filament, physically correct)
+4. Hub hole with gradient (shadow effect)
+
+**XML Usage:**
+```xml
+<spool_canvas color="0xFF5733" fill_level="0.75" size="64"/>
+```
+
+**Verification:**
+- [x] Build succeeds
+- [x] Anti-aliased edges render smoothly
+- [x] Fill levels display correctly (100%/75%/40%/10%)
+- [x] Gradients visible on filament and hub
+
+---
+
 ### ✅ Phase 2: Basic Operations (COMPLETE)
 
 **Goal:** Real backend implementations, load/unload/select
@@ -237,6 +282,35 @@ printer.mmu.endless_spool_groups
 - [ ] Add AMS detection step to connection wizard
 - [ ] Show detected AMS type (Happy Hare / AFC / None)
 - [ ] Allow manual override in settings
+
+---
+
+### 🔲 Phase 2.6: Configurable Visualization (IN PROGRESS)
+
+**Goal:** Allow users to choose between visualization styles
+
+**Configuration Options:**
+| Setting | Values | Description |
+|---------|--------|-------------|
+| `ams_spool_style` | `"3d"` / `"flat"` | Pseudo-3D canvas or flat concentric rings |
+
+**Files to Modify:**
+- [ ] `config/helixconfig.json.template` - Add `ams_spool_style` option
+- [ ] `include/helix_config.h` - Config accessor for spool style
+- [ ] `src/helix_config.cpp` - Parse spool style from JSON
+- [ ] `src/ui_ams_slot.cpp` - Conditional widget creation based on config
+- [ ] `ui_xml/ams_panel.xml` - Support both visualization types
+
+**Implementation:**
+- Keep existing `ams_slot` flat visualization as fallback
+- Default to `"3d"` for new installations
+- Runtime switchable (recreate slots on config change)
+
+**Verification:**
+- [ ] Config option parsed correctly
+- [ ] `"3d"` shows spool_canvas widget
+- [ ] `"flat"` shows concentric ring widget
+- [ ] Settings panel allows switching
 
 ---
 
