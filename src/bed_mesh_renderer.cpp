@@ -81,6 +81,11 @@ static void compute_centering_offset(int mesh_min_x, int mesh_max_x, int mesh_mi
                                      int layer_offset_x, int layer_offset_y, int canvas_width,
                                      int canvas_height, int* out_offset_x, int* out_offset_y);
 static void render_quad(lv_layer_t* layer, const bed_mesh_quad_3d_t& quad, bool use_gradient);
+static void prepare_render_frame(bed_mesh_renderer_t* renderer, int canvas_width, int canvas_height,
+                                 int layer_offset_x, int layer_offset_y);
+static void render_mesh_surface(lv_layer_t* layer, bed_mesh_renderer_t* renderer);
+static void render_decorations(lv_layer_t* layer, bed_mesh_renderer_t* renderer, int canvas_width,
+                               int canvas_height);
 
 // ============================================================================
 // Public API Implementation
@@ -463,7 +468,6 @@ bool bed_mesh_renderer_render(bed_mesh_renderer_t* renderer, lv_layer_t* layer, 
         renderer->view_state.angle_x, renderer->view_state.angle_z, renderer->view_state.fov_scale,
         renderer->view_state.center_offset_x, renderer->view_state.center_offset_y);
 
-    // Clear background using layer draw API
     // Get layer's clip area (used for clipping output, NOT for canvas dimensions)
     // IMPORTANT: During partial redraws, clip_area may be smaller than the widget.
     // We must use the passed-in canvas_width/height for projection calculations,
@@ -485,198 +489,34 @@ bool bed_mesh_renderer_render(bed_mesh_renderer_t* renderer, lv_layer_t* layer, 
     bg_dsc.bg_opa = LV_OPA_COVER;
     lv_draw_rect(layer, &bg_dsc, clip_area);
 
-    // Compute dynamic Z scale if needed
-    double z_range = renderer->mesh_max_z - renderer->mesh_min_z;
-    double new_z_scale;
-    if (z_range < 1e-6) {
-        // Flat mesh, use default scale
-        new_z_scale = BED_MESH_DEFAULT_Z_SCALE;
-    } else {
-        // Compute dynamic scale to fit mesh in reasonable height
-        new_z_scale = compute_dynamic_z_scale(z_range);
-    }
+    // Performance tracking for complete render pipeline
+    auto t_frame_start = std::chrono::high_resolution_clock::now();
 
-    // Only regenerate quads if z_scale changed
-    if (renderer->view_state.z_scale != new_z_scale) {
-        spdlog::debug("[Z_SCALE] Changing z_scale from {:.2f} to {:.2f} (z_range={:.4f})",
-                      renderer->view_state.z_scale, new_z_scale, z_range);
-        renderer->view_state.z_scale = new_z_scale;
-        helix::mesh::generate_mesh_quads(renderer);
-        spdlog::debug("Regenerated quads due to dynamic z_scale change to {:.2f}", new_z_scale);
-    } else {
-        spdlog::debug("[Z_SCALE] Keeping z_scale at {:.2f} (z_range={:.4f})",
-                      renderer->view_state.z_scale, z_range);
-    }
+    // Phase 1: Prepare rendering frame (projection parameters, view state)
+    prepare_render_frame(renderer, canvas_width, canvas_height, layer_offset_x, layer_offset_y);
+    auto t_prepare = std::chrono::high_resolution_clock::now();
 
-    // Update cached trigonometric values (avoids recomputing sin/cos for every vertex)
-    update_trig_cache(&renderer->view_state);
+    // Phase 2: Render mesh surface (quads with gradient/solid colors)
+    render_mesh_surface(layer, renderer);
+    auto t_surface = std::chrono::high_resolution_clock::now();
 
-    // Compute FOV scale ONCE on first render (when fov_scale is still at default)
-    // This prevents grow/shrink effect when rotating - scale stays constant
-    if (renderer->view_state.fov_scale == INITIAL_FOV_SCALE) {
-        // Project all mesh vertices with initial scale to get actual bounds
-        project_and_cache_vertices(renderer, canvas_width, canvas_height);
+    // Phase 3: Render decorations (grids, labels, ticks)
+    render_decorations(layer, renderer, canvas_width, canvas_height);
+    auto t_decorations = std::chrono::high_resolution_clock::now();
 
-        // Compute actual projected bounds using helper function
-        int min_x, max_x, min_y, max_y;
-        compute_projected_mesh_bounds(renderer, &min_x, &max_x, &min_y, &max_y);
-
-        // ALSO include wall corners in bounds calculation (walls extend WALL_HEIGHT_FACTOR * mesh
-        // height) This prevents walls from being clipped when they extend above the mesh
-        double mesh_half_width = (renderer->cols - 1) / 2.0 * BED_MESH_SCALE;
-        double mesh_half_height = (renderer->rows - 1) / 2.0 * BED_MESH_SCALE;
-        double z_min_world = helix::mesh::mesh_z_to_world_z(
-            renderer->mesh_min_z, renderer->cached_z_center, renderer->view_state.z_scale);
-        double z_max_world = helix::mesh::mesh_z_to_world_z(
-            renderer->mesh_max_z, renderer->cached_z_center, renderer->view_state.z_scale);
-        double wall_z_max = z_min_world + WALL_HEIGHT_FACTOR * (z_max_world - z_min_world);
-
-        // Project wall top corners and expand bounds
-        double x_min = -mesh_half_width, x_max = mesh_half_width;
-        double y_min = -mesh_half_height, y_max = mesh_half_height;
-        bed_mesh_point_3d_t wall_corners[4] = {
-            bed_mesh_projection_project_3d_to_2d(x_min, y_min, wall_z_max, canvas_width,
-                                                 canvas_height, &renderer->view_state),
-            bed_mesh_projection_project_3d_to_2d(x_max, y_min, wall_z_max, canvas_width,
-                                                 canvas_height, &renderer->view_state),
-            bed_mesh_projection_project_3d_to_2d(x_min, y_max, wall_z_max, canvas_width,
-                                                 canvas_height, &renderer->view_state),
-            bed_mesh_projection_project_3d_to_2d(x_max, y_max, wall_z_max, canvas_width,
-                                                 canvas_height, &renderer->view_state),
-        };
-        for (const auto& corner : wall_corners) {
-            min_x = std::min(min_x, corner.screen_x);
-            max_x = std::max(max_x, corner.screen_x);
-            min_y = std::min(min_y, corner.screen_y);
-            max_y = std::max(max_y, corner.screen_y);
-        }
-
-        // Calculate scale needed to fit projected bounds into canvas
-        int projected_width = max_x - min_x;
-        int projected_height = max_y - min_y;
-        double scale_x = (canvas_width * CANVAS_PADDING_FACTOR) / projected_width;
-        double scale_y = (canvas_height * CANVAS_PADDING_FACTOR) / projected_height;
-        double scale_factor = std::min(scale_x, scale_y);
-
-        spdlog::info("[FOV] Canvas: {}x{}, Projected (incl walls): {}x{}, Padding: {:.2f}, "
-                     "Scale: {:.2f}",
-                     canvas_width, canvas_height, projected_width, projected_height,
-                     CANVAS_PADDING_FACTOR, scale_factor);
-
-        // Apply scale (only once, not every frame)
-        renderer->view_state.fov_scale *= scale_factor;
-        spdlog::info("[FOV] Final fov_scale: {:.2f} (initial {} * scale {:.2f})",
-                     renderer->view_state.fov_scale, INITIAL_FOV_SCALE, scale_factor);
-    }
-
-    // Project vertices with current (stable) fov_scale
-    project_and_cache_vertices(renderer, canvas_width, canvas_height);
-
-    // Center mesh once on first render (offsets start at 0 from initialization)
-    // After initial centering, offset remains stable across rotations
-    if (renderer->view_state.center_offset_x == 0 && renderer->view_state.center_offset_y == 0) {
-        // Compute bounds with current projection
-        int inner_min_x, inner_max_x, inner_min_y, inner_max_y;
-        compute_projected_mesh_bounds(renderer, &inner_min_x, &inner_max_x, &inner_min_y,
-                                      &inner_max_y);
-
-        // Calculate centering offset using helper function
-        compute_centering_offset(inner_min_x, inner_max_x, inner_min_y, inner_max_y, layer_offset_x,
-                                 layer_offset_y, canvas_width, canvas_height,
-                                 &renderer->view_state.center_offset_x,
-                                 &renderer->view_state.center_offset_y);
-
-        spdlog::debug("[CENTER] Computed centering offset: ({}, {})",
-                      renderer->view_state.center_offset_x, renderer->view_state.center_offset_y);
-    }
-
-    // Quads are now pre-generated in set_mesh_data() - no need to regenerate every frame!
-    // Just project vertices and update cached screen coordinates
-
-    // Apply layer offset for final rendering (updated every frame for animation support)
-    // IMPORTANT: Must set BEFORE projecting vertices/quads so both use the same offsets!
-    renderer->view_state.layer_offset_x = layer_offset_x;
-    renderer->view_state.layer_offset_y = layer_offset_y;
-
-    // Re-project grid vertices with final view state (fov_scale, centering, AND layer offset)
-    // This ensures grid lines and quads are projected with identical view parameters
-    project_and_cache_vertices(renderer, canvas_width, canvas_height);
-
-    // PERF: Track rendering pipeline timings
-    auto t_start = std::chrono::high_resolution_clock::now();
-
-    // Project all quad vertices once and cache screen coordinates + depths
-    // This replaces 3 separate projection passes (depth calc, bounds tracking, rendering)
-    project_and_cache_quads(renderer, canvas_width, canvas_height);
-    auto t_project = std::chrono::high_resolution_clock::now();
-
-    // Sort quads by depth using cached avg_depth (painter's algorithm - furthest first)
-    helix::mesh::sort_quads_by_depth(renderer->quads);
-    auto t_sort = std::chrono::high_resolution_clock::now();
-
-    spdlog::trace("Rendering {} quads with {} mode", renderer->quads.size(),
-                  renderer->view_state.is_dragging ? "solid" : "gradient");
-
-    // DEBUG: Track overall gradient quad bounds using cached coordinates
-    int quad_min_x = INT_MAX, quad_max_x = INT_MIN;
-    int quad_min_y = INT_MAX, quad_max_y = INT_MIN;
-    for (const auto& quad : renderer->quads) {
-        for (int i = 0; i < 4; i++) {
-            quad_min_x = std::min(quad_min_x, quad.screen_x[i]);
-            quad_max_x = std::max(quad_max_x, quad.screen_x[i]);
-            quad_min_y = std::min(quad_min_y, quad.screen_y[i]);
-            quad_max_y = std::max(quad_max_y, quad.screen_y[i]);
-        }
-    }
-    spdlog::trace("[GRADIENT_OVERALL] All quads bounds: x=[{},{}] y=[{},{}] quads={} canvas={}x{}",
-                  quad_min_x, quad_max_x, quad_min_y, quad_max_y, renderer->quads.size(),
-                  canvas_width, canvas_height);
-
-    // DEBUG: Log first quad vertex positions using cached coordinates
-    if (!renderer->quads.empty()) {
-        const auto& first_quad = renderer->quads[0];
-        spdlog::trace("[FIRST_QUAD] Vertices (world -> cached screen):");
-        for (int i = 0; i < 4; i++) {
-            spdlog::trace("  v{}: world=({:.2f},{:.2f},{:.2f}) -> screen=({},{})", i,
-                          first_quad.vertices[i].x, first_quad.vertices[i].y,
-                          first_quad.vertices[i].z, first_quad.screen_x[i], first_quad.screen_y[i]);
-        }
-    }
-
-    // Render reference grids FIRST (bottom, back, side walls) so mesh occludes them properly
-    // Since LVGL canvas has no depth buffer, draw order determines visibility
-    helix::mesh::render_reference_grids(layer, renderer, canvas_width, canvas_height);
-
-    // Render quads using cached screen coordinates (drawn AFTER grids so mesh is in front)
-    bool use_gradient = !renderer->view_state.is_dragging;
-    for (const auto& quad : renderer->quads) {
-        render_quad(layer, quad, use_gradient);
-    }
-    auto t_rasterize = std::chrono::high_resolution_clock::now();
-
-    // Render wireframe grid on top of mesh surface
-    helix::mesh::render_grid_lines(layer, renderer, canvas_width, canvas_height);
-
-    // Render axis labels
-    helix::mesh::render_axis_labels(layer, renderer, canvas_width, canvas_height);
-
-    // Render numeric tick labels on axes
-    helix::mesh::render_numeric_axis_ticks(layer, renderer, canvas_width, canvas_height);
-    auto t_overlays = std::chrono::high_resolution_clock::now();
-
-    // PERF: Log performance breakdown (use -vvv to see)
-    auto ms_project = std::chrono::duration<double, std::milli>(t_project - t_start).count();
-    auto ms_sort = std::chrono::duration<double, std::milli>(t_sort - t_project).count();
-    auto ms_rasterize = std::chrono::duration<double, std::milli>(t_rasterize - t_sort).count();
-    auto ms_overlays = std::chrono::duration<double, std::milli>(t_overlays - t_rasterize).count();
-    auto ms_total = std::chrono::duration<double, std::milli>(t_overlays - t_start).count();
+    // PERF: Log overall render performance breakdown
+    auto ms_prepare = std::chrono::duration<double, std::milli>(t_prepare - t_frame_start).count();
+    auto ms_surface = std::chrono::duration<double, std::milli>(t_surface - t_prepare).count();
+    auto ms_decorations =
+        std::chrono::duration<double, std::milli>(t_decorations - t_surface).count();
+    auto ms_total =
+        std::chrono::duration<double, std::milli>(t_decorations - t_frame_start).count();
 
     spdlog::trace(
-        "[PERF] Render: {:.2f}ms total | Proj: {:.2f}ms ({:.0f}%) | Sort: {:.2f}ms ({:.0f}%) | "
-        "Raster: {:.2f}ms ({:.0f}%) | Overlays: {:.2f}ms ({:.0f}%) | Mode: {}",
-        ms_total, ms_project, 100.0 * ms_project / ms_total, ms_sort, 100.0 * ms_sort / ms_total,
-        ms_rasterize, 100.0 * ms_rasterize / ms_total, ms_overlays, 100.0 * ms_overlays / ms_total,
-        renderer->view_state.is_dragging ? "solid" : "gradient");
+        "[PERF] Total: {:.2f}ms | Prepare: {:.2f}ms ({:.0f}%) | Surface: {:.2f}ms ({:.0f}%) | "
+        "Decorations: {:.2f}ms ({:.0f}%)",
+        ms_total, ms_prepare, 100.0 * ms_prepare / ms_total, ms_surface,
+        100.0 * ms_surface / ms_total, ms_decorations, 100.0 * ms_decorations / ms_total);
 
     // Output canvas dimensions and view coordinates
     spdlog::trace(
@@ -974,6 +814,251 @@ static void compute_centering_offset(int mesh_min_x, int mesh_max_x, int mesh_mi
     spdlog::debug("[CENTERING] Mesh center: ({},{}) -> Canvas center: ({},{}) = offset ({},{})",
                   mesh_center_x, mesh_center_y, canvas_center_x, canvas_center_y, *out_offset_x,
                   *out_offset_y);
+}
+
+/**
+ * @brief Prepare rendering frame - compute projection parameters and update view state
+ *
+ * Performs one-time and per-frame preparation:
+ * - Dynamic Z scale calculation (if mesh is too flat/tall)
+ * - Trig cache update (avoids recomputing sin/cos for every vertex)
+ * - FOV scaling on first render (prevents grow/shrink during rotation)
+ * - Centering offset on first render (keeps mesh centered during rotation)
+ *
+ * @param renderer Renderer instance
+ * @param canvas_width Canvas width in pixels
+ * @param canvas_height Canvas height in pixels
+ * @param layer_offset_x Layer's screen position X (from clip area)
+ * @param layer_offset_y Layer's screen position Y (from clip area)
+ */
+static void prepare_render_frame(bed_mesh_renderer_t* renderer, int canvas_width, int canvas_height,
+                                 int layer_offset_x, int layer_offset_y) {
+    // Compute dynamic Z scale if needed
+    double z_range = renderer->mesh_max_z - renderer->mesh_min_z;
+    double new_z_scale;
+    if (z_range < 1e-6) {
+        // Flat mesh, use default scale
+        new_z_scale = BED_MESH_DEFAULT_Z_SCALE;
+    } else {
+        // Compute dynamic scale to fit mesh in reasonable height
+        new_z_scale = compute_dynamic_z_scale(z_range);
+    }
+
+    // Only regenerate quads if z_scale changed
+    if (renderer->view_state.z_scale != new_z_scale) {
+        spdlog::debug("[Z_SCALE] Changing z_scale from {:.2f} to {:.2f} (z_range={:.4f})",
+                      renderer->view_state.z_scale, new_z_scale, z_range);
+        renderer->view_state.z_scale = new_z_scale;
+        helix::mesh::generate_mesh_quads(renderer);
+        spdlog::debug("Regenerated quads due to dynamic z_scale change to {:.2f}", new_z_scale);
+    } else {
+        spdlog::debug("[Z_SCALE] Keeping z_scale at {:.2f} (z_range={:.4f})",
+                      renderer->view_state.z_scale, z_range);
+    }
+
+    // Update cached trigonometric values (avoids recomputing sin/cos for every vertex)
+    update_trig_cache(&renderer->view_state);
+
+    // Compute FOV scale ONCE on first render (when fov_scale is still at default)
+    // This prevents grow/shrink effect when rotating - scale stays constant
+    if (renderer->view_state.fov_scale == INITIAL_FOV_SCALE) {
+        // Project all mesh vertices with initial scale to get actual bounds
+        project_and_cache_vertices(renderer, canvas_width, canvas_height);
+
+        // Compute actual projected bounds using helper function
+        int min_x, max_x, min_y, max_y;
+        compute_projected_mesh_bounds(renderer, &min_x, &max_x, &min_y, &max_y);
+
+        // ALSO include wall corners in bounds calculation (walls extend WALL_HEIGHT_FACTOR * mesh
+        // height) This prevents walls from being clipped when they extend above the mesh
+        double mesh_half_width = (renderer->cols - 1) / 2.0 * BED_MESH_SCALE;
+        double mesh_half_height = (renderer->rows - 1) / 2.0 * BED_MESH_SCALE;
+        double z_min_world = helix::mesh::mesh_z_to_world_z(
+            renderer->mesh_min_z, renderer->cached_z_center, renderer->view_state.z_scale);
+        double z_max_world = helix::mesh::mesh_z_to_world_z(
+            renderer->mesh_max_z, renderer->cached_z_center, renderer->view_state.z_scale);
+        double wall_z_max = z_min_world + WALL_HEIGHT_FACTOR * (z_max_world - z_min_world);
+
+        // Project wall top corners and expand bounds
+        double x_min = -mesh_half_width, x_max = mesh_half_width;
+        double y_min = -mesh_half_height, y_max = mesh_half_height;
+        bed_mesh_point_3d_t wall_corners[4] = {
+            bed_mesh_projection_project_3d_to_2d(x_min, y_min, wall_z_max, canvas_width,
+                                                 canvas_height, &renderer->view_state),
+            bed_mesh_projection_project_3d_to_2d(x_max, y_min, wall_z_max, canvas_width,
+                                                 canvas_height, &renderer->view_state),
+            bed_mesh_projection_project_3d_to_2d(x_min, y_max, wall_z_max, canvas_width,
+                                                 canvas_height, &renderer->view_state),
+            bed_mesh_projection_project_3d_to_2d(x_max, y_max, wall_z_max, canvas_width,
+                                                 canvas_height, &renderer->view_state),
+        };
+        for (const auto& corner : wall_corners) {
+            min_x = std::min(min_x, corner.screen_x);
+            max_x = std::max(max_x, corner.screen_x);
+            min_y = std::min(min_y, corner.screen_y);
+            max_y = std::max(max_y, corner.screen_y);
+        }
+
+        // Calculate scale needed to fit projected bounds into canvas
+        int projected_width = max_x - min_x;
+        int projected_height = max_y - min_y;
+        double scale_x = (canvas_width * CANVAS_PADDING_FACTOR) / projected_width;
+        double scale_y = (canvas_height * CANVAS_PADDING_FACTOR) / projected_height;
+        double scale_factor = std::min(scale_x, scale_y);
+
+        spdlog::info("[FOV] Canvas: {}x{}, Projected (incl walls): {}x{}, Padding: {:.2f}, "
+                     "Scale: {:.2f}",
+                     canvas_width, canvas_height, projected_width, projected_height,
+                     CANVAS_PADDING_FACTOR, scale_factor);
+
+        // Apply scale (only once, not every frame)
+        renderer->view_state.fov_scale *= scale_factor;
+        spdlog::info("[FOV] Final fov_scale: {:.2f} (initial {} * scale {:.2f})",
+                     renderer->view_state.fov_scale, INITIAL_FOV_SCALE, scale_factor);
+    }
+
+    // Project vertices with current (stable) fov_scale
+    project_and_cache_vertices(renderer, canvas_width, canvas_height);
+
+    // Center mesh once on first render (offsets start at 0 from initialization)
+    // After initial centering, offset remains stable across rotations
+    if (renderer->view_state.center_offset_x == 0 && renderer->view_state.center_offset_y == 0) {
+        // Compute bounds with current projection
+        int inner_min_x, inner_max_x, inner_min_y, inner_max_y;
+        compute_projected_mesh_bounds(renderer, &inner_min_x, &inner_max_x, &inner_min_y,
+                                      &inner_max_y);
+
+        // Calculate centering offset using helper function
+        compute_centering_offset(inner_min_x, inner_max_x, inner_min_y, inner_max_y, layer_offset_x,
+                                 layer_offset_y, canvas_width, canvas_height,
+                                 &renderer->view_state.center_offset_x,
+                                 &renderer->view_state.center_offset_y);
+
+        spdlog::debug("[CENTER] Computed centering offset: ({}, {})",
+                      renderer->view_state.center_offset_x, renderer->view_state.center_offset_y);
+    }
+
+    // Apply layer offset for final rendering (updated every frame for animation support)
+    // IMPORTANT: Must set BEFORE projecting vertices/quads so both use the same offsets!
+    renderer->view_state.layer_offset_x = layer_offset_x;
+    renderer->view_state.layer_offset_y = layer_offset_y;
+
+    // Re-project grid vertices with final view state (fov_scale, centering, AND layer offset)
+    // This ensures grid lines and quads are projected with identical view parameters
+    project_and_cache_vertices(renderer, canvas_width, canvas_height);
+}
+
+/**
+ * @brief Render mesh surface as colored quads
+ *
+ * Projects all quad vertices, sorts by depth (painter's algorithm), and renders
+ * each quad as two triangles. Uses gradient interpolation when static, solid
+ * colors when dragging for performance.
+ *
+ * @param layer LVGL draw layer
+ * @param renderer Renderer with prepared view state
+ */
+static void render_mesh_surface(lv_layer_t* layer, bed_mesh_renderer_t* renderer) {
+    // PERF: Track rendering pipeline timings
+    auto t_start = std::chrono::high_resolution_clock::now();
+
+    // Get canvas dimensions from layer (already validated in main render function)
+    const lv_area_t* clip_area = &layer->_clip_area;
+    int canvas_width = lv_area_get_width(clip_area);
+    int canvas_height = lv_area_get_height(clip_area);
+
+    // Project all quad vertices once and cache screen coordinates + depths
+    // This replaces 3 separate projection passes (depth calc, bounds tracking, rendering)
+    project_and_cache_quads(renderer, canvas_width, canvas_height);
+    auto t_project = std::chrono::high_resolution_clock::now();
+
+    // Sort quads by depth using cached avg_depth (painter's algorithm - furthest first)
+    helix::mesh::sort_quads_by_depth(renderer->quads);
+    auto t_sort = std::chrono::high_resolution_clock::now();
+
+    spdlog::trace("Rendering {} quads with {} mode", renderer->quads.size(),
+                  renderer->view_state.is_dragging ? "solid" : "gradient");
+
+    // DEBUG: Track overall gradient quad bounds using cached coordinates
+    int quad_min_x = INT_MAX, quad_max_x = INT_MIN;
+    int quad_min_y = INT_MAX, quad_max_y = INT_MIN;
+    for (const auto& quad : renderer->quads) {
+        for (int i = 0; i < 4; i++) {
+            quad_min_x = std::min(quad_min_x, quad.screen_x[i]);
+            quad_max_x = std::max(quad_max_x, quad.screen_x[i]);
+            quad_min_y = std::min(quad_min_y, quad.screen_y[i]);
+            quad_max_y = std::max(quad_max_y, quad.screen_y[i]);
+        }
+    }
+    spdlog::trace("[GRADIENT_OVERALL] All quads bounds: x=[{},{}] y=[{},{}] quads={} canvas={}x{}",
+                  quad_min_x, quad_max_x, quad_min_y, quad_max_y, renderer->quads.size(),
+                  canvas_width, canvas_height);
+
+    // DEBUG: Log first quad vertex positions using cached coordinates
+    if (!renderer->quads.empty()) {
+        const auto& first_quad = renderer->quads[0];
+        spdlog::trace("[FIRST_QUAD] Vertices (world -> cached screen):");
+        for (int i = 0; i < 4; i++) {
+            spdlog::trace("  v{}: world=({:.2f},{:.2f},{:.2f}) -> screen=({},{})", i,
+                          first_quad.vertices[i].x, first_quad.vertices[i].y,
+                          first_quad.vertices[i].z, first_quad.screen_x[i], first_quad.screen_y[i]);
+        }
+    }
+
+    // Render quads using cached screen coordinates
+    bool use_gradient = !renderer->view_state.is_dragging;
+    for (const auto& quad : renderer->quads) {
+        render_quad(layer, quad, use_gradient);
+    }
+    auto t_rasterize = std::chrono::high_resolution_clock::now();
+
+    // PERF: Log performance breakdown (use -vvv to see)
+    auto ms_project = std::chrono::duration<double, std::milli>(t_project - t_start).count();
+    auto ms_sort = std::chrono::duration<double, std::milli>(t_sort - t_project).count();
+    auto ms_rasterize = std::chrono::duration<double, std::milli>(t_rasterize - t_sort).count();
+
+    spdlog::trace("[PERF] Surface render: Proj: {:.2f}ms ({:.0f}%) | Sort: {:.2f}ms ({:.0f}%) | "
+                  "Raster: {:.2f}ms ({:.0f}%) | Mode: {}",
+                  ms_project, 100.0 * ms_project / (ms_project + ms_sort + ms_rasterize), ms_sort,
+                  100.0 * ms_sort / (ms_project + ms_sort + ms_rasterize), ms_rasterize,
+                  100.0 * ms_rasterize / (ms_project + ms_sort + ms_rasterize),
+                  renderer->view_state.is_dragging ? "solid" : "gradient");
+}
+
+/**
+ * @brief Render decorations (reference grids, grid lines, axis labels, tick marks)
+ *
+ * Renders overlay elements on top of the mesh surface:
+ * - Reference grids (bottom, back, side walls)
+ * - Wireframe grid on mesh surface
+ * - Axis labels (X, Y, Z)
+ * - Numeric tick labels on axes
+ *
+ * @param layer LVGL draw layer
+ * @param renderer Renderer with prepared view state
+ * @param canvas_width Canvas width in pixels
+ * @param canvas_height Canvas height in pixels
+ */
+static void render_decorations(lv_layer_t* layer, bed_mesh_renderer_t* renderer, int canvas_width,
+                               int canvas_height) {
+    auto t_start = std::chrono::high_resolution_clock::now();
+
+    // Render reference grids (bottom, back, side walls)
+    helix::mesh::render_reference_grids(layer, renderer, canvas_width, canvas_height);
+
+    // Render wireframe grid on top of mesh surface
+    helix::mesh::render_grid_lines(layer, renderer, canvas_width, canvas_height);
+
+    // Render axis labels
+    helix::mesh::render_axis_labels(layer, renderer, canvas_width, canvas_height);
+
+    // Render numeric tick labels on axes
+    helix::mesh::render_numeric_axis_ticks(layer, renderer, canvas_width, canvas_height);
+
+    auto t_end = std::chrono::high_resolution_clock::now();
+    auto ms_overlays = std::chrono::duration<double, std::milli>(t_end - t_start).count();
+
+    spdlog::trace("[PERF] Decorations render: {:.2f}ms", ms_overlays);
 }
 
 // ============================================================================
