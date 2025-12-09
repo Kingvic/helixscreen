@@ -419,12 +419,11 @@ static void create_slot_children(lv_obj_t* container, AmsSlotData* data) {
     lv_obj_set_style_min_width(container, 60, LV_PART_MAIN);  // Minimum readable size
     lv_obj_set_style_max_width(container, 100, LV_PART_MAIN); // Don't grow too large
 
-    // Container styling: rounded card with minimal padding for larger spools
-    lv_obj_set_style_bg_opa(container, LV_OPA_COVER, LV_PART_MAIN);
-    lv_obj_set_style_radius(container, 12, LV_PART_MAIN);
-    lv_obj_set_style_pad_all(container, space_xs, LV_PART_MAIN);
+    // Container styling: transparent, no border, minimal padding
+    lv_obj_set_style_bg_opa(container, LV_OPA_TRANSP, LV_PART_MAIN);
+    lv_obj_set_style_border_width(container, 0, LV_PART_MAIN);
+    lv_obj_set_style_pad_all(container, 2, LV_PART_MAIN);
     lv_obj_add_flag(container, LV_OBJ_FLAG_CLICKABLE);
-    ui_theme_apply_bg_color(container, "card_bg", LV_PART_MAIN);
 
     // Use flex layout: column, center items
     lv_obj_set_flex_flow(container, LV_FLEX_FLOW_COLUMN);
@@ -433,29 +432,46 @@ static void create_slot_children(lv_obj_t* container, AmsSlotData* data) {
     lv_obj_set_style_pad_row(container, space_xs, LV_PART_MAIN);
 
     // ========================================================================
+    // MATERIAL LABEL (above spool - leaves room for filament paths below)
+    // ========================================================================
+    lv_obj_t* material = lv_label_create(container);
+    lv_label_set_text(material, "--");
+    const char* font_small_name = lv_xml_get_const(NULL, "font_small");
+    const lv_font_t* font_small =
+        font_small_name ? lv_xml_get_font(NULL, font_small_name) : &noto_sans_16;
+    lv_obj_set_style_text_font(material, font_small, LV_PART_MAIN);
+    lv_obj_set_style_text_color(material, ui_theme_get_color("text_primary"), LV_PART_MAIN);
+    lv_obj_set_style_text_letter_space(material, 1, LV_PART_MAIN);
+    data->material_label = material;
+
+    // ========================================================================
     // SPOOL VISUALIZATION (style-dependent: 3D canvas or flat rings)
     // ========================================================================
     // Check config for visualization style
     data->use_3d_style = is_3d_spool_style();
 
-    // Spool size adapts to available space - use space_lg * 4 for bigger spools (~64px)
+    // Spool size adapts to available space - 72px with tight gaps
     int32_t space_lg = ui_theme_get_spacing("space_lg");
-    int32_t spool_size = space_lg * 4; // Responsive: 64px at 16px spacing
+    int32_t spool_size = (space_lg * 9) / 2; // Responsive: 72px at 16px spacing
 
     if (data->use_3d_style) {
         // ====================================================================
         // 3D SPOOL CANVAS (Bambu-style pseudo-3D with gradients + AA)
         // ====================================================================
+        // Container is larger than canvas to accommodate badge overflow
+        int32_t container_size = spool_size + 8; // Extra room for badge
+
         // Create a container to hold both the canvas and overlay badges
         lv_obj_t* spool_container = lv_obj_create(container);
-        lv_obj_set_size(spool_container, spool_size, spool_size);
+        lv_obj_set_size(spool_container, container_size, container_size);
         lv_obj_set_style_bg_opa(spool_container, LV_OPA_TRANSP, LV_PART_MAIN);
         lv_obj_set_style_border_width(spool_container, 0, LV_PART_MAIN);
         lv_obj_set_style_pad_all(spool_container, 0, LV_PART_MAIN);
         lv_obj_remove_flag(spool_container, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_add_flag(spool_container, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
         data->spool_container = spool_container;
 
-        // Create the 3D spool canvas inside the container
+        // Create the 3D spool canvas inside the container (centered)
         lv_obj_t* canvas = ui_spool_canvas_create(spool_container, spool_size);
         if (canvas) {
             lv_obj_align(canvas, LV_ALIGN_CENTER, 0, 0);
@@ -533,7 +549,8 @@ static void create_slot_children(lv_obj_t* container, AmsSlotData* data) {
     // ========================================================================
     lv_obj_t* status_badge = lv_obj_create(data->spool_container);
     lv_obj_set_size(status_badge, 20, 20);
-    lv_obj_align(status_badge, LV_ALIGN_BOTTOM_RIGHT, 4, 4);
+    // Position badge at bottom-right of the canvas area (offset accounts for larger container)
+    lv_obj_align(status_badge, LV_ALIGN_BOTTOM_RIGHT, -2, -2);
     lv_obj_set_style_radius(status_badge, LV_RADIUS_CIRCLE, LV_PART_MAIN);
     lv_obj_set_style_bg_color(status_badge, lv_color_hex(0x505050), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(status_badge, LV_OPA_COVER, LV_PART_MAIN);
@@ -552,29 +569,16 @@ static void create_slot_children(lv_obj_t* container, AmsSlotData* data) {
     data->status_icon = status_icon;
 
     // ========================================================================
-    // MATERIAL LABEL (below spool)
+    // SLOT NUMBER BADGE (bottom-left of spool, mirrors status badge)
     // ========================================================================
-    lv_obj_t* material = lv_label_create(container);
-    lv_label_set_text(material, "--");
-    const char* font_small_name = lv_xml_get_const(NULL, "font_small");
-    const lv_font_t* font_small =
-        font_small_name ? lv_xml_get_font(NULL, font_small_name) : &noto_sans_16;
-    lv_obj_set_style_text_font(material, font_small, LV_PART_MAIN);
-    lv_obj_set_style_text_color(material, ui_theme_get_color("text_primary"), LV_PART_MAIN);
-    lv_obj_set_style_text_letter_space(material, 1, LV_PART_MAIN); // Slight letter spacing
-    data->material_label = material;
-
-    // ========================================================================
-    // SLOT NUMBER BADGE (top-left corner, pill shape)
-    // ========================================================================
-    lv_obj_t* badge_container = lv_obj_create(container);
-    lv_obj_set_size(badge_container, 24, 18);
-    lv_obj_add_flag(badge_container, LV_OBJ_FLAG_FLOATING);
-    lv_obj_align(badge_container, LV_ALIGN_TOP_LEFT, -2, -2);
-    lv_obj_set_style_radius(badge_container, 9, LV_PART_MAIN); // Pill shape
-    lv_obj_set_style_bg_color(badge_container, lv_color_hex(0x404040), LV_PART_MAIN);
-    lv_obj_set_style_bg_opa(badge_container, LV_OPA_90, LV_PART_MAIN);
-    lv_obj_set_style_border_width(badge_container, 0, LV_PART_MAIN);
+    lv_obj_t* badge_container = lv_obj_create(data->spool_container);
+    lv_obj_set_size(badge_container, 20, 20);
+    lv_obj_align(badge_container, LV_ALIGN_BOTTOM_LEFT, -2, -2);
+    lv_obj_set_style_radius(badge_container, LV_RADIUS_CIRCLE, LV_PART_MAIN);
+    lv_obj_set_style_bg_color(badge_container, lv_color_hex(0x505050), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(badge_container, LV_OPA_COVER, LV_PART_MAIN);
+    lv_obj_set_style_border_width(badge_container, 2, LV_PART_MAIN);
+    lv_obj_set_style_border_color(badge_container, ui_theme_get_color("card_bg"), LV_PART_MAIN);
     lv_obj_remove_flag(badge_container, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_style_pad_all(badge_container, 0, LV_PART_MAIN);
 
