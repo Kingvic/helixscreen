@@ -884,6 +884,37 @@ int MoonrakerClient::gcode_script(const std::string& gcode) {
     return send_jsonrpc("printer.gcode.script", params);
 }
 
+void MoonrakerClient::get_gcode_store(
+    int count, std::function<void(const std::vector<GcodeStoreEntry>&)> on_success,
+    std::function<void(const MoonrakerError&)> on_error) {
+    json params = {{"count", count}};
+
+    send_jsonrpc(
+        "server.gcode_store", params,
+        [on_success](json response) {
+            std::vector<GcodeStoreEntry> entries;
+
+            // Parse response: {"result": {"gcode_store": [...]}}
+            if (response.contains("result") && response["result"].contains("gcode_store")) {
+                const auto& store = response["result"]["gcode_store"];
+                entries.reserve(store.size());
+
+                for (const auto& item : store) {
+                    GcodeStoreEntry entry;
+                    entry.message = item.value("message", "");
+                    entry.time = item.value("time", 0.0);
+                    entry.type = item.value("type", "response");
+                    entries.push_back(entry);
+                }
+            }
+
+            if (on_success) {
+                on_success(entries);
+            }
+        },
+        on_error);
+}
+
 void MoonrakerClient::discover_printer(std::function<void()> on_complete) {
     spdlog::debug("[Moonraker Client] Starting printer auto-discovery");
 

@@ -5,6 +5,7 @@
 
 #include "ui_nav.h"
 #include "ui_panel_calibration_zoffset.h"
+#include "ui_panel_console.h"
 #include "ui_panel_history_dashboard.h"
 #include "ui_panel_screws_tilt.h"
 #include "ui_toast.h"
@@ -19,6 +20,7 @@
 // Forward declarations
 MoonrakerClient* get_moonraker_client();
 ZOffsetCalibrationPanel& get_global_zoffset_cal_panel();
+ConsolePanel& get_global_console_panel();
 ScrewsTiltPanel& get_global_screws_tilt_panel();
 
 // Global instance (singleton pattern matching SettingsPanel)
@@ -239,8 +241,35 @@ void AdvancedPanel::handle_macros_clicked() {
 }
 
 void AdvancedPanel::handle_console_clicked() {
-    spdlog::debug("[{}] Console clicked", get_name());
-    ui_toast_show(ToastSeverity::INFO, "Console: Coming soon", 2000);
+    spdlog::debug("[{}] Console clicked - opening G-code console", get_name());
+
+    // Create console panel on first access (lazy initialization)
+    if (!console_panel_ && parent_screen_) {
+        spdlog::debug("[{}] Creating console panel...", get_name());
+
+        // Initialize subjects before creating XML (required for bind_text)
+        get_global_console_panel().init_subjects();
+
+        // Create from XML
+        console_panel_ =
+            static_cast<lv_obj_t*>(lv_xml_create(parent_screen_, "console_panel", nullptr));
+        if (console_panel_) {
+            // Setup event handlers (class-based API)
+            get_global_console_panel().setup(console_panel_, parent_screen_);
+
+            // Initially hidden
+            lv_obj_add_flag(console_panel_, LV_OBJ_FLAG_HIDDEN);
+            spdlog::info("[{}] Console panel created and initialized", get_name());
+        } else {
+            spdlog::error("[{}] Failed to create console panel from XML", get_name());
+            return;
+        }
+    }
+
+    // Push console panel onto navigation history and show it
+    if (console_panel_) {
+        ui_nav_push_overlay(console_panel_);
+    }
 }
 
 void AdvancedPanel::handle_print_history_clicked() {

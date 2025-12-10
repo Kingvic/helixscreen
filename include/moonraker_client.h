@@ -94,6 +94,15 @@ class MoonrakerClient : public hv::WebSocketClient {
     MoonrakerClient& operator=(const MoonrakerClient&) = delete;
 
     /**
+     * @brief Entry from Moonraker gcode_store
+     */
+    struct GcodeStoreEntry {
+        std::string message; ///< G-code command or response text
+        double time = 0.0;   ///< Unix timestamp
+        std::string type;    ///< "command" or "response"
+    };
+
+    /**
      * @brief Connect to Moonraker WebSocket server
      *
      * Virtual to allow mock override for testing without real network connection.
@@ -271,6 +280,20 @@ class MoonrakerClient : public hv::WebSocketClient {
      * @return 0 on success, non-zero on error
      */
     virtual int gcode_script(const std::string& gcode);
+
+    /**
+     * @brief Fetch G-code command history from Moonraker
+     *
+     * Retrieves the most recent G-code commands and responses from
+     * Moonraker's gcode_store endpoint (server.gcode_store).
+     *
+     * @param count Maximum number of entries to retrieve
+     * @param on_success Callback with vector of GcodeStoreEntry (oldest first)
+     * @param on_error Callback for errors
+     */
+    virtual void
+    get_gcode_store(int count, std::function<void(const std::vector<GcodeStoreEntry>&)> on_success,
+                    std::function<void(const MoonrakerError&)> on_error);
 
     /**
      * @brief Perform printer auto-discovery sequence

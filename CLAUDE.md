@@ -83,9 +83,23 @@
 |----------|----------|-----------|
 | **Colors** | `lv_color_hex(0xE0E0E0)` | `ui_theme_parse_color("#card_border")` |
 | **Spacing** | `style_pad_all="12"` | `style_pad_all="#space_md"` |
-| **Typography** | `<lv_label style_text_font="montserrat_18">` | `<text_heading>`, `<text_body>`, `<text_small>` |
+| **Typography** | `<lv_label style_text_font="...">` | `<text_heading>`, `<text_body>`, `<text_small>` |
 
-**Typography exceptions:** FontAwesome icons (`fa_icons_*`), large numeric displays (`montserrat_28`)
+**C++ Theme Color API:**
+```cpp
+// For any token (with # prefix) - parses both hex and tokens:
+lv_color_t bg = ui_theme_parse_color("#card_bg");
+
+// For semantic colors (no # prefix) - cleaner for known tokens:
+lv_color_t ok = ui_theme_get_color("success_color");
+lv_color_t err = ui_theme_get_color("error_color");
+lv_color_t warn = ui_theme_get_color("warning_color");
+
+// Pre-defined macros for common colors:
+lv_color_t text = UI_COLOR_TEXT_PRIMARY;   // White text
+lv_font_t* font = UI_FONT_SMALL;           // Responsive small font
+```
+**Reference:** See `ui_icon.cpp` for semantic color usage pattern.
 
 **Rule 12 - XML event_cb:** Events ALWAYS in XML `<event_cb trigger="clicked" callback="name"/>`, register in C++ with `lv_xml_register_event_cb(nullptr, "name", func)`. **NEVER** `lv_obj_add_event_cb()`. See `hidden_network_modal.xml` + `ui_toast.cpp`.
 
