@@ -687,7 +687,10 @@ Update this section as stages complete:
 | 4. Search/Filter/Sort | ✅ Complete | Session 2025-12-08 |
 | 5. Detail Overlay | ✅ Complete | Commit 2d1de9f |
 | 6. Charts | ✅ Complete | Session 2025-12-10 (filament bar chart, prints trend sparkline) |
-| 7. Small Screen | Not Started | |
+| 7. Small Screen | ⏸ Deferred | Current layout works at 800×480, optimize later if needed |
+
+**Feature Complete:** 2025-12-10
+**Merged to main:** 2025-12-10
 
 ---
 
