@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <cctype>
 #include <lvgl.h>
+#include <map>
 
 // MDI chevron-down symbol for dropdown arrows (replaces FontAwesome LV_SYMBOL_DOWN)
 static const char* MDI_CHEVRON_DOWN = "\xF3\xB0\x85\x80"; // F0140
@@ -50,6 +51,8 @@ void init_global_history_list_panel(PrinterState& printer_state, MoonrakerAPI* a
                              HistoryListPanel::on_detail_reprint_static);
     lv_xml_register_event_cb(nullptr, "history_detail_delete",
                              HistoryListPanel::on_detail_delete_static);
+    lv_xml_register_event_cb(nullptr, "history_detail_view_timelapse",
+                             HistoryListPanel::on_detail_view_timelapse_static);
 
     spdlog::debug("[History List] Global instance and event callbacks initialized");
 }
@@ -243,7 +246,9 @@ void HistoryListPanel::refresh_from_api() {
             jobs_ = jobs;
             total_job_count_ = total;
             has_more_data_ = (jobs_.size() < total);
-            apply_filters_and_sort();
+
+            // Fetch timelapse files and associate them with jobs (calls apply_filters_and_sort)
+            fetch_timelapse_files();
         },
         [this](const MoonrakerError& error) {
             spdlog::error("[{}] Failed to fetch history: {}", get_name(), error.message);
@@ -306,6 +311,94 @@ void HistoryListPanel::load_more() {
             is_loading_more_ = false;
             spdlog::error("[{}] Failed to load more history: {}", get_name(), error.message);
         });
+}
+
+void HistoryListPanel::fetch_timelapse_files() {
+    if (!api_) {
+        apply_filters_and_sort();
+        return;
+    }
+
+    // List files in the timelapse directory
+    api_->list_files(
+        "timelapse", // root
+        "",          // path (root)
+        false,       // non-recursive
+        [this](const std::vector<FileInfo>& timelapse_files) {
+            spdlog::debug("[{}] Found {} timelapse files", get_name(), timelapse_files.size());
+            associate_timelapse_files(timelapse_files);
+            apply_filters_and_sort();
+        },
+        [this](const MoonrakerError& error) {
+            spdlog::debug("[{}] No timelapse files available: {}", get_name(), error.message);
+            // Continue without timelapse association - this is not an error
+            apply_filters_and_sort();
+        });
+}
+
+void HistoryListPanel::associate_timelapse_files(const std::vector<FileInfo>& timelapse_files) {
+    if (timelapse_files.empty() || jobs_.empty()) {
+        return;
+    }
+
+    // Build a map of base filename (without extension) -> timelapse file path
+    // Timelapse files are typically named like "print_name_timestamp.mp4"
+    std::map<std::string, std::string> timelapse_map;
+    for (const auto& tf : timelapse_files) {
+        if (tf.is_dir)
+            continue;
+
+        // Skip non-video files
+        std::string name_lower = tf.filename;
+        std::transform(name_lower.begin(), name_lower.end(), name_lower.begin(),
+                       [](unsigned char c) { return std::tolower(c); });
+        if (name_lower.find(".mp4") == std::string::npos &&
+            name_lower.find(".webm") == std::string::npos &&
+            name_lower.find(".avi") == std::string::npos) {
+            continue;
+        }
+
+        timelapse_map[tf.filename] = "timelapse/" + tf.filename;
+        spdlog::trace("[{}] Timelapse file: {}", get_name(), tf.filename);
+    }
+
+    // Match timelapse files to jobs
+    // Strategy: Check if job filename (without .gcode) is contained in timelapse filename
+    for (auto& job : jobs_) {
+        if (job.filename.empty())
+            continue;
+
+        // Get job filename without extension and path
+        std::string job_base = job.filename;
+        size_t slash_pos = job_base.rfind('/');
+        if (slash_pos != std::string::npos) {
+            job_base = job_base.substr(slash_pos + 1);
+        }
+        size_t dot_pos = job_base.rfind(".gcode");
+        if (dot_pos != std::string::npos) {
+            job_base = job_base.substr(0, dot_pos);
+        }
+
+        // Convert to lowercase for comparison
+        std::string job_base_lower = job_base;
+        std::transform(job_base_lower.begin(), job_base_lower.end(), job_base_lower.begin(),
+                       [](unsigned char c) { return std::tolower(c); });
+
+        // Search for a timelapse file that contains this job's base name
+        for (const auto& [tf_name, tf_path] : timelapse_map) {
+            std::string tf_lower = tf_name;
+            std::transform(tf_lower.begin(), tf_lower.end(), tf_lower.begin(),
+                           [](unsigned char c) { return std::tolower(c); });
+
+            if (tf_lower.find(job_base_lower) != std::string::npos) {
+                job.timelapse_filename = tf_path;
+                job.has_timelapse = true;
+                spdlog::debug("[{}] Associated timelapse '{}' with job '{}'", get_name(), tf_name,
+                              job.filename);
+                break; // One timelapse per job
+            }
+        }
+    }
 }
 
 // ============================================================================
@@ -754,6 +847,7 @@ void HistoryListPanel::init_detail_subjects() {
     lv_subject_init_int(&detail_can_reprint_, 1);
     lv_subject_init_int(&detail_status_code_,
                         0); // 0=completed, 1=cancelled, 2=error, 3=in_progress
+    lv_subject_init_int(&detail_has_timelapse_, 0); // 0=no timelapse, 1=timelapse available
 
     // Register subjects for XML binding
     lv_xml_register_subject(nullptr, "history_detail_filename", &detail_filename_);
@@ -771,6 +865,7 @@ void HistoryListPanel::init_detail_subjects() {
     lv_xml_register_subject(nullptr, "history_detail_filament_type", &detail_filament_type_);
     lv_xml_register_subject(nullptr, "history_detail_can_reprint", &detail_can_reprint_);
     lv_xml_register_subject(nullptr, "history_detail_status_code", &detail_status_code_);
+    lv_xml_register_subject(nullptr, "history_detail_has_timelapse", &detail_has_timelapse_);
 
     spdlog::debug("[{}] Detail overlay subjects initialized", get_name());
 }
@@ -930,6 +1025,9 @@ void HistoryListPanel::update_detail_subjects(const PrintHistoryJob& job) {
     // Set reprint availability based on file existence
     lv_subject_set_int(&detail_can_reprint_, job.exists ? 1 : 0);
 
+    // Set timelapse availability
+    lv_subject_set_int(&detail_has_timelapse_, job.has_timelapse ? 1 : 0);
+
     // Set status code for icon visibility binding: 0=completed, 1=cancelled, 2=error, 3=in_progress
     int status_code = 0; // Default to completed
     switch (job.status) {
@@ -1068,6 +1166,39 @@ void HistoryListPanel::on_detail_delete_static(lv_event_t* e) {
     } catch (const std::exception& ex) {
         spdlog::error("[History List] Delete callback error: {}", ex.what());
     }
+}
+
+void HistoryListPanel::on_detail_view_timelapse_static(lv_event_t* e) {
+    (void)e; // Unused
+    try {
+        auto& panel = get_global_history_list_panel();
+        panel.handle_view_timelapse();
+    } catch (const std::exception& ex) {
+        spdlog::error("[History List] View timelapse callback error: {}", ex.what());
+    }
+}
+
+void HistoryListPanel::handle_view_timelapse() {
+    if (selected_job_index_ >= filtered_jobs_.size()) {
+        spdlog::warn("[{}] Invalid selected job index for view timelapse", get_name());
+        return;
+    }
+
+    const auto& job = filtered_jobs_[selected_job_index_];
+
+    if (!job.has_timelapse || job.timelapse_filename.empty()) {
+        spdlog::warn("[{}] No timelapse available for: {}", get_name(), job.filename);
+        ui_notification_warning("No timelapse available");
+        return;
+    }
+
+    spdlog::info("[{}] View timelapse requested for: {} (file: {})", get_name(), job.filename,
+                 job.timelapse_filename);
+
+    // TODO: Phase 6 - Open timelapse viewer/player
+    // For now, show a toast with the filename
+    std::string message = "Timelapse: " + job.timelapse_filename;
+    ui_notification_info(message.c_str());
 }
 
 // ============================================================================

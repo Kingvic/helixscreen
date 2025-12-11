@@ -51,6 +51,11 @@ struct PrintHistoryJob {
     std::string duration_str; ///< "2h 15m"
     std::string date_str;     ///< "Dec 1, 14:30"
     std::string filament_str; ///< "12.5m"
+
+    // Timelapse association (Phase 5)
+    std::string
+        timelapse_filename;     ///< Associated timelapse file (e.g., "timelapse/print_2024...mp4")
+    bool has_timelapse = false; ///< True if timelapse file was found for this job
 };
 
 /**

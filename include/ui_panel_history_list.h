@@ -11,6 +11,9 @@
 #include <string>
 #include <vector>
 
+// Forward declaration
+struct FileInfo;
+
 /**
  * @file ui_panel_history_list.h
  * @brief Print History List Panel - Scrollable list of print jobs with filter/sort
@@ -151,6 +154,24 @@ class HistoryListPanel : public PanelBase {
      */
     void load_more();
 
+    /**
+     * @brief Fetch timelapse files and associate them with print jobs
+     *
+     * Called after history is loaded to match timelapse videos to their
+     * corresponding print jobs by filename pattern matching.
+     */
+    void fetch_timelapse_files();
+
+    /**
+     * @brief Associate timelapse files with print history jobs
+     *
+     * Matches timelapse video files to jobs by looking for the job's
+     * filename (without .gcode extension) within the timelapse filename.
+     *
+     * @param timelapse_files List of files from the timelapse directory
+     */
+    void associate_timelapse_files(const std::vector<FileInfo>& timelapse_files);
+
     //
     // === Static Event Callbacks (public for XML registration) ===
     //
@@ -181,6 +202,11 @@ class HistoryListPanel : public PanelBase {
      * @brief Static callback for detail overlay delete button
      */
     static void on_detail_delete_static(lv_event_t* e);
+
+    /**
+     * @brief Static callback for detail overlay view timelapse button
+     */
+    static void on_detail_view_timelapse_static(lv_event_t* e);
 
   private:
     //
@@ -251,8 +277,9 @@ class HistoryListPanel : public PanelBase {
     lv_subject_t detail_bed_temp_;
     lv_subject_t detail_filament_;
     lv_subject_t detail_filament_type_;
-    lv_subject_t detail_can_reprint_; ///< 1 if file exists, 0 otherwise
-    lv_subject_t detail_status_code_; ///< 0=completed, 1=cancelled, 2=error, 3=in_progress
+    lv_subject_t detail_can_reprint_;   ///< 1 if file exists, 0 otherwise
+    lv_subject_t detail_status_code_;   ///< 0=completed, 1=cancelled, 2=error, 3=in_progress
+    lv_subject_t detail_has_timelapse_; ///< 1 if timelapse available, 0 otherwise
 
     // Buffers for string subjects (LVGL 9.4 requires pre-allocated buffers)
     static constexpr size_t DETAIL_BUF_SIZE = 128;
@@ -405,6 +432,11 @@ class HistoryListPanel : public PanelBase {
      * @brief Actually delete the job after confirmation
      */
     void confirm_delete();
+
+    /**
+     * @brief Handle view timelapse button click
+     */
+    void handle_view_timelapse();
 
     //
     // === Filter/Sort Event Handlers ===
