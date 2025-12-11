@@ -102,6 +102,11 @@ void PrinterCapabilities::parse_objects(const json& objects) {
             mmu_type_ = AmsType::AFC;
             spdlog::debug("[PrinterCapabilities] Detected AFC");
         }
+        // Timelapse detection (Moonraker-Timelapse plugin)
+        else if (name == "timelapse") {
+            has_timelapse_ = true;
+            spdlog::debug("[PrinterCapabilities] Detected Moonraker-Timelapse plugin");
+        }
         // Macro detection
         else if (name.rfind("gcode_macro ", 0) == 0) {
             std::string macro_name = name.substr(12); // Remove "gcode_macro " prefix
@@ -171,6 +176,7 @@ void PrinterCapabilities::clear() {
     has_klippain_shaketune_ = false;
     has_speaker_ = false;
     has_mmu_ = false;
+    has_timelapse_ = false;
     mmu_type_ = AmsType::NONE;
     macros_.clear();
     helix_macros_.clear();
@@ -253,6 +259,8 @@ std::string PrinterCapabilities::summary() const {
         caps.push_back("speaker");
     if (has_mmu_)
         caps.push_back(mmu_type_ == AmsType::HAPPY_HARE ? "Happy Hare" : "AFC");
+    if (has_timelapse_)
+        caps.push_back("timelapse");
 
     if (caps.empty()) {
         ss << "none";

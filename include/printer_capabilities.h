@@ -184,6 +184,18 @@ class PrinterCapabilities {
     }
 
     /**
+     * @brief Check if Moonraker-Timelapse plugin is installed
+     *
+     * Detects the timelapse object exposed by the Moonraker-Timelapse plugin.
+     * When present, enables timelapse recording controls in print UI.
+     *
+     * @return true if timelapse object was detected
+     */
+    [[nodiscard]] bool has_timelapse() const {
+        return has_timelapse_;
+    }
+
+    /**
      * @brief Get the detected MMU/AMS type
      * @return AmsType enum (NONE, HAPPY_HARE, or AFC)
      */
@@ -330,6 +342,7 @@ class PrinterCapabilities {
     bool has_klippain_shaketune_ = false;
     bool has_speaker_ = false;
     bool has_mmu_ = false;
+    bool has_timelapse_ = false;
     AmsType mmu_type_ = AmsType::NONE;
 
     // Macro names (stored uppercase for case-insensitive matching)

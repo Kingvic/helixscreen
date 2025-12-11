@@ -363,6 +363,9 @@ void MoonrakerClientMock::populate_capabilities() {
     mock_objects.push_back("gcode_macro M600");          // Filament change
     mock_objects.push_back("gcode_macro _SYSTEM_MACRO"); // System macro (hidden by default)
 
+    // Moonraker plugins
+    mock_objects.push_back("timelapse"); // Moonraker-Timelapse plugin
+
     capabilities_.parse_objects(mock_objects);
 
     spdlog::debug("[MoonrakerClientMock] Capabilities populated: {} macros detected",

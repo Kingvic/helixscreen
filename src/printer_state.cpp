@@ -145,6 +145,7 @@ void PrinterState::reset_for_testing() {
     lv_subject_deinit(&printer_has_accelerometer_);
     lv_subject_deinit(&printer_has_spoolman_);
     lv_subject_deinit(&printer_has_speaker_);
+    lv_subject_deinit(&printer_has_timelapse_);
     lv_subject_deinit(&printer_bed_moves_);
     lv_subject_deinit(&klipper_version_);
     lv_subject_deinit(&moonraker_version_);
@@ -223,6 +224,7 @@ void PrinterState::init_subjects(bool register_xml) {
     lv_subject_init_int(&printer_has_accelerometer_, 0);
     lv_subject_init_int(&printer_has_spoolman_, 0);
     lv_subject_init_int(&printer_has_speaker_, 0);
+    lv_subject_init_int(&printer_has_timelapse_, 0);
     lv_subject_init_int(&printer_bed_moves_, 0); // 0=gantry moves, 1=bed moves (cartesian)
 
     // Version subjects (for About section)
@@ -269,6 +271,7 @@ void PrinterState::init_subjects(bool register_xml) {
         lv_xml_register_subject(NULL, "printer_has_accelerometer", &printer_has_accelerometer_);
         lv_xml_register_subject(NULL, "printer_has_spoolman", &printer_has_spoolman_);
         lv_xml_register_subject(NULL, "printer_has_speaker", &printer_has_speaker_);
+        lv_xml_register_subject(NULL, "printer_has_timelapse", &printer_has_timelapse_);
         lv_xml_register_subject(NULL, "printer_bed_moves", &printer_bed_moves_);
         lv_xml_register_subject(NULL, "klipper_version", &klipper_version_);
         lv_xml_register_subject(NULL, "moonraker_version", &moonraker_version_);
@@ -597,13 +600,16 @@ void PrinterState::set_printer_capabilities(const PrinterCapabilities& caps) {
     bool has_speaker = caps.has_speaker() || get_runtime_config().is_test_mode();
     lv_subject_set_int(&printer_has_speaker_, has_speaker ? 1 : 0);
 
+    // Timelapse capability (Moonraker-Timelapse plugin)
+    lv_subject_set_int(&printer_has_timelapse_, caps.has_timelapse() ? 1 : 0);
+
     // Spoolman requires async check - default to 0, updated separately
     // TODO: Add set_spoolman_available() method when Spoolman API is implemented
 
     spdlog::info("[PrinterState] Capabilities set: probe={}, heater_bed={}, LED={}, "
-                 "accelerometer={}, speaker={}",
+                 "accelerometer={}, speaker={}, timelapse={}",
                  caps.has_probe(), caps.has_heater_bed(), caps.has_led(), caps.has_accelerometer(),
-                 has_speaker);
+                 has_speaker, caps.has_timelapse());
     spdlog::info("[PrinterState] Capabilities set (with overrides): {}",
                  capability_overrides_.summary());
 }
