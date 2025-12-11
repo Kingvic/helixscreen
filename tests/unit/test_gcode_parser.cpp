@@ -839,15 +839,15 @@ TEST_CASE("GCodeParser - Layer counting with LAYER_CHANGE markers", "[gcode][par
         parser.parse_line("G1 X10 Y10 E1");
         parser.parse_line("G1 X20 Y10 E2");
         // Z-hop (should NOT create new layer)
-        parser.parse_line("G1 Z0.5 F3000");  // z-hop up
-        parser.parse_line("G0 X30 Y30");     // travel
-        parser.parse_line("G1 Z0.2 F3000");  // z-hop down
-        parser.parse_line("G1 X40 Y40 E3");  // continue extrusion
-        parser.parse_line(";LAYER_CHANGE");  // Second layer marker
+        parser.parse_line("G1 Z0.5 F3000"); // z-hop up
+        parser.parse_line("G0 X30 Y30");    // travel
+        parser.parse_line("G1 Z0.2 F3000"); // z-hop down
+        parser.parse_line("G1 X40 Y40 E3"); // continue extrusion
+        parser.parse_line(";LAYER_CHANGE"); // Second layer marker
         parser.parse_line(";Z:0.4");
         parser.parse_line("G1 Z0.4 F3000");
         parser.parse_line("G1 X10 Y10 E4");
-        parser.parse_line(";LAYER_CHANGE");  // Third layer marker
+        parser.parse_line(";LAYER_CHANGE"); // Third layer marker
         parser.parse_line(";Z:0.6");
         parser.parse_line("G1 Z0.6 F3000");
         parser.parse_line("G1 X10 Y10 E5");
@@ -891,7 +891,7 @@ TEST_CASE("GCodeParser - Layer counting with LAYER_CHANGE markers", "[gcode][par
     }
 
     SECTION("Ignore LAYER_COUNT metadata (not a layer change)") {
-        parser.parse_line("; total layer number = 100");  // Metadata, not layer change
+        parser.parse_line("; total layer number = 100"); // Metadata, not layer change
         parser.parse_line(";LAYER_CHANGE");
         parser.parse_line("G1 Z0.2 E1");
         parser.parse_line(";LAYER_CHANGE");
@@ -910,11 +910,11 @@ TEST_CASE("GCodeParser - Z-hop handling", "[gcode][parser][layers][zhop]") {
     SECTION("Z-hop moves should not create new layers") {
         // This is the bug scenario: z-hop creates phantom layers
         parser.parse_line(";LAYER_CHANGE");
-        parser.parse_line("G1 Z0.2 E1");   // Real layer
+        parser.parse_line("G1 Z0.2 E1"); // Real layer
         parser.parse_line("G1 X10 Y10 E2");
-        parser.parse_line("G1 Z0.6");      // Z-hop up (travel, no E)
-        parser.parse_line("G0 X50 Y50");   // Travel move
-        parser.parse_line("G1 Z0.2");      // Z-hop down
+        parser.parse_line("G1 Z0.6");    // Z-hop up (travel, no E)
+        parser.parse_line("G0 X50 Y50"); // Travel move
+        parser.parse_line("G1 Z0.2");    // Z-hop down
         parser.parse_line("G1 X60 Y60 E3");
 
         auto file = parser.finalize();

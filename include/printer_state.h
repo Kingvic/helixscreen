@@ -510,8 +510,8 @@ class PrinterState {
     lv_subject_t print_layer_total_;   // Total layers from file metadata
 
     // Print time tracking subjects (in seconds)
-    lv_subject_t print_duration_;   // Elapsed print time in seconds
-    lv_subject_t print_time_left_;  // Estimated remaining time in seconds
+    lv_subject_t print_duration_;  // Elapsed print time in seconds
+    lv_subject_t print_time_left_; // Estimated remaining time in seconds
 
     // Motion subjects
     lv_subject_t position_x_;

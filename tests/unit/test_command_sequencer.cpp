@@ -134,7 +134,8 @@ TEST_CASE("CommandSequencer - Queue management", "[sequencer][.]") {
 // ============================================================================
 
 // DEFERRED: Test crashes with SIGSEGV during fixture destruction
-// Likely memory corruption in PrinterState lv_subject_t / unordered_set layout - needs investigation
+// Likely memory corruption in PrinterState lv_subject_t / unordered_set layout - needs
+// investigation
 TEST_CASE("CommandSequencer - Start conditions", "[sequencer][.]") {
     SequencerTestFixture f;
 

@@ -78,9 +78,9 @@ PrintStatusPanel::PrintStatusPanel(PrinterState& printer_state, MoonrakerAPI* ap
 
     // Subscribe to print time tracking
     print_duration_observer_ = ObserverGuard(printer_state_.get_print_duration_subject(),
-                                              print_duration_observer_cb, this);
+                                             print_duration_observer_cb, this);
     print_time_left_observer_ = ObserverGuard(printer_state_.get_print_time_left_subject(),
-                                               print_time_left_observer_cb, this);
+                                              print_time_left_observer_cb, this);
 
     spdlog::debug("[{}] Subscribed to PrinterState subjects", get_name());
 
@@ -440,9 +440,11 @@ void PrintStatusPanel::update_all_displays() {
     // Update pause button icon based on state - MDI icons (play=F040A, pause=F03E4)
     // UTF-8: play=F3 B0 90 8A, pause=F3 B0 8F A4
     if (current_state_ == PrintState::Paused) {
-        std::snprintf(pause_button_buf_, sizeof(pause_button_buf_), "\xF3\xB0\x90\x8A"); // play icon
+        std::snprintf(pause_button_buf_, sizeof(pause_button_buf_),
+                      "\xF3\xB0\x90\x8A"); // play icon
     } else {
-        std::snprintf(pause_button_buf_, sizeof(pause_button_buf_), "\xF3\xB0\x8F\xA4"); // pause icon
+        std::snprintf(pause_button_buf_, sizeof(pause_button_buf_),
+                      "\xF3\xB0\x8F\xA4"); // pause icon
     }
     lv_subject_copy_string(&pause_button_subject_, pause_button_buf_);
 }
@@ -984,8 +986,8 @@ void PrintStatusPanel::on_print_layer_changed(int current_layer) {
             viewer_layer = (current_layer * viewer_max_layer) / total_layers_;
         }
         ui_gcode_viewer_set_print_progress(gcode_viewer_, viewer_layer);
-        spdlog::trace("[{}] G-code viewer ghost layer updated to {} (Moonraker: {}/{})",
-                      get_name(), viewer_layer, current_layer, total_layers_);
+        spdlog::trace("[{}] G-code viewer ghost layer updated to {} (Moonraker: {}/{})", get_name(),
+                      viewer_layer, current_layer, total_layers_);
     }
 }
 

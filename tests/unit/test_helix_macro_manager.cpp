@@ -2,14 +2,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "helix_macro_manager.h"
-
 #include "moonraker_api.h"
 #include "moonraker_client_mock.h"
 #include "printer_state.h"
 
-#include "../catch_amalgamated.hpp"
-
 #include <thread>
+
+#include "../catch_amalgamated.hpp"
 
 using namespace helix;
 
@@ -18,11 +17,11 @@ using namespace helix;
 // ============================================================================
 
 // DEFERRED: All tests using this fixture crash with SIGSEGV during destruction
-// The crash is in unordered_set<string> destructor with corrupted pointer 0x4079000000000000 (= 400.0 as double)
-// Root cause: Memory corruption likely from uninitialized lv_subject_t in PrinterState when
-// init_subjects() isn't called. Pre-existing issue - needs investigation.
+// The crash is in unordered_set<string> destructor with corrupted pointer 0x4079000000000000 (=
+// 400.0 as double) Root cause: Memory corruption likely from uninitialized lv_subject_t in
+// PrinterState when init_subjects() isn't called. Pre-existing issue - needs investigation.
 class MacroManagerTestFixture {
-public:
+  public:
     MacroManagerTestFixture() : state_(), api_(client_, state_), manager_(api_, capabilities_) {}
 
     void set_helix_macros_installed() {
@@ -46,7 +45,7 @@ public:
         capabilities_.parse_objects(objects);
     }
 
-protected:
+  protected:
     MoonrakerClientMock client_;
     PrinterState state_;
     MoonrakerAPI api_;
@@ -58,7 +57,8 @@ protected:
 // Status Detection Tests
 // ============================================================================
 
-TEST_CASE_METHOD(MacroManagerTestFixture, "MacroManager - is_installed returns false when no macros",
+TEST_CASE_METHOD(MacroManagerTestFixture,
+                 "MacroManager - is_installed returns false when no macros",
                  "[helix_macros][status][.]") {
     set_no_helix_macros();
 
