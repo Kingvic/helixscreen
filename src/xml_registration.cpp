@@ -126,6 +126,7 @@ void register_xml_components() {
     lv_xml_register_component_from_file("A:ui_xml/navigation_bar.xml");
     lv_xml_register_component_from_file("A:ui_xml/home_panel.xml");
     lv_xml_register_component_from_file("A:ui_xml/controls_panel.xml");
+    lv_xml_register_component_from_file("A:ui_xml/calibration_modal.xml");
     lv_xml_register_component_from_file("A:ui_xml/motion_panel.xml");
     lv_xml_register_component_from_file("A:ui_xml/nozzle_temp_panel.xml");
     lv_xml_register_component_from_file("A:ui_xml/bed_temp_panel.xml");
