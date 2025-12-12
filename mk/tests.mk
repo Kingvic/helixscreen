@@ -49,11 +49,11 @@ TEST_WIZARD_DEPS := \
 #       ui_test_utils.o provides stub implementations for ui_toast_* functions
 TEST_UI_DEPS := \
     $(OBJ_DIR)/ui_icon.o \
-    $(OBJ_DIR)/ui_nav.o \
+    $(OBJ_DIR)/ui_nav_manager.o \
     $(OBJ_DIR)/ui_temp_graph.o \
-    $(OBJ_DIR)/ui_keyboard.o \
+    $(OBJ_DIR)/ui_keyboard_manager.o \
     $(OBJ_DIR)/keyboard_layout_provider.o \
-    $(OBJ_DIR)/ui_modal.o \
+    $(OBJ_DIR)/ui_modal_manager.o \
     $(OBJ_DIR)/ui_modal_base.o \
     $(OBJ_DIR)/ui_theme.o \
     $(OBJ_DIR)/helix_theme.o \

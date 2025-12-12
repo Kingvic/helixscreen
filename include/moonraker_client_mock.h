@@ -23,9 +23,9 @@ class MoonrakerClientMock;
 
 // Forward declaration for internal handler registry
 namespace mock_internal {
-using MethodHandler = std::function<bool(
-    MoonrakerClientMock*, const json&, std::function<void(json)>,
-    std::function<void(const MoonrakerError&)>)>;
+using MethodHandler =
+    std::function<bool(MoonrakerClientMock*, const json&, std::function<void(json)>,
+                       std::function<void(const MoonrakerError&)>)>;
 } // namespace mock_internal
 
 /**

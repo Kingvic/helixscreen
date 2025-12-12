@@ -2,10 +2,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "moonraker_client_mock.h"
-#include "moonraker_client_mock_internal.h"
 
 #include "../tests/mocks/mock_printer_state.h"
 #include "gcode_parser.h"
+#include "moonraker_client_mock_internal.h"
 #include "runtime_config.h"
 
 #include <spdlog/spdlog.h>
@@ -543,7 +543,8 @@ RequestId MoonrakerClientMock::send_jsonrpc(const std::string& method, const jso
 //      moonraker_client_mock_objects.cpp, moonraker_client_mock_history.cpp
 //
 // Old logic was:
-//   - server.files.* handlers (list, metadata, delete, move, copy, post_directory, delete_directory)
+//   - server.files.* handlers (list, metadata, delete, move, copy, post_directory,
+//   delete_directory)
 //   - printer.gcode.script handler
 //   - printer.print.* handlers (start, pause, resume, cancel)
 //   - printer.objects.query handler
