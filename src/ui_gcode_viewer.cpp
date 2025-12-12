@@ -163,6 +163,7 @@ class GCodeViewerState {
     // Rendering settings
     bool use_filament_color{true};
     bool first_render{true};
+    bool rendering_paused_{false}; ///< When true, draw_cb skips rendering (for visibility optimization)
 
     // Loading UI elements (managed by async load function)
     lv_obj_t* loading_container{nullptr};
@@ -196,6 +197,12 @@ static void gcode_viewer_draw_cb(lv_event_t* e) {
     gcode_viewer_state_t* st = get_state(obj);
 
     if (!st || !layer) {
+        return;
+    }
+
+    // Check if rendering is paused (visibility optimization)
+    if (st->rendering_paused_) {
+        spdlog::trace("GCodeViewer: draw_cb skipped (rendering paused)");
         return;
     }
 
@@ -854,6 +861,32 @@ void ui_gcode_viewer_clear(lv_obj_t* obj) {
 gcode_viewer_state_enum_t ui_gcode_viewer_get_state(lv_obj_t* obj) {
     gcode_viewer_state_t* st = get_state(obj);
     return st ? st->viewer_state : GCODE_VIEWER_STATE_EMPTY;
+}
+
+// ==============================================
+// Rendering Pause Control
+// ==============================================
+
+void ui_gcode_viewer_set_paused(lv_obj_t* obj, bool paused) {
+    gcode_viewer_state_t* st = get_state(obj);
+    if (!st)
+        return;
+
+    if (st->rendering_paused_ != paused) {
+        st->rendering_paused_ = paused;
+        spdlog::debug("GCodeViewer: Rendering {} (visibility optimization)",
+                      paused ? "PAUSED" : "RESUMED");
+
+        // If resuming, trigger a redraw to show current state
+        if (!paused) {
+            lv_obj_invalidate(obj);
+        }
+    }
+}
+
+bool ui_gcode_viewer_is_paused(lv_obj_t* obj) {
+    gcode_viewer_state_t* st = get_state(obj);
+    return st ? st->rendering_paused_ : true;
 }
 
 // ==============================================

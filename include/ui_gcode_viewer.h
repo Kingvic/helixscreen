@@ -132,6 +132,30 @@ void ui_gcode_viewer_clear(lv_obj_t* obj);
 gcode_viewer_state_enum_t ui_gcode_viewer_get_state(lv_obj_t* obj);
 
 // ==============================================
+// Rendering Pause Control
+// ==============================================
+
+/**
+ * @brief Pause or resume rendering
+ * @param obj Viewer widget
+ * @param paused true to pause rendering (skip draw callbacks), false to resume
+ *
+ * When paused, the draw callback returns immediately without performing
+ * any TinyGL rendering. Use this to stop rendering when the viewer is
+ * not visible (panel navigated away, obscured by overlay, or in thumbnail mode).
+ *
+ * Resuming triggers an immediate invalidate to refresh the view.
+ */
+void ui_gcode_viewer_set_paused(lv_obj_t* obj, bool paused);
+
+/**
+ * @brief Check if rendering is paused
+ * @param obj Viewer widget
+ * @return true if rendering is currently paused
+ */
+bool ui_gcode_viewer_is_paused(lv_obj_t* obj);
+
+// ==============================================
 // Camera Controls
 // ==============================================
 

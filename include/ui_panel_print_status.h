@@ -164,6 +164,20 @@ class PrintStatusPanel : public PanelBase {
      */
     void setup(lv_obj_t* panel, lv_obj_t* parent_screen) override;
 
+    /**
+     * @brief Called when panel becomes visible
+     *
+     * Resumes G-code viewer rendering if viewer mode is active.
+     */
+    void on_activate() override;
+
+    /**
+     * @brief Called when panel is hidden
+     *
+     * Pauses G-code viewer rendering to save CPU cycles.
+     */
+    void on_deactivate() override;
+
     const char* get_name() const override {
         return "Print Status";
     }

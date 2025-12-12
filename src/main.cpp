@@ -69,6 +69,7 @@
 #include "lvgl/lvgl.h"
 #include "lvgl/src/libs/svg/lv_svg_decoder.h"
 #include "lvgl/src/xml/lv_xml.h"
+#include "memory_profiling.h"
 #include "moonraker_api.h"
 #include "moonraker_api_mock.h"
 #include "moonraker_client.h"
@@ -158,90 +159,6 @@ StepTestPanel& get_global_step_test_panel();
 TestPanel& get_global_test_panel();
 GlyphsPanel& get_global_glyphs_panel();
 GcodeTestPanel* get_gcode_test_panel(PrinterState& printer_state, MoonrakerAPI* api);
-
-// ============================================================================
-// Memory Profiling Support (development feature)
-// ============================================================================
-
-#include "memory_utils.h"
-
-#include <atomic>
-
-// Global flags for memory reporting
-static std::atomic<bool> g_memory_report_enabled{false};
-static std::atomic<bool> g_memory_snapshot_requested{false};
-static int64_t g_baseline_rss_kb = 0;
-
-/**
- * @brief Log current memory usage
- * @param label Optional label for the log entry
- */
-static void log_memory_snapshot(const char* label = "periodic") {
-    int64_t rss_kb = 0, hwm_kb = 0, private_dirty_kb = 0;
-
-    if (helix::read_memory_stats(rss_kb, hwm_kb)) {
-        helix::read_private_dirty(private_dirty_kb);
-
-        int64_t delta = (g_baseline_rss_kb > 0) ? (rss_kb - g_baseline_rss_kb) : 0;
-
-        spdlog::info("MEMORY: {} RSS={}KB HWM={}KB Private={}KB Delta={:+}KB", label, rss_kb,
-                     hwm_kb, private_dirty_kb, delta);
-    } else {
-        spdlog::debug("MEMORY: stats not available (non-Linux platform)");
-    }
-}
-
-/**
- * @brief SIGUSR1 signal handler for on-demand memory snapshots
- */
-static void sigusr1_handler(int /*signum*/) {
-    // Signal-safe: just set a flag, don't call spdlog from signal handler
-    g_memory_snapshot_requested.store(true, std::memory_order_release);
-}
-
-/**
- * @brief LVGL timer callback for periodic memory reporting
- */
-static void memory_report_timer_cb(lv_timer_t* /*timer*/) {
-    // Check if signal requested a snapshot
-    if (g_memory_snapshot_requested.exchange(false, std::memory_order_acquire)) {
-        log_memory_snapshot("signal");
-    }
-
-    // Periodic report (if enabled)
-    if (g_memory_report_enabled.load(std::memory_order_acquire)) {
-        log_memory_snapshot("periodic");
-    }
-}
-
-/**
- * @brief Initialize memory profiling
- * @param enable_periodic Enable periodic logging every 30 seconds
- */
-static void init_memory_profiling(bool enable_periodic) {
-    // Capture baseline RSS
-    int64_t rss_kb = 0, hwm_kb = 0;
-    if (helix::read_memory_stats(rss_kb, hwm_kb)) {
-        g_baseline_rss_kb = rss_kb;
-        spdlog::info("MEMORY: baseline RSS={}KB", rss_kb);
-    }
-
-    // Install SIGUSR1 handler for on-demand snapshots
-    struct sigaction sa;
-    sa.sa_handler = sigusr1_handler;
-    sigemptyset(&sa.sa_mask);
-    sa.sa_flags = SA_RESTART;
-    if (sigaction(SIGUSR1, &sa, nullptr) == 0) {
-        spdlog::info("MEMORY: SIGUSR1 handler installed (kill -USR1 {} for snapshot)", getpid());
-    }
-
-    g_memory_report_enabled.store(enable_periodic, std::memory_order_release);
-
-    // Create LVGL timer for periodic reporting (30 seconds)
-    lv_timer_create(memory_report_timer_cb, 30000, nullptr);
-}
-
-// ============================================================================
 
 // Ensure we're running from the project root directory.
 // If the executable is in build/bin/, change to the project root so relative paths work.
@@ -1325,7 +1242,7 @@ int main(int argc, char** argv) {
 
     // Initialize memory profiling (development feature)
     // SIGUSR1 handler allows on-demand snapshots: kill -USR1 $(pidof helix-screen)
-    init_memory_profiling(g_memory_report_enabled.load(std::memory_order_acquire));
+    helix::MemoryProfiler::init(args.memory_report);
 
     // Register remaining XML components (globals already registered for theme init)
     helix::register_xml_components();

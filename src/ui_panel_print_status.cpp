@@ -340,6 +340,24 @@ void PrintStatusPanel::setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
     spdlog::info("[{}] Setup complete!", get_name());
 }
 
+void PrintStatusPanel::on_activate() {
+    spdlog::debug("[{}] on_activate()", get_name());
+
+    // Resume G-code viewer rendering if viewer mode is active (not thumbnail)
+    if (gcode_viewer_ && lv_subject_get_int(&gcode_viewer_mode_subject_) == 1) {
+        ui_gcode_viewer_set_paused(gcode_viewer_, false);
+    }
+}
+
+void PrintStatusPanel::on_deactivate() {
+    spdlog::debug("[{}] on_deactivate()", get_name());
+
+    // Pause G-code viewer rendering when panel is hidden (CPU optimization)
+    if (gcode_viewer_) {
+        ui_gcode_viewer_set_paused(gcode_viewer_, true);
+    }
+}
+
 // ============================================================================
 // PRIVATE HELPERS
 // ============================================================================
@@ -355,6 +373,11 @@ void PrintStatusPanel::show_gcode_viewer(bool show) {
     // Mode 0 = thumbnail (gradient + thumbnail visible, gcode hidden)
     // Mode 1 = gcode viewer (gcode visible, gradient + thumbnail hidden)
     lv_subject_set_int(&gcode_viewer_mode_subject_, show ? 1 : 0);
+
+    // Pause/resume rendering based on visibility mode (CPU optimization)
+    if (gcode_viewer_) {
+        ui_gcode_viewer_set_paused(gcode_viewer_, !show);
+    }
 
     spdlog::debug("[{}] G-code viewer mode: {}", get_name(), show ? "gcode" : "thumbnail");
 }
