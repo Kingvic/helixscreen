@@ -168,15 +168,7 @@ static void on_print_state_changed_for_notification(lv_observer_t* observer,
     spdlog::debug("[PrintComplete] was_active={}, is_terminal={}", was_active, is_terminal);
 
     if (was_active && is_terminal) {
-        auto mode = SettingsManager::instance().get_completion_alert_mode();
-        if (mode == CompletionAlertMode::OFF) {
-            spdlog::debug("[PrintComplete] Notification disabled");
-            prev_print_state = current;
-            return;
-        }
-
         // Get filename from PrinterState and format for display
-        // Resolve modified temp paths first, then get display name
         const char* raw_filename =
             lv_subject_get_string(get_printer_state().get_print_filename_subject());
         std::string resolved_filename =
@@ -184,12 +176,11 @@ static void on_print_state_changed_for_notification(lv_observer_t* observer,
         std::string display_name =
             !resolved_filename.empty() ? get_display_filename(resolved_filename) : "Unknown";
 
-        // Wake display if sleeping
-        SettingsManager::instance().wake_display();
-
-        // Check if user is on print status panel (as an overlay)
+        // Check if user is on print status panel
         lv_obj_t* print_status_panel = get_global_print_status_panel().get_panel();
         bool on_print_status = NavigationManager::instance().is_panel_in_stack(print_status_panel);
+
+        auto mode = SettingsManager::instance().get_completion_alert_mode();
 
         spdlog::info("[PrintComplete] Print {} - on_print_status={}, mode={}",
                      (current == PrintJobState::COMPLETE)    ? "complete"
@@ -197,32 +188,43 @@ static void on_print_state_changed_for_notification(lv_observer_t* observer,
                                                              : "failed",
                      on_print_status, static_cast<int>(mode));
 
-        // Failed prints ALWAYS show modal - users need to know something went wrong
-        // Other states: toast on print status panel, modal elsewhere
-        bool show_modal = (current == PrintJobState::ERROR) || !on_print_status;
-
-        if (show_modal) {
-            // Show rich modal requiring dismissal
+        // 1. Errors ALWAYS get a modal (high visibility needed)
+        if (current == PrintJobState::ERROR) {
+            SettingsManager::instance().wake_display();
             show_rich_completion_modal(current, display_name.c_str());
-        } else {
-            // User is on print status panel for complete/cancelled - show brief toast
+            prev_print_state = current;
+            return;
+        }
+
+        // 2. On print status panel - no notification needed (panel shows state)
+        if (on_print_status) {
+            spdlog::debug("[PrintComplete] On print status panel - skipping notification");
+            prev_print_state = current;
+            return;
+        }
+
+        // 3. On other panels - respect the completion alert mode setting
+        switch (mode) {
+        case CompletionAlertMode::OFF:
+            spdlog::debug("[PrintComplete] Notification disabled by setting");
+            break;
+
+        case CompletionAlertMode::NOTIFICATION: {
+            SettingsManager::instance().wake_display();
             char message[128];
-            ToastSeverity severity = ToastSeverity::SUCCESS;
-
-            switch (current) {
-            case PrintJobState::COMPLETE:
-                snprintf(message, sizeof(message), "Print complete: %s", display_name.c_str());
-                severity = ToastSeverity::SUCCESS;
-                break;
-            case PrintJobState::CANCELLED:
-                snprintf(message, sizeof(message), "Print cancelled: %s", display_name.c_str());
-                severity = ToastSeverity::WARNING;
-                break;
-            default:
-                break;
-            }
-
+            ToastSeverity severity = (current == PrintJobState::COMPLETE) ? ToastSeverity::SUCCESS
+                                                                          : ToastSeverity::WARNING;
+            snprintf(message, sizeof(message), "Print %s: %s",
+                     (current == PrintJobState::COMPLETE) ? "complete" : "cancelled",
+                     display_name.c_str());
             ui_toast_show(severity, message, 5000);
+            break;
+        }
+
+        case CompletionAlertMode::ALERT:
+            SettingsManager::instance().wake_display();
+            show_rich_completion_modal(current, display_name.c_str());
+            break;
         }
     }
 
