@@ -43,9 +43,10 @@ static constexpr uint32_t AMS_MINI_STATUS_MAGIC = 0x414D5331;
  * @brief Per-slot data stored for each bar
  */
 struct SlotBarData {
-    lv_obj_t* bar_bg = nullptr;      // Background outline container
-    lv_obj_t* bar_fill = nullptr;    // Fill portion (colored)
-    lv_obj_t* status_line = nullptr; // Bottom line (green=loaded, red=error only)
+    lv_obj_t* slot_container = nullptr; // Wrapper for bar + status line (column flex)
+    lv_obj_t* bar_bg = nullptr;         // Background outline container
+    lv_obj_t* bar_fill = nullptr;       // Fill portion (colored)
+    lv_obj_t* status_line = nullptr;    // Bottom line BELOW bar (green=loaded, red=error only)
     uint32_t color_rgb = 0x808080;
     int fill_pct = 100;
     bool present = false;   // Filament present in slot
@@ -101,7 +102,7 @@ static constexpr int32_t STATUS_LINE_HEIGHT_PX = 3;
 static constexpr int32_t STATUS_LINE_GAP_PX = 2;
 
 /** Update a single slot bar's appearance */
-static void update_slot_bar(SlotBarData* slot, int32_t height) {
+static void update_slot_bar(SlotBarData* slot, int32_t bar_height) {
     if (!slot->bar_bg || !slot->bar_fill)
         return;
 
@@ -119,28 +120,22 @@ static void update_slot_bar(SlotBarData* slot, int32_t height) {
         lv_obj_set_style_border_opa(slot->bar_bg, LV_OPA_20, LV_PART_MAIN);
     }
 
-    // Fill: colored portion from bottom (above status line + gap)
-    // Total reserved space at bottom = status line height + gap
-    int32_t bottom_reserved = STATUS_LINE_HEIGHT_PX + STATUS_LINE_GAP_PX;
-
+    // Fill: colored portion from bottom, filling up within bar_bg
     if (slot->present && slot->fill_pct > 0) {
         lv_obj_set_style_bg_color(slot->bar_fill, lv_color_hex(slot->color_rgb), LV_PART_MAIN);
         lv_obj_set_style_bg_opa(slot->bar_fill, LV_OPA_COVER, LV_PART_MAIN);
 
-        // Height based on fill percentage, leaving room for status line + gap
-        int32_t available_height = height - bottom_reserved;
-        int32_t fill_height = (available_height * slot->fill_pct) / 100;
+        // Height based on fill percentage within the bar
+        int32_t fill_height = (bar_height * slot->fill_pct) / 100;
         fill_height = std::max(MIN_FILL_HEIGHT_PX, fill_height);
         lv_obj_set_height(slot->bar_fill, fill_height);
-        // Position above the status line + gap
-        lv_obj_set_y(slot->bar_fill, -bottom_reserved);
-        lv_obj_set_align(slot->bar_fill, LV_ALIGN_BOTTOM_MID);
+        lv_obj_align(slot->bar_fill, LV_ALIGN_BOTTOM_MID, 0, 0);
         lv_obj_remove_flag(slot->bar_fill, LV_OBJ_FLAG_HIDDEN);
     } else {
         lv_obj_add_flag(slot->bar_fill, LV_OBJ_FLAG_HIDDEN);
     }
 
-    // Status line at bottom: green=loaded, red=error only
+    // Status line BELOW bar_bg: green=loaded, red=error only
     // Empty slots get NO status line (just ghosted outline)
     if (slot->status_line) {
         if (slot->has_error) {
@@ -186,48 +181,68 @@ static void rebuild_bars(AmsMiniStatusData* data) {
     int32_t bar_width = (total_bar_space - total_gaps) / std::max(1, visible_count);
     bar_width = std::max(MIN_BAR_WIDTH_PX, bar_width);
 
+    // Calculate bar height (2/3 of container, minus space for status line + gap)
+    int32_t total_slot_height = (data->height * 2) / 3;
+    int32_t bar_height = total_slot_height - STATUS_LINE_HEIGHT_PX - STATUS_LINE_GAP_PX;
+
     // Create/update bars
     for (int i = 0; i < AMS_MINI_STATUS_MAX_VISIBLE; i++) {
         SlotBarData* slot = &data->slots[i];
 
         if (i < visible_count) {
             // Show this slot
-            if (!slot->bar_bg) {
-                // Create bar background
-                slot->bar_bg = lv_obj_create(data->bars_container);
+            if (!slot->slot_container) {
+                // Create slot container (column flex: bar on top, status line below)
+                slot->slot_container = lv_obj_create(data->bars_container);
+                lv_obj_remove_flag(slot->slot_container, LV_OBJ_FLAG_SCROLLABLE);
+                lv_obj_add_flag(slot->slot_container,
+                                LV_OBJ_FLAG_EVENT_BUBBLE); // Pass clicks to parent
+                lv_obj_set_style_bg_opa(slot->slot_container, LV_OPA_TRANSP, LV_PART_MAIN);
+                lv_obj_set_style_border_width(slot->slot_container, 0, LV_PART_MAIN);
+                lv_obj_set_style_pad_all(slot->slot_container, 0, LV_PART_MAIN);
+                lv_obj_set_flex_flow(slot->slot_container, LV_FLEX_FLOW_COLUMN);
+                lv_obj_set_flex_align(slot->slot_container, LV_FLEX_ALIGN_START,
+                                      LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+                lv_obj_set_style_pad_row(slot->slot_container, STATUS_LINE_GAP_PX, LV_PART_MAIN);
+
+                // Create bar background (outline container)
+                slot->bar_bg = lv_obj_create(slot->slot_container);
                 lv_obj_remove_flag(slot->bar_bg, LV_OBJ_FLAG_SCROLLABLE);
+                lv_obj_add_flag(slot->bar_bg, LV_OBJ_FLAG_EVENT_BUBBLE); // Pass clicks to parent
                 lv_obj_set_style_border_width(slot->bar_bg, 0, LV_PART_MAIN);
                 lv_obj_set_style_pad_all(slot->bar_bg, 0, LV_PART_MAIN);
                 lv_obj_set_style_radius(slot->bar_bg, BAR_BORDER_RADIUS_PX, LV_PART_MAIN);
 
-                // Create fill inside (positioned above status line)
+                // Create fill inside bar_bg
                 slot->bar_fill = lv_obj_create(slot->bar_bg);
                 lv_obj_remove_flag(slot->bar_fill, LV_OBJ_FLAG_SCROLLABLE);
+                lv_obj_add_flag(slot->bar_fill, LV_OBJ_FLAG_EVENT_BUBBLE); // Pass clicks to parent
                 lv_obj_set_style_border_width(slot->bar_fill, 0, LV_PART_MAIN);
                 lv_obj_set_style_pad_all(slot->bar_fill, 0, LV_PART_MAIN);
                 lv_obj_set_style_radius(slot->bar_fill, BAR_BORDER_RADIUS_PX, LV_PART_MAIN);
                 lv_obj_set_width(slot->bar_fill, LV_PCT(100));
-                lv_obj_set_align(slot->bar_fill, LV_ALIGN_BOTTOM_MID);
 
-                // Create status line at bottom (green=loaded, red=error only)
-                slot->status_line = lv_obj_create(slot->bar_bg);
+                // Create status line as sibling BELOW bar_bg (green=loaded, red=error only)
+                slot->status_line = lv_obj_create(slot->slot_container);
                 lv_obj_remove_flag(slot->status_line, LV_OBJ_FLAG_SCROLLABLE);
+                lv_obj_add_flag(slot->status_line,
+                                LV_OBJ_FLAG_EVENT_BUBBLE); // Pass clicks to parent
                 lv_obj_set_style_border_width(slot->status_line, 0, LV_PART_MAIN);
                 lv_obj_set_style_pad_all(slot->status_line, 0, LV_PART_MAIN);
-                lv_obj_set_style_radius(slot->status_line, 0, LV_PART_MAIN);
-                lv_obj_set_size(slot->status_line, LV_PCT(100), STATUS_LINE_HEIGHT_PX);
-                lv_obj_set_align(slot->status_line, LV_ALIGN_BOTTOM_MID);
+                lv_obj_set_style_radius(slot->status_line, BAR_BORDER_RADIUS_PX / 2, LV_PART_MAIN);
             }
 
-            // Bars use 2/3 of container height, centered via flex alignment
-            int32_t bar_height = (data->height * 2) / 3;
+            // Set sizes
+            lv_obj_set_size(slot->slot_container, bar_width, total_slot_height);
             lv_obj_set_size(slot->bar_bg, bar_width, bar_height);
-            lv_obj_remove_flag(slot->bar_bg, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_set_size(slot->status_line, bar_width, STATUS_LINE_HEIGHT_PX);
+
+            lv_obj_remove_flag(slot->slot_container, LV_OBJ_FLAG_HIDDEN);
             update_slot_bar(slot, bar_height);
         } else {
             // Hide this slot
-            if (slot->bar_bg) {
-                lv_obj_add_flag(slot->bar_bg, LV_OBJ_FLAG_HIDDEN);
+            if (slot->slot_container) {
+                lv_obj_add_flag(slot->slot_container, LV_OBJ_FLAG_HIDDEN);
             }
         }
     }
@@ -320,6 +335,7 @@ lv_obj_t* ui_ams_mini_status_create(lv_obj_t* parent, int32_t height) {
     // Create bars container (holds the slot bars)
     data->bars_container = lv_obj_create(container);
     lv_obj_remove_flag(data->bars_container, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_flag(data->bars_container, LV_OBJ_FLAG_EVENT_BUBBLE); // Pass clicks to parent
     lv_obj_set_style_bg_opa(data->bars_container, LV_OPA_TRANSP, LV_PART_MAIN);
     lv_obj_set_style_border_width(data->bars_container, 0, LV_PART_MAIN);
     lv_obj_set_style_pad_all(data->bars_container, 0, LV_PART_MAIN);
@@ -332,6 +348,7 @@ lv_obj_t* ui_ams_mini_status_create(lv_obj_t* parent, int32_t height) {
 
     // Create overflow label (hidden by default) - use responsive font
     data->overflow_label = lv_label_create(container);
+    lv_obj_add_flag(data->overflow_label, LV_OBJ_FLAG_EVENT_BUBBLE); // Pass clicks to parent
     lv_label_set_text(data->overflow_label, "+0");
     lv_obj_set_style_text_color(data->overflow_label, ui_theme_get_color("text_secondary"),
                                 LV_PART_MAIN);
