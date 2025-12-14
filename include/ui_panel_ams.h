@@ -140,6 +140,13 @@ class AmsPanel : public PanelBase {
      */
     void create_slots(int count);
 
+    /**
+     * @brief Update the visual tray height to 1/3 of slot height
+     *
+     * Called after slots are created to size the tray "holder" effect.
+     */
+    void update_tray_size();
+
     // === Gate Count Observer ===
 
     static void on_gate_count_changed(lv_observer_t* observer, lv_subject_t* subject);

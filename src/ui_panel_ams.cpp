@@ -373,6 +373,41 @@ void AmsPanel::create_slots(int count) {
 
     current_slot_count_ = count;
     spdlog::info("[{}] Created {} slot widgets", get_name(), count);
+
+    // Update the visual tray to 1/3 of slot height
+    update_tray_size();
+}
+
+void AmsPanel::update_tray_size() {
+    if (!panel_ || !slot_grid_) {
+        return;
+    }
+
+    // Find the tray element
+    lv_obj_t* tray = lv_obj_find_by_name(panel_, "slot_tray");
+    if (!tray) {
+        spdlog::debug("[{}] slot_tray not found - skipping tray sizing", get_name());
+        return;
+    }
+
+    // Force layout update so slot_grid has its final size
+    lv_obj_update_layout(slot_grid_);
+
+    // Get slot grid height (includes material label + spool + padding)
+    int32_t grid_height = lv_obj_get_height(slot_grid_);
+    if (grid_height <= 0) {
+        spdlog::debug("[{}] slot_grid height {} - skipping tray sizing", get_name(), grid_height);
+        return;
+    }
+
+    // Tray is 1/3 of the slot area height
+    int32_t tray_height = grid_height / 3;
+
+    // Set tray size and ensure it stays at bottom
+    lv_obj_set_height(tray, tray_height);
+    lv_obj_align(tray, LV_ALIGN_BOTTOM_MID, 0, 0);
+
+    spdlog::debug("[{}] Tray sized to {}px (1/3 of {}px grid)", get_name(), tray_height, grid_height);
 }
 
 void AmsPanel::on_gate_count_changed(lv_observer_t* observer, lv_subject_t* subject) {

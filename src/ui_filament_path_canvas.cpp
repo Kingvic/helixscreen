@@ -621,18 +621,120 @@ static void draw_nozzle(lv_layer_t* layer, int32_t cx, int32_t cy, lv_color_t co
     // Fan duct - large, centered on front face
     int32_t fan_radius = (scale_unit * 12) / 10; // Large fan taking most of front
 
-    // Calculate Y positions (cy is center of body)
-    int32_t body_top = cy - body_height / 2;
+    // Cap dimensions (raised narrower section on top)
+    int32_t cap_height = body_height / 10;              // ~10% of body
+    int32_t cap_half_width = (body_half_width * 3) / 4; // ~75% of body width
+    int32_t bevel_height = cap_height;                  // Height of bevel transition zone
+
+    // Calculate Y positions - body stays fixed, cap and bevels sit above it
+    int32_t body_top = cy - body_height / 2; // Body top stays at original position
     int32_t body_bottom = cy + body_height / 2;
+    int32_t cap_bottom = body_top - bevel_height; // Cap ends above bevel zone
+    int32_t cap_top = cap_bottom - cap_height;    // Cap starts above that
     int32_t tip_top = body_bottom;
     int32_t tip_bottom = tip_top + tip_height;
+
+    // ========================================
+    // STEP 0: Draw tapered top section (cap + bevel as ONE continuous shape)
+    // ========================================
+    // The top section tapers from narrow (cap_half_width) at cap_top
+    // to wide (body_half_width) at body_top. This is ONE continuous 3D form.
+    {
+        int32_t bevel_width = body_half_width - cap_half_width;
+        int32_t taper_height = body_top - cap_top; // Total height of tapered section
+        lv_draw_fill_dsc_t fill;
+        lv_draw_fill_dsc_init(&fill);
+        fill.opa = LV_OPA_COVER;
+
+        // === TAPERED ISOMETRIC TOP (one continuous surface, narrow to wide) ===
+        // Draw the entire iso top as rows that expand from cap_half_width to body_half_width
+        for (int32_t dy = 0; dy <= taper_height; dy++) {
+            float factor = (float)dy / (float)taper_height;
+            int32_t half_w = cap_half_width + (int32_t)(bevel_width * factor);
+            int32_t y_front = cap_top + dy;
+
+            // Draw this row of the isometric top with depth
+            for (int32_t d = 0; d <= body_depth; d++) {
+                float iso_factor = (float)d / (float)body_depth;
+                int32_t y_offset = (int32_t)(iso_factor * body_depth / 2);
+                int32_t y_row = y_front - y_offset;
+                int32_t x_left = cx - half_w + d;
+                int32_t x_right = cx + half_w + d;
+
+                lv_color_t row_color = ph_blend(top_color, ph_darken(top_color, 20), iso_factor);
+                fill.color = row_color;
+                lv_area_t row = {x_left, y_row, x_right, y_row};
+                lv_draw_fill(layer, &fill, &row);
+            }
+        }
+
+        // === TAPERED FRONT FACE (trapezoid: narrow top, wide bottom) ===
+        // Draw with smooth horizontal gradient: lighter on left, darker on right
+        for (int32_t dy = 0; dy <= taper_height; dy++) {
+            float factor = (float)dy / (float)taper_height;
+            int32_t half_w = cap_half_width + (int32_t)(bevel_width * factor);
+            int32_t y_row = cap_top + dy;
+
+            // Vertical gradient base
+            lv_color_t base_color = ph_blend(front_light, front_dark, factor * 0.6f);
+
+            // Draw the row with horizontal shading gradient
+            for (int32_t x = cx - half_w; x <= cx + half_w; x++) {
+                // Calculate horizontal position factor (-1 at left edge, +1 at right edge)
+                float x_factor = (float)(x - cx) / (float)half_w; // -1 to +1
+
+                // Smooth shading: lighter on left, darker on right
+                // Use a subtle adjustment based on x position
+                lv_color_t pixel_color;
+                if (x_factor < 0) {
+                    // Left side - slightly lighter
+                    pixel_color = ph_lighten(base_color, (int32_t)(-x_factor * 12));
+                } else {
+                    // Right side - slightly darker
+                    pixel_color = ph_darken(base_color, (int32_t)(x_factor * 12));
+                }
+
+                fill.color = pixel_color;
+                lv_area_t pixel = {x, y_row, x, y_row};
+                lv_draw_fill(layer, &fill, &pixel);
+            }
+        }
+
+        // === TAPERED RIGHT SIDE (continuous angled isometric side) ===
+        for (int32_t dy = 0; dy <= taper_height; dy++) {
+            float factor = (float)dy / (float)taper_height;
+            int32_t half_w = cap_half_width + (int32_t)(bevel_width * factor);
+            int32_t y_front = cap_top + dy;
+            int32_t x_base = cx + half_w;
+
+            // Draw isometric depth at this row's edge
+            for (int32_t d = 0; d <= body_depth; d++) {
+                float iso_factor = (float)d / (float)body_depth;
+                int32_t y_offset = (int32_t)(iso_factor * body_depth / 2);
+                lv_color_t side_col = ph_blend(side_color, ph_darken(side_color, 30), iso_factor);
+                fill.color = side_col;
+                lv_area_t pixel = {x_base + d, y_front - y_offset, x_base + d, y_front - y_offset};
+                lv_draw_fill(layer, &fill, &pixel);
+            }
+        }
+
+        // === LEFT EDGE HIGHLIGHT (angled line from narrow top to wide bottom) ===
+        lv_draw_line_dsc_t line_dsc;
+        lv_draw_line_dsc_init(&line_dsc);
+        line_dsc.color = ph_lighten(front_light, 30);
+        line_dsc.width = 1;
+        line_dsc.p1.x = cx - cap_half_width;
+        line_dsc.p1.y = cap_top;
+        line_dsc.p2.x = cx - body_half_width;
+        line_dsc.p2.y = body_top;
+        lv_draw_line(layer, &line_dsc);
+    }
 
     // ========================================
     // STEP 1: Draw main body (tall rectangle with rounded corners)
     // ========================================
     {
-        // Isometric top face
-        ph_draw_iso_top(layer, cx, body_top, body_half_width, body_depth, top_color);
+        // Main body starts below cap - no isometric top (cap provides it)
 
         // Front face with vertical gradient
         ph_draw_gradient_rect(layer, cx - body_half_width, body_top, cx + body_half_width,
