@@ -246,12 +246,10 @@
 /* Use Renesas Dave2D on RA  platforms. */
 #define LV_USE_DRAW_DAVE2D 0
 
-/* Draw using cached SDL textures - GPU-accelerated on desktop (Metal/OpenGL) */
-#ifdef HELIX_DISPLAY_SDL
-    #define LV_USE_DRAW_SDL 1
-#else
-    #define LV_USE_DRAW_SDL 0
-#endif
+/* Draw using cached SDL textures - GPU-accelerated on desktop (Metal/OpenGL).
+ * Currently disabled: causes rendering corruption (strobing/blank panels).
+ * TODO: Investigate SDL draw backend compatibility with LVGL 9.4 */
+#define LV_USE_DRAW_SDL 0
 
 /* Draw using OpenGL ES textures - GPU-accelerated on Pi via DRM+EGL.
  * Uses LVGL's bundled GLAD loader for OpenGL ES function loading.

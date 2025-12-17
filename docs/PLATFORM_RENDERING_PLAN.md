@@ -603,8 +603,8 @@ Update this section after each phase:
 | Phase | Status | Started | Completed | Notes |
 |-------|--------|---------|-----------|-------|
 | 1 | ✅ Complete | 2025-12-15 | 2025-12-15 | TinyGL disabled, NEON enabled, 2D renderer API compatibility |
-| 2 | ⬜ Not Started | - | - | |
-| 3 | ⬜ Not Started | - | - | |
+| 2 | ⚠️ Partial | 2025-12-16 | 2025-12-16 | DRM ✅, SDL GPU ❌ (rendering corruption), OpenGL ES ❌ (LVGL C++11 issue) |
+| 3 | ✅ Complete | 2025-12-16 | 2025-12-16 | Native + Pi builds verified |
 | 4 | ⬜ Not Started | - | - | |
 | 5 | ⬜ Not Started | - | - | |
 | 6 | ⬜ Not Started | - | - | Image optimization - critical for AD5M perf (PNG decode bottleneck) |
@@ -637,3 +637,20 @@ Record progress across sessions:
   - `AsyncBuildResult` struct needed conditional geometry members
   - `color_count` variable scope issue (fixed)
 - Next steps: Phase 2 (Pi OpenGL ES integration)
+
+### Session 2025-12-16
+- Phase 2: ⚠️ Partial
+  - **SDL GPU draw backend** (`LV_USE_DRAW_SDL`): Causes rendering corruption (strobing, blank panels) - disabled
+  - **DRM display driver**: Working for Pi (software rendering)
+  - **OpenGL ES draw backend**: Abandoned - LVGL uses C++11 raw string literals in `.c` shader files
+  - Added OpenGL ES dev libs to Dockerfile.pi for future use
+  - Made GLAD include path conditional on `ENABLE_OPENGLES`
+- Phase 3: ✅ Complete
+  - Native build verified: TinyGL 3D preview working, software rendering
+  - Pi cross-compile verified: DRM backend, aarch64 binary
+  - G-code test panel renders correctly with OrcaCube model
+- Code review findings addressed:
+  - Re-enabled TinyGL for G-code preview (was accidentally disabled)
+  - Simplified nested preprocessor logic in lv_conf.h
+  - Updated install.sh to only install needed deps (libdrm2, libinput10)
+- **Key discovery**: LVGL 9.4's SDL GPU draw backend is broken/incompatible
