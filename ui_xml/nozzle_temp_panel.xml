@@ -13,7 +13,8 @@
   <!-- Uses shared backdrop from navigation system -->
   <view name="nozzle_temp_panel"
         extends="lv_obj" width="#overlay_panel_width_large" height="100%" align="right_mid" style_bg_opa="255"
-        style_bg_color="#card_bg" style_border_width="0" style_pad_all="0" scrollable="false" flex_flow="column">
+        style_bg_color="#card_bg" style_border_width="0" style_pad_all="0" scrollable="false" flex_flow="column"
+        hidden="true">
     <!-- Header Bar (uses improved header_bar component) -->
     <header_bar name="overlay_header" title="Nozzle Temperature" action_button_text="Confirm" hide_action_button="false"/>
     <!-- Content Area: Two Columns -->

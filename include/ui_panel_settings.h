@@ -169,6 +169,15 @@ class SettingsPanel : public PanelBase {
     static void on_pid_tuning_clicked(lv_event_t* e);
     static void on_network_clicked(lv_event_t* e);
     static void on_factory_reset_clicked(lv_event_t* e);
+
+    // Static callbacks for modal dialogs and overlays
+    static void on_modal_primary_clicked(lv_event_t* e);
+    static void on_modal_secondary_clicked(lv_event_t* e);
+    static void on_modal_backdrop_clicked(lv_event_t* e);
+    static void on_restart_later_clicked(lv_event_t* e);
+    static void on_restart_now_clicked(lv_event_t* e);
+    static void on_header_back_clicked(lv_event_t* e);
+    static void on_brightness_changed(lv_event_t* e);
 };
 
 // Global instance accessor (needed by main.cpp)

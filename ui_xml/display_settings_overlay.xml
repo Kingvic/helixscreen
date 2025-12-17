@@ -70,7 +70,9 @@
           <!-- Slider -->
           <lv_slider name="brightness_slider"
                      flex_grow="1" min_value="10" max_value="100" value="50" style_margin_left="#space_md"
-                     style_margin_right="#space_md"/>
+                     style_margin_right="#space_md">
+            <event_cb trigger="value_changed" callback="on_brightness_changed"/>
+          </lv_slider>
           <!-- Max icon (sun bright) -->
           <icon src="light" size="xs" variant="primary"/>
         </lv_obj>

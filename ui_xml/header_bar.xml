@@ -25,7 +25,9 @@
         style_flex_main_place="space_between" style_flex_track_place="center" style_flex_cross_place="center"
         scrollable="false">
     <!-- Back button (fixed width, left-aligned) -->
-    <icon name="back_button" src="back" size="lg" color="#text_primary" align="center" clickable="true"/>
+    <icon name="back_button" src="back" size="lg" color="#text_primary" align="center" clickable="true">
+      <event_cb trigger="clicked" callback="on_header_back_clicked"/>
+    </icon>
     <!-- Title (flexible width, centered) -->
     <text_heading name="header_title"
                   text="$title" flex_grow="1" align="center" style_text_align="left" style_pad_left="#space_lg"
