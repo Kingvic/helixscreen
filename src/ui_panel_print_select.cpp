@@ -1203,7 +1203,10 @@ void PrintSelectPanel::configure_card(lv_obj_t* card, size_t index, const CardDi
 
     // Update thumbnail
     lv_obj_t* thumb_img = lv_obj_find_by_name(card, "thumbnail");
+    spdlog::trace("[{}] configure_card[{}]: thumb_img={}, path='{}'", get_name(), index,
+                  (void*)thumb_img, file.thumbnail_path);
     if (thumb_img && !file.thumbnail_path.empty()) {
+        spdlog::trace("[{}] Setting thumbnail src: {}", get_name(), file.thumbnail_path);
         lv_image_set_src(thumb_img, file.thumbnail_path.c_str());
 
         // Directory styling - use amber/orange tint for folder icons
@@ -1213,6 +1216,8 @@ void PrintSelectPanel::configure_card(lv_obj_t* card, size_t index, const CardDi
         } else {
             lv_obj_set_style_image_recolor_opa(thumb_img, LV_OPA_TRANSP, 0);
         }
+    } else if (!thumb_img) {
+        spdlog::warn("[{}] Could not find thumbnail widget in card!", get_name());
     }
 
     // Hide/show metadata row for directories

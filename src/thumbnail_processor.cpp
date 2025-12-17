@@ -200,7 +200,7 @@ void ThumbnailProcessor::clear_cache() {
 
     try {
         for (const auto& entry : std::filesystem::directory_iterator(cache_dir_)) {
-            if (entry.path().extension() == ".lvbin") {
+            if (entry.path().extension() == ".bin") {
                 std::filesystem::remove(entry.path());
             }
         }
@@ -236,10 +236,11 @@ std::string ThumbnailProcessor::generate_cache_filename(const std::string& sourc
     // Format string for color format
     const char* format_str = (target.color_format == COLOR_FORMAT_RGB565) ? "RGB565" : "ARGB8888";
 
-    // Generate filename: {hash}_{w}x{h}_{format}.lvbin
+    // Generate filename: {hash}_{w}x{h}_{format}.bin
+    // NOTE: Must use .bin extension for LVGL's bin decoder (lv_bin_decoder.c only accepts .bin)
     char filename[128];
-    std::snprintf(filename, sizeof(filename), "%zu_%dx%d_%s.lvbin", hash, target.width,
-                  target.height, format_str);
+    std::snprintf(filename, sizeof(filename), "%zu_%dx%d_%s.bin", hash, target.width, target.height,
+                  format_str);
 
     return filename;
 }
@@ -356,7 +357,7 @@ ProcessResult ThumbnailProcessor::do_process(const std::vector<uint8_t>& png_dat
 
     if (!write_lvbin(output_path, out_width, out_height, target.color_format, resized_pixels.data(),
                      resized_pixels.size())) {
-        result.error = "Failed to write .lvbin file";
+        result.error = "Failed to write .bin file";
         return result;
     }
 
