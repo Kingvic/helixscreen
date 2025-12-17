@@ -545,13 +545,18 @@ done
 | `docker/Dockerfile.pi` | Add EGL/GLES/GBM packages |
 | `Makefile` | Add -lGLESv2 -lEGL -lgbm for Pi |
 
-### Phase 4 (2D Bed Mesh)
+### Phase 4 (2D Bed Mesh with FPS Detection)
 | File | Change |
 |------|--------|
-| `include/platform_capabilities.h` | New - runtime GPU detection |
-| `src/platform_capabilities.cpp` | New - detection implementation |
-| `src/bed_mesh_renderer.cpp` | Add `render_2d_heatmap()` |
-| `src/ui_bed_mesh.cpp` | Conditional rotation handlers |
+| `include/bed_mesh_renderer.h` | Add FpsTracker, RenderMode enum, mode state |
+| `src/bed_mesh_renderer.cpp` | Add render_2d_heatmap(), touch handler, FPS tracking |
+| `src/ui_panel_bed_mesh.cpp` | Call evaluate_render_mode() on panel entry, wire touch |
+
+**Approach**: Runtime FPS detection (not platform detection). Mode locked during panel viewing.
+- Rolling 10-frame FPS average
+- Auto-degrade to 2D if FPS < 15
+- Touch cell in 2D mode shows Z value tooltip
+- Settings toggle (hidden): Auto/3D/2D
 
 ### Phase 5 (2D G-code Layer)
 | File | Change |
