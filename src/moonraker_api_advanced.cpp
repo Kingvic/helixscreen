@@ -675,47 +675,142 @@ void MoonrakerAPI::set_input_shaper(char axis, const std::string& shaper_type, d
     execute_gcode(cmd.str(), on_success, on_error);
 }
 
-void MoonrakerAPI::get_spoolman_status(std::function<void(bool, int)> /*on_success*/,
+// Helper to parse a Spoolman spool JSON object into SpoolInfo
+static SpoolInfo parse_spool_info(const nlohmann::json& spool_json) {
+    SpoolInfo info;
+
+    info.id = spool_json.value("id", 0);
+    info.remaining_weight_g = spool_json.value("remaining_weight", 0.0);
+    info.initial_weight_g = spool_json.value("initial_weight", 0.0);
+    info.spool_weight_g = spool_json.value("spool_weight", 0.0);
+
+    // Length is in mm from Spoolman, convert to meters
+    double remaining_length_mm = spool_json.value("remaining_length", 0.0);
+    info.remaining_length_m = remaining_length_mm / 1000.0;
+
+    // Parse nested filament object
+    if (spool_json.contains("filament") && spool_json["filament"].is_object()) {
+        const auto& filament = spool_json["filament"];
+
+        info.material = filament.value("material", "");
+        info.color_name = filament.value("name", "");
+        info.color_hex = filament.value("color_hex", "");
+        info.multi_color_hexes = filament.value("multi_color_hexes", "");
+
+        // Temperature settings
+        info.nozzle_temp_recommended = filament.value("settings_extruder_temp", 0);
+        info.bed_temp_recommended = filament.value("settings_bed_temp", 0);
+
+        // Nested vendor
+        if (filament.contains("vendor") && filament["vendor"].is_object()) {
+            info.vendor = filament["vendor"].value("name", "");
+        }
+    }
+
+    return info;
+}
+
+void MoonrakerAPI::get_spoolman_status(std::function<void(bool, int)> on_success,
                                        ErrorCallback on_error) {
-    spdlog::warn("[Moonraker API] get_spoolman_status() not yet implemented");
-    if (on_error) {
-        MoonrakerError err;
-        err.type = MoonrakerErrorType::UNKNOWN;
-        err.message = "Spoolman status not yet implemented";
-        on_error(err);
-    }
+    spdlog::debug("[Moonraker API] get_spoolman_status()");
+
+    client_.send_jsonrpc(
+        "server.spoolman.status", json::object(),
+        [on_success](json response) {
+            bool connected = false;
+            int active_spool_id = 0;
+
+            if (response.contains("result")) {
+                const auto& result = response["result"];
+                connected = result.value("spoolman_connected", false);
+                active_spool_id = result.value("spool_id", 0);
+            }
+
+            spdlog::debug("[Moonraker API] Spoolman status: connected={}, active_spool={}",
+                          connected, active_spool_id);
+
+            if (on_success) {
+                on_success(connected, active_spool_id);
+            }
+        },
+        on_error);
 }
 
-void MoonrakerAPI::get_spoolman_spools(SpoolListCallback /*on_success*/, ErrorCallback on_error) {
-    spdlog::warn("[Moonraker API] get_spoolman_spools() not yet implemented");
-    if (on_error) {
-        MoonrakerError err;
-        err.type = MoonrakerErrorType::UNKNOWN;
-        err.message = "Spoolman spool list not yet implemented";
-        on_error(err);
-    }
+void MoonrakerAPI::get_spoolman_spools(SpoolListCallback on_success, ErrorCallback on_error) {
+    spdlog::debug("[Moonraker API] get_spoolman_spools()");
+
+    // Use Moonraker's Spoolman proxy to GET /v1/spool
+    json params;
+    params["request_method"] = "GET";
+    params["path"] = "/v1/spool";
+
+    client_.send_jsonrpc(
+        "server.spoolman.proxy", params,
+        [on_success](json response) {
+            std::vector<SpoolInfo> spools;
+
+            // The proxy returns the Spoolman response in "result"
+            if (response.contains("result") && response["result"].is_array()) {
+                for (const auto& spool_json : response["result"]) {
+                    spools.push_back(parse_spool_info(spool_json));
+                }
+            }
+
+            spdlog::debug("[Moonraker API] Got {} spools from Spoolman", spools.size());
+
+            if (on_success) {
+                on_success(spools);
+            }
+        },
+        on_error);
 }
 
-void MoonrakerAPI::get_spoolman_spool(int /*spool_id*/, SpoolCallback /*on_success*/,
+void MoonrakerAPI::get_spoolman_spool(int spool_id, SpoolCallback on_success,
                                       ErrorCallback on_error) {
-    spdlog::warn("[Moonraker API] get_spoolman_spool() not yet implemented");
-    if (on_error) {
-        MoonrakerError err;
-        err.type = MoonrakerErrorType::UNKNOWN;
-        err.message = "Spoolman single spool lookup not yet implemented";
-        on_error(err);
-    }
+    spdlog::debug("[Moonraker API] get_spoolman_spool({})", spool_id);
+
+    // Use Moonraker's Spoolman proxy to GET /v1/spool/{id}
+    json params;
+    params["request_method"] = "GET";
+    params["path"] = "/v1/spool/" + std::to_string(spool_id);
+
+    client_.send_jsonrpc(
+        "server.spoolman.proxy", params,
+        [on_success, spool_id](json response) {
+            if (response.contains("result") && response["result"].is_object()) {
+                SpoolInfo spool = parse_spool_info(response["result"]);
+                spdlog::debug("[Moonraker API] Got spool {}: {} {}", spool_id, spool.vendor,
+                              spool.material);
+                if (on_success) {
+                    on_success(spool);
+                }
+            } else {
+                spdlog::debug("[Moonraker API] Spool {} not found", spool_id);
+                if (on_success) {
+                    on_success(std::nullopt);
+                }
+            }
+        },
+        on_error);
 }
 
-void MoonrakerAPI::set_active_spool(int /*spool_id*/, SuccessCallback /*on_success*/,
+void MoonrakerAPI::set_active_spool(int spool_id, SuccessCallback on_success,
                                     ErrorCallback on_error) {
-    spdlog::warn("[Moonraker API] set_active_spool() not yet implemented");
-    if (on_error) {
-        MoonrakerError err;
-        err.type = MoonrakerErrorType::UNKNOWN;
-        err.message = "Spoolman spool selection not yet implemented";
-        on_error(err);
-    }
+    spdlog::info("[Moonraker API] set_active_spool({})", spool_id);
+
+    // POST to server.spoolman.post_spool_id
+    json params;
+    params["spool_id"] = spool_id;
+
+    client_.send_jsonrpc(
+        "server.spoolman.post_spool_id", params,
+        [on_success, spool_id](json /*response*/) {
+            spdlog::debug("[Moonraker API] Active spool set to {}", spool_id);
+            if (on_success) {
+                on_success();
+            }
+        },
+        on_error);
 }
 
 void MoonrakerAPI::get_spool_usage_history(
