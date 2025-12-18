@@ -1079,9 +1079,10 @@ void PrintStatusPanel::on_print_state_changed(PrintJobState job_state) {
                      print_job_state_to_string(job_state), static_cast<int>(new_state));
 
         // Toggle G-code viewer visibility based on print state
-        // Show 3D viewer during printing/paused (real-time progress visualization)
-        // On completion, show thumbnail with gradient background instead (more polished look)
-        bool show_viewer = (new_state == PrintState::Printing || new_state == PrintState::Paused);
+        // Show 3D/2D viewer during preparing/printing/paused (ghost preview during warmup,
+        // real-time progress during print). On completion, show thumbnail instead.
+        bool show_viewer = (new_state == PrintState::Preparing ||
+                            new_state == PrintState::Printing || new_state == PrintState::Paused);
         show_gcode_viewer(show_viewer);
 
         // Check for runout condition when entering Paused state
@@ -1882,6 +1883,9 @@ void PrintStatusPanel::set_state(PrintState state) {
 void PrintStatusPanel::set_preparing(const std::string& operation_name, int current_step,
                                      int total_steps) {
     current_state_ = PrintState::Preparing;
+
+    // Show G-code viewer during preparation (ghost preview while running macros)
+    show_gcode_viewer(true);
 
     // Update operation name with step info: "Homing (1/3)"
     snprintf(preparing_operation_buf_, sizeof(preparing_operation_buf_), "%s (%d/%d)",
