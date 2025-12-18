@@ -18,13 +18,14 @@ ModalBase::ModalBase() = default;
 ModalBase::~ModalBase() {
     // RAII: auto-hide if still visible
     // Note: Cannot call get_name() here as derived class is already destroyed
-    if (modal_) {
-        spdlog::debug("[ModalBase] Destructor called while visible - hiding");
+    // CRITICAL: Check if LVGL is initialized - may be during static destruction [L010]
+    if (modal_ && lv_is_initialized()) {
         // Hide immediately without calling virtual on_hide()
         lv_obj_add_flag(modal_, LV_OBJ_FLAG_HIDDEN);
         lv_obj_delete(modal_);
         modal_ = nullptr;
     }
+    // Note: No spdlog here - logger may be destroyed during static destruction [L010]
 }
 
 // ============================================================================
@@ -43,7 +44,8 @@ ModalBase::ModalBase(ModalBase&& other) noexcept
 ModalBase& ModalBase::operator=(ModalBase&& other) noexcept {
     if (this != &other) {
         // Hide our modal first (direct cleanup, avoid virtual calls in move)
-        if (modal_) {
+        // Check if LVGL is initialized - move may be during static destruction
+        if (modal_ && lv_is_initialized()) {
             lv_obj_add_flag(modal_, LV_OBJ_FLAG_HIDDEN);
             lv_obj_delete(modal_);
             modal_ = nullptr;

@@ -32,7 +32,7 @@ AmsEditModal::AmsEditModal() {
 
 AmsEditModal::~AmsEditModal() {
     // ModalBase destructor will call hide() if visible
-    spdlog::debug("[AmsEditModal] Destroyed");
+    // Note: No spdlog here - logger may be destroyed during static destruction [L010]
 }
 
 AmsEditModal::AmsEditModal(AmsEditModal&& other) noexcept
@@ -165,6 +165,11 @@ void AmsEditModal::on_hide() {
     // Invalidate callback guard to prevent async callbacks from using stale 'this' [L012]
     callback_guard_.reset();
 
+    // Check if LVGL is initialized - may be called from destructor during static destruction
+    if (!lv_is_initialized()) {
+        return;
+    }
+
     // Remove observers BEFORE modal destruction [L020]
     if (slot_indicator_observer_) {
         lv_observer_remove(slot_indicator_observer_);
@@ -189,7 +194,7 @@ void AmsEditModal::on_hide() {
 
     // Reset edit mode subject
     lv_subject_set_int(&remaining_mode_subject_, 0);
-    spdlog::debug("[AmsEditModal] Hidden");
+    // Note: No spdlog here - may be called from destructor during static destruction [L010]
 }
 
 // ============================================================================

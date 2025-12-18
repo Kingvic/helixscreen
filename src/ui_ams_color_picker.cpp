@@ -49,7 +49,7 @@ AmsColorPicker::AmsColorPicker() {
 
 AmsColorPicker::~AmsColorPicker() {
     // ModalBase destructor will call hide() if visible
-    spdlog::debug("[AmsColorPicker] Destroyed");
+    // Note: No spdlog here - logger may be destroyed during static destruction [L010]
 }
 
 AmsColorPicker::AmsColorPicker(AmsColorPicker&& other) noexcept
@@ -144,15 +144,18 @@ void AmsColorPicker::on_show() {
 
 void AmsColorPicker::on_hide() {
     // Remove observers BEFORE modal destruction [L020]
-    if (hex_label_observer_) {
-        lv_observer_remove(hex_label_observer_);
-        hex_label_observer_ = nullptr;
+    // Check if LVGL is initialized - may be called from destructor during static destruction
+    if (lv_is_initialized()) {
+        if (hex_label_observer_) {
+            lv_observer_remove(hex_label_observer_);
+            hex_label_observer_ = nullptr;
+        }
+        if (name_label_observer_) {
+            lv_observer_remove(name_label_observer_);
+            name_label_observer_ = nullptr;
+        }
     }
-    if (name_label_observer_) {
-        lv_observer_remove(name_label_observer_);
-        name_label_observer_ = nullptr;
-    }
-    spdlog::debug("[AmsColorPicker] Hidden");
+    // Note: No spdlog here - may be called from destructor during static destruction [L010]
 }
 
 void AmsColorPicker::on_cancel() {

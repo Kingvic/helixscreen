@@ -19,6 +19,12 @@ namespace helix::ui {
 // ============================================================================
 
 PrintSelectDetailView::~PrintSelectDetailView() {
+    // CRITICAL: During static destruction (app exit), LVGL may already be gone.
+    // We check if LVGL is still initialized before calling any LVGL functions.
+    if (!lv_is_initialized()) {
+        return;
+    }
+
     // Clean up confirmation dialog if open
     if (confirmation_dialog_widget_) {
         ui_modal_hide(confirmation_dialog_widget_);

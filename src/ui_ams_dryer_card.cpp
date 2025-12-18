@@ -29,7 +29,7 @@ AmsDryerCard::AmsDryerCard() {
 
 AmsDryerCard::~AmsDryerCard() {
     cleanup();
-    spdlog::debug("[AmsDryerCard] Destroyed");
+    // Note: No spdlog here - logger may be destroyed during static destruction [L010]
 }
 
 AmsDryerCard::AmsDryerCard(AmsDryerCard&& other) noexcept
@@ -127,7 +127,8 @@ void AmsDryerCard::cleanup() {
     progress_observer_.reset();
 
     // Delete modal (created on top layer, won't auto-delete with panel)
-    if (dryer_modal_) {
+    // CRITICAL: Check if LVGL is initialized - may be called from destructor during static destruction
+    if (dryer_modal_ && lv_is_initialized()) {
         lv_obj_delete(dryer_modal_);
         dryer_modal_ = nullptr;
     }
@@ -135,8 +136,7 @@ void AmsDryerCard::cleanup() {
     // Clear widget references (dryer_card_ is owned by panel)
     dryer_card_ = nullptr;
     progress_fill_ = nullptr;
-
-    spdlog::debug("[AmsDryerCard] Cleaned up");
+    // Note: No spdlog here - may be called from destructor during static destruction [L010]
 }
 
 // ============================================================================

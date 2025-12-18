@@ -20,7 +20,7 @@ AmsContextMenu::AmsContextMenu() {
 
 AmsContextMenu::~AmsContextMenu() {
     hide();
-    spdlog::debug("[AmsContextMenu] Destroyed");
+    // Note: No spdlog here - logger may be destroyed during static destruction [L010]
 }
 
 AmsContextMenu::AmsContextMenu(AmsContextMenu&& other) noexcept
@@ -124,11 +124,12 @@ bool AmsContextMenu::show_near_widget(lv_obj_t* parent, int slot_index, lv_obj_t
 }
 
 void AmsContextMenu::hide() {
-    if (menu_) {
+    // Check if LVGL is initialized - may be called from destructor during static destruction
+    if (menu_ && lv_is_initialized()) {
         lv_obj_delete(menu_);
         menu_ = nullptr;
         slot_index_ = -1;
-        spdlog::debug("[AmsContextMenu] Hidden");
+        // Note: No spdlog here - may be called from destructor during static destruction [L010]
     }
 }
 
