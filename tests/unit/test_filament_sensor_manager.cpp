@@ -15,13 +15,14 @@
  * - Missing sensor handling
  */
 
-#include "../catch_amalgamated.hpp"
-
 #include "filament_sensor_manager.h"
 #include "filament_sensor_types.h"
 
 #include <spdlog/spdlog.h>
+
 #include <vector>
+
+#include "../catch_amalgamated.hpp"
 
 using namespace helix;
 using json = nlohmann::json;
@@ -46,10 +47,10 @@ class FilamentSensorTestFixture {
             static lv_color_t buf[480 * 10];
             lv_display_set_buffers(display_, buf, nullptr, sizeof(buf),
                                    LV_DISPLAY_RENDER_MODE_PARTIAL);
-            lv_display_set_flush_cb(
-                display_, [](lv_display_t* disp, const lv_area_t* area, uint8_t* px_map) {
-                    lv_display_flush_ready(disp);
-                });
+            lv_display_set_flush_cb(display_,
+                                    [](lv_display_t* disp, const lv_area_t* area, uint8_t* px_map) {
+                                        lv_display_flush_ready(disp);
+                                    });
             display_created_ = true;
         }
 
@@ -66,7 +67,9 @@ class FilamentSensorTestFixture {
     }
 
   protected:
-    FilamentSensorManager& mgr() { return FilamentSensorManager::instance(); }
+    FilamentSensorManager& mgr() {
+        return FilamentSensorManager::instance();
+    }
 
     // Helper to discover standard test sensors
     void discover_test_sensors() {
@@ -185,11 +188,10 @@ TEST_CASE_METHOD(FilamentSensorTestFixture, "FilamentSensorManager - discovery",
     }
 
     SECTION("Ignores invalid sensor names") {
-        std::vector<std::string> sensors = {
-            "filament_switch_sensor valid",
-            "invalid_sensor_name",    // Missing proper prefix
-            "filament_switch_sensor", // Missing sensor name
-            "temperature_sensor chamber"};
+        std::vector<std::string> sensors = {"filament_switch_sensor valid",
+                                            "invalid_sensor_name",    // Missing proper prefix
+                                            "filament_switch_sensor", // Missing sensor name
+                                            "temperature_sensor chamber"};
         mgr().discover_sensors(sensors);
 
         REQUIRE(mgr().sensor_count() == 1);
@@ -324,7 +326,9 @@ TEST_CASE_METHOD(FilamentSensorTestFixture, "FilamentSensorManager - enable/disa
         REQUIRE(other->enabled == true);
     }
 
-    SECTION("Master enable defaults to true") { REQUIRE(mgr().is_master_enabled() == true); }
+    SECTION("Master enable defaults to true") {
+        REQUIRE(mgr().is_master_enabled() == true);
+    }
 
     SECTION("Master enable can be toggled") {
         mgr().set_master_enabled(false);
@@ -391,14 +395,14 @@ TEST_CASE_METHOD(FilamentSensorTestFixture, "FilamentSensorManager - state updat
         bool old_detected = false;
         bool new_detected = false;
 
-        mgr().set_state_change_callback(
-            [&](const std::string& name, const FilamentSensorState& old_state,
-                const FilamentSensorState& new_state) {
-                callback_fired = true;
-                changed_sensor = name;
-                old_detected = old_state.filament_detected;
-                new_detected = new_state.filament_detected;
-            });
+        mgr().set_state_change_callback([&](const std::string& name,
+                                            const FilamentSensorState& old_state,
+                                            const FilamentSensorState& new_state) {
+            callback_fired = true;
+            changed_sensor = name;
+            old_detected = old_state.filament_detected;
+            new_detected = new_state.filament_detected;
+        });
 
         // Trigger state change
         update_sensor_state("filament_switch_sensor runout", true);
@@ -414,10 +418,8 @@ TEST_CASE_METHOD(FilamentSensorTestFixture, "FilamentSensorManager - state updat
         update_sensor_state("filament_switch_sensor runout", true);
 
         int callback_count = 0;
-        mgr().set_state_change_callback(
-            [&](const std::string&, const FilamentSensorState&, const FilamentSensorState&) {
-                callback_count++;
-            });
+        mgr().set_state_change_callback([&](const std::string&, const FilamentSensorState&,
+                                            const FilamentSensorState&) { callback_count++; });
 
         // Update with same value
         update_sensor_state("filament_switch_sensor runout", true);
@@ -640,10 +642,8 @@ TEST_CASE_METHOD(FilamentSensorTestFixture, "FilamentSensorManager - edge cases"
         mgr().set_sensor_role("filament_switch_sensor runout", FilamentSensorRole::RUNOUT);
 
         int callback_count = 0;
-        mgr().set_state_change_callback(
-            [&](const std::string&, const FilamentSensorState&, const FilamentSensorState&) {
-                callback_count++;
-            });
+        mgr().set_state_change_callback([&](const std::string&, const FilamentSensorState&,
+                                            const FilamentSensorState&) { callback_count++; });
 
         // Rapid changes
         update_sensor_state("filament_switch_sensor runout", true);
