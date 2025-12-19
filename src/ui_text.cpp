@@ -63,11 +63,11 @@ static void apply_semantic_style(lv_obj_t* label, const char* font_const_name,
     spdlog::trace("[ui_text] Applied font '{}' (from '{}') - line_height={}px", font_name,
                   font_const_name, lv_font_get_line_height(font));
 
-    // Apply color
+    // Apply color from theme constant (not hardcoded - parsed from globals.xml)
     const char* color_str = lv_xml_get_const(NULL, color_const_name);
     if (color_str && color_str[0] == '#') {
         uint32_t hex = static_cast<uint32_t>(strtoul(color_str + 1, NULL, 16));
-        lv_color_t color = lv_color_hex(hex);
+        lv_color_t color = lv_color_hex(hex); // theme color parsed from XML
         lv_obj_set_style_text_color(label, color, 0);
     } else {
         spdlog::warn("[ui_text] Color constant '{}' not found or invalid in globals.xml",
