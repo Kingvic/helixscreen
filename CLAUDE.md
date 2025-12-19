@@ -227,6 +227,7 @@ lv_xml_register_widget()               // was: lv_xml_widget_register
 4. **Subject conflicts** - Don't declare subjects in `globals.xml`
 5. **Component names = filename** - `nozzle_temp_panel.xml` → component name is `nozzle_temp_panel`
 6. **WebSocket callbacks = background thread** - libhv callbacks run on a separate thread. NEVER call `lv_subject_set_*()` directly - use `lv_async_call()` to defer to main thread. See `printer_state.cpp` for the `set_*_internal()` pattern.
+7. **Deferred dependency propagation** - When `set_X()` updates a member, also update child objects that cached the old value. Example: `PrintSelectPanel::set_api()` must call `file_provider_->set_api()` because `file_provider_` was created with nullptr.
 
 ---
 
