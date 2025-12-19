@@ -166,8 +166,10 @@ void ui_text_init() {
     lv_xml_register_widget("text_body", ui_text_body_create, ui_text_body_apply);
     lv_xml_register_widget("text_small", ui_text_small_create, ui_text_small_apply);
     lv_xml_register_widget("text_xs", ui_text_xs_create, ui_text_xs_apply);
+    // text_tiny is an alias for text_xs (same size, just a more intuitive name)
+    lv_xml_register_widget("text_tiny", ui_text_xs_create, ui_text_xs_apply);
 
     spdlog::debug(
         "[ui_text] Registered semantic text widgets: text_heading, text_body, text_small, "
-        "text_xs");
+        "text_xs, text_tiny");
 }
