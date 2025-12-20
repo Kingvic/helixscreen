@@ -162,10 +162,11 @@ class ThumbnailProcessor {
     static ThumbnailTarget get_target_for_display();
 
     /**
-     * @brief Get the cache directory path
+     * @brief Get the cache directory path (thread-safe)
      * @return Path to thumbnail cache directory (e.g., /tmp/helix_thumbs)
      */
     std::string get_cache_dir() const {
+        std::lock_guard<std::mutex> lock(mutex_);
         return cache_dir_;
     }
 

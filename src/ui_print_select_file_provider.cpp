@@ -9,6 +9,7 @@
 #include "ui_utils.h" // For format_* helpers
 
 #include "moonraker_api.h"
+#include "thumbnail_cache.h"
 
 #include <spdlog/spdlog.h>
 
@@ -227,10 +228,8 @@ void PrintSelectFileProvider::fetch_metadata_range(std::vector<PrintFileData>& f
                 // Prepare cache path for remote thumbnails
                 std::string cache_file;
                 if (!thumb_path.empty() && !thumb_is_local) {
-                    std::hash<std::string> hasher;
-                    size_t hash = hasher(thumb_path);
-                    cache_file = "/tmp/helix_thumbs/" + std::to_string(hash) + ".png";
-                    std::filesystem::create_directories("/tmp/helix_thumbs");
+                    // Use ThumbnailCache's centralized cache path
+                    cache_file = get_thumbnail_cache().get_cache_path(thumb_path);
                 }
 
                 // Dispatch update to callback

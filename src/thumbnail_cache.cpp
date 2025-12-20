@@ -8,9 +8,15 @@
 #include <spdlog/spdlog.h>
 
 #include <algorithm>
+#include <cstdlib>
 #include <fstream>
 #include <functional>
 #include <vector>
+
+#ifndef _WIN32
+#include <pwd.h>
+#include <unistd.h>
+#endif
 
 // Global singleton using Meyer's Singleton pattern (thread-safe, no leak)
 ThumbnailCache& get_thumbnail_cache() {
@@ -19,9 +25,9 @@ ThumbnailCache& get_thumbnail_cache() {
 }
 
 // Helper to calculate dynamic cache size based on available disk space
-static size_t calculate_dynamic_max_size(size_t configured_max) {
+static size_t calculate_dynamic_max_size(const std::string& cache_dir, size_t configured_max) {
     try {
-        std::filesystem::space_info space = std::filesystem::space(ThumbnailCache::CACHE_DIR);
+        std::filesystem::space_info space = std::filesystem::space(cache_dir);
         size_t available = space.available;
 
         // Use 5% of available space
@@ -41,27 +47,184 @@ static size_t calculate_dynamic_max_size(size_t configured_max) {
     }
 }
 
+// Helper to check if a directory is writable and has reasonable space
+static bool is_usable_temp_dir(const std::string& path, size_t min_space_mb = 10) {
+    try {
+        if (!std::filesystem::exists(path)) {
+            return false;
+        }
+
+        // Check available space
+        std::filesystem::space_info space = std::filesystem::space(path);
+        size_t available_mb = space.available / (1024 * 1024);
+        if (available_mb < min_space_mb) {
+            return false;
+        }
+
+        // Verify write permission by creating a test file
+        std::string test_file = path + "/.helix_write_test";
+        std::ofstream ofs(test_file);
+        if (!ofs.good()) {
+            return false;
+        }
+        ofs.close();
+        std::filesystem::remove(test_file);
+
+        return true;
+    } catch (...) {
+        return false;
+    }
+}
+
+// Helper to try creating a cache directory and return success
+static bool try_create_cache_dir(const std::string& path) {
+    try {
+        std::filesystem::create_directories(path);
+        if (!std::filesystem::exists(path)) {
+            return false;
+        }
+
+        // Verify we can actually write to the created directory
+        std::string test_file = path + "/.helix_write_test";
+        std::ofstream ofs(test_file);
+        if (!ofs.good()) {
+            return false;
+        }
+        ofs.close();
+        std::filesystem::remove(test_file);
+
+        return true;
+    } catch (...) {
+        return false;
+    }
+}
+
+std::string ThumbnailCache::determine_cache_dir() {
+    // 1. Check config setting first (explicit override)
+    Config* config = Config::get_instance();
+    if (config) {
+        std::string config_dir = config->get<std::string>("/cache/directory", "");
+        if (!config_dir.empty()) {
+            std::string full_path = config_dir + "/" + CACHE_SUBDIR;
+            if (try_create_cache_dir(full_path)) {
+                spdlog::info("[ThumbnailCache] Using configured cache directory: {}", full_path);
+                return full_path;
+            }
+            spdlog::warn("[ThumbnailCache] Cannot use configured directory: {}", full_path);
+        }
+    }
+
+    // 2. Check XDG_CACHE_HOME (respects XDG Base Directory Specification)
+    const char* xdg_cache = std::getenv("XDG_CACHE_HOME");
+    if (xdg_cache && xdg_cache[0] != '\0') {
+        std::string full_path = std::string(xdg_cache) + "/helix/" + CACHE_SUBDIR;
+        if (try_create_cache_dir(full_path)) {
+            spdlog::info("[ThumbnailCache] Using XDG_CACHE_HOME: {}", full_path);
+            return full_path;
+        }
+    }
+
+    // 3. Try $HOME/.cache/helix (standard location on Linux)
+    const char* home = std::getenv("HOME");
+    if (home && home[0] != '\0') {
+        std::string cache_base = std::string(home) + "/.cache/helix/" + CACHE_SUBDIR;
+        if (try_create_cache_dir(cache_base)) {
+            spdlog::info("[ThumbnailCache] Using HOME/.cache: {}", cache_base);
+            return cache_base;
+        }
+        spdlog::warn("[ThumbnailCache] Cannot use ~/.cache");
+    }
+
+#ifndef _WIN32
+    // 4. Try getpwuid_r() as fallback (thread-safe, more reliable than env vars)
+    {
+        struct passwd pwd_buf;
+        struct passwd* pwd_result = nullptr;
+        char buf[1024];
+        if (getpwuid_r(getuid(), &pwd_buf, buf, sizeof(buf), &pwd_result) == 0 && pwd_result &&
+            pwd_result->pw_dir && pwd_result->pw_dir[0] != '\0') {
+            std::string cache_base =
+                std::string(pwd_result->pw_dir) + "/.cache/helix/" + CACHE_SUBDIR;
+            if (try_create_cache_dir(cache_base)) {
+                spdlog::info("[ThumbnailCache] Using passwd home: {}", cache_base);
+                return cache_base;
+            }
+        }
+    }
+#endif
+
+    // 5. Check standard temp directory environment variables
+    // These are checked in order of preference
+    const char* temp_env_vars[] = {"TMPDIR", "TMP", "TEMP", nullptr};
+    for (const char** var = temp_env_vars; *var != nullptr; ++var) {
+        const char* dir = std::getenv(*var);
+        if (dir && dir[0] != '\0') {
+            std::string full_path = std::string(dir) + "/helix/" + CACHE_SUBDIR;
+            if (is_usable_temp_dir(dir) && try_create_cache_dir(full_path)) {
+                spdlog::info("[ThumbnailCache] Using {}: {}", *var, full_path);
+                return full_path;
+            }
+        }
+    }
+
+    // 6. Try /var/tmp (persistent across reboots, often larger than /tmp on embedded)
+    if (is_usable_temp_dir("/var/tmp", 20)) {
+        std::string var_tmp_path = std::string("/var/tmp/helix/") + CACHE_SUBDIR;
+        if (try_create_cache_dir(var_tmp_path)) {
+            spdlog::info("[ThumbnailCache] Using /var/tmp: {}", var_tmp_path);
+            return var_tmp_path;
+        }
+    }
+
+    // 7. Last resort: /tmp (works everywhere, but may be small tmpfs)
+    std::string fallback = std::string("/tmp/helix/") + CACHE_SUBDIR;
+    if (try_create_cache_dir(fallback)) {
+        spdlog::warn("[ThumbnailCache] Falling back to /tmp: {}", fallback);
+        return fallback;
+    }
+
+    // 8. Absolute last resort - current directory (shouldn't happen)
+    try {
+        std::string cwd_fallback =
+            (std::filesystem::current_path() / "helix" / CACHE_SUBDIR).string();
+        spdlog::error("[ThumbnailCache] No writable cache directory found, using {}", cwd_fallback);
+        return cwd_fallback;
+    } catch (...) {
+        // If even current_path() fails, use relative as absolute last resort
+        std::string fallback = "./helix/" + std::string(CACHE_SUBDIR);
+        spdlog::error("[ThumbnailCache] No writable cache directory found, using {}", fallback);
+        return fallback;
+    }
+}
+
 ThumbnailCache::ThumbnailCache()
-    : max_size_(MIN_CACHE_SIZE), disk_critical_(DEFAULT_DISK_CRITICAL), disk_low_(DEFAULT_DISK_LOW),
+    : cache_dir_(determine_cache_dir()), max_size_(MIN_CACHE_SIZE),
+      disk_critical_(DEFAULT_DISK_CRITICAL), disk_low_(DEFAULT_DISK_LOW),
       configured_max_(DEFAULT_MAX_CACHE_SIZE) {
     ensure_cache_dir();
     load_config();
     // Now that directory exists and config is loaded, calculate dynamic size
-    max_size_ = calculate_dynamic_max_size(configured_max_);
+    max_size_ = calculate_dynamic_max_size(cache_dir_, configured_max_);
+
+    // Sync ThumbnailProcessor's cache dir with ours
+    helix::ThumbnailProcessor::instance().set_cache_dir(cache_dir_);
 }
 
 ThumbnailCache::ThumbnailCache(size_t max_size)
-    : max_size_(max_size), disk_critical_(DEFAULT_DISK_CRITICAL), disk_low_(DEFAULT_DISK_LOW),
-      configured_max_(max_size) {
+    : cache_dir_(determine_cache_dir()), max_size_(max_size), disk_critical_(DEFAULT_DISK_CRITICAL),
+      disk_low_(DEFAULT_DISK_LOW), configured_max_(max_size) {
     ensure_cache_dir();
     spdlog::debug("[ThumbnailCache] Using explicit max size: {} MB", max_size_ / (1024 * 1024));
+
+    // Sync ThumbnailProcessor's cache dir with ours
+    helix::ThumbnailProcessor::instance().set_cache_dir(cache_dir_);
 }
 
 void ThumbnailCache::ensure_cache_dir() const {
     try {
-        std::filesystem::create_directories(CACHE_DIR);
+        std::filesystem::create_directories(cache_dir_);
     } catch (const std::filesystem::filesystem_error& e) {
-        spdlog::warn("[ThumbnailCache] Failed to create cache directory {}: {}", CACHE_DIR,
+        spdlog::warn("[ThumbnailCache] Failed to create cache directory {}: {}", cache_dir_,
                      e.what());
     }
 }
@@ -104,7 +267,7 @@ std::string ThumbnailCache::compute_hash(const std::string& path) {
 }
 
 std::string ThumbnailCache::get_cache_path(const std::string& relative_path) const {
-    return std::string(CACHE_DIR) + "/" + compute_hash(relative_path) + ".png";
+    return cache_dir_ + "/" + compute_hash(relative_path) + ".png";
 }
 
 bool ThumbnailCache::is_lvgl_path(const std::string& path) {
@@ -149,7 +312,7 @@ void ThumbnailCache::set_max_size(size_t max_size) {
 
 size_t ThumbnailCache::get_available_disk_space() const {
     try {
-        std::filesystem::space_info space = std::filesystem::space(CACHE_DIR);
+        std::filesystem::space_info space = std::filesystem::space(cache_dir_);
         return space.available;
     } catch (const std::filesystem::filesystem_error& e) {
         spdlog::warn("[ThumbnailCache] Failed to query disk space: {}", e.what());
@@ -213,7 +376,7 @@ void ThumbnailCache::evict_if_needed() {
     std::vector<CacheEntry> entries;
 
     try {
-        for (const auto& entry : std::filesystem::directory_iterator(CACHE_DIR)) {
+        for (const auto& entry : std::filesystem::directory_iterator(cache_dir_)) {
             if (entry.is_regular_file()) {
                 entries.push_back({entry.path(), entry.last_write_time(), entry.file_size()});
             }
@@ -340,7 +503,7 @@ void ThumbnailCache::fetch(MoonrakerAPI* api, const std::string& relative_path,
 size_t ThumbnailCache::clear_cache() {
     size_t count = 0;
     try {
-        for (const auto& entry : std::filesystem::directory_iterator(CACHE_DIR)) {
+        for (const auto& entry : std::filesystem::directory_iterator(cache_dir_)) {
             if (entry.is_regular_file()) {
                 std::filesystem::remove(entry.path());
                 ++count;
@@ -356,7 +519,7 @@ size_t ThumbnailCache::clear_cache() {
 size_t ThumbnailCache::get_cache_size() const {
     size_t total = 0;
     try {
-        for (const auto& entry : std::filesystem::directory_iterator(CACHE_DIR)) {
+        for (const auto& entry : std::filesystem::directory_iterator(cache_dir_)) {
             if (entry.is_regular_file()) {
                 total += entry.file_size();
             }

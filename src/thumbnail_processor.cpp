@@ -25,7 +25,8 @@
 
 namespace helix {
 
-// Constants matching ThumbnailCache for shared cache directory
+// Default cache directory - will be overridden by ThumbnailCache when it initializes.
+// This is just a fallback for early initialization before ThumbnailCache runs.
 static constexpr const char* DEFAULT_CACHE_DIR = "/tmp/helix_thumbs";
 
 // LVGL 9 color format constants (magic comes from lv_image_dsc.h)
@@ -81,7 +82,8 @@ void ThumbnailProcessor::shutdown() {
         thread_pool_->stop();
         thread_pool_.reset();
     }
-    spdlog::debug("[ThumbnailProcessor] Shutdown complete");
+    // Note: Don't log here - this may be called during static destruction
+    // when spdlog is already destroyed (static destruction order fiasco)
 }
 
 // ============================================================================
@@ -185,13 +187,16 @@ ThumbnailTarget ThumbnailProcessor::get_target_for_display() {
 
 void ThumbnailProcessor::set_cache_dir(const std::string& path) {
     std::lock_guard<std::mutex> lock(mutex_);
-    cache_dir_ = path;
+    if (cache_dir_ != path) {
+        spdlog::info("[ThumbnailProcessor] Cache directory updated: {}", path);
+        cache_dir_ = path;
 
-    try {
-        std::filesystem::create_directories(cache_dir_);
-    } catch (const std::filesystem::filesystem_error& e) {
-        spdlog::warn("[ThumbnailProcessor] Failed to create cache directory {}: {}", cache_dir_,
-                     e.what());
+        try {
+            std::filesystem::create_directories(cache_dir_);
+        } catch (const std::filesystem::filesystem_error& e) {
+            spdlog::warn("[ThumbnailProcessor] Failed to create cache directory {}: {}", cache_dir_,
+                         e.what());
+        }
     }
 }
 

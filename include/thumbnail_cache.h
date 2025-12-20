@@ -47,8 +47,8 @@
  */
 class ThumbnailCache {
   public:
-    /// Cache directory for downloaded thumbnails
-    static constexpr const char* CACHE_DIR = "/tmp/helix_thumbs";
+    /// Default cache subdirectory name (appended to base cache dir)
+    static constexpr const char* CACHE_SUBDIR = "helix_thumbs";
 
     /// Minimum cache size (5 MB) - floor for very constrained systems
     static constexpr size_t MIN_CACHE_SIZE = 5 * 1024 * 1024;
@@ -88,9 +88,18 @@ class ThumbnailCache {
     explicit ThumbnailCache(size_t max_size);
 
     /**
+     * @brief Get the current cache directory path
+     *
+     * @return Absolute path to cache directory (e.g., "/home/user/.cache/helix_thumbs")
+     */
+    [[nodiscard]] std::string get_cache_dir() const {
+        return cache_dir_; // Return by value for thread safety
+    }
+
+    /**
      * @brief Compute the local cache path for a relative Moonraker path
      *
-     * Uses hash-based filename: `/tmp/helix_thumbs/{hash}.png`
+     * Uses hash-based filename: `{cache_dir}/{hash}.png`
      *
      * @param relative_path Moonraker relative path (e.g., ".thumbnails/file.png")
      * @return Local filesystem path for the cached file
@@ -104,7 +113,7 @@ class ThumbnailCache {
      * Useful for instant display when revisiting cached content.
      *
      * @param relative_path Moonraker relative path
-     * @return LVGL-ready path ("A:/tmp/helix_thumbs/...") if cached, empty string otherwise
+     * @return LVGL-ready path ("A:{cache_dir}/...") if cached, empty string otherwise
      */
     [[nodiscard]] std::string get_if_cached(const std::string& relative_path) const;
 
@@ -253,10 +262,24 @@ class ThumbnailCache {
     [[nodiscard]] bool is_caching_allowed() const;
 
   private:
+    std::string cache_dir_; ///< Absolute path to cache directory
     size_t max_size_;       ///< Maximum cache size before LRU eviction
     size_t disk_critical_;  ///< Stop caching below this available space
     size_t disk_low_;       ///< Evict aggressively below this available space
     size_t configured_max_; ///< Max size from config (before dynamic sizing)
+
+    /**
+     * @brief Determine the optimal cache base directory
+     *
+     * Selection order:
+     * 1. Config setting /cache/directory if specified
+     * 2. XDG_CACHE_HOME environment variable + "/helix"
+     * 3. $HOME/.cache/helix (if HOME is set and writable)
+     * 4. /tmp/helix_cache (fallback for systems without home dir)
+     *
+     * @return Absolute path to the cache base directory (not including CACHE_SUBDIR)
+     */
+    static std::string determine_cache_dir();
 
     /**
      * @brief Load cache settings from helixconfig.json

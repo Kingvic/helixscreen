@@ -14,11 +14,12 @@
  * On some platforms this corrupted the data, causing blank summary screens.
  */
 
-#include "../catch_amalgamated.hpp"
 #include "ui_subject_registry.h"
 
 #include <cstring>
 #include <string>
+
+#include "../catch_amalgamated.hpp"
 
 // ============================================================================
 // Subject Macro Tests
@@ -99,8 +100,7 @@ TEST_CASE("UI_SUBJECT_INIT_AND_REGISTER_STRING handles special characters",
     REQUIRE(std::string(buffer) == "Heater: extruder, Sensor: heater_bed");
 }
 
-TEST_CASE("UI_SUBJECT_INIT_AND_REGISTER_INT works correctly",
-          "[wizard][summary][subjects]") {
+TEST_CASE("UI_SUBJECT_INIT_AND_REGISTER_INT works correctly", "[wizard][summary][subjects]") {
     static lv_subject_t test_subject;
 
     UI_SUBJECT_INIT_AND_REGISTER_INT(test_subject, 42, "test_int_subject");
