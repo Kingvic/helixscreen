@@ -1,0 +1,33 @@
+CompileFlags:
+  Add:
+    # Project includes
+    - -I.
+    - -Iinclude
+    - -Itests
+    # Library includes
+    - -Ilib
+    - -Ilib/lvgl
+    - -Ilib/lvgl/src
+    - -Ilib/libhv/include
+    - -Ilib/libhv/cpputil
+    - -Ilib/spdlog/include
+    - -Ilib/glm
+    - -Ilib/tinygl/include
+    - -Ilib/tinygl/include-demo
+    - -Ilib/wpa_supplicant/src/common
+    - -Ilib/wpa_supplicant/src/utils
+    # System includes (macOS)
+    - -I/opt/homebrew/include
+    - -I/opt/homebrew/include/SDL2
+    # Required defines for LVGL
+    - -DLV_CONF_INCLUDE_SIMPLE
+    - -DLV_LVGL_H_INCLUDE_SIMPLE
+    # C++ standard
+    - -std=c++17
+
+---
+# Suppress diagnostics in third-party library code
+If:
+  PathMatch: lib/.*
+Diagnostics:
+  Suppress: "*"

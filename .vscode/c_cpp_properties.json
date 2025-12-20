@@ -5,6 +5,7 @@
             "includePath": [
                 "${workspaceFolder}",
                 "${workspaceFolder}/include",
+                "${workspaceFolder}/tests",
                 "${workspaceFolder}/lib",
                 "${workspaceFolder}/lib/glm",
                 "${workspaceFolder}/lib/lvgl",

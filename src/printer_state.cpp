@@ -1024,15 +1024,13 @@ bool PrinterState::can_start_new_print() const {
 
 void PrinterState::set_kinematics(const std::string& kinematics) {
     // Determine if the bed moves on Z based on kinematics type:
-    // - CoreXY/CoreXZ: bed typically moves on Z axis (Voron 2.4, RatRig, etc.)
-    // - Cartesian: gantry typically moves on Z axis (Ender 3, Prusa MK3, etc.)
+    // - Cartesian: bed typically moves on Z axis (Ender 3, Prusa MK3, etc.)
+    // - CoreXY/CoreXZ: gantry typically moves on Z axis (Voron 2.4, RatRig, etc.)
     // - Delta: effector moves on Z, bed is stationary
     //
     // Note: This is a heuristic. Some CoreXY printers (Voron Trident) have gantry-Z.
     // For perfect accuracy, we'd need to parse stepper_z configuration.
-    bool bed_moves_z = (kinematics.find("corexy") != std::string::npos ||
-                        kinematics.find("corexz") != std::string::npos ||
-                        kinematics.find("hybrid_corexy") != std::string::npos);
+    bool bed_moves_z = (kinematics.find("cartesian") != std::string::npos);
     int new_value = bed_moves_z ? 1 : 0;
 
     // Only log when value actually changes (this gets called frequently from status updates)
