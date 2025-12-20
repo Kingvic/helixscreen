@@ -152,14 +152,35 @@ class ThumbnailProcessor {
     /**
      * @brief Get optimal thumbnail target for current display
      *
-     * Returns target dimensions based on display breakpoint:
+     * Queries the active LVGL display and returns target dimensions based on
+     * display breakpoint (using max(width, height)):
      * - SMALL (<=480px): 120x120
      * - MEDIUM (<=800px): 160x160
      * - LARGE (>800px): 220x220
      *
+     * Also matches the display's color format (RGB565 or ARGB8888) for
+     * optimal rendering performance.
+     *
+     * @note MUST be called from main thread only (LVGL is not thread-safe).
+     *       For background threads, cache the result at initialization.
+     *
      * @return ThumbnailTarget for current display configuration
      */
     static ThumbnailTarget get_target_for_display();
+
+    /**
+     * @brief Get thumbnail target for specific display dimensions
+     *
+     * Pure function version for testing. Uses the same breakpoint logic
+     * as get_target_for_display().
+     *
+     * @param width Display width in pixels
+     * @param height Display height in pixels
+     * @param use_rgb565 If true, use RGB565 format; otherwise ARGB8888
+     * @return ThumbnailTarget for the given dimensions
+     */
+    static ThumbnailTarget get_target_for_resolution(int width, int height,
+                                                     bool use_rgb565 = false);
 
     /**
      * @brief Get the cache directory path (thread-safe)

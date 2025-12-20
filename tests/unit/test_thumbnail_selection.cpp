@@ -174,3 +174,135 @@ TEST_CASE("FileMetadata get_largest_thumbnail", "[thumbnail]") {
         REQUIRE(metadata.get_largest_thumbnail() == ".thumbnails/test-300x300.png");
     }
 }
+
+// ============================================================================
+// ThumbnailProcessor Resolution Target Tests
+// ============================================================================
+
+#include "../../include/thumbnail_processor.h"
+
+using helix::ThumbnailProcessor;
+using helix::ThumbnailTarget;
+
+TEST_CASE("ThumbnailProcessor breakpoint selection", "[thumbnail][processor]") {
+    SECTION("SMALL breakpoint: 480x320 → 120x120") {
+        auto target = ThumbnailProcessor::get_target_for_resolution(480, 320);
+        REQUIRE(target.width == 120);
+        REQUIRE(target.height == 120);
+    }
+
+    SECTION("SMALL breakpoint: 320x480 (portrait) → 120x120") {
+        auto target = ThumbnailProcessor::get_target_for_resolution(320, 480);
+        REQUIRE(target.width == 120);
+        REQUIRE(target.height == 120);
+    }
+
+    SECTION("MEDIUM breakpoint: 800x480 (AD5M) → 160x160") {
+        auto target = ThumbnailProcessor::get_target_for_resolution(800, 480);
+        REQUIRE(target.width == 160);
+        REQUIRE(target.height == 160);
+    }
+
+    SECTION("MEDIUM breakpoint: 640x480 → 160x160") {
+        auto target = ThumbnailProcessor::get_target_for_resolution(640, 480);
+        REQUIRE(target.width == 160);
+        REQUIRE(target.height == 160);
+    }
+
+    SECTION("LARGE breakpoint: 1024x600 → 220x220") {
+        auto target = ThumbnailProcessor::get_target_for_resolution(1024, 600);
+        REQUIRE(target.width == 220);
+        REQUIRE(target.height == 220);
+    }
+
+    SECTION("LARGE breakpoint: 1280x720 → 220x220") {
+        auto target = ThumbnailProcessor::get_target_for_resolution(1280, 720);
+        REQUIRE(target.width == 220);
+        REQUIRE(target.height == 220);
+    }
+
+    SECTION("Boundary: exactly 480px → SMALL") {
+        auto target = ThumbnailProcessor::get_target_for_resolution(480, 320);
+        REQUIRE(target.width == 120);
+    }
+
+    SECTION("Boundary: 481px → MEDIUM") {
+        auto target = ThumbnailProcessor::get_target_for_resolution(481, 320);
+        REQUIRE(target.width == 160);
+    }
+
+    SECTION("Boundary: exactly 800px → MEDIUM") {
+        auto target = ThumbnailProcessor::get_target_for_resolution(800, 600);
+        REQUIRE(target.width == 160);
+    }
+
+    SECTION("Boundary: 801px → LARGE") {
+        auto target = ThumbnailProcessor::get_target_for_resolution(801, 600);
+        REQUIRE(target.width == 220);
+    }
+}
+
+TEST_CASE("ThumbnailProcessor color format selection", "[thumbnail][processor]") {
+    SECTION("Default is ARGB8888 (0x10)") {
+        auto target = ThumbnailProcessor::get_target_for_resolution(800, 480);
+        REQUIRE(target.color_format == 0x10);
+    }
+
+    SECTION("RGB565 when requested (0x12)") {
+        auto target = ThumbnailProcessor::get_target_for_resolution(800, 480, true);
+        REQUIRE(target.color_format == 0x12);
+    }
+
+    SECTION("ARGB8888 when explicitly disabled") {
+        auto target = ThumbnailProcessor::get_target_for_resolution(800, 480, false);
+        REQUIRE(target.color_format == 0x10);
+    }
+}
+
+TEST_CASE("ThumbnailProcessor uses max(width, height) for breakpoint", "[thumbnail][processor]") {
+    SECTION("Portrait 600x1024 uses 1024 → LARGE") {
+        auto target = ThumbnailProcessor::get_target_for_resolution(600, 1024);
+        REQUIRE(target.width == 220);
+    }
+
+    SECTION("Landscape 1024x600 uses 1024 → LARGE") {
+        auto target = ThumbnailProcessor::get_target_for_resolution(1024, 600);
+        REQUIRE(target.width == 220);
+    }
+
+    SECTION("Square 800x800 uses 800 → MEDIUM") {
+        auto target = ThumbnailProcessor::get_target_for_resolution(800, 800);
+        REQUIRE(target.width == 160);
+    }
+}
+
+TEST_CASE("ThumbnailProcessor edge cases", "[thumbnail][processor]") {
+    SECTION("Zero dimensions → SMALL fallback") {
+        auto target = ThumbnailProcessor::get_target_for_resolution(0, 0);
+        REQUIRE(target.width == 120);
+        REQUIRE(target.height == 120);
+    }
+
+    SECTION("Negative width → SMALL fallback") {
+        auto target = ThumbnailProcessor::get_target_for_resolution(-100, 480);
+        REQUIRE(target.width == 120);
+    }
+
+    SECTION("Negative height → SMALL fallback") {
+        auto target = ThumbnailProcessor::get_target_for_resolution(800, -1);
+        REQUIRE(target.width == 120);
+    }
+
+    SECTION("Very large display (4K) → LARGE") {
+        auto target = ThumbnailProcessor::get_target_for_resolution(3840, 2160);
+        REQUIRE(target.width == 220);
+    }
+
+    SECTION("Zero dimensions preserve color format choice") {
+        auto target_argb = ThumbnailProcessor::get_target_for_resolution(0, 0, false);
+        REQUIRE(target_argb.color_format == 0x10);
+
+        auto target_rgb = ThumbnailProcessor::get_target_for_resolution(0, 0, true);
+        REQUIRE(target_rgb.color_format == 0x12);
+    }
+}

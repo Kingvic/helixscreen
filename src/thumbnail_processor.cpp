@@ -165,22 +165,60 @@ std::string ThumbnailProcessor::get_if_processed(const std::string& source_path,
     return "";
 }
 
-ThumbnailTarget ThumbnailProcessor::get_target_for_display() {
-    // TODO: Query actual display size from LVGL
-    // For now, use medium breakpoint as default (most common case)
-    //
-    // Display breakpoints from THUMBNAIL_OPTIMIZATION_PLAN.md:
-    // - SMALL (<=480px):  card ~107px -> target 120x120
-    // - MEDIUM (<=800px): card ~151px -> target 160x160
-    // - LARGE (>800px):   card ~205px -> target 220x220
-
+ThumbnailTarget ThumbnailProcessor::get_target_for_resolution(int width, int height,
+                                                              bool use_rgb565) {
     ThumbnailTarget target;
-    target.width = 160;
-    target.height = 160;
-    target.color_format = COLOR_FORMAT_ARGB8888;
 
-    // TODO: Check lv_display_get_horizontal_resolution() when available
-    // and adjust target accordingly
+    // Defensive: treat invalid dimensions as smallest breakpoint
+    if (width <= 0 || height <= 0) {
+        target.width = 120;
+        target.height = 120;
+        target.color_format = use_rgb565 ? COLOR_FORMAT_RGB565 : COLOR_FORMAT_ARGB8888;
+        return target;
+    }
+
+    int greater_res = std::max(width, height);
+
+    // Select target size based on breakpoints
+    // These sizes are chosen to slightly exceed card display size to ensure
+    // sharp rendering without upscaling artifacts
+    if (greater_res <= 480) {
+        // SMALL: 480x320 class → card ~107px → target 120x120
+        target.width = 120;
+        target.height = 120;
+    } else if (greater_res <= 800) {
+        // MEDIUM: 800x480 class (AD5M) → card ~151px → target 160x160
+        target.width = 160;
+        target.height = 160;
+    } else {
+        // LARGE: 1024x600, 1280x720+ → card ~205px → target 220x220
+        target.width = 220;
+        target.height = 220;
+    }
+
+    target.color_format = use_rgb565 ? COLOR_FORMAT_RGB565 : COLOR_FORMAT_ARGB8888;
+    return target;
+}
+
+ThumbnailTarget ThumbnailProcessor::get_target_for_display() {
+    // Get the default display
+    lv_display_t* display = lv_display_get_default();
+    if (!display) {
+        // Fallback if no display initialized yet (shouldn't happen in normal use)
+        spdlog::debug("[ThumbnailProcessor] No display available, using medium defaults");
+        return get_target_for_resolution(800, 480, false);
+    }
+
+    // Query display resolution and color format
+    int32_t hor_res = lv_display_get_horizontal_resolution(display);
+    int32_t ver_res = lv_display_get_vertical_resolution(display);
+    lv_color_format_t display_cf = lv_display_get_color_format(display);
+    bool use_rgb565 = (display_cf == LV_COLOR_FORMAT_RGB565);
+
+    ThumbnailTarget target = get_target_for_resolution(hor_res, ver_res, use_rgb565);
+
+    spdlog::debug("[ThumbnailProcessor] Display {}x{} → target {}x{} ({})", hor_res, ver_res,
+                  target.width, target.height, use_rgb565 ? "RGB565" : "ARGB8888");
 
     return target;
 }
