@@ -10,6 +10,21 @@
 
 #include <algorithm>
 
+// CRITICAL: Subject updates trigger lv_obj_invalidate() which asserts if called
+// during LVGL rendering. WebSocket callbacks run on libhv's event loop thread,
+// not the main LVGL thread. We must defer subject updates to the main thread
+// via lv_async_call to avoid the "Invalidate area not allowed during rendering"
+// assertion.
+
+namespace {
+
+/// @brief Async callback to update subjects on the main LVGL thread
+void async_update_subjects_callback(void* /*user_data*/) {
+    helix::FilamentSensorManager::instance().update_subjects_on_main_thread();
+}
+
+} // namespace
+
 namespace helix {
 
 // ============================================================================
@@ -458,7 +473,9 @@ void FilamentSensorManager::update_from_status(const json& status) {
         }
 
         if (any_changed) {
-            update_subjects();
+            // Defer subject updates to main LVGL thread via lv_async_call()
+            // This avoids the "Invalidate area not allowed during rendering" assertion
+            lv_async_call(async_update_subjects_callback, nullptr);
         }
     }
     // Lock released here
@@ -637,6 +654,12 @@ void FilamentSensorManager::reset_for_testing() {
     }
 
     spdlog::debug("[FilamentSensorManager] Reset for testing");
+}
+
+void FilamentSensorManager::update_subjects_on_main_thread() {
+    // This is called by lv_async_call from the main LVGL thread
+    // It's safe to update subjects here without causing render-phase assertions
+    update_subjects();
 }
 
 } // namespace helix

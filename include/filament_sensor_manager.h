@@ -271,6 +271,14 @@ class FilamentSensorManager {
      */
     void reset_for_testing();
 
+    /**
+     * @brief Update subjects on main LVGL thread (called by async callback)
+     *
+     * This is public to allow the async callback in the anonymous namespace
+     * to access it. Do not call directly - use update_from_status() instead.
+     */
+    void update_subjects_on_main_thread();
+
   private:
     FilamentSensorManager();
     ~FilamentSensorManager();
