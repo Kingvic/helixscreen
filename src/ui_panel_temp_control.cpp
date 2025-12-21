@@ -67,6 +67,22 @@ TempControlPanel::TempControlPanel(PrinterState& printer_state, MoonrakerAPI* ap
     bed_target_observer_ =
         ObserverGuard(printer_state_.get_bed_target_subject(), bed_target_observer_cb, this);
 
+    // Register XML event callbacks in constructor (BEFORE any lv_xml_create calls)
+    // These are global registrations that must exist when XML is parsed
+    lv_xml_register_event_cb(nullptr, "on_nozzle_confirm_clicked", on_nozzle_confirm_clicked);
+    lv_xml_register_event_cb(nullptr, "on_nozzle_preset_off_clicked", on_nozzle_preset_off_clicked);
+    lv_xml_register_event_cb(nullptr, "on_nozzle_preset_pla_clicked", on_nozzle_preset_pla_clicked);
+    lv_xml_register_event_cb(nullptr, "on_nozzle_preset_petg_clicked",
+                             on_nozzle_preset_petg_clicked);
+    lv_xml_register_event_cb(nullptr, "on_nozzle_preset_abs_clicked", on_nozzle_preset_abs_clicked);
+    lv_xml_register_event_cb(nullptr, "on_nozzle_custom_clicked", on_nozzle_custom_clicked);
+    lv_xml_register_event_cb(nullptr, "on_bed_confirm_clicked", on_bed_confirm_clicked);
+    lv_xml_register_event_cb(nullptr, "on_bed_preset_off_clicked", on_bed_preset_off_clicked);
+    lv_xml_register_event_cb(nullptr, "on_bed_preset_pla_clicked", on_bed_preset_pla_clicked);
+    lv_xml_register_event_cb(nullptr, "on_bed_preset_petg_clicked", on_bed_preset_petg_clicked);
+    lv_xml_register_event_cb(nullptr, "on_bed_preset_abs_clicked", on_bed_preset_abs_clicked);
+    lv_xml_register_event_cb(nullptr, "on_bed_custom_clicked", on_bed_custom_clicked);
+
     spdlog::debug("[TempPanel] Constructed - subscribed to PrinterState temperature subjects");
 }
 
@@ -319,6 +335,42 @@ void TempControlPanel::update_bed_display() {
     lv_subject_copy_string(&bed_display_subject_, bed_display_buf_.data());
 }
 
+void TempControlPanel::send_nozzle_temperature(int target) {
+    spdlog::debug("[TempPanel] Sending nozzle temperature: {}°C", target);
+
+    if (!api_) {
+        spdlog::warn("[TempPanel] Cannot set nozzle temp: no API connection");
+        return;
+    }
+
+    api_->set_temperature(
+        "extruder", static_cast<double>(target),
+        []() {
+            // No toast on success - immediate visual feedback is sufficient
+        },
+        [](const MoonrakerError& error) {
+            NOTIFY_ERROR("Failed to set nozzle temp: {}", error.user_message());
+        });
+}
+
+void TempControlPanel::send_bed_temperature(int target) {
+    spdlog::debug("[TempPanel] Sending bed temperature: {}°C", target);
+
+    if (!api_) {
+        spdlog::warn("[TempPanel] Cannot set bed temp: no API connection");
+        return;
+    }
+
+    api_->set_temperature(
+        "heater_bed", static_cast<double>(target),
+        []() {
+            // No toast on success - immediate visual feedback is sufficient
+        },
+        [](const MoonrakerError& error) {
+            NOTIFY_ERROR("Failed to set bed temp: {}", error.user_message());
+        });
+}
+
 void TempControlPanel::init_subjects() {
     if (subjects_initialized_) {
         spdlog::warn("[TempPanel] init_subjects() called twice - ignoring");
@@ -480,86 +532,88 @@ void TempControlPanel::on_bed_confirm_clicked(lv_event_t* e) {
     ui_nav_go_back();
 }
 
-// Nozzle preset button callbacks
+// Nozzle preset button callbacks - immediately send temperature to printer
+// NOTE: XML event callbacks use current_target (where callback is attached), not target (where
+// click originated)
 void TempControlPanel::on_nozzle_preset_off_clicked(lv_event_t* e) {
-    auto* self = static_cast<TempControlPanel*>(lv_event_get_user_data(e));
+    lv_obj_t* btn = static_cast<lv_obj_t*>(lv_event_get_current_target(e));
+    auto* self = static_cast<TempControlPanel*>(lv_obj_get_user_data(btn));
     if (!self)
         return;
-    self->nozzle_pending_ = self->nozzle_config_.presets.off;
-    self->update_nozzle_display();
-    spdlog::debug("[TempPanel] Nozzle pending selection: {}°C (not sent yet)",
-                  self->nozzle_config_.presets.off);
+    int target = self->nozzle_config_.presets.off;
+    spdlog::debug("[TempPanel] Nozzle preset Off clicked: setting to {}°C", target);
+    self->send_nozzle_temperature(target);
 }
 
 void TempControlPanel::on_nozzle_preset_pla_clicked(lv_event_t* e) {
-    auto* self = static_cast<TempControlPanel*>(lv_event_get_user_data(e));
+    lv_obj_t* btn = static_cast<lv_obj_t*>(lv_event_get_current_target(e));
+    auto* self = static_cast<TempControlPanel*>(lv_obj_get_user_data(btn));
     if (!self)
         return;
-    self->nozzle_pending_ = self->nozzle_config_.presets.pla;
-    self->update_nozzle_display();
-    spdlog::debug("[TempPanel] Nozzle pending selection: {}°C (not sent yet)",
-                  self->nozzle_config_.presets.pla);
+    int target = self->nozzle_config_.presets.pla;
+    spdlog::debug("[TempPanel] Nozzle preset PLA clicked: setting to {}°C", target);
+    self->send_nozzle_temperature(target);
 }
 
 void TempControlPanel::on_nozzle_preset_petg_clicked(lv_event_t* e) {
-    auto* self = static_cast<TempControlPanel*>(lv_event_get_user_data(e));
+    lv_obj_t* btn = static_cast<lv_obj_t*>(lv_event_get_current_target(e));
+    auto* self = static_cast<TempControlPanel*>(lv_obj_get_user_data(btn));
     if (!self)
         return;
-    self->nozzle_pending_ = self->nozzle_config_.presets.petg;
-    self->update_nozzle_display();
-    spdlog::debug("[TempPanel] Nozzle pending selection: {}°C (not sent yet)",
-                  self->nozzle_config_.presets.petg);
+    int target = self->nozzle_config_.presets.petg;
+    spdlog::debug("[TempPanel] Nozzle preset PETG clicked: setting to {}°C", target);
+    self->send_nozzle_temperature(target);
 }
 
 void TempControlPanel::on_nozzle_preset_abs_clicked(lv_event_t* e) {
-    auto* self = static_cast<TempControlPanel*>(lv_event_get_user_data(e));
+    lv_obj_t* btn = static_cast<lv_obj_t*>(lv_event_get_current_target(e));
+    auto* self = static_cast<TempControlPanel*>(lv_obj_get_user_data(btn));
     if (!self)
         return;
-    self->nozzle_pending_ = self->nozzle_config_.presets.abs;
-    self->update_nozzle_display();
-    spdlog::debug("[TempPanel] Nozzle pending selection: {}°C (not sent yet)",
-                  self->nozzle_config_.presets.abs);
+    int target = self->nozzle_config_.presets.abs;
+    spdlog::debug("[TempPanel] Nozzle preset ABS clicked: setting to {}°C", target);
+    self->send_nozzle_temperature(target);
 }
 
-// Bed preset button callbacks
+// Bed preset button callbacks (send immediately like nozzle presets)
 void TempControlPanel::on_bed_preset_off_clicked(lv_event_t* e) {
-    auto* self = static_cast<TempControlPanel*>(lv_event_get_user_data(e));
+    lv_obj_t* btn = static_cast<lv_obj_t*>(lv_event_get_current_target(e));
+    auto* self = static_cast<TempControlPanel*>(lv_obj_get_user_data(btn));
     if (!self)
         return;
-    self->bed_pending_ = self->bed_config_.presets.off;
-    self->update_bed_display();
-    spdlog::debug("[TempPanel] Bed pending selection: {}°C (not sent yet)",
-                  self->bed_config_.presets.off);
+    int target = self->bed_config_.presets.off;
+    spdlog::debug("[TempPanel] Bed preset OFF clicked: setting to {}°C", target);
+    self->send_bed_temperature(target);
 }
 
 void TempControlPanel::on_bed_preset_pla_clicked(lv_event_t* e) {
-    auto* self = static_cast<TempControlPanel*>(lv_event_get_user_data(e));
+    lv_obj_t* btn = static_cast<lv_obj_t*>(lv_event_get_current_target(e));
+    auto* self = static_cast<TempControlPanel*>(lv_obj_get_user_data(btn));
     if (!self)
         return;
-    self->bed_pending_ = self->bed_config_.presets.pla;
-    self->update_bed_display();
-    spdlog::debug("[TempPanel] Bed pending selection: {}°C (not sent yet)",
-                  self->bed_config_.presets.pla);
+    int target = self->bed_config_.presets.pla;
+    spdlog::debug("[TempPanel] Bed preset PLA clicked: setting to {}°C", target);
+    self->send_bed_temperature(target);
 }
 
 void TempControlPanel::on_bed_preset_petg_clicked(lv_event_t* e) {
-    auto* self = static_cast<TempControlPanel*>(lv_event_get_user_data(e));
+    lv_obj_t* btn = static_cast<lv_obj_t*>(lv_event_get_current_target(e));
+    auto* self = static_cast<TempControlPanel*>(lv_obj_get_user_data(btn));
     if (!self)
         return;
-    self->bed_pending_ = self->bed_config_.presets.petg;
-    self->update_bed_display();
-    spdlog::debug("[TempPanel] Bed pending selection: {}°C (not sent yet)",
-                  self->bed_config_.presets.petg);
+    int target = self->bed_config_.presets.petg;
+    spdlog::debug("[TempPanel] Bed preset PETG clicked: setting to {}°C", target);
+    self->send_bed_temperature(target);
 }
 
 void TempControlPanel::on_bed_preset_abs_clicked(lv_event_t* e) {
-    auto* self = static_cast<TempControlPanel*>(lv_event_get_user_data(e));
+    lv_obj_t* btn = static_cast<lv_obj_t*>(lv_event_get_current_target(e));
+    auto* self = static_cast<TempControlPanel*>(lv_obj_get_user_data(btn));
     if (!self)
         return;
-    self->bed_pending_ = self->bed_config_.presets.abs;
-    self->update_bed_display();
-    spdlog::debug("[TempPanel] Bed pending selection: {}°C (not sent yet)",
-                  self->bed_config_.presets.abs);
+    int target = self->bed_config_.presets.abs;
+    spdlog::debug("[TempPanel] Bed preset ABS clicked: setting to {}°C", target);
+    self->send_bed_temperature(target);
 }
 
 // Struct for keypad callback
@@ -575,15 +629,12 @@ void TempControlPanel::keypad_value_cb(float value, void* user_data) {
 
     int temp = static_cast<int>(value);
     if (data->type == HEATER_NOZZLE) {
-        data->panel->nozzle_pending_ = temp;
-        data->panel->update_nozzle_display();
+        spdlog::debug("[TempPanel] Nozzle custom temperature: {}°C via keypad", temp);
+        data->panel->send_nozzle_temperature(temp);
     } else {
-        data->panel->bed_pending_ = temp;
-        data->panel->update_bed_display();
+        spdlog::debug("[TempPanel] Bed custom temperature: {}°C via keypad", temp);
+        data->panel->send_bed_temperature(temp);
     }
-
-    spdlog::debug("[TempPanel] {} pending selection: {}°C via keypad (not sent yet)",
-                  data->type == HEATER_NOZZLE ? "Nozzle" : "Bed", temp);
 }
 
 // Static storage for keypad callback data (needed because LVGL holds raw pointers)
@@ -591,7 +642,8 @@ static KeypadCallbackData nozzle_keypad_data;
 static KeypadCallbackData bed_keypad_data;
 
 void TempControlPanel::on_nozzle_custom_clicked(lv_event_t* e) {
-    auto* self = static_cast<TempControlPanel*>(lv_event_get_user_data(e));
+    lv_obj_t* btn = static_cast<lv_obj_t*>(lv_event_get_current_target(e));
+    auto* self = static_cast<TempControlPanel*>(lv_obj_get_user_data(btn));
     if (!self)
         return;
 
@@ -611,7 +663,8 @@ void TempControlPanel::on_nozzle_custom_clicked(lv_event_t* e) {
 }
 
 void TempControlPanel::on_bed_custom_clicked(lv_event_t* e) {
-    auto* self = static_cast<TempControlPanel*>(lv_event_get_user_data(e));
+    lv_obj_t* btn = static_cast<lv_obj_t*>(lv_event_get_current_target(e));
+    auto* self = static_cast<TempControlPanel*>(lv_obj_get_user_data(btn));
     if (!self)
         return;
 
@@ -633,14 +686,7 @@ void TempControlPanel::on_bed_custom_clicked(lv_event_t* e) {
 void TempControlPanel::setup_nozzle_panel(lv_obj_t* panel, lv_obj_t* parent_screen) {
     nozzle_panel_ = panel;
 
-    // Register XML event callbacks BEFORE creating XML components
-    lv_xml_register_event_cb(nullptr, "on_nozzle_confirm_clicked", on_nozzle_confirm_clicked);
-    lv_xml_register_event_cb(nullptr, "on_nozzle_preset_off_clicked", on_nozzle_preset_off_clicked);
-    lv_xml_register_event_cb(nullptr, "on_nozzle_preset_pla_clicked", on_nozzle_preset_pla_clicked);
-    lv_xml_register_event_cb(nullptr, "on_nozzle_preset_petg_clicked",
-                             on_nozzle_preset_petg_clicked);
-    lv_xml_register_event_cb(nullptr, "on_nozzle_preset_abs_clicked", on_nozzle_preset_abs_clicked);
-    lv_xml_register_event_cb(nullptr, "on_nozzle_custom_clicked", on_nozzle_custom_clicked);
+    // NOTE: Event callbacks are registered in constructor (before any lv_xml_create calls)
 
     // Read current values from PrinterState (observers only fire on changes, not initial state)
     nozzle_current_ = lv_subject_get_int(printer_state_.get_extruder_temp_subject());
@@ -732,13 +778,7 @@ void TempControlPanel::setup_nozzle_panel(lv_obj_t* panel, lv_obj_t* parent_scre
 void TempControlPanel::setup_bed_panel(lv_obj_t* panel, lv_obj_t* parent_screen) {
     bed_panel_ = panel;
 
-    // Register XML event callbacks BEFORE creating XML components
-    lv_xml_register_event_cb(nullptr, "on_bed_confirm_clicked", on_bed_confirm_clicked);
-    lv_xml_register_event_cb(nullptr, "on_bed_preset_off_clicked", on_bed_preset_off_clicked);
-    lv_xml_register_event_cb(nullptr, "on_bed_preset_pla_clicked", on_bed_preset_pla_clicked);
-    lv_xml_register_event_cb(nullptr, "on_bed_preset_petg_clicked", on_bed_preset_petg_clicked);
-    lv_xml_register_event_cb(nullptr, "on_bed_preset_abs_clicked", on_bed_preset_abs_clicked);
-    lv_xml_register_event_cb(nullptr, "on_bed_custom_clicked", on_bed_custom_clicked);
+    // NOTE: Event callbacks are registered in constructor (before any lv_xml_create calls)
 
     // Read current values from PrinterState (observers only fire on changes, not initial state)
     bed_current_ = lv_subject_get_int(printer_state_.get_bed_temp_subject());

@@ -52,12 +52,12 @@ static int32_t temp_to_pixel_y(ui_temp_graph_t* graph, float temp) {
     }
 
     // Map temperature to pixel position within content area (inverted for Y axis)
-    // temp=max_temp → Y=0 (top), temp=min_temp → Y=chart_height (bottom)
-    // This matches LVGL's lv_chart_get_point_pos_by_id calculation:
-    //   temp_y = lv_map(v, ymin, ymax, 0, h)
-    //   p_out->y = h - temp_y
-    int32_t content_y = chart_height - lv_map((int32_t)temp, (int32_t)graph->min_temp,
-                                              (int32_t)graph->max_temp, 0, chart_height);
+    // temp=max_temp → Y=0 (top), temp=min_temp → Y=chart_height-1 (bottom)
+    // LVGL's lv_chart_get_point_pos_by_id uses (h-1) for 0-indexed pixel coordinates:
+    //   p_out->y = (h - 1) - lv_map(y_ofs, 0, range, 0, h - 1)
+    int32_t h = chart_height - 1; // 0-indexed pixel range
+    int32_t content_y =
+        h - lv_map((int32_t)temp, (int32_t)graph->min_temp, (int32_t)graph->max_temp, 0, h);
 
     return content_y;
 }
@@ -161,6 +161,7 @@ static void draw_task_cb(lv_event_t* e) {
         static_cast<lv_opa_t>(top_opa - (top_opa - bottom_opa) * lower_distance / gradient_span);
 
     // Draw triangle from line segment down to the lower point
+    // Use maximum gradient stops (8) to reduce visible banding
     lv_draw_triangle_dsc_t tri_dsc;
     lv_draw_triangle_dsc_init(&tri_dsc);
     tri_dsc.p[0].x = line_dsc->p1.x;
@@ -171,25 +172,39 @@ static void draw_task_cb(lv_event_t* e) {
     tri_dsc.p[2].y = LV_MAX(line_dsc->p1.y, line_dsc->p2.y);
 
     tri_dsc.grad.dir = LV_GRAD_DIR_VER;
-    tri_dsc.grad.stops[0].color = ser_color;
-    tri_dsc.grad.stops[0].opa = opa_upper;
-    tri_dsc.grad.stops[0].frac = 0;
-    tri_dsc.grad.stops[1].color = ser_color;
-    tri_dsc.grad.stops[1].opa = opa_lower;
-    tri_dsc.grad.stops[1].frac = 255;
+    // Use 8 stops for smoother triangle gradient
+    constexpr int TRI_STOPS = 8;
+    for (int i = 0; i < TRI_STOPS; i++) {
+        lv_opa_t stop_opa = static_cast<lv_opa_t>(
+            opa_upper + (static_cast<int32_t>(opa_lower) - static_cast<int32_t>(opa_upper)) * i /
+                            (TRI_STOPS - 1));
+        uint8_t stop_frac = static_cast<uint8_t>(255 * i / (TRI_STOPS - 1));
+        tri_dsc.grad.stops[i].color = ser_color;
+        tri_dsc.grad.stops[i].opa = stop_opa;
+        tri_dsc.grad.stops[i].frac = stop_frac;
+    }
+    tri_dsc.grad.stops_count = TRI_STOPS;
 
     lv_draw_triangle(base_dsc->layer, &tri_dsc);
 
     // Draw rectangle from the lower line point down to chart bottom
+    // Use maximum gradient stops (8) to reduce visible banding
     lv_draw_rect_dsc_t rect_dsc;
     lv_draw_rect_dsc_init(&rect_dsc);
     rect_dsc.bg_grad.dir = LV_GRAD_DIR_VER;
-    rect_dsc.bg_grad.stops[0].color = ser_color;
-    rect_dsc.bg_grad.stops[0].opa = opa_lower;
-    rect_dsc.bg_grad.stops[0].frac = 0;
-    rect_dsc.bg_grad.stops[1].color = ser_color;
-    rect_dsc.bg_grad.stops[1].opa = bottom_opa;
-    rect_dsc.bg_grad.stops[1].frac = 255;
+
+    // Use 8 evenly-spaced stops for smoother gradient
+    constexpr int RECT_STOPS = 8;
+    for (int i = 0; i < RECT_STOPS; i++) {
+        lv_opa_t stop_opa = static_cast<lv_opa_t>(
+            opa_lower + (static_cast<int32_t>(bottom_opa) - static_cast<int32_t>(opa_lower)) * i /
+                            (RECT_STOPS - 1));
+        uint8_t stop_frac = static_cast<uint8_t>(255 * i / (RECT_STOPS - 1));
+        rect_dsc.bg_grad.stops[i].color = ser_color;
+        rect_dsc.bg_grad.stops[i].opa = stop_opa;
+        rect_dsc.bg_grad.stops[i].frac = stop_frac;
+    }
+    rect_dsc.bg_grad.stops_count = RECT_STOPS;
 
     lv_area_t rect_area;
     rect_area.x1 = static_cast<int32_t>(LV_MIN(line_dsc->p1.x, line_dsc->p2.x));
@@ -216,7 +231,7 @@ static void draw_x_axis_labels_cb(lv_event_t* e) {
         return; // No data to label yet
     }
 
-    spdlog::debug("[TempGraph] Drawing X-axis labels: {} points, first={}ms, latest={}ms",
+    spdlog::trace("[TempGraph] Drawing X-axis labels: {} points, first={}ms, latest={}ms",
                   graph->visible_point_count, graph->first_point_time_ms,
                   graph->latest_point_time_ms);
 
@@ -321,8 +336,9 @@ static void draw_x_axis_labels_cb(lv_event_t* e) {
         lv_draw_label(layer, &label_dsc, &label_area);
     }
 
-    // Always show "now" label at rightmost edge (most recent data)
-    {
+    // Show "now" label at rightmost edge ONLY when chart is reasonably full
+    // (at least 80% of points have data) - prevents overlap with time-based labels
+    if (graph->visible_point_count >= (graph->point_count * 4 / 5)) {
         time_t now_sec = static_cast<time_t>(latest_ms / 1000);
         struct tm* tm_info = localtime(&now_sec);
         // Use static buffer for the "now" label
@@ -795,13 +811,18 @@ void ui_temp_graph_set_series_target(ui_temp_graph_t* graph, int series_id, floa
     meta->target_temp = target;
     meta->show_target = show;
 
-    if (meta->target_cursor && show) {
-        // Convert temperature value to pixel coordinate
-        // This abstraction allows callers to work with temperatures, not pixels
-        lv_obj_update_layout(graph->chart); // Ensure dimensions are current
-        int32_t pixel_y = temp_to_pixel_y(graph, target);
-        lv_chart_set_cursor_pos_y(graph->chart, meta->target_cursor, pixel_y);
-
+    if (meta->target_cursor) {
+        if (show) {
+            // Convert temperature value to pixel coordinate
+            // This abstraction allows callers to work with temperatures, not pixels
+            lv_obj_update_layout(graph->chart); // Ensure dimensions are current
+            int32_t pixel_y = temp_to_pixel_y(graph, target);
+            lv_chart_set_cursor_pos_y(graph->chart, meta->target_cursor, pixel_y);
+        } else {
+            // LVGL cursors don't have a hide function - move off-screen to hide
+            // Use a large negative value that's definitely outside the chart area
+            lv_chart_set_cursor_pos_y(graph->chart, meta->target_cursor, -10000);
+        }
         lv_obj_invalidate(graph->chart);
     }
 
