@@ -8,10 +8,6 @@
 
 #include <spdlog/spdlog.h>
 
-// Panels where the E-Stop button should be visible during active prints
-const std::unordered_set<std::string> EmergencyStopOverlay::VISIBLE_PANELS = {
-    "home_panel", "print_status_panel", "controls_panel", "motion_panel"};
-
 EmergencyStopOverlay& EmergencyStopOverlay::instance() {
     static EmergencyStopOverlay instance;
     return instance;
@@ -69,20 +65,9 @@ void EmergencyStopOverlay::create() {
         return;
     }
 
-    // Create the floating button on the TOP LAYER (always above all screen content)
-    // Using lv_layer_top() ensures the button stays visible regardless of panel z-order
-    lv_obj_t* top_layer = lv_layer_top();
-    button_ = static_cast<lv_obj_t*>(lv_xml_create(top_layer, "emergency_stop_button", nullptr));
-
-    if (!button_) {
-        spdlog::error("[EmergencyStop] Failed to create emergency_stop_button widget");
-        return;
-    }
-
-    // Force layout update - top layer may not auto-layout XML children
-    lv_obj_update_layout(button_);
-
     // Subscribe to print state changes for automatic visibility updates
+    // The estop_visible subject drives XML bindings in home_panel, controls_panel,
+    // and print_status_panel (no FAB - buttons are embedded in each panel)
     print_state_observer_ = ObserverGuard(printer_state_->get_print_state_enum_subject(),
                                           print_state_observer_cb, this);
 
@@ -93,13 +78,7 @@ void EmergencyStopOverlay::create() {
     // Initial visibility update
     update_visibility();
 
-    spdlog::info("[EmergencyStop] Created floating E-Stop button");
-}
-
-void EmergencyStopOverlay::on_panel_changed(const std::string& panel_name) {
-    current_panel_ = panel_name;
-    update_visibility();
-    spdlog::trace("[EmergencyStop] Panel changed to: {}", panel_name);
+    spdlog::info("[EmergencyStop] Initialized visibility subject for contextual E-Stop buttons");
 }
 
 void EmergencyStopOverlay::update_visibility() {
@@ -107,40 +86,18 @@ void EmergencyStopOverlay::update_visibility() {
         return;
     }
 
-    // Check if current panel should show E-Stop
-    // Use prefix matching since LVGL adds suffixes like "_#" to widget names
-    bool on_relevant_panel = false;
-    for (const auto& panel : VISIBLE_PANELS) {
-        if (current_panel_.rfind(panel, 0) == 0) { // starts_with
-            on_relevant_panel = true;
-            break;
-        }
-    }
-
     // Check if print is active (PRINTING or PAUSED)
+    // The estop_visible subject drives XML bindings in each panel
     PrintJobState state = printer_state_->get_print_job_state();
     bool is_printing = (state == PrintJobState::PRINTING || state == PrintJobState::PAUSED);
 
-    // Show button only if both conditions are met
-    bool should_show = is_printing && on_relevant_panel;
-
-    int new_value = should_show ? 1 : 0;
+    int new_value = is_printing ? 1 : 0;
     int current_value = lv_subject_get_int(&estop_visible_);
 
     if (new_value != current_value) {
         lv_subject_set_int(&estop_visible_, new_value);
-
-        // Directly control visibility since XML binding may not work on top layer
-        if (button_) {
-            if (new_value == 1) {
-                lv_obj_clear_flag(button_, LV_OBJ_FLAG_HIDDEN);
-            } else {
-                lv_obj_add_flag(button_, LV_OBJ_FLAG_HIDDEN);
-            }
-        }
-
-        spdlog::debug("[EmergencyStop] Visibility changed: {} (panel={}, state={})", should_show,
-                      current_panel_, static_cast<int>(state));
+        spdlog::debug("[EmergencyStop] Visibility changed: {} (state={})", is_printing,
+                      static_cast<int>(state));
     }
 }
 

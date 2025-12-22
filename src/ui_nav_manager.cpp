@@ -560,9 +560,6 @@ void NavigationManager::set_active(ui_panel_id_t panel_id) {
 
     lv_subject_set_int(&active_panel_subject_, panel_id);
     active_panel_ = panel_id;
-
-    // Notify E-Stop overlay of panel change
-    EmergencyStopOverlay::instance().on_panel_changed(panel_id_to_name(panel_id));
 }
 
 ui_panel_id_t NavigationManager::get_active() const {
@@ -605,12 +602,6 @@ void NavigationManager::push_overlay(lv_obj_t* overlay_panel, bool hide_previous
     if (!overlay_panel) {
         spdlog::error("[NavigationManager] Cannot push NULL overlay panel");
         return;
-    }
-
-    // Notify E-Stop overlay of panel change
-    const char* panel_name = lv_obj_get_name(overlay_panel);
-    if (panel_name) {
-        EmergencyStopOverlay::instance().on_panel_changed(panel_name);
     }
 
     bool is_first_overlay = (panel_stack_.size() == 1);
@@ -802,16 +793,6 @@ bool NavigationManager::go_back() {
     lv_obj_remove_flag(previous_panel, LV_OBJ_FLAG_HIDDEN);
     spdlog::debug("[NavigationManager] Showing previous panel {} (stack depth: {}, is_main={})",
                   (void*)previous_panel, panel_stack_.size(), is_main_panel);
-
-    // Notify E-Stop overlay
-    if (is_main_panel) {
-        EmergencyStopOverlay::instance().on_panel_changed(panel_id_to_name(active_panel_));
-    } else {
-        const char* panel_name = lv_obj_get_name(previous_panel);
-        if (panel_name) {
-            EmergencyStopOverlay::instance().on_panel_changed(panel_name);
-        }
-    }
 
     return true;
 }

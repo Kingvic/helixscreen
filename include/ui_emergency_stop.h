@@ -9,29 +9,27 @@
 #include "moonraker_api.h"
 #include "printer_state.h"
 
-#include <string>
-#include <unordered_set>
-
 /**
- * @brief Floating emergency stop button overlay
+ * @brief Emergency stop visibility coordinator
  *
- * Displays a prominent red emergency stop button during active prints
- * (PRINTING or PAUSED states) on relevant panels (home, print_status,
- * controls, motion). The button triggers an immediate M112 emergency
- * stop command via Moonraker.
+ * Manages the estop_visible subject that drives contextual E-Stop buttons
+ * embedded in home_panel, controls_panel, and print_status_panel.
+ * Buttons are automatically shown during active prints (PRINTING or PAUSED)
+ * via XML subject binding. The button triggers an M112 emergency stop
+ * command via Moonraker.
  *
  * Features:
  * - Single-tap activation (default) or confirmation dialog (optional setting)
- * - Automatic visibility based on print state and current panel
- * - Z-ordered above all panel content
+ * - Automatic visibility based on print state (via estop_visible subject)
+ * - Klipper recovery dialog auto-popup on SHUTDOWN state
  * - Visual feedback via toast notifications
  *
  * Usage:
  *   // In main.cpp after LVGL and subjects initialized:
- *   EmergencyStopOverlay::instance().init(printer_state, api, settings);
+ *   EmergencyStopOverlay::instance().init(printer_state, api);
  *   EmergencyStopOverlay::instance().create();
  *
- * @see KlipperRecoveryDialog for post-shutdown recovery flow
+ * @see klipper_recovery_dialog.xml for post-shutdown recovery flow
  */
 class EmergencyStopOverlay {
   public:
@@ -61,33 +59,23 @@ class EmergencyStopOverlay {
     void init_subjects();
 
     /**
-     * @brief Create the floating button widget
+     * @brief Initialize visibility coordination
      *
-     * Creates the emergency_stop_button XML component on the active screen.
-     * The button floats above all panels at z-index top.
+     * Sets up observers to update the estop_visible subject based on print
+     * state. E-Stop buttons embedded in panels (home, controls, print_status)
+     * bind to this subject for reactive visibility.
      *
      * Must be called after:
      * - init() with valid dependencies
      * - init_subjects() for XML binding
-     * - XML components registered
      */
     void create();
 
     /**
-     * @brief Notify overlay of panel change
-     *
-     * Called by navigation system when active panel changes.
-     * Updates visibility based on whether current panel should show E-Stop.
-     *
-     * @param panel_name Name of the newly active panel (e.g., "home_panel")
-     */
-    void on_panel_changed(const std::string& panel_name);
-
-    /**
      * @brief Force visibility update
      *
-     * Recalculates and applies visibility based on current print state
-     * and panel. Called automatically by state observers, but can be
+     * Recalculates and applies estop_visible subject based on current
+     * print state. Called automatically by state observers, but can be
      * called manually if needed.
      */
     void update_visibility();
@@ -117,20 +105,13 @@ class EmergencyStopOverlay {
     // Confirmation requirement (set via set_require_confirmation())
     bool require_confirmation_ = false;
 
-    // Widget references
-    lv_obj_t* button_ = nullptr;
+    // Dialog widget references (created on-demand)
     lv_obj_t* confirmation_dialog_ = nullptr;
     lv_obj_t* recovery_dialog_ = nullptr;
 
-    // Visibility subject (1=visible, 0=hidden)
+    // Visibility subject (1=visible, 0=hidden) - drives XML bindings
     lv_subject_t estop_visible_;
     bool subjects_initialized_ = false;
-
-    // Current panel tracking
-    std::string current_panel_;
-
-    // Panels where E-Stop should be visible
-    static const std::unordered_set<std::string> VISIBLE_PANELS;
 
     // State observers
     ObserverGuard print_state_observer_;

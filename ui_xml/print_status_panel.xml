@@ -7,8 +7,13 @@
   <view name="print_status_panel"
         extends="lv_obj" width="#overlay_panel_width" height="100%" align="right_mid" style_bg_opa="255"
         style_bg_color="#card_bg" style_pad_all="0" style_border_width="0" flex_flow="column" clickable="true">
-    <!-- Header Bar (uses improved header_bar component) -->
-    <header_bar name="overlay_header" title="Print Status"/>
+    <!-- Header Bar with E-stop action button -->
+    <header_bar name="overlay_header" title="Print Status"
+                hide_action_button="false"
+                action_button_icon="alert_octagon"
+                action_button_bg_color="#error_color"
+                action_button_radius="24"
+                action_button_callback="emergency_stop_clicked"/>
     <!-- Content Area (two columns: viewer left, controls right) -->
     <lv_obj name="overlay_content"
             width="100%" flex_grow="1" style_bg_opa="0" style_border_width="0" style_pad_left="#space_lg"
@@ -156,9 +161,7 @@
           <text_small text="Active" style_text_color="#text_secondary"/>
           <ams_current_tool name="ams_current_tool_indicator"/>
         </lv_obj>
-        <!-- Spacer (pushes buttons to bottom) -->
-        <lv_obj flex_grow="1" style_bg_opa="0" style_border_width="0"/>
-        <!-- Control Buttons (2x2 Grid) -->
+        <!-- Control Buttons (stacked below status, no spacer to avoid clipping) -->
         <lv_obj name="button_grid"
                 width="100%" height="content" style_bg_opa="0" style_border_width="0" style_pad_top="0"
                 style_pad_bottom="0" style_pad_left="#space_sm" style_pad_right="#space_sm" scrollable="false"
@@ -169,18 +172,18 @@
                   height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false"
                   flex_flow="row" style_flex_main_place="center" style_flex_cross_place="center"
                   style_pad_gap="#space_sm">
-            <lv_button name="btn_light" height="48" flex_grow="1" style_border_width="0">
+            <lv_button name="btn_light" height="#button_height_small" flex_grow="1" style_border_width="0">
               <event_cb trigger="clicked" callback="on_print_status_light"/>
               <lv_label text="#icon_lightbulb" style_text_font="mdi_icons_32" align="center"/>
             </lv_button>
             <!-- Timelapse button: only visible when Moonraker-Timelapse plugin installed -->
-            <lv_button name="btn_timelapse" height="48" flex_grow="1" style_border_width="0">
+            <lv_button name="btn_timelapse" height="#button_height_small" flex_grow="1" style_border_width="0">
               <event_cb trigger="clicked" callback="on_print_status_timelapse"/>
               <lv_obj-bind_flag_if_eq subject="printer_has_timelapse" flag="hidden" ref_value="0"/>
               <lv_label name="timelapse_icon"
                         bind_text="timelapse_button_icon" style_text_font="mdi_icons_32" align="center"/>
             </lv_button>
-            <lv_button name="btn_pause" height="48" flex_grow="1" style_border_width="0">
+            <lv_button name="btn_pause" height="#button_height_small" flex_grow="1" style_border_width="0">
               <event_cb trigger="clicked" callback="on_print_status_pause"/>
               <lv_label name="pause_icon" bind_text="pause_button_icon" style_text_font="mdi_icons_32" align="center"/>
             </lv_button>
@@ -190,13 +193,14 @@
                   height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false"
                   flex_flow="row" style_flex_main_place="center" style_flex_cross_place="center"
                   style_pad_gap="#space_sm">
-            <lv_button name="btn_tune" height="48" flex_grow="1" style_border_width="0">
+            <lv_button name="btn_tune" height="#button_height_small" flex_grow="1" style_border_width="0">
               <event_cb trigger="clicked" callback="on_print_status_tune"/>
               <lv_label text="#icon_settings" style_text_font="mdi_icons_32" align="center"/>
             </lv_button>
-            <lv_button name="btn_cancel" height="48" flex_grow="1" style_border_width="0" style_bg_color="#error_color">
+            <lv_button name="btn_cancel" height="#button_height_small" flex_grow="1"
+                       style_border_width="0" style_bg_color="#error_color">
               <event_cb trigger="clicked" callback="on_print_status_cancel"/>
-              <lv_label text="#icon_stop" style_text_font="mdi_icons_32" style_text_color="0xFFFFFF" align="center"/>
+              <lv_label text="#icon_stop" style_text_font="mdi_icons_32" style_text_color="#text_primary" align="center"/>
             </lv_button>
           </lv_obj>
         </lv_obj>

@@ -234,5 +234,22 @@
         <text_small text="Mesh | Z-Offset | Leveling" style_text_color="#text_secondary"/>
       </ui_card>
     </lv_obj>
+    <!-- Row 3: Emergency Stop (ONLY visible when printing) -->
+    <lv_obj name="estop_row"
+            width="100%" height="content" style_bg_opa="0" style_border_width="0"
+            style_pad_left="#space_md" style_pad_right="#space_md"
+            style_pad_bottom="#space_md" scrollable="false" hidden="true">
+      <lv_obj-bind_flag_if_eq subject="estop_visible" flag="hidden" ref_value="0"/>
+      <lv_button name="estop_button_controls"
+                 width="100%" height="#button_height_normal"
+                 style_radius="#border_radius_large" style_border_width="0"
+                 style_bg_color="#error_color" flex_flow="row"
+                 style_flex_main_place="center" style_flex_cross_place="center"
+                 style_pad_gap="#space_md">
+        <icon src="alert_octagon" size="md" color="#text_primary"/>
+        <text_body text="Emergency Stop" style_text_color="#text_primary"/>
+        <event_cb trigger="clicked" callback="emergency_stop_clicked"/>
+      </lv_button>
+    </lv_obj>
   </view>
 </component>

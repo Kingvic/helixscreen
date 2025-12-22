@@ -153,7 +153,7 @@ void register_xml_components() {
     lv_xml_register_component_from_file("A:ui_xml/overlay_panel.xml");
     lv_xml_register_component_from_file("A:ui_xml/status_bar.xml");
     lv_xml_register_component_from_file("A:ui_xml/toast_notification.xml");
-    lv_xml_register_component_from_file("A:ui_xml/emergency_stop_button.xml");
+    // emergency_stop_button.xml removed - E-Stop buttons are now embedded in panels
     lv_xml_register_component_from_file("A:ui_xml/estop_confirmation_dialog.xml");
     lv_xml_register_component_from_file("A:ui_xml/klipper_recovery_dialog.xml");
     lv_xml_register_component_from_file("A:ui_xml/print_cancel_confirm_modal.xml");
