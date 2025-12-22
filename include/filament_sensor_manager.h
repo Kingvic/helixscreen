@@ -272,6 +272,16 @@ class FilamentSensorManager {
     void reset_for_testing();
 
     /**
+     * @brief Enable synchronous mode for testing
+     *
+     * When enabled, update_from_status() calls update_subjects() synchronously
+     * instead of using lv_async_call(). This avoids LVGL timer dependencies in unit tests.
+     *
+     * @param enabled true to enable synchronous updates
+     */
+    void set_sync_mode(bool enabled);
+
+    /**
      * @brief Update subjects on main LVGL thread (called by async callback)
      *
      * This is public to allow the async callback in the anonymous namespace
@@ -325,6 +335,10 @@ class FilamentSensorManager {
 
     // State change callback
     StateChangeCallback state_change_callback_;
+
+    // Test mode: when true, update_from_status() calls update_subjects() synchronously
+    // instead of using lv_async_call(). This avoids LVGL timer dependencies in unit tests.
+    bool sync_mode_ = false;
 
     // LVGL subjects
     bool subjects_initialized_ = false;

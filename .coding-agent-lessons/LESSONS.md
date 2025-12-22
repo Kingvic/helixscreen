@@ -93,8 +93,8 @@
 - **Uses**: 4 | **Learned**: 2025-12-14 | **Last**: 2025-12-21 | **Category**: pattern
 > Use centidegrees (int) for temperature subjects to preserve 0.1C resolution. Float subjects lose precision in LVGL binding
 
-### [L022] [**---/-----] Propagate deferred deps
-- **Uses**: 4 | **Learned**: 2025-12-19 | **Last**: 2025-12-21 | **Category**: gotcha
+### [L022] [***--/-----] Propagate deferred deps
+- **Uses**: 6 | **Learned**: 2025-12-19 | **Last**: 2025-12-22 | **Category**: gotcha
 > When set_X() updates a member, also update child objects that cached the old value (e.g., file_provider_->set_api() in PrintSelectPanel::set_api)
 
 ### [L023] [***+-/-----] Stage files explicitly

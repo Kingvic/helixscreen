@@ -504,13 +504,36 @@ void PrintSelectPanel::setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
                         spdlog::debug(
                             "[{}] Connection established, checking for helix_print plugin",
                             self->get_name());
+
+                        // Update installer's websocket URL for local/remote detection
+                        self->plugin_installer_.set_websocket_url(
+                            self->api_->get_client().get_last_url());
+
                         self->api_->check_helix_plugin(
-                            [](bool available) {
+                            [self](bool available) {
                                 if (available) {
                                     spdlog::info("[PrintSelectPanel] helix_print plugin available");
                                 } else {
                                     spdlog::debug(
                                         "[PrintSelectPanel] helix_print plugin not available");
+
+                                    // Prompt to install if user hasn't declined
+                                    if (self->plugin_installer_.should_prompt_install()) {
+                                        spdlog::info(
+                                            "[PrintSelectPanel] Showing plugin install prompt");
+
+                                        // Schedule modal display on main thread
+                                        lv_async_call(
+                                            [](void* user_data) {
+                                                auto* panel =
+                                                    static_cast<PrintSelectPanel*>(user_data);
+                                                panel->plugin_install_modal_.set_installer(
+                                                    &panel->plugin_installer_);
+                                                panel->plugin_install_modal_.show(
+                                                    lv_screen_active());
+                                            },
+                                            self);
+                                    }
                                 }
                             },
                             [](const MoonrakerError&) {

@@ -5,12 +5,14 @@
 
 #include "ui_observer_guard.h"
 #include "ui_panel_base.h"
+#include "ui_plugin_install_modal.h"
 #include "ui_print_select_card_view.h"
 #include "ui_print_select_detail_view.h"
 #include "ui_print_select_file_provider.h"
 #include "ui_print_select_list_view.h"
 #include "ui_print_select_usb_source.h"
 
+#include "helix_plugin_installer.h"
 #include "usb_backend.h"
 
 #include <ctime>
@@ -456,6 +458,10 @@ class PrintSelectPanel : public PanelBase {
     ObserverGuard active_panel_observer_;
     ObserverGuard connection_observer_;
     ObserverGuard print_state_observer_; ///< Observes print state to enable/disable print button
+
+    // Plugin installer for helix_print Moonraker plugin
+    helix::HelixPluginInstaller plugin_installer_;
+    PluginInstallModal plugin_install_modal_;
 
     //
     // === Internal Methods ===

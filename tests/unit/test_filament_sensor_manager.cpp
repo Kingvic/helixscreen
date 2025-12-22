@@ -523,6 +523,8 @@ TEST_CASE_METHOD(FilamentSensorTestFixture, "FilamentSensorManager - subject val
         REQUIRE(lv_subject_get_int(mgr().get_runout_detected_subject()) == 0);
 
         // Update state to detected
+        // Note: reset_for_testing() enables sync_mode, so update_from_status()
+        // updates subjects synchronously instead of using lv_async_call().
         update_sensor_state("filament_switch_sensor runout", true);
         REQUIRE(lv_subject_get_int(mgr().get_runout_detected_subject()) == 1);
 
@@ -551,8 +553,10 @@ TEST_CASE_METHOD(FilamentSensorTestFixture, "FilamentSensorManager - subject val
         mgr().set_sensor_role("filament_switch_sensor runout", FilamentSensorRole::RUNOUT);
         update_sensor_state("filament_switch_sensor runout", true);
 
+        // Filament detected = no runout
         REQUIRE(lv_subject_get_int(mgr().get_any_runout_subject()) == 0);
 
+        // Filament removed = runout detected
         update_sensor_state("filament_switch_sensor runout", false);
         REQUIRE(lv_subject_get_int(mgr().get_any_runout_subject()) == 1);
     }

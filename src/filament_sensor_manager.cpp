@@ -473,9 +473,16 @@ void FilamentSensorManager::update_from_status(const json& status) {
         }
 
         if (any_changed) {
-            // Defer subject updates to main LVGL thread via lv_async_call()
-            // This avoids the "Invalidate area not allowed during rendering" assertion
-            lv_async_call(async_update_subjects_callback, nullptr);
+            if (sync_mode_) {
+                // In test mode, update subjects synchronously
+                spdlog::info("[FilamentSensorManager] sync_mode: updating subjects synchronously");
+                update_subjects();
+            } else {
+                // Defer subject updates to main LVGL thread via lv_async_call()
+                // This avoids the "Invalidate area not allowed during rendering" assertion
+                spdlog::info("[FilamentSensorManager] async_mode: deferring via lv_async_call");
+                lv_async_call(async_update_subjects_callback, nullptr);
+            }
         }
     }
     // Lock released here
@@ -642,6 +649,9 @@ void FilamentSensorManager::reset_for_testing() {
     // Clear callback
     state_change_callback_ = nullptr;
 
+    // Enable sync mode for testing (avoids lv_async_call)
+    sync_mode_ = true;
+
     // Reset subjects if initialized
     if (subjects_initialized_) {
         lv_subject_set_int(&runout_detected_, -1);
@@ -654,6 +664,11 @@ void FilamentSensorManager::reset_for_testing() {
     }
 
     spdlog::debug("[FilamentSensorManager] Reset for testing");
+}
+
+void FilamentSensorManager::set_sync_mode(bool enabled) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    sync_mode_ = enabled;
 }
 
 void FilamentSensorManager::update_subjects_on_main_thread() {
