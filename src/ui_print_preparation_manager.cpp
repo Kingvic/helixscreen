@@ -3,10 +3,18 @@
 
 #include "ui_print_preparation_manager.h"
 
+#include "ui_async_callback.h"
 #include "ui_error_reporting.h"
 #include "ui_panel_print_status.h"
 
+#include "memory_utils.h"
+
+#include <spdlog/fmt/fmt.h>
 #include <spdlog/spdlog.h>
+
+#include <cstdlib>
+#include <filesystem>
+#include <set>
 
 // Forward declaration for global print status panel (declared in ui_panel_print_status.h)
 PrintStatusPanel& get_global_print_status_panel();
@@ -52,11 +60,18 @@ void PrintPreparationManager::scan_file_for_operations(const std::string& filena
     // Skip if already cached for this file
     if (cached_scan_filename_ == filename && cached_scan_result_.has_value()) {
         spdlog::debug("[PrintPreparationManager] Using cached scan result for {}", filename);
+        // Still notify callback with cached result
+        if (on_scan_complete_) {
+            on_scan_complete_(format_detected_operations());
+        }
         return;
     }
 
     if (!api_) {
         spdlog::warn("[PrintPreparationManager] Cannot scan G-code - no API connection");
+        if (on_scan_complete_) {
+            on_scan_complete_("");
+        }
         return;
     }
 
@@ -70,39 +85,261 @@ void PrintPreparationManager::scan_file_for_operations(const std::string& filena
     api_->download_file(
         "gcodes", file_path,
         // Success: parse content and cache result
+        // NOTE: This callback runs on a background HTTP thread, so we must defer
+        // shared state updates and LVGL calls to the main thread via lv_async_call
         [self, filename](const std::string& content) {
+            // Parse on background thread (safe - no shared state access)
             gcode::GCodeOpsDetector detector;
-            self->cached_scan_result_ = detector.scan_content(content);
-            self->cached_scan_filename_ = filename;
+            auto scan_result = detector.scan_content(content);
 
-            if (self->cached_scan_result_->operations.empty()) {
+            // Log on background thread (spdlog is thread-safe)
+            if (scan_result.operations.empty()) {
                 spdlog::debug("[PrintPreparationManager] No embedded operations found in {}",
                               filename);
             } else {
                 spdlog::info("[PrintPreparationManager] Found {} embedded operations in {}:",
-                             self->cached_scan_result_->operations.size(), filename);
-                for (const auto& op : self->cached_scan_result_->operations) {
+                             scan_result.operations.size(), filename);
+                for (const auto& op : scan_result.operations) {
                     spdlog::info("[PrintPreparationManager]   - {} at line {} ({})",
                                  op.display_name(), op.line_number, op.raw_line.substr(0, 50));
                 }
             }
+
+            // Defer shared state updates to main LVGL thread
+            struct ScanUpdateData {
+                PrintPreparationManager* mgr;
+                std::string filename;
+                gcode::ScanResult result;
+            };
+            ui_async_call_safe<ScanUpdateData>(
+                std::make_unique<ScanUpdateData>(ScanUpdateData{self, filename, scan_result}),
+                [](ScanUpdateData* d) {
+                    d->mgr->cached_scan_result_ = d->result;
+                    d->mgr->cached_scan_filename_ = d->filename;
+                    if (d->mgr->on_scan_complete_) {
+                        d->mgr->on_scan_complete_(d->mgr->format_detected_operations());
+                    }
+                });
         },
         // Error: just log, don't block the UI
+        // NOTE: Also runs on background thread
         [self, filename](const MoonrakerError& error) {
             spdlog::warn("[PrintPreparationManager] Failed to scan G-code {}: {}", filename,
                          error.message);
-            self->cached_scan_result_.reset();
-            self->cached_scan_filename_.clear();
+
+            // Defer shared state updates to main LVGL thread
+            struct ScanErrorData {
+                PrintPreparationManager* mgr;
+            };
+            ui_async_call_safe<ScanErrorData>(std::make_unique<ScanErrorData>(ScanErrorData{self}),
+                                              [](ScanErrorData* d) {
+                                                  d->mgr->cached_scan_result_.reset();
+                                                  d->mgr->cached_scan_filename_.clear();
+                                                  if (d->mgr->on_scan_complete_) {
+                                                      d->mgr->on_scan_complete_("");
+                                                  }
+                                              });
         });
+}
+
+std::string PrintPreparationManager::format_detected_operations() const {
+    if (!cached_scan_result_.has_value() || cached_scan_result_->operations.empty()) {
+        return "";
+    }
+
+    // Build unique list of operation names (some files may have duplicates)
+    std::vector<std::string> op_names;
+    std::set<gcode::OperationType> seen_types;
+
+    for (const auto& op : cached_scan_result_->operations) {
+        if (seen_types.find(op.type) == seen_types.end()) {
+            seen_types.insert(op.type);
+            op_names.push_back(op.display_name());
+        }
+    }
+
+    if (op_names.empty()) {
+        return "";
+    }
+
+    // Format as "Contains: Op1, Op2, Op3"
+    std::string result = "Contains: ";
+    for (size_t i = 0; i < op_names.size(); ++i) {
+        if (i > 0) {
+            result += ", ";
+        }
+        result += op_names[i];
+    }
+
+    return result;
 }
 
 void PrintPreparationManager::clear_scan_cache() {
     cached_scan_result_.reset();
     cached_scan_filename_.clear();
+    cached_file_size_.reset();
 }
 
 bool PrintPreparationManager::has_scan_result_for(const std::string& filename) const {
     return cached_scan_filename_ == filename && cached_scan_result_.has_value();
+}
+
+// ============================================================================
+// Resource Safety
+// ============================================================================
+
+void PrintPreparationManager::set_cached_file_size(size_t size) {
+    cached_file_size_ = size;
+    spdlog::debug("[PrintPreparationManager] Cached file size: {} bytes ({:.1f} MB)", size,
+                  static_cast<double>(size) / (1024.0 * 1024.0));
+}
+
+std::string PrintPreparationManager::get_temp_directory() const {
+    // Use same logic as ThumbnailCache for consistency
+    // Priority: XDG_CACHE_HOME → ~/.cache/helix → TMPDIR → /var/tmp → /tmp
+
+    // 1. Check XDG_CACHE_HOME
+    const char* xdg_cache = std::getenv("XDG_CACHE_HOME");
+    if (xdg_cache && xdg_cache[0] != '\0') {
+        std::string full_path = std::string(xdg_cache) + "/helix/gcode_temp";
+        std::error_code ec;
+        std::filesystem::create_directories(full_path, ec);
+        if (!ec && std::filesystem::exists(full_path)) {
+            return full_path;
+        }
+    }
+
+    // 2. Try $HOME/.cache/helix
+    const char* home = std::getenv("HOME");
+    if (home && home[0] != '\0') {
+        std::string cache_base = std::string(home) + "/.cache/helix/gcode_temp";
+        std::error_code ec;
+        std::filesystem::create_directories(cache_base, ec);
+        if (!ec && std::filesystem::exists(cache_base)) {
+            return cache_base;
+        }
+    }
+
+    // 3. Check TMPDIR environment variable
+    const char* tmpdir = std::getenv("TMPDIR");
+    if (tmpdir && tmpdir[0] != '\0') {
+        std::string full_path = std::string(tmpdir) + "/helix_gcode_temp";
+        std::error_code ec;
+        std::filesystem::create_directories(full_path, ec);
+        if (!ec && std::filesystem::exists(full_path)) {
+            return full_path;
+        }
+    }
+
+    // 4. Try /var/tmp (persistent, often larger than /tmp on embedded)
+    {
+        std::string var_tmp_path = "/var/tmp/helix_gcode_temp";
+        std::error_code ec;
+        std::filesystem::create_directories(var_tmp_path, ec);
+        if (!ec && std::filesystem::exists(var_tmp_path)) {
+            return var_tmp_path;
+        }
+    }
+
+    // 5. Last resort: /tmp
+    {
+        std::string tmp_path = "/tmp/helix_gcode_temp";
+        std::error_code ec;
+        std::filesystem::create_directories(tmp_path, ec);
+        if (!ec && std::filesystem::exists(tmp_path)) {
+            return tmp_path;
+        }
+    }
+
+    spdlog::warn("[PrintPreparationManager] Could not find usable temp directory");
+    return "";
+}
+
+ModificationCapability PrintPreparationManager::check_modification_capability() const {
+    ModificationCapability result;
+
+    // Priority 1: If helix_print plugin is available, always safe (server-side modification)
+    if (api_ && api_->has_helix_plugin()) {
+        result.can_modify = true;
+        result.has_plugin = true;
+        result.has_disk_space = true; // N/A when using plugin
+        result.reason = "Using server-side plugin";
+        spdlog::debug("[PrintPreparationManager] Plugin available - modification always safe");
+        return result;
+    }
+
+    // Priority 2: Check if we have enough disk space for streaming modification
+    std::string temp_dir = get_temp_directory();
+    if (temp_dir.empty()) {
+        result.can_modify = false;
+        result.has_plugin = false;
+        result.has_disk_space = false;
+        result.reason = "No writable temp directory available";
+        spdlog::warn("[PrintPreparationManager] No temp directory - modification disabled");
+        return result;
+    }
+
+    // Check available disk space
+    std::error_code ec;
+    std::filesystem::space_info space = std::filesystem::space(temp_dir, ec);
+    if (ec) {
+        result.can_modify = false;
+        result.has_plugin = false;
+        result.has_disk_space = false;
+        result.reason = "Cannot check disk space";
+        spdlog::warn("[PrintPreparationManager] Failed to check disk space: {}", ec.message());
+        return result;
+    }
+
+    result.available_bytes = space.available;
+
+    // Get file size (required for calculation)
+    size_t file_size = cached_file_size_.value_or(0);
+
+    if (file_size == 0) {
+        // If we don't know file size, assume conservative 10MB (not 100MB)
+        // This is more reasonable for resource-constrained devices
+        file_size = 10 * 1024 * 1024;
+        spdlog::debug("[PrintPreparationManager] Unknown file size, assuming 10MB");
+    }
+
+    // Calculate dynamic safety margin based on available disk space
+    // - Use 10% of available space as margin, with min 2MB and max 20MB
+    // - This scales appropriately: 20MB disk → 2MB margin, 200MB disk → 20MB margin
+    constexpr size_t MIN_MARGIN_BYTES = 2 * 1024 * 1024;  // 2MB minimum
+    constexpr size_t MAX_MARGIN_BYTES = 20 * 1024 * 1024; // 20MB maximum
+    size_t dynamic_margin =
+        std::clamp(static_cast<size_t>(space.available / 10), MIN_MARGIN_BYTES, MAX_MARGIN_BYTES);
+
+    // Required space: 2x file size (download + modified) + dynamic margin
+    result.required_bytes = (file_size * 2) + dynamic_margin;
+
+    spdlog::debug("[PrintPreparationManager] Disk space calculation: file={}MB, margin={}MB, "
+                  "required={}MB",
+                  file_size / (1024 * 1024), dynamic_margin / (1024 * 1024),
+                  result.required_bytes / (1024 * 1024));
+
+    if (result.available_bytes >= result.required_bytes) {
+        result.can_modify = true;
+        result.has_plugin = false;
+        result.has_disk_space = true;
+        result.reason = "Streaming modification available";
+        spdlog::debug("[PrintPreparationManager] Sufficient disk space: {:.1f} MB available, "
+                      "{:.1f} MB required",
+                      static_cast<double>(result.available_bytes) / (1024.0 * 1024.0),
+                      static_cast<double>(result.required_bytes) / (1024.0 * 1024.0));
+    } else {
+        result.can_modify = false;
+        result.has_plugin = false;
+        result.has_disk_space = false;
+        result.reason =
+            fmt::format("Insufficient disk space: {:.0f} MB available, {:.0f} MB needed",
+                        static_cast<double>(result.available_bytes) / (1024.0 * 1024.0),
+                        static_cast<double>(result.required_bytes) / (1024.0 * 1024.0));
+        spdlog::warn("[PrintPreparationManager] {}", result.reason);
+    }
+
+    return result;
 }
 
 // ============================================================================
@@ -168,11 +405,28 @@ void PrintPreparationManager::start_print(const std::string& filename,
     std::vector<gcode::OperationType> ops_to_disable = collect_ops_to_disable();
 
     if (!ops_to_disable.empty()) {
-        spdlog::info("[PrintPreparationManager] User disabled {} embedded operations - modifying "
-                     "G-code",
-                     ops_to_disable.size());
-        modify_and_print(filename_to_print, ops_to_disable, on_navigate_to_status);
-        return; // modify_and_print handles everything including navigation
+        // SAFETY CHECK: Verify we can safely modify the G-code file
+        // On resource-constrained devices (e.g., AD5M with 512MB RAM), loading large
+        // G-code files into memory can exhaust resources and crash both Moonraker and Klipper.
+        ModificationCapability capability = check_modification_capability();
+
+        if (!capability.can_modify) {
+            spdlog::warn("[PrintPreparationManager] Cannot modify G-code safely: {}",
+                         capability.reason);
+            spdlog::warn(
+                "[PrintPreparationManager] Skipping modification - printing original file");
+            // Clear ops_to_disable so we fall through to normal print path
+            ops_to_disable.clear();
+            // Show user notification about skipped modification
+            NOTIFY_WARNING("Cannot modify G-code: {}. Printing original file.", capability.reason);
+        } else {
+            spdlog::info("[PrintPreparationManager] User disabled {} embedded operations - "
+                         "modifying G-code (method: {})",
+                         ops_to_disable.size(),
+                         capability.has_plugin ? "server-side plugin" : "streaming fallback");
+            modify_and_print(filename_to_print, ops_to_disable, on_navigate_to_status);
+            return; // modify_and_print handles everything including navigation
+        }
     }
 
     if (has_pre_print_ops) {
@@ -254,16 +508,52 @@ void PrintPreparationManager::modify_and_print(
     spdlog::info("[PrintPreparationManager] Modifying G-code to disable {} operations",
                  ops_to_disable.size());
 
+    // Extract just the filename for display purposes
+    size_t last_slash = file_path.rfind('/');
+    std::string display_filename =
+        (last_slash != std::string::npos) ? file_path.substr(last_slash + 1) : file_path;
+
+    // Build modification identifiers for plugin
+    std::vector<std::string> mod_names;
+    for (const auto& op : ops_to_disable) {
+        mod_names.push_back(gcode::GCodeOpsDetector::operation_type_name(op) + "_disabled");
+    }
+
+    // Check if helix_print plugin is available FIRST (before downloading)
+    // Plugin path uses server-side modification, so memory isn't a concern
+    if (api_->has_helix_plugin()) {
+        spdlog::info("[PrintPreparationManager] Using helix_print plugin for modified print");
+        modify_and_print_via_plugin(file_path, display_filename, ops_to_disable, mod_names,
+                                    on_navigate_to_status);
+    } else {
+        // STREAMING PATH: Download to disk, modify file-to-file, upload from disk
+        // This avoids loading the entire G-code file into memory
+        spdlog::info("[PrintPreparationManager] Using streaming fallback (helix_print plugin not "
+                     "available)");
+        modify_and_print_streaming(file_path, display_filename, ops_to_disable,
+                                   on_navigate_to_status);
+    }
+}
+
+void PrintPreparationManager::modify_and_print_via_plugin(
+    const std::string& file_path, const std::string& display_filename,
+    const std::vector<gcode::OperationType>& ops_to_disable,
+    const std::vector<std::string>& mod_names, NavigateToStatusCallback on_navigate_to_status) {
     auto* self = this;
     auto scan_result = cached_scan_result_; // Copy for lambda capture
 
-    // Step 1: Download the original file
+    // Validate scan_result before proceeding
+    if (!scan_result.has_value()) {
+        NOTIFY_ERROR("Cannot modify G-code: scan result not available");
+        return;
+    }
+
+    // Download file to memory (acceptable for plugin path since server does the work)
     api_->download_file(
         "gcodes", file_path,
-        // Success: modify and either use plugin or legacy flow
-        [self, file_path, ops_to_disable, on_navigate_to_status,
+        [self, file_path, display_filename, ops_to_disable, mod_names, on_navigate_to_status,
          scan_result](const std::string& content) {
-            // Step 2: Apply modifications
+            // Apply modifications in memory (safe - no shared state)
             gcode::GCodeFileModifier modifier;
             modifier.disable_operations(*scan_result, ops_to_disable);
 
@@ -273,96 +563,186 @@ void PrintPreparationManager::modify_and_print(
                 return;
             }
 
-            // Build modification identifiers for plugin
-            std::vector<std::string> mod_names;
-            for (const auto& op : ops_to_disable) {
-                mod_names.push_back(gcode::GCodeOpsDetector::operation_type_name(op) + "_disabled");
-            }
+            // Use helix_print plugin (single API call, server handles the rest)
+            self->api_->start_modified_print(
+                file_path, modified_content, mod_names,
+                // Success callback - runs on HTTP thread, must defer LVGL ops
+                [on_navigate_to_status, display_filename](const ModifiedPrintResult& result) {
+                    spdlog::info("[PrintPreparationManager] Print started via helix_print "
+                                 "plugin: {} -> {}",
+                                 result.original_filename, result.print_filename);
 
-            // Extract just the filename for display purposes
-            size_t last_slash = file_path.rfind('/');
-            std::string display_filename =
-                (last_slash != std::string::npos) ? file_path.substr(last_slash + 1) : file_path;
-
-            // Check if helix_print plugin is available
-            if (self->api_->has_helix_plugin()) {
-                // NEW PATH: Use helix_print plugin (single API call)
-                spdlog::info("[PrintPreparationManager] Using helix_print plugin for modified "
-                             "print");
-
-                self->api_->start_modified_print(
-                    file_path, modified_content, mod_names,
-                    // Success callback
-                    [on_navigate_to_status, display_filename](const ModifiedPrintResult& result) {
-                        spdlog::info("[PrintPreparationManager] Print started via helix_print "
-                                     "plugin: {} -> {}",
-                                     result.original_filename, result.print_filename);
-
-                        // Set thumbnail source to original filename
-                        get_global_print_status_panel().set_thumbnail_source(display_filename);
-
-                        if (on_navigate_to_status) {
-                            on_navigate_to_status();
-                        }
-                    },
-                    // Error callback
-                    [file_path](const MoonrakerError& error) {
-                        NOTIFY_ERROR("Failed to start modified print: {}", error.message);
-                        LOG_ERROR_INTERNAL(
-                            "[PrintPreparationManager] helix_print plugin error for {}: {}",
-                            file_path, error.message);
-                    });
-            } else {
-                // LEGACY PATH: Upload to .helix_temp then start print
-                spdlog::info("[PrintPreparationManager] Using legacy flow (helix_print plugin not "
-                             "available)");
-
-                // Generate unique temp filename
-                std::string temp_filename = ".helix_temp/modified_" +
-                                            std::to_string(std::time(nullptr)) + "_" +
-                                            display_filename;
-
-                spdlog::info("[PrintPreparationManager] Uploading modified G-code to {}",
-                             temp_filename);
-
-                self->api_->upload_file_with_name(
-                    "gcodes", temp_filename, temp_filename, modified_content,
-                    // Success: start print with modified file
-                    [self, temp_filename, display_filename, on_navigate_to_status]() {
-                        spdlog::info("[PrintPreparationManager] Modified file uploaded, starting "
-                                     "print");
-
-                        // Set thumbnail source to original filename before starting print
-                        get_global_print_status_panel().set_thumbnail_source(display_filename);
-
-                        // Start print with the modified file
-                        self->api_->start_print(
-                            temp_filename,
-                            [on_navigate_to_status, display_filename]() {
-                                spdlog::info("[PrintPreparationManager] Print started with "
-                                             "modified G-code (original: {})",
-                                             display_filename);
-                                if (on_navigate_to_status) {
-                                    on_navigate_to_status();
-                                }
-                            },
-                            [temp_filename](const MoonrakerError& error) {
-                                NOTIFY_ERROR("Failed to start print: {}", error.message);
-                                LOG_ERROR_INTERNAL(
-                                    "[PrintPreparationManager] Print start failed for {}: {}",
-                                    temp_filename, error.message);
-                            });
-                    },
-                    // Error uploading
-                    [](const MoonrakerError& error) {
-                        NOTIFY_ERROR("Failed to upload modified G-code: {}", error.message);
-                        LOG_ERROR_INTERNAL("[PrintPreparationManager] Upload failed: {}",
-                                           error.message);
-                    });
-            }
+                    // Defer LVGL operations to main thread
+                    struct PrintStartedData {
+                        std::string filename;
+                        NavigateToStatusCallback navigate_cb;
+                    };
+                    ui_async_call_safe<PrintStartedData>(
+                        std::make_unique<PrintStartedData>(
+                            PrintStartedData{display_filename, on_navigate_to_status}),
+                        [](PrintStartedData* d) {
+                            get_global_print_status_panel().set_thumbnail_source(d->filename);
+                            if (d->navigate_cb) {
+                                d->navigate_cb();
+                            }
+                        });
+                },
+                [file_path](const MoonrakerError& error) {
+                    // NOTIFY_ERROR is already thread-safe
+                    NOTIFY_ERROR("Failed to start modified print: {}", error.message);
+                    LOG_ERROR_INTERNAL(
+                        "[PrintPreparationManager] helix_print plugin error for {}: {}", file_path,
+                        error.message);
+                });
         },
-        // Error downloading
         [file_path](const MoonrakerError& error) {
+            // NOTIFY_ERROR is already thread-safe
+            NOTIFY_ERROR("Failed to download G-code for modification: {}", error.message);
+            LOG_ERROR_INTERNAL("[PrintPreparationManager] Download failed for {}: {}", file_path,
+                               error.message);
+        });
+}
+
+void PrintPreparationManager::modify_and_print_streaming(
+    const std::string& file_path, const std::string& display_filename,
+    const std::vector<gcode::OperationType>& ops_to_disable,
+    NavigateToStatusCallback on_navigate_to_status) {
+    auto* self = this;
+    auto scan_result = cached_scan_result_; // Copy for lambda capture
+
+    // Validate scan_result before proceeding (SERIOUS-3 fix)
+    if (!scan_result.has_value()) {
+        NOTIFY_ERROR("Cannot modify G-code: scan result not available");
+        return;
+    }
+
+    // Get temp directory for intermediate files
+    std::string temp_dir = get_temp_directory();
+    if (temp_dir.empty()) {
+        NOTIFY_ERROR("Cannot modify G-code: no temp directory available");
+        return;
+    }
+
+    // Generate unique temp file paths
+    auto timestamp = std::to_string(std::time(nullptr));
+    std::string local_download_path = temp_dir + "/helix_download_" + timestamp + ".gcode";
+    std::string remote_temp_path = ".helix_temp/modified_" + timestamp + "_" + display_filename;
+
+    spdlog::info("[PrintPreparationManager] Streaming modification: downloading to {}",
+                 local_download_path);
+
+    // Step 1: Download file to disk (streaming, not memory)
+    api_->download_file_to_path(
+        "gcodes", file_path, local_download_path,
+        // Download success - NOTE: runs on HTTP thread
+        [self, file_path, display_filename, ops_to_disable, scan_result, local_download_path,
+         remote_temp_path, on_navigate_to_status](const std::string& /*dest_path*/) {
+            spdlog::info("[PrintPreparationManager] Downloaded to disk, applying streaming "
+                         "modification");
+
+            // Step 2: Apply streaming modification (file-to-file, minimal memory)
+            gcode::GCodeFileModifier modifier;
+            modifier.disable_operations(*scan_result, ops_to_disable);
+
+            auto result = modifier.apply_streaming(local_download_path);
+
+            // Clean up download file (no longer needed)
+            std::error_code ec;
+            std::filesystem::remove(local_download_path, ec);
+            if (ec) {
+                spdlog::warn("[PrintPreparationManager] Failed to clean up download file: {}",
+                             ec.message());
+            }
+
+            if (!result.success) {
+                NOTIFY_ERROR("Failed to modify G-code: {}", result.error_message);
+                return;
+            }
+
+            spdlog::info("[PrintPreparationManager] Modification complete ({} lines modified), "
+                         "uploading {}",
+                         result.lines_modified, result.modified_path);
+
+            // Step 3: Upload modified file from disk
+            std::string modified_path = result.modified_path; // Copy for lambda
+            self->api_->upload_file_from_path(
+                "gcodes", remote_temp_path, modified_path,
+                // Upload success - NOTE: runs on HTTP thread, defer LVGL ops
+                [self, modified_path, display_filename, remote_temp_path, on_navigate_to_status]() {
+                    // Clean up local modified file (safe - filesystem op)
+                    std::error_code ec;
+                    std::filesystem::remove(modified_path, ec);
+                    if (ec) {
+                        spdlog::warn(
+                            "[PrintPreparationManager] Failed to clean up modified file: {}",
+                            ec.message());
+                    }
+
+                    spdlog::info("[PrintPreparationManager] Modified file uploaded, starting "
+                                 "print");
+
+                    // Step 4: Start print with modified file
+                    self->api_->start_print(
+                        remote_temp_path,
+                        // Print success - defer LVGL ops to main thread
+                        [on_navigate_to_status, display_filename]() {
+                            spdlog::info("[PrintPreparationManager] Print started with "
+                                         "modified G-code (streaming, original: {})",
+                                         display_filename);
+
+                            // Defer LVGL operations to main thread
+                            struct PrintStartedData {
+                                std::string filename;
+                                NavigateToStatusCallback navigate_cb;
+                            };
+                            ui_async_call_safe<PrintStartedData>(
+                                std::make_unique<PrintStartedData>(
+                                    PrintStartedData{display_filename, on_navigate_to_status}),
+                                [](PrintStartedData* d) {
+                                    get_global_print_status_panel().set_thumbnail_source(
+                                        d->filename);
+                                    if (d->navigate_cb) {
+                                        d->navigate_cb();
+                                    }
+                                });
+                        },
+                        // Print error - also try to clean up remote temp file
+                        [self, remote_temp_path](const MoonrakerError& error) {
+                            NOTIFY_ERROR("Failed to start print: {}", error.message);
+                            LOG_ERROR_INTERNAL(
+                                "[PrintPreparationManager] Print start failed for {}: {}",
+                                remote_temp_path, error.message);
+
+                            // Clean up remote temp file on failure (SERIOUS-1 fix)
+                            self->api_->delete_file(
+                                remote_temp_path,
+                                []() {
+                                    spdlog::debug("[PrintPreparationManager] Cleaned up "
+                                                  "remote temp file after print failure");
+                                },
+                                [](const MoonrakerError& /*del_err*/) {
+                                    // Ignore delete errors - file may not exist or cleanup
+                                    // isn't critical
+                                });
+                        });
+                },
+                // Upload error - clean up local file
+                [modified_path](const MoonrakerError& error) {
+                    // Clean up local file even on error (safe - filesystem op)
+                    std::error_code ec;
+                    std::filesystem::remove(modified_path, ec);
+
+                    NOTIFY_ERROR("Failed to upload modified G-code: {}", error.message);
+                    LOG_ERROR_INTERNAL("[PrintPreparationManager] Upload failed: {}",
+                                       error.message);
+                });
+        },
+        // Download error - clean up partial download
+        [file_path, local_download_path](const MoonrakerError& error) {
+            // Clean up partial download if any (safe - filesystem op)
+            std::error_code ec;
+            std::filesystem::remove(local_download_path, ec);
+
             NOTIFY_ERROR("Failed to download G-code for modification: {}", error.message);
             LOG_ERROR_INTERNAL("[PrintPreparationManager] Download failed for {}: {}", file_path,
                                error.message);

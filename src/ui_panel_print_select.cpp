@@ -222,6 +222,8 @@ void PrintSelectPanel::init_subjects() {
                                         "selected_filament_weight");
     UI_SUBJECT_INIT_AND_REGISTER_STRING(selected_layer_count_subject_, selected_layer_count_buffer_,
                                         "", "selected_layer_count");
+    UI_SUBJECT_INIT_AND_REGISTER_STRING(selected_file_ops_subject_, selected_file_ops_buffer_, "",
+                                        "selected_file_ops");
 
     // Initialize detail view visibility subject (0 = hidden, 1 = visible)
     UI_SUBJECT_INIT_AND_REGISTER_INT(detail_view_visible_subject_, 0, "detail_view_visible");
@@ -962,7 +964,7 @@ void PrintSelectPanel::show_detail_view() {
     if (detail_view_) {
         std::string filename(selected_filename_buffer_);
         detail_view_->show(filename, current_path_, selected_filament_type_,
-                           selected_filament_colors_);
+                           selected_filament_colors_, selected_file_size_bytes_);
     }
 }
 
@@ -1363,6 +1365,14 @@ void PrintSelectPanel::create_detail_view() {
     detail_view_->set_visible_subject(&detail_view_visible_subject_);
     detail_view_->set_on_delete_confirmed([this]() { delete_file(); });
 
+    // Set callback to update detected operations display when scan completes
+    if (auto* prep_mgr = detail_view_->get_prep_manager()) {
+        prep_mgr->set_scan_complete_callback([this](const std::string& formatted_ops) {
+            lv_subject_copy_string(&selected_file_ops_subject_, formatted_ops.c_str());
+            spdlog::debug("[{}] Updated detected ops: '{}'", get_name(), formatted_ops);
+        });
+    }
+
     spdlog::debug("[{}] Detail view module initialized", get_name());
 }
 
@@ -1421,6 +1431,7 @@ void PrintSelectPanel::handle_file_click(size_t file_index) {
                           file.filament_str.c_str(), file.layer_count_str.c_str());
         selected_filament_type_ = file.filament_type;
         selected_filament_colors_ = file.filament_colors;
+        selected_file_size_bytes_ = file.file_size_bytes;
         show_detail_view();
     }
 }

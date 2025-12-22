@@ -54,6 +54,22 @@ struct PrePrintOptions {
 };
 
 /**
+ * @brief Result of checking if G-code modification can be performed safely
+ *
+ * On resource-constrained devices (like AD5M with 512MB RAM), modifying large
+ * G-code files can exhaust memory and crash both Moonraker and Klipper.
+ * This struct captures whether modification is safe and why (or why not).
+ */
+struct ModificationCapability {
+    bool can_modify = false;     ///< True if modification can be done safely
+    bool has_plugin = false;     ///< True if helix_print plugin handles it server-side
+    bool has_disk_space = false; ///< True if enough disk space for streaming fallback
+    std::string reason;          ///< Human-readable reason if modification is disabled
+    size_t available_bytes = 0;  ///< Available disk space in temp directory
+    size_t required_bytes = 0;   ///< Estimated bytes needed for modification
+};
+
+/**
  * @brief Callback for navigating to print status panel
  */
 using NavigateToStatusCallback = std::function<void()>;
@@ -72,6 +88,14 @@ using PreparingProgressCallback = std::function<void(float progress)>;
  * @brief Callback for print completion (success or failure)
  */
 using PrintCompletionCallback = std::function<void(bool success, const std::string& error)>;
+
+/**
+ * @brief Callback when G-code scan completes with detected operations
+ *
+ * @param formatted_ops Human-readable string of detected operations
+ *                      (e.g., "Contains: Bed Leveling, QGL" or "")
+ */
+using ScanCompleteCallback = std::function<void(const std::string& formatted_ops)>;
 
 /**
  * @brief Manages print preparation workflow
@@ -106,6 +130,15 @@ class PrintPreparationManager {
     void set_checkboxes(lv_obj_t* bed_leveling, lv_obj_t* qgl, lv_obj_t* z_tilt,
                         lv_obj_t* nozzle_clean, lv_obj_t* timelapse);
 
+    /**
+     * @brief Set callback for when G-code scan completes
+     *
+     * Called with formatted string of detected operations when scan finishes.
+     */
+    void set_scan_complete_callback(ScanCompleteCallback callback) {
+        on_scan_complete_ = std::move(callback);
+    }
+
     // === G-code Scanning ===
 
     /**
@@ -135,6 +168,50 @@ class PrintPreparationManager {
     [[nodiscard]] const std::optional<gcode::ScanResult>& get_scan_result() const {
         return cached_scan_result_;
     }
+
+    /**
+     * @brief Format detected operations as human-readable string
+     *
+     * @return Formatted string like "Contains: Bed Leveling, QGL" or "" if none
+     */
+    [[nodiscard]] std::string format_detected_operations() const;
+
+    // === Resource Safety ===
+
+    /**
+     * @brief Set the cached file size from Moonraker metadata
+     *
+     * Called when detail view fetches file metadata, allowing safety checks
+     * to estimate memory/disk requirements for modification.
+     *
+     * @param size File size in bytes
+     */
+    void set_cached_file_size(size_t size);
+
+    /**
+     * @brief Check if G-code modification can be performed safely
+     *
+     * Evaluates whether the device has sufficient resources to modify the
+     * currently selected G-code file. Returns detailed information about
+     * what's available and what's needed.
+     *
+     * Safety priority:
+     * 1. If helix_print plugin available → always safe (server-side)
+     * 2. If disk space available for streaming → safe (disk-based modification)
+     * 3. Otherwise → unsafe, modification disabled
+     *
+     * @return ModificationCapability with safety status and details
+     */
+    [[nodiscard]] ModificationCapability check_modification_capability() const;
+
+    /**
+     * @brief Get the temp directory path for streaming operations
+     *
+     * Uses same logic as ThumbnailCache: XDG → ~/.cache → TMPDIR → /tmp
+     *
+     * @return Path to usable temp directory, or empty string if none available
+     */
+    [[nodiscard]] std::string get_temp_directory() const;
 
     // === Print Execution ===
 
@@ -192,6 +269,10 @@ class PrintPreparationManager {
     // === Scan Cache ===
     std::optional<gcode::ScanResult> cached_scan_result_;
     std::string cached_scan_filename_;
+    std::optional<size_t> cached_file_size_; ///< File size from Moonraker metadata
+
+    // === Callbacks ===
+    ScanCompleteCallback on_scan_complete_;
 
     // === Command Sequencer ===
     std::unique_ptr<gcode::CommandSequencer> pre_print_sequencer_;
@@ -218,6 +299,29 @@ class PrintPreparationManager {
     void modify_and_print(const std::string& file_path,
                           const std::vector<gcode::OperationType>& ops_to_disable,
                           NavigateToStatusCallback on_navigate_to_status);
+
+    /**
+     * @brief Modify and print using helix_print plugin (server-side modification)
+     *
+     * Downloads file to memory and sends to plugin for processing.
+     * Memory usage is acceptable since plugin handles the heavy lifting.
+     */
+    void modify_and_print_via_plugin(const std::string& file_path,
+                                     const std::string& display_filename,
+                                     const std::vector<gcode::OperationType>& ops_to_disable,
+                                     const std::vector<std::string>& mod_names,
+                                     NavigateToStatusCallback on_navigate_to_status);
+
+    /**
+     * @brief Modify and print using streaming fallback (disk-based modification)
+     *
+     * Downloads file to disk, applies streaming modification (file-to-file),
+     * then uploads from disk. Minimizes memory usage on resource-constrained devices.
+     */
+    void modify_and_print_streaming(const std::string& file_path,
+                                    const std::string& display_filename,
+                                    const std::vector<gcode::OperationType>& ops_to_disable,
+                                    NavigateToStatusCallback on_navigate_to_status);
 
     /**
      * @brief Execute pre-print sequence then start print

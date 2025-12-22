@@ -108,10 +108,11 @@ class PrintSelectDetailView {
      * @param current_path Current directory path
      * @param filament_type Filament type from metadata (for dropdown default)
      * @param filament_colors Optional tool colors for multi-color prints
+     * @param file_size_bytes File size from Moonraker metadata (for safety checks)
      */
     void show(const std::string& filename, const std::string& current_path,
               const std::string& filament_type,
-              const std::vector<std::string>& filament_colors = {});
+              const std::vector<std::string>& filament_colors = {}, size_t file_size_bytes = 0);
 
     /**
      * @brief Hide the detail view overlay

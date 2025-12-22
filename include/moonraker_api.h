@@ -599,6 +599,25 @@ class MoonrakerAPI {
                                        SuccessCallback on_success, ErrorCallback on_error);
 
     /**
+     * @brief Upload file from local filesystem path
+     *
+     * Reads file from disk and uploads to Moonraker. More memory-efficient than
+     * upload_file_with_name when combined with streaming download/modification,
+     * as only the upload phase needs to hold the file in memory.
+     *
+     * Virtual to allow mocking in tests.
+     *
+     * @param root Root directory ("gcodes", "config", etc.)
+     * @param dest_path Destination path relative to root (e.g., ".helix_temp/foo.gcode")
+     * @param local_path Local filesystem path to read from
+     * @param on_success Success callback
+     * @param on_error Error callback
+     */
+    virtual void upload_file_from_path(const std::string& root, const std::string& dest_path,
+                                       const std::string& local_path, SuccessCallback on_success,
+                                       ErrorCallback on_error);
+
+    /**
      * @brief Set the HTTP base URL for file transfers
      *
      * Must be called before using download_file/upload_file.

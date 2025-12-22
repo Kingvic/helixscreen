@@ -405,6 +405,9 @@ class PrintSelectPanel : public PanelBase {
     lv_subject_t selected_layer_count_subject_;
     char selected_layer_count_buffer_[32];
 
+    lv_subject_t selected_file_ops_subject_; ///< Detected G-code operations (e.g., "Contains: ...")
+    char selected_file_ops_buffer_[128];
+
     lv_subject_t detail_view_visible_subject_;
 
     /// View mode subject: 0 = CARD, 1 = LIST (XML bindings control visibility)
@@ -423,6 +426,7 @@ class PrintSelectPanel : public PanelBase {
     std::string current_path_;           ///< Current directory path (empty = root gcodes dir)
     std::string selected_filament_type_; ///< Filament type of selected file (for dropdown default)
     std::vector<std::string> selected_filament_colors_; ///< Tool colors of selected file
+    size_t selected_file_size_bytes_ = 0; ///< File size of selected file (for safety checks)
     std::string
         pending_file_selection_; ///< File to auto-select when list is populated (--select-file)
     PrintSelectViewMode current_view_mode_ = PrintSelectViewMode::CARD;

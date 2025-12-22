@@ -12,6 +12,7 @@
 
 #include <chrono>
 #include <fstream>
+#include <sstream>
 #include <thread>
 
 using namespace moonraker_internal;
@@ -637,6 +638,48 @@ void MoonrakerAPI::upload_file_with_name(const std::string& root, const std::str
             on_success();
         }
     });
+}
+
+void MoonrakerAPI::upload_file_from_path(const std::string& root, const std::string& dest_path,
+                                         const std::string& local_path, SuccessCallback on_success,
+                                         ErrorCallback on_error) {
+    // Validate inputs
+    if (!is_safe_path(dest_path)) {
+        spdlog::error("[Moonraker API] Invalid destination path for upload: {}", dest_path);
+        if (on_error) {
+            MoonrakerError err;
+            err.type = MoonrakerErrorType::VALIDATION_ERROR;
+            err.message = "Invalid destination path contains unsafe characters";
+            err.method = "upload_file_from_path";
+            on_error(err);
+        }
+        return;
+    }
+
+    // Read file content from disk
+    std::ifstream file(local_path, std::ios::binary);
+    if (!file) {
+        spdlog::error("[Moonraker API] Failed to open local file for upload: {}", local_path);
+        if (on_error) {
+            MoonrakerError err;
+            err.type = MoonrakerErrorType::FILE_NOT_FOUND;
+            err.message = "Failed to open local file: " + local_path;
+            err.method = "upload_file_from_path";
+            on_error(err);
+        }
+        return;
+    }
+
+    // Read entire file into string
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+    std::string content = buffer.str();
+    file.close();
+
+    spdlog::debug("[Moonraker API] Read {} bytes from local file {}", content.size(), local_path);
+
+    // Delegate to existing upload method
+    upload_file_with_name(root, dest_path, dest_path, content, on_success, on_error);
 }
 
 // ============================================================================

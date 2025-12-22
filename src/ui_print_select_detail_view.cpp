@@ -114,10 +114,16 @@ void PrintSelectDetailView::set_dependencies(MoonrakerAPI* api, PrinterState* pr
 
 void PrintSelectDetailView::show(const std::string& filename, const std::string& current_path,
                                  const std::string& filament_type,
-                                 const std::vector<std::string>& filament_colors) {
+                                 const std::vector<std::string>& filament_colors,
+                                 size_t file_size_bytes) {
     if (!detail_view_widget_) {
         spdlog::warn("[DetailView] Cannot show: widget not created");
         return;
+    }
+
+    // Cache file size for safety checks (before modification attempts)
+    if (prep_manager_ && file_size_bytes > 0) {
+        prep_manager_->set_cached_file_size(file_size_bytes);
     }
 
     // Trigger async scan for embedded G-code operations (for conflict detection)
