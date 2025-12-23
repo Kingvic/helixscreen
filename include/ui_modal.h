@@ -357,9 +357,8 @@ lv_subject_t* modal_cancel_text_subject();
 // LEGACY API WRAPPERS
 // ============================================================================
 
-// Note: These wrappers use the new ModalConfig type but provide the old function names
-// for backward compatibility. The old ui_modal_config_t struct in ui_modal_manager.h
-// is deprecated - use ModalConfig instead.
+// Note: These wrappers provide the old ui_modal_*() function names
+// for backward compatibility with existing code.
 
 inline lv_obj_t* ui_modal_show(const char* name, const ModalConfig* config,
                                const char** attrs = nullptr) {
@@ -403,5 +402,13 @@ inline lv_subject_t* ui_modal_get_cancel_text_subject() {
     return modal_cancel_text_subject();
 }
 
-// Forward declaration (implemented in ui_modal_manager.cpp)
+/**
+ * @brief Register a textarea for keyboard display within a modal
+ *
+ * Positions the keyboard at bottom-center and registers the textarea.
+ * Automatically detects password mode for masking.
+ *
+ * @param modal The modal dialog (used for logging only)
+ * @param textarea The textarea widget to register
+ */
 void ui_modal_register_keyboard(lv_obj_t* modal, lv_obj_t* textarea);

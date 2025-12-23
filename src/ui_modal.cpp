@@ -798,3 +798,29 @@ lv_subject_t* modal_primary_text_subject() {
 lv_subject_t* modal_cancel_text_subject() {
     return &g_dialog_cancel_text;
 }
+
+// ============================================================================
+// KEYBOARD REGISTRATION
+// ============================================================================
+
+void ui_modal_register_keyboard(lv_obj_t* modal, lv_obj_t* textarea) {
+    if (!modal || !textarea) {
+        spdlog::error("[Modal] Cannot register keyboard: modal={}, textarea={}", (void*)modal,
+                      (void*)textarea);
+        return;
+    }
+
+    // Position keyboard at bottom-center (default for modals)
+    ui_keyboard_set_position(LV_ALIGN_BOTTOM_MID, 0, 0);
+
+    // Check if this is a password textarea
+    bool is_password = lv_textarea_get_password_mode(textarea);
+
+    if (is_password) {
+        ui_keyboard_register_textarea_ex(textarea, true);
+        spdlog::debug("[Modal] Registered PASSWORD textarea with keyboard");
+    } else {
+        ui_keyboard_register_textarea(textarea);
+        spdlog::debug("[Modal] Registered textarea with keyboard");
+    }
+}

@@ -330,7 +330,7 @@ kill $PID 2>/dev/null
 **Estimated Time:** 3-4 hours remaining
 **Risk if Skipped:** Memory leaks, exception-unsafe code
 
-> **2025-12-18 Status:** `ui_hsv_picker.cpp` migrated to RAII pattern. Remaining: 8 manual `delete` statements in 3 files (`ui_bed_mesh.cpp`, `ui_modal_manager.cpp`, `ui_wizard_wifi.cpp`).
+> **2025-12-18 Status:** `ui_hsv_picker.cpp` migrated to RAII pattern. Remaining: manual `delete` statements in 2 files (`ui_bed_mesh.cpp`, `ui_wizard_wifi.cpp`).
 
 ### 4.1 Discovery - Find All RAII Violations
 
@@ -458,13 +458,7 @@ lvgl_unique_ptr<MyData> data(static_cast<MyData*>(lv_obj_get_user_data(obj)));
 - [ ] **Convert or document exception**
 - [ ] **Test:** Filament path animations work
 
-#### 4.3.6 `src/ui_modal_manager.cpp`
-
-- [ ] **Find violations** (keyboard config delete)
-- [ ] **Convert to unique_ptr member**
-- [ ] **Test:** Keyboard modals work
-
-#### 4.3.7 Any Additional Files
+#### 4.3.6 Any Additional Files
 
 Check discovery output for any files not listed above:
 - [ ] File: _____________ Fixed: [ ]
