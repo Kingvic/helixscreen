@@ -499,10 +499,7 @@ void InputShaperPanel::handle_help_clicked() {
 
         "Lower vibration % is better. Lower smoothing preserves detail.";
 
-    // Show using unified modal_dialog (INFO severity, single Ok button)
-    ModalConfig config = {.position = {.use_alignment = true, .alignment = LV_ALIGN_CENTER},
-                          .backdrop_opa = 180,
-                          .keyboard = nullptr};
+    ModalConfig config = {.backdrop_opa = 180};
 
     const char* attrs[] = {"title", "Input Shaper Help", "message", help_message, nullptr};
 

@@ -1407,7 +1407,8 @@ void PrintSelectPanel::create_detail_view() {
         });
 
         // Set callback to update PRINT_START macro operations display
-        prep_mgr->set_macro_analysis_callback([this](const helix::PrintStartAnalysis& /*analysis*/) {
+        prep_mgr->set_macro_analysis_callback([this](
+                                                  const helix::PrintStartAnalysis& /*analysis*/) {
             // Note: detail_view_ guaranteed valid here - callback stored in prep_manager owned by
             // detail_view_
             if (auto* prep_mgr = detail_view_->get_prep_manager()) {
@@ -1593,18 +1594,14 @@ void PrintSelectPanel::show_filament_warning() {
         filament_warning_dialog_ = nullptr;
     }
 
-    ui_modal_config_t config = {.position = {.use_alignment = true, .alignment = LV_ALIGN_CENTER},
-                                .backdrop_opa = 180,
-                                .keyboard = nullptr,
-                                .persistent = false,
-                                .on_close = nullptr};
+    ModalConfig config = {.backdrop_opa = 180};
 
     const char* attrs[] = {"title", "No Filament Detected", "message",
                            "The runout sensor indicates no filament is loaded. "
                            "Start print anyway?",
                            nullptr};
 
-    ui_modal_configure(UI_MODAL_SEVERITY_WARNING, true, "Start Print", "Cancel");
+    ui_modal_configure(ModalSeverity::Warning, true, "Start Print", "Cancel");
     filament_warning_dialog_ = ui_modal_show("modal_dialog", &config, attrs);
 
     if (!filament_warning_dialog_) {
@@ -1849,11 +1846,7 @@ void PrintSelectPanel::show_color_mismatch_warning(const std::vector<int>& missi
     }
     message += "\nLoad the required filaments or start anyway?";
 
-    ui_modal_config_t config = {.position = {.use_alignment = true, .alignment = LV_ALIGN_CENTER},
-                                .backdrop_opa = 180,
-                                .keyboard = nullptr,
-                                .persistent = false,
-                                .on_close = nullptr};
+    ModalConfig config = {.backdrop_opa = 180};
 
     // Static buffer for message - must persist during modal lifetime.
     // Safe because we always close any existing dialog first (line 1822-1825),
@@ -1863,7 +1856,7 @@ void PrintSelectPanel::show_color_mismatch_warning(const std::vector<int>& missi
 
     const char* attrs[] = {"title", "Color Mismatch", "message", message_buffer, nullptr};
 
-    ui_modal_configure(UI_MODAL_SEVERITY_WARNING, true, "Start Anyway", "Cancel");
+    ui_modal_configure(ModalSeverity::Warning, true, "Start Anyway", "Cancel");
     color_mismatch_dialog_ = ui_modal_show("modal_dialog", &config, attrs);
 
     if (!color_mismatch_dialog_) {

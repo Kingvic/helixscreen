@@ -114,10 +114,7 @@ static void async_error_callback(void* user_data) {
             }
 
             // Show modal dialog for critical errors
-            ModalConfig config = {
-                .position = {.use_alignment = true, .alignment = LV_ALIGN_CENTER, .x = 0, .y = 0},
-                .backdrop_opa = 180,
-                .keyboard = nullptr};
+            ModalConfig config = {.backdrop_opa = 180};
 
             const char* attrs[] = {"title", data->title, "message", data->message, nullptr};
 
@@ -409,10 +406,7 @@ void ui_notification_error(const char* title, const char* message, bool modal) {
             }
 
             // Show modal dialog for critical errors
-            ModalConfig config = {
-                .position = {.use_alignment = true, .alignment = LV_ALIGN_CENTER, .x = 0, .y = 0},
-                .backdrop_opa = 180,
-                .keyboard = nullptr};
+            ModalConfig config = {.backdrop_opa = 180};
 
             const char* attrs[] = {"title", title, "message", message, nullptr};
 

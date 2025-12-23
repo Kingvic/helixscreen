@@ -384,11 +384,8 @@ lv_obj_t* Modal::show(const char* component_name, const ModalConfig& config, con
     }
 
     // Position dialog within backdrop
-    if (config.position.use_alignment) {
-        lv_obj_align(dialog, config.position.alignment, config.position.x, config.position.y);
-    } else {
-        lv_obj_set_pos(dialog, config.position.x, config.position.y);
-    }
+    lv_obj_align(dialog, config.position.alignment, config.position.x_offset,
+                 config.position.y_offset);
 
     // Add backdrop click handler
     lv_obj_add_event_cb(backdrop, backdrop_click_cb, LV_EVENT_CLICKED, nullptr);
@@ -597,11 +594,8 @@ bool Modal::create_and_show(lv_obj_t* parent, const char* comp_name, const char*
     }
 
     // Position dialog
-    if (config_.position.use_alignment) {
-        lv_obj_align(dialog_, config_.position.alignment, config_.position.x, config_.position.y);
-    } else {
-        lv_obj_set_pos(dialog_, config_.position.x, config_.position.y);
-    }
+    lv_obj_align(dialog_, config_.position.alignment, config_.position.x_offset,
+                 config_.position.y_offset);
 
     // Add backdrop click handler
     lv_obj_add_event_cb(backdrop_, backdrop_click_cb, LV_EVENT_CLICKED, this);

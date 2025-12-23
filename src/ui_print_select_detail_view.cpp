@@ -180,11 +180,7 @@ bool PrintSelectDetailView::is_visible() const {
 // ============================================================================
 
 void PrintSelectDetailView::show_delete_confirmation(const std::string& filename) {
-    // Configure modal
-    ModalConfig config = {
-        .position = {.use_alignment = true, .alignment = LV_ALIGN_CENTER, .x = 0, .y = 0},
-        .backdrop_opa = 180,
-        .keyboard = nullptr};
+    ModalConfig config = {.backdrop_opa = 180};
 
     // Create message with current filename
     char msg_buf[256];

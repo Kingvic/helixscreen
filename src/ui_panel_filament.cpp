@@ -830,9 +830,7 @@ void FilamentPanel::show_load_warning() {
         load_warning_dialog_ = nullptr;
     }
 
-    ModalConfig config = {.position = {.use_alignment = true, .alignment = LV_ALIGN_CENTER},
-                          .backdrop_opa = 180,
-                          .keyboard = nullptr};
+    ModalConfig config = {.backdrop_opa = 180};
 
     const char* attrs[] = {"title", "Filament Detected", "message",
                            "The toolhead sensor indicates filament is already loaded. "
@@ -869,9 +867,7 @@ void FilamentPanel::show_unload_warning() {
         unload_warning_dialog_ = nullptr;
     }
 
-    ModalConfig config = {.position = {.use_alignment = true, .alignment = LV_ALIGN_CENTER},
-                          .backdrop_opa = 180,
-                          .keyboard = nullptr};
+    ModalConfig config = {.backdrop_opa = 180};
 
     const char* attrs[] = {"title", "No Filament Detected", "message",
                            "The toolhead sensor indicates no filament is present. "

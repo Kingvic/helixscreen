@@ -902,10 +902,7 @@ void SettingsPanel::handle_network_clicked() {
 void SettingsPanel::handle_factory_reset_clicked() {
     spdlog::debug("[{}] Factory Reset clicked - showing confirmation dialog", get_name());
 
-    // Create modal config
-    ModalConfig config = {.position = {.use_alignment = true, .alignment = LV_ALIGN_CENTER},
-                          .backdrop_opa = 180,
-                          .keyboard = nullptr};
+    ModalConfig config = {.backdrop_opa = 180};
 
     // Factory reset is a destructive action - use ERROR severity with confirm/cancel
     const char* attrs[] = {"title", "Factory Reset", "message",

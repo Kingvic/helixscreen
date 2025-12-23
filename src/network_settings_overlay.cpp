@@ -790,10 +790,7 @@ void NetworkSettingsOverlay::handle_test_network_clicked() {
     // Reset test complete flag (disables close button)
     lv_subject_set_int(&test_complete_, 0);
 
-    // Show the network test modal
-    ModalConfig config = {.position = {.use_alignment = true, .alignment = LV_ALIGN_CENTER},
-                          .backdrop_opa = 180,
-                          .keyboard = nullptr};
+    ModalConfig config = {.backdrop_opa = 180};
 
     test_modal_ = ui_modal_show("network_test_modal", &config, nullptr);
     if (!test_modal_) {
@@ -900,10 +897,7 @@ void NetworkSettingsOverlay::handle_add_other_clicked() {
 
     // Create modal if not already created
     if (!hidden_network_modal_) {
-        ModalConfig config = {.position = {.use_alignment = true, .alignment = LV_ALIGN_CENTER},
-                              .backdrop_opa = 200,
-                              .keyboard = nullptr};
-
+        ModalConfig config{};
         hidden_network_modal_ = ui_modal_show("hidden_network_modal", &config, nullptr);
         if (!hidden_network_modal_) {
             spdlog::error("[NetworkSettingsOverlay] Failed to show hidden network modal");

@@ -18,38 +18,25 @@ class Modal;
 
 /**
  * @brief Modal positioning configuration
+ *
+ * Modals are positioned using LVGL alignment. Default is centered.
+ * The x/y offsets are applied relative to the alignment point.
  */
 struct ModalPosition {
-    bool use_alignment = true;
     lv_align_t alignment = LV_ALIGN_CENTER;
-    int32_t x = 0;
-    int32_t y = 0;
-};
-
-/**
- * @brief Keyboard positioning configuration
- */
-struct ModalKeyboardConfig {
-    bool auto_position = true;
-    lv_align_t alignment = LV_ALIGN_BOTTOM_MID;
-    int32_t x = 0;
-    int32_t y = 0;
+    int32_t x_offset = 0;
+    int32_t y_offset = 0;
 };
 
 /**
  * @brief Complete modal configuration
  *
- * Note on keyboard support:
- * The `keyboard` field is deprecated and ignored by the new Modal system.
  * For keyboard support, call ui_modal_register_keyboard(dialog, textarea)
- * after showing the modal. This positions the keyboard at bottom-center
- * and registers the textarea for auto-show/hide on focus.
+ * after showing the modal.
  */
 struct ModalConfig {
     ModalPosition position;
     uint8_t backdrop_opa = 200;
-    ModalKeyboardConfig* keyboard =
-        nullptr;             /**< @deprecated Ignored - use ui_modal_register_keyboard() */
     bool persistent = false; /**< true = hide only, false = delete on close */
     lv_event_cb_t on_close = nullptr;
 };
@@ -296,9 +283,6 @@ class ModalStack {
     bool stack_empty() const {
         return stack_.empty();
     }
-
-    // Hide all modals
-    void clear();
 
     // Check if a modal is persistent (returns false if not found)
     bool is_persistent(lv_obj_t* backdrop) const;

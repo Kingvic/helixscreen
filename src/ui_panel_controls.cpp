@@ -756,13 +756,7 @@ void ControlsPanel::handle_fan_slider_changed(int value) {
 void ControlsPanel::handle_motors_clicked() {
     spdlog::debug("[{}] Motors Disable card clicked - showing confirmation", get_name());
 
-    // Create modal config
-    ModalConfig config = {
-        .position = {.use_alignment = true, .alignment = LV_ALIGN_CENTER, .x = 0, .y = 0},
-        .backdrop_opa = 180,
-        .keyboard = nullptr,
-        .persistent = false,
-        .on_close = nullptr};
+    ModalConfig config = {.backdrop_opa = 180};
 
     // Create attributes for title and message
     const char* attrs[] = {"title", "Disable Motors?", "message",

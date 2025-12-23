@@ -2322,13 +2322,7 @@ void PrintStatusPanel::show_runout_guidance_modal() {
 
     spdlog::info("[{}] Showing runout guidance modal", get_name());
 
-    // Configure modal with centered position
-    ui_modal_config_t modal_config = {};
-    modal_config.position.use_alignment = true;
-    modal_config.position.alignment = LV_ALIGN_CENTER;
-    modal_config.backdrop_opa = 200;
-    modal_config.persistent = false;
-
+    ModalConfig modal_config{};
     runout_guidance_modal_ = ui_modal_show("runout_guidance_modal", &modal_config, nullptr);
     if (!runout_guidance_modal_) {
         spdlog::error("[{}] Failed to create runout guidance modal", get_name());

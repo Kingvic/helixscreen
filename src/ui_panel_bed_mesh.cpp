@@ -573,11 +573,7 @@ void BedMeshPanel::show_rename_modal(const std::string& profile_name) {
 void BedMeshPanel::show_delete_confirm_modal(const std::string& profile_name) {
     pending_delete_profile_ = profile_name;
 
-    // Configure modal (same pattern as print_select)
-    ModalConfig config = {
-        .position = {.use_alignment = true, .alignment = LV_ALIGN_CENTER, .x = 0, .y = 0},
-        .backdrop_opa = 180,
-        .keyboard = nullptr};
+    ModalConfig config = {.backdrop_opa = 180};
 
     // Create message with profile name
     char msg_buf[256];
