@@ -104,8 +104,8 @@ class BedMeshPanel : public PanelBase {
     std::array<std::string, BED_MESH_MAX_PROFILES> profile_names_;
 
     // ========== Modal State Subjects (NOT visibility - internal state) ==========
-    lv_subject_t bed_mesh_calibrating_;  // 0=idle, 1=calibrating (controls form vs spinner)
-    lv_subject_t bed_mesh_rename_old_name_;  // Display the old name in rename modal
+    lv_subject_t bed_mesh_calibrating_;     // 0=idle, 1=calibrating (controls form vs spinner)
+    lv_subject_t bed_mesh_rename_old_name_; // Display the old name in rename modal
 
     char rename_old_name_buf_[64];
 

@@ -507,16 +507,14 @@ void HomePanel::handle_tip_text_clicked() {
     spdlog::info("[{}] Tip text clicked - showing detail dialog", get_name());
 
     // Show tip using unified modal_dialog (INFO severity, single Ok button)
-    ui_modal_config_t config = {.position = {.use_alignment = true, .alignment = LV_ALIGN_CENTER},
-                                .backdrop_opa = 180,
-                                .keyboard = nullptr,
-                                .persistent = false,
-                                .on_close = nullptr};
+    ModalConfig config = {.position = {.use_alignment = true, .alignment = LV_ALIGN_CENTER},
+                          .backdrop_opa = 180,
+                          .keyboard = nullptr};
 
     const char* attrs[] = {"title", current_tip_.title.c_str(), "message",
                            current_tip_.content.c_str(), nullptr};
 
-    ui_modal_configure(UI_MODAL_SEVERITY_INFO, false, "Ok", nullptr);
+    ui_modal_configure(ModalSeverity::Info, false, "Ok", nullptr);
     lv_obj_t* tip_dialog = ui_modal_show("modal_dialog", &config, attrs);
 
     if (!tip_dialog) {

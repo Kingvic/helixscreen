@@ -4,7 +4,7 @@
 #pragma once
 
 #include "ui_ams_color_picker.h"
-#include "ui_modal_base.h"
+#include "ui_modal.h"
 
 #include "ams_types.h"
 
@@ -34,7 +34,7 @@ namespace helix::ui {
  * modal.show_for_slot(parent, slot_index, slot_info, api);
  * @endcode
  */
-class AmsEditModal : public ModalBase {
+class AmsEditModal : public Modal {
   public:
     /**
      * @brief Result returned when modal closes
@@ -75,11 +75,11 @@ class AmsEditModal : public ModalBase {
      */
     void set_completion_callback(CompletionCallback callback);
 
-    // ModalBase interface
+    // Modal interface
     [[nodiscard]] const char* get_name() const override {
         return "Edit Filament Modal";
     }
-    [[nodiscard]] const char* get_xml_component_name() const override {
+    [[nodiscard]] const char* component_name() const override {
         return "ams_edit_modal";
     }
 

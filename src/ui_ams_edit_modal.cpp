@@ -31,12 +31,12 @@ AmsEditModal::AmsEditModal() {
 }
 
 AmsEditModal::~AmsEditModal() {
-    // ModalBase destructor will call hide() if visible
+    // Modal destructor will call hide() if visible
     // Note: No spdlog here - logger may be destroyed during static destruction [L010]
 }
 
 AmsEditModal::AmsEditModal(AmsEditModal&& other) noexcept
-    : ModalBase(std::move(other)), slot_index_(other.slot_index_),
+    : Modal(std::move(other)), slot_index_(other.slot_index_),
       original_info_(std::move(other.original_info_)),
       working_info_(std::move(other.working_info_)), api_(other.api_),
       completion_callback_(std::move(other.completion_callback_)),
@@ -58,7 +58,7 @@ AmsEditModal::AmsEditModal(AmsEditModal&& other) noexcept
 
 AmsEditModal& AmsEditModal::operator=(AmsEditModal&& other) noexcept {
     if (this != &other) {
-        ModalBase::operator=(std::move(other));
+        Modal::operator=(std::move(other));
         slot_index_ = other.slot_index_;
         original_info_ = std::move(other.original_info_);
         working_info_ = std::move(other.working_info_);
@@ -105,20 +105,20 @@ bool AmsEditModal::show_for_slot(lv_obj_t* parent, int slot_index, const SlotInf
     // Reset remaining mode subject before showing (0 = view mode)
     lv_subject_set_int(&remaining_mode_subject_, 0);
 
-    // Show the modal via ModalBase
-    if (!ModalBase::show(parent)) {
+    // Show the modal via Modal
+    if (!Modal::show(parent)) {
         return false;
     }
 
     // Store 'this' in modal's user_data for callback traversal
-    lv_obj_set_user_data(modal_, this);
+    lv_obj_set_user_data(dialog_, this);
 
     spdlog::info("[AmsEditModal] Shown for slot {}", slot_index);
     return true;
 }
 
 // ============================================================================
-// ModalBase Hooks
+// Modal Hooks
 // ============================================================================
 
 void AmsEditModal::on_show() {
@@ -241,7 +241,7 @@ void AmsEditModal::init_subjects() {
 // ============================================================================
 
 void AmsEditModal::update_ui() {
-    if (!modal_) {
+    if (!dialog_) {
         return;
     }
 
@@ -317,7 +317,7 @@ void AmsEditModal::update_ui() {
 }
 
 void AmsEditModal::update_temp_display() {
-    if (!modal_) {
+    if (!dialog_) {
         return;
     }
 
@@ -364,7 +364,7 @@ bool AmsEditModal::is_dirty() const {
 }
 
 void AmsEditModal::update_sync_button_state() {
-    if (!modal_) {
+    if (!dialog_) {
         return;
     }
 
@@ -403,7 +403,7 @@ void AmsEditModal::show_color_picker() {
         working_info_.color_name = color_name;
 
         // Update the edit modal's color swatch to show new selection
-        if (modal_) {
+        if (dialog_) {
             lv_obj_t* swatch = find_widget("color_swatch");
             if (swatch) {
                 lv_obj_set_style_bg_color(swatch, lv_color_hex(color_rgb), 0);
@@ -474,7 +474,7 @@ void AmsEditModal::handle_color_clicked() {
 }
 
 void AmsEditModal::handle_remaining_changed(int percent) {
-    if (!modal_) {
+    if (!dialog_) {
         return;
     }
 
@@ -493,7 +493,7 @@ void AmsEditModal::handle_remaining_changed(int percent) {
 }
 
 void AmsEditModal::handle_remaining_edit() {
-    if (!modal_) {
+    if (!dialog_) {
         return;
     }
 
@@ -509,7 +509,7 @@ void AmsEditModal::handle_remaining_edit() {
 }
 
 void AmsEditModal::handle_remaining_accept() {
-    if (!modal_) {
+    if (!dialog_) {
         return;
     }
 
@@ -532,7 +532,7 @@ void AmsEditModal::handle_remaining_accept() {
 }
 
 void AmsEditModal::handle_remaining_cancel() {
-    if (!modal_) {
+    if (!dialog_) {
         return;
     }
 
@@ -650,7 +650,7 @@ void AmsEditModal::register_callbacks() {
         return;
     }
 
-    lv_xml_register_event_cb(nullptr, "ams_edit_modal_close_cb", on_close_cb);
+    lv_xml_register_event_cb(nullptr, "ams_edit_dialog_close_cb", on_close_cb);
     lv_xml_register_event_cb(nullptr, "ams_edit_vendor_changed_cb", on_vendor_changed_cb);
     lv_xml_register_event_cb(nullptr, "ams_edit_material_changed_cb", on_material_changed_cb);
     lv_xml_register_event_cb(nullptr, "ams_edit_color_clicked_cb", on_color_clicked_cb);

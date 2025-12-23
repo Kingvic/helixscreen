@@ -181,12 +181,10 @@ bool PrintSelectDetailView::is_visible() const {
 
 void PrintSelectDetailView::show_delete_confirmation(const std::string& filename) {
     // Configure modal
-    ui_modal_config_t config = {
+    ModalConfig config = {
         .position = {.use_alignment = true, .alignment = LV_ALIGN_CENTER, .x = 0, .y = 0},
         .backdrop_opa = 180,
-        .keyboard = nullptr,
-        .persistent = false,
-        .on_close = nullptr};
+        .keyboard = nullptr};
 
     // Create message with current filename
     char msg_buf[256];
@@ -196,7 +194,7 @@ void PrintSelectDetailView::show_delete_confirmation(const std::string& filename
 
     const char* attrs[] = {"title", "Delete File?", "message", msg_buf, NULL};
 
-    ui_modal_configure(UI_MODAL_SEVERITY_WARNING, true, "Delete", "Cancel");
+    ui_modal_configure(ModalSeverity::Warning, true, "Delete", "Cancel");
     confirmation_dialog_widget_ = ui_modal_show("modal_dialog", &config, attrs);
 
     if (!confirmation_dialog_widget_) {

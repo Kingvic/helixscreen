@@ -7,7 +7,6 @@
 #include "ui_error_reporting.h"
 #include "ui_event_safety.h"
 #include "ui_icon.h"
-#include "ui_modal_manager.h"
 #include "ui_nav.h"
 #include "ui_panel_ams.h"
 #include "ui_panel_temp_control.h"
@@ -831,18 +830,16 @@ void FilamentPanel::show_load_warning() {
         load_warning_dialog_ = nullptr;
     }
 
-    ui_modal_config_t config = {.position = {.use_alignment = true, .alignment = LV_ALIGN_CENTER},
-                                .backdrop_opa = 180,
-                                .keyboard = nullptr,
-                                .persistent = false,
-                                .on_close = nullptr};
+    ModalConfig config = {.position = {.use_alignment = true, .alignment = LV_ALIGN_CENTER},
+                          .backdrop_opa = 180,
+                          .keyboard = nullptr};
 
     const char* attrs[] = {"title", "Filament Detected", "message",
                            "The toolhead sensor indicates filament is already loaded. "
                            "Proceed with load anyway?",
                            nullptr};
 
-    ui_modal_configure(UI_MODAL_SEVERITY_WARNING, true, "Proceed", "Cancel");
+    ui_modal_configure(ModalSeverity::Warning, true, "Proceed", "Cancel");
     load_warning_dialog_ = ui_modal_show("modal_dialog", &config, attrs);
 
     if (!load_warning_dialog_) {
@@ -872,18 +869,16 @@ void FilamentPanel::show_unload_warning() {
         unload_warning_dialog_ = nullptr;
     }
 
-    ui_modal_config_t config = {.position = {.use_alignment = true, .alignment = LV_ALIGN_CENTER},
-                                .backdrop_opa = 180,
-                                .keyboard = nullptr,
-                                .persistent = false,
-                                .on_close = nullptr};
+    ModalConfig config = {.position = {.use_alignment = true, .alignment = LV_ALIGN_CENTER},
+                          .backdrop_opa = 180,
+                          .keyboard = nullptr};
 
     const char* attrs[] = {"title", "No Filament Detected", "message",
                            "The toolhead sensor indicates no filament is present. "
                            "Proceed with unload anyway?",
                            nullptr};
 
-    ui_modal_configure(UI_MODAL_SEVERITY_WARNING, true, "Proceed", "Cancel");
+    ui_modal_configure(ModalSeverity::Warning, true, "Proceed", "Cancel");
     unload_warning_dialog_ = ui_modal_show("modal_dialog", &config, attrs);
 
     if (!unload_warning_dialog_) {

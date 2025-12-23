@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "ui_modal_base.h"
+#include "ui_modal.h"
 
 #include "helix_plugin_installer.h"
 
@@ -28,7 +28,7 @@
  *   modal.show(lv_screen_active());
  * @endcode
  */
-class PluginInstallModal : public ModalBase {
+class PluginInstallModal : public Modal {
   public:
     using InstallCompleteCallback = std::function<void(bool success)>;
 
@@ -41,7 +41,7 @@ class PluginInstallModal : public ModalBase {
     const char* get_name() const override {
         return "Plugin Install";
     }
-    const char* get_xml_component_name() const override {
+    const char* component_name() const override {
         return "plugin_install_modal";
     }
 

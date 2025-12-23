@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "ui_modal_base.h"
+#include "ui_modal.h"
 
 #include <cstdint>
 #include <functional>
@@ -42,7 +42,7 @@ namespace helix::ui {
  * picker.show_with_color(parent, initial_color_rgb);
  * @endcode
  */
-class AmsColorPicker : public ModalBase {
+class AmsColorPicker : public Modal {
   public:
     /**
      * @brief Callback type for color selection
@@ -76,11 +76,11 @@ class AmsColorPicker : public ModalBase {
      */
     void set_color_callback(ColorCallback callback);
 
-    // ModalBase interface
+    // Modal interface
     [[nodiscard]] const char* get_name() const override {
         return "Color Picker";
     }
-    [[nodiscard]] const char* get_xml_component_name() const override {
+    [[nodiscard]] const char* component_name() const override {
         return "color_picker";
     }
 

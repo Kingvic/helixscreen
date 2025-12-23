@@ -62,17 +62,18 @@ static void show_rich_completion_modal(PrintJobState state, const char* filename
         break;
     }
 
-    // Create modal from XML
-    lv_obj_t* modal = static_cast<lv_obj_t*>(
-        lv_xml_create(lv_screen_active(), "print_completion_modal", nullptr));
+    // Show modal using unified Modal system
+    // Backdrop click-to-close and ESC handling come for free
+    ModalConfig config{};
+    lv_obj_t* dialog = ui_modal_show("print_completion_modal", &config, nullptr);
 
-    if (!modal) {
+    if (!dialog) {
         spdlog::error("[PrintComplete] Failed to create print_completion_modal");
         return;
     }
 
     // Find and update the icon
-    lv_obj_t* icon_widget = lv_obj_find_by_name(modal, "status_icon");
+    lv_obj_t* icon_widget = lv_obj_find_by_name(dialog, "status_icon");
     if (icon_widget) {
         // Update icon source
         lv_obj_t* icon_label = lv_obj_get_child(icon_widget, 0);
@@ -85,19 +86,19 @@ static void show_rich_completion_modal(PrintJobState state, const char* filename
     }
 
     // Update title
-    lv_obj_t* title_label = lv_obj_find_by_name(modal, "title_label");
+    lv_obj_t* title_label = lv_obj_find_by_name(dialog, "title_label");
     if (title_label) {
         lv_label_set_text(title_label, title);
     }
 
     // Update filename
-    lv_obj_t* filename_label = lv_obj_find_by_name(modal, "filename_label");
+    lv_obj_t* filename_label = lv_obj_find_by_name(dialog, "filename_label");
     if (filename_label) {
         lv_label_set_text(filename_label, filename);
     }
 
     // Update duration
-    lv_obj_t* duration_label = lv_obj_find_by_name(modal, "duration_label");
+    lv_obj_t* duration_label = lv_obj_find_by_name(dialog, "duration_label");
     if (duration_label) {
         char duration_buf[32];
         format_duration(duration_secs, duration_buf, sizeof(duration_buf));
@@ -105,7 +106,7 @@ static void show_rich_completion_modal(PrintJobState state, const char* filename
     }
 
     // Update layers
-    lv_obj_t* layers_label = lv_obj_find_by_name(modal, "layers_label");
+    lv_obj_t* layers_label = lv_obj_find_by_name(dialog, "layers_label");
     if (layers_label) {
         char layers_buf[32];
         snprintf(layers_buf, sizeof(layers_buf), "%d layers", total_layers);
@@ -113,39 +114,13 @@ static void show_rich_completion_modal(PrintJobState state, const char* filename
     }
 
     // Hide filament stat for now (would need metadata fetch)
-    lv_obj_t* filament_stat = lv_obj_find_by_name(modal, "filament_stat");
+    lv_obj_t* filament_stat = lv_obj_find_by_name(dialog, "filament_stat");
     if (filament_stat) {
         lv_obj_add_flag(filament_stat, LV_OBJ_FLAG_HIDDEN);
     }
 
-    // Wire up OK button to dismiss modal
-    lv_obj_t* ok_btn = lv_obj_find_by_name(modal, "btn_ok");
-    if (ok_btn) {
-        lv_obj_set_user_data(ok_btn, modal);
-        lv_obj_add_event_cb(
-            ok_btn,
-            [](lv_event_t* e) {
-                auto* btn = static_cast<lv_obj_t*>(lv_event_get_current_target(e));
-                auto* dlg = static_cast<lv_obj_t*>(lv_obj_get_user_data(btn));
-                if (dlg) {
-                    lv_obj_delete(dlg);
-                }
-            },
-            LV_EVENT_CLICKED, nullptr);
-    }
-
-    // Also dismiss on backdrop click
-    lv_obj_add_event_cb(
-        modal,
-        [](lv_event_t* e) {
-            lv_obj_t* target = static_cast<lv_obj_t*>(lv_event_get_target(e));
-            lv_obj_t* current = static_cast<lv_obj_t*>(lv_event_get_current_target(e));
-            // Only close if clicking the backdrop itself, not child widgets
-            if (target == current) {
-                lv_obj_delete(current);
-            }
-        },
-        LV_EVENT_CLICKED, nullptr);
+    // Note: OK button dismissal is wired via XML event_cb="on_modal_ok_clicked"
+    // Backdrop click-to-close and ESC handling are automatic via Modal system
 
     spdlog::info("[PrintComplete] Showing rich completion modal: {} ({})", title, filename);
 }

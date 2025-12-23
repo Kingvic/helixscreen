@@ -48,12 +48,12 @@ AmsColorPicker::AmsColorPicker() {
 }
 
 AmsColorPicker::~AmsColorPicker() {
-    // ModalBase destructor will call hide() if visible
+    // Modal destructor will call hide() if visible
     // Note: No spdlog here - logger may be destroyed during static destruction [L010]
 }
 
 AmsColorPicker::AmsColorPicker(AmsColorPicker&& other) noexcept
-    : ModalBase(std::move(other)), selected_color_(other.selected_color_),
+    : Modal(std::move(other)), selected_color_(other.selected_color_),
       color_callback_(std::move(other.color_callback_)),
       subjects_initialized_(other.subjects_initialized_) {
     // Copy buffers
@@ -66,7 +66,7 @@ AmsColorPicker::AmsColorPicker(AmsColorPicker&& other) noexcept
 
 AmsColorPicker& AmsColorPicker::operator=(AmsColorPicker&& other) noexcept {
     if (this != &other) {
-        ModalBase::operator=(std::move(other));
+        Modal::operator=(std::move(other));
         selected_color_ = other.selected_color_;
         color_callback_ = std::move(other.color_callback_);
         subjects_initialized_ = other.subjects_initialized_;
@@ -95,20 +95,20 @@ bool AmsColorPicker::show_with_color(lv_obj_t* parent, uint32_t initial_color) {
     // Set initial color before showing
     selected_color_ = initial_color;
 
-    // Show the modal via ModalBase
-    if (!ModalBase::show(parent)) {
+    // Show the modal via Modal
+    if (!Modal::show(parent)) {
         return false;
     }
 
     // Store 'this' in modal's user_data for callback traversal
-    lv_obj_set_user_data(modal_, this);
+    lv_obj_set_user_data(dialog_, this);
 
     spdlog::info("[AmsColorPicker] Shown with initial color #{:06X}", initial_color);
     return true;
 }
 
 // ============================================================================
-// ModalBase Hooks
+// Modal Hooks
 // ============================================================================
 
 void AmsColorPicker::on_show() {
@@ -160,7 +160,7 @@ void AmsColorPicker::on_hide() {
 
 void AmsColorPicker::on_cancel() {
     spdlog::debug("[AmsColorPicker] Cancelled");
-    ModalBase::on_cancel(); // Calls hide()
+    Modal::on_cancel(); // Calls hide()
 }
 
 // ============================================================================
@@ -187,7 +187,7 @@ void AmsColorPicker::init_subjects() {
 // ============================================================================
 
 void AmsColorPicker::update_preview(uint32_t color_rgb, bool from_hsv_picker) {
-    if (!modal_) {
+    if (!dialog_) {
         return;
     }
 
@@ -218,7 +218,7 @@ void AmsColorPicker::update_preview(uint32_t color_rgb, bool from_hsv_picker) {
 }
 
 void AmsColorPicker::handle_swatch_clicked(lv_obj_t* swatch) {
-    if (!swatch || !modal_) {
+    if (!swatch || !dialog_) {
         return;
     }
 

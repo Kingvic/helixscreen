@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "ui_modal_base.h"
+#include "ui_modal.h"
 #include "ui_observer_guard.h"
 #include "ui_panel_base.h"
 
@@ -20,21 +20,21 @@ class PrintStatusPanel;
 /**
  * @brief Confirmation dialog for canceling an active print
  *
- * Uses ModalBase for RAII lifecycle - dialog auto-hides when object is destroyed.
+ * Uses Modal for RAII lifecycle - dialog auto-hides when object is destroyed.
  * Shows a warning that all progress will be lost.
  *
  * Usage:
  *   cancel_modal_.set_on_confirm([this]() { execute_cancel_print(); });
  *   cancel_modal_.show(lv_screen_active());
  */
-class PrintCancelModal : public ModalBase {
+class PrintCancelModal : public Modal {
   public:
     using ConfirmCallback = std::function<void()>;
 
     const char* get_name() const override {
         return "Print Cancel";
     }
-    const char* get_xml_component_name() const override {
+    const char* component_name() const override {
         return "print_cancel_confirm_modal";
     }
 
@@ -65,14 +65,14 @@ class PrintCancelModal : public ModalBase {
  * SAVE_CONFIG restarts Klipper and will CANCEL any active print!
  * Shows a strong warning with cancel/confirm options.
  */
-class SaveZOffsetModal : public ModalBase {
+class SaveZOffsetModal : public Modal {
   public:
     using ConfirmCallback = std::function<void()>;
 
     const char* get_name() const override {
         return "Save Z-Offset";
     }
-    const char* get_xml_component_name() const override {
+    const char* component_name() const override {
         return "save_z_offset_modal";
     }
 

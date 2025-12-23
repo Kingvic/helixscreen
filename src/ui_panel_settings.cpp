@@ -424,7 +424,7 @@ void SettingsPanel::show_theme_restart_dialog() {
         // Configure modal_dialog subjects BEFORE creation
         // INFO severity (0) = blue info icon, show both buttons
         // "Later" = dismiss (restart later), "Restart" = restart now
-        ui_modal_configure(UI_MODAL_SEVERITY_INFO, true, "Restart", "Later");
+        ui_modal_configure(ModalSeverity::Info, true, "Restart", "Later");
 
         // Create modal_dialog with title/message props
         const char* attrs[] = {"title", "Theme Changed", "message",
@@ -903,11 +903,9 @@ void SettingsPanel::handle_factory_reset_clicked() {
     spdlog::debug("[{}] Factory Reset clicked - showing confirmation dialog", get_name());
 
     // Create modal config
-    ui_modal_config_t config = {.position = {.use_alignment = true, .alignment = LV_ALIGN_CENTER},
-                                .backdrop_opa = 180,
-                                .keyboard = nullptr,
-                                .persistent = false,
-                                .on_close = nullptr};
+    ModalConfig config = {.position = {.use_alignment = true, .alignment = LV_ALIGN_CENTER},
+                          .backdrop_opa = 180,
+                          .keyboard = nullptr};
 
     // Factory reset is a destructive action - use ERROR severity with confirm/cancel
     const char* attrs[] = {"title", "Factory Reset", "message",
@@ -915,7 +913,7 @@ void SettingsPanel::handle_factory_reset_clicked() {
                            "This action cannot be undone.",
                            nullptr};
 
-    ui_modal_configure(UI_MODAL_SEVERITY_ERROR, true, "Reset", "Cancel");
+    ui_modal_configure(ModalSeverity::Error, true, "Reset", "Cancel");
     factory_reset_dialog_ = ui_modal_show("modal_dialog", &config, attrs);
 
     if (!factory_reset_dialog_) {
