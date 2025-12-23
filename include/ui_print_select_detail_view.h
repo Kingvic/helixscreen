@@ -222,11 +222,6 @@ class PrintSelectDetailView {
     // === Internal Methods ===
 
     /**
-     * @brief Map filament type string to dropdown index
-     */
-    [[nodiscard]] static uint32_t filament_type_to_index(const std::string& type);
-
-    /**
      * @brief Static callback for delete confirmation
      */
     static void on_confirm_delete_static(lv_event_t* e);

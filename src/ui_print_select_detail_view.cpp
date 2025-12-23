@@ -131,14 +131,6 @@ void PrintSelectDetailView::show(const std::string& filename, const std::string&
         prep_manager_->scan_file_for_operations(filename, current_path);
     }
 
-    // Set filament type dropdown to match file metadata
-    lv_obj_t* dropdown = lv_obj_find_by_name(detail_view_widget_, "filament_dropdown");
-    if (dropdown && !filament_type.empty()) {
-        uint32_t index = filament_type_to_index(filament_type);
-        lv_dropdown_set_selected(dropdown, index);
-        spdlog::debug("[DetailView] Set filament dropdown to {} (index {})", filament_type, index);
-    }
-
     // Update color requirements display
     update_color_swatches(filament_colors);
 
@@ -237,25 +229,6 @@ void PrintSelectDetailView::handle_resize(lv_obj_t* parent_screen) {
 // ============================================================================
 // Internal Methods
 // ============================================================================
-
-uint32_t PrintSelectDetailView::filament_type_to_index(const std::string& type) {
-    // Options: PLA(0), PETG(1), ABS(2), TPU(3), Nylon(4), ASA(5), PC(6)
-    if (type == "PETG") {
-        return 1;
-    } else if (type == "ABS") {
-        return 2;
-    } else if (type == "TPU") {
-        return 3;
-    } else if (type == "Nylon" || type == "NYLON" || type == "PA") {
-        return 4;
-    } else if (type == "ASA") {
-        return 5;
-    } else if (type == "PC") {
-        return 6;
-    }
-    // PLA is index 0 (default) for "PLA" or any unrecognized type
-    return 0;
-}
 
 void PrintSelectDetailView::on_confirm_delete_static(lv_event_t* e) {
     auto* self = static_cast<PrintSelectDetailView*>(lv_event_get_user_data(e));
