@@ -202,6 +202,17 @@ class ThumbnailCache {
     size_t clear_cache();
 
     /**
+     * @brief Invalidate cached thumbnails for a specific file
+     *
+     * Removes PNG and all pre-scaled .bin variants for the given path.
+     * Call this when a G-code file is overwritten with new content.
+     *
+     * @param relative_path Moonraker relative path (e.g., ".thumbnails/file.png")
+     * @return Number of files removed
+     */
+    size_t invalidate(const std::string& relative_path);
+
+    /**
      * @brief Get the total size of cached thumbnails
      *
      * @return Total size in bytes

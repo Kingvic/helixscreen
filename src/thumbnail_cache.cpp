@@ -516,6 +516,52 @@ size_t ThumbnailCache::clear_cache() {
     return count;
 }
 
+size_t ThumbnailCache::invalidate(const std::string& relative_path) {
+    if (relative_path.empty()) {
+        return 0;
+    }
+
+    size_t count = 0;
+    std::string hash = compute_hash(relative_path);
+
+    try {
+        // Delete the PNG file
+        std::string png_path = cache_dir_ + "/" + hash + ".png";
+        if (std::filesystem::exists(png_path)) {
+            std::filesystem::remove(png_path);
+            ++count;
+            spdlog::debug("[ThumbnailCache] Invalidated PNG: {}", png_path);
+        }
+
+        // Delete all pre-scaled .bin variants (e.g., {hash}_120x120_RGB565.bin)
+        for (const auto& entry : std::filesystem::directory_iterator(cache_dir_)) {
+            if (!entry.is_regular_file()) {
+                continue;
+            }
+            std::string filename = entry.path().filename().string();
+            // .bin files are named: {hash}_{w}x{h}_{format}.bin
+            std::string prefix = hash + "_";
+            bool has_prefix = filename.size() >= prefix.size() &&
+                              filename.compare(0, prefix.size(), prefix) == 0;
+            bool has_suffix = filename.size() >= 4 &&
+                              filename.compare(filename.size() - 4, 4, ".bin") == 0;
+            if (has_prefix && has_suffix) {
+                std::filesystem::remove(entry.path());
+                ++count;
+                spdlog::debug("[ThumbnailCache] Invalidated BIN: {}", entry.path().string());
+            }
+        }
+
+        if (count > 0) {
+            spdlog::info("[ThumbnailCache] Invalidated {} cached files for {}", count, relative_path);
+        }
+    } catch (const std::filesystem::filesystem_error& e) {
+        spdlog::warn("[ThumbnailCache] Error invalidating cache for {}: {}", relative_path, e.what());
+    }
+
+    return count;
+}
+
 size_t ThumbnailCache::get_cache_size() const {
     size_t total = 0;
     try {

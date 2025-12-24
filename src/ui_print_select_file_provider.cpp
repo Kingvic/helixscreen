@@ -99,13 +99,24 @@ void PrintSelectFileProvider::refresh_files(const std::string& current_path,
                 // Check if we have existing data for this file
                 auto it = existing_data.find(file.filename);
                 if (it != existing_data.end()) {
-                    // Preserve existing data (thumbnail, metadata already loaded)
-                    file_list.push_back(it->second);
-                    metadata_fetched.push_back(already_fetched.count(file.filename) > 0);
-                    continue;
+                    // Check if file was modified (e.g., re-uploaded with same name)
+                    time_t new_modified = static_cast<time_t>(file.modified);
+                    if (it->second.modified_timestamp == new_modified) {
+                        // Same file - preserve existing data (thumbnail, metadata already loaded)
+                        file_list.push_back(it->second);
+                        metadata_fetched.push_back(already_fetched.count(file.filename) > 0);
+                        continue;
+                    }
+                    // File was modified - invalidate cached thumbnails and refetch
+                    spdlog::info("[FileProvider] File modified, invalidating cache: {} (old: {}, new: {})",
+                                 file.filename, it->second.modified_timestamp, new_modified);
+                    if (!it->second.original_thumbnail_url.empty()) {
+                        get_thumbnail_cache().invalidate(it->second.original_thumbnail_url);
+                    }
+                    // Fall through to create fresh PrintFileData
                 }
 
-                // New file - create with placeholder data
+                // New file or modified file - create with placeholder data
                 PrintFileData data;
                 data.filename = file.filename;
                 data.is_dir = file.is_dir;
