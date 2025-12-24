@@ -67,8 +67,27 @@ static std::vector<std::string> scan_mock_gcode_files() {
  * Note: Directories are NOT included in server.files.list - they come from
  * server.files.get_directory
  */
+// Flag to simulate USB symlink presence (for testing)
+static bool g_mock_usb_symlink_active = false;
+
+void mock_set_usb_symlink_active(bool active) {
+    g_mock_usb_symlink_active = active;
+    spdlog::debug("[MoonrakerClientMock] USB symlink simulation: {}", active ? "active" : "inactive");
+}
+
 static json build_mock_file_list_response(const std::string& path = "") {
     json result_array = json::array();
+
+    // Simulate USB symlink directory
+    if (path == "usb" && g_mock_usb_symlink_active) {
+        // Return fake USB files to simulate symlink present
+        result_array.push_back(
+            {{"path", "usb/test_usb_file.gcode"}, {"size", 12345}, {"modified", 1700000000.0}});
+        json response = {{"result", result_array}};
+        spdlog::debug("[MoonrakerClientMock] Simulating USB symlink with {} files",
+                      result_array.size());
+        return response;
+    }
 
     if (path.empty()) {
         // Root directory - scan real files from test gcode directory
@@ -212,6 +231,32 @@ void register_file_handlers(std::unordered_map<std::string, MethodHandler>& regi
             err.type = MoonrakerErrorType::VALIDATION_ERROR;
             err.message = "Missing filename parameter";
             err.method = "server.files.metadata";
+            error_cb(err);
+        }
+        return true;
+    };
+
+    // server.files.metascan - Force metadata scan for a file
+    // Same as metadata but forces re-parse (in mock, behaves identically)
+    registry["server.files.metascan"] =
+        [](MoonrakerClientMock* self, const json& params, std::function<void(json)> success_cb,
+           std::function<void(const MoonrakerError&)> error_cb) -> bool {
+        (void)self;
+        std::string filename;
+        if (params.contains("filename")) {
+            filename = params["filename"].get<std::string>();
+        }
+        if (!filename.empty()) {
+            if (success_cb) {
+                json response = build_mock_file_metadata_response(filename);
+                spdlog::info("[MoonrakerClientMock] Returning mock metascan for: {}", filename);
+                success_cb(response);
+            }
+        } else if (error_cb) {
+            MoonrakerError err;
+            err.type = MoonrakerErrorType::VALIDATION_ERROR;
+            err.message = "Missing filename parameter";
+            err.method = "server.files.metascan";
             error_cb(err);
         }
         return true;

@@ -656,3 +656,17 @@ class MoonrakerClientMock : public MoonrakerClient {
     static constexpr double BED_COOL_RATE = 0.3;       // °C/sec when cooling
     static constexpr int SIMULATION_INTERVAL_MS = 250; // Match real Moonraker ~250ms
 };
+
+// ============================================================================
+// Test Utility Functions
+// ============================================================================
+
+/**
+ * @brief Simulate USB symlink presence for testing
+ *
+ * When active, list_files("gcodes", "usb") returns mock files instead of empty.
+ * Used to test USB symlink detection in PrintSelectPanel.
+ *
+ * @param active True to simulate symlink exists, false for no symlink
+ */
+void mock_set_usb_symlink_active(bool active);
