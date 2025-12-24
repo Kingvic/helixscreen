@@ -470,6 +470,9 @@ class PrintSelectPanel : public PanelBase {
         print_in_progress_observer_;      ///< Observes workflow in-progress for immediate disable
     ObserverGuard helix_plugin_observer_; ///< Observes plugin status for install prompt
 
+    // File list change notification handler name (for unregistering)
+    std::string filelist_handler_name_;
+
     // Plugin installer for helix_print Moonraker plugin
     helix::HelixPluginInstaller plugin_installer_;
     PluginInstallModal plugin_install_modal_;

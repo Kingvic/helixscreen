@@ -140,6 +140,13 @@ PrintSelectPanel::PrintSelectPanel(PrinterState& printer_state, MoonrakerAPI* ap
 }
 
 PrintSelectPanel::~PrintSelectPanel() {
+    // Unregister file list change notification handler
+    // (API may be null if never set, or if connection failed)
+    if (api_ && !filelist_handler_name_.empty()) {
+        api_->get_client().unregister_method_callback("notify_filelist_changed",
+                                                       filelist_handler_name_);
+    }
+
     // CRITICAL: During static destruction (app exit), LVGL may already be gone.
     // We check if LVGL is still initialized before calling any LVGL functions.
     if (lv_is_initialized()) {
@@ -893,6 +900,35 @@ void PrintSelectPanel::set_api(MoonrakerAPI* api) {
         spdlog::debug("[{}] API set, files will load on first view", get_name());
         refresh_files(); // Will early-return if not connected
     }
+
+    // Register for file list change notifications from Moonraker
+    // This handles external uploads (OrcaSlicer, Mainsail, etc.) and file operations
+    if (api_) {
+        filelist_handler_name_ = "print_select_filelist_" + std::to_string(reinterpret_cast<uintptr_t>(this));
+        auto* self = this;
+        api_->get_client().register_method_callback(
+            "notify_filelist_changed", filelist_handler_name_,
+            [self](const json& /*msg*/) {
+                spdlog::info("[{}] File list changed notification received", self->get_name());
+
+                // Check if we're on the printer source (not USB)
+                bool is_usb_active = self->usb_source_ && self->usb_source_->is_usb_active();
+                if (!is_usb_active) {
+                    // Use async call to refresh on main thread
+                    ui_async_call(
+                        [](void* user_data) {
+                            auto* panel = static_cast<PrintSelectPanel*>(user_data);
+                            if (panel) {
+                                spdlog::debug("[{}] Refreshing file list due to external change",
+                                              panel->get_name());
+                                panel->refresh_files();
+                            }
+                        },
+                        self);
+                }
+            });
+        spdlog::debug("[{}] Registered for notify_filelist_changed notifications", get_name());
+    }
 }
 
 void PrintSelectPanel::check_moonraker_usb_symlink() {
@@ -938,12 +974,15 @@ void PrintSelectPanel::on_activate() {
     // On subsequent activations: refresh to pick up external changes
     bool is_usb_active = usb_source_ && usb_source_->is_usb_active();
 
+    spdlog::debug("[{}] on_activate called (first_activation={}, file_count={}, usb_active={}, api={})",
+                  get_name(), first_activation_, file_list_.size(), is_usb_active, (api_ != nullptr));
+
     if (!is_usb_active && api_) {
         // Printer (Moonraker) source
         if (first_activation_ && !file_list_.empty()) {
             first_activation_ = false;
-            spdlog::debug("[{}] First activation, files already loaded - skipping refresh",
-                          get_name());
+            spdlog::debug("[{}] First activation, files already loaded ({}) - skipping refresh",
+                          get_name(), file_list_.size());
             return;
         }
         first_activation_ = false;
