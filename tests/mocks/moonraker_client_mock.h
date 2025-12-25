@@ -1,30 +1,14 @@
-/*
- * Copyright (C) 2025 356C LLC
- * Author: Preston Brown <pbrown@brown-house.net>
- *
- * This file is part of HelixScreen.
- *
- * HelixScreen is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * HelixScreen is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with HelixScreen. If not, see <https://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2025 HelixScreen Contributors
 
 #ifndef MOONRAKER_CLIENT_MOCK_H
 #define MOONRAKER_CLIENT_MOCK_H
 
-#include "hv/json.hpp"
 #include <functional>
 #include <string>
 #include <vector>
+
+#include "hv/json.hpp"
 
 using json = nlohmann::json;
 
@@ -35,7 +19,7 @@ using json = nlohmann::json;
  * Allows tests to trigger connection success/failure and verify URL.
  */
 class MoonrakerClientMock {
-public:
+  public:
     MoonrakerClientMock();
     ~MoonrakerClientMock() = default;
 
@@ -47,8 +31,7 @@ public:
      * @param on_disconnected Callback to invoke when connection fails/closes
      * @return Always returns 0 (success)
      */
-    int connect(const char* url,
-                std::function<void()> on_connected,
+    int connect(const char* url, std::function<void()> on_connected,
                 std::function<void()> on_disconnected);
 
     /**
@@ -59,9 +42,7 @@ public:
     /**
      * @brief Mock send_jsonrpc with callback
      */
-    int send_jsonrpc(const std::string& method,
-                     const json& params,
-                     std::function<void(json&)> cb);
+    int send_jsonrpc(const std::string& method, const json& params, std::function<void(json&)> cb);
 
     /**
      * @brief Mock gcode_script (no-op)
@@ -76,7 +57,9 @@ public:
     /**
      * @brief Check if connected
      */
-    bool is_connected() const { return connected_; }
+    bool is_connected() const {
+        return connected_;
+    }
 
     // Test control methods
 
@@ -93,24 +76,44 @@ public:
     /**
      * @brief Get the last URL passed to connect()
      */
-    std::string get_last_connect_url() const { return last_url_; }
+    std::string get_last_connect_url() const {
+        return last_url_;
+    }
 
     /**
      * @brief Get all RPC methods called via send_jsonrpc
      */
-    const std::vector<std::string>& get_rpc_methods() const { return rpc_methods_; }
+    const std::vector<std::string>& get_rpc_methods() const {
+        return rpc_methods_;
+    }
 
     /**
      * @brief Reset mock state (clears callbacks, URL, methods)
      */
     void reset();
 
-private:
+    /**
+     * @brief Check if client has been identified to Moonraker
+     * @return True if server.connection.identify has been sent
+     */
+    bool is_identified() const {
+        return identified_;
+    }
+
+    /**
+     * @brief Reset identification state (called on disconnect)
+     */
+    void reset_identified() {
+        identified_ = false;
+    }
+
+  private:
     std::function<void()> connected_callback_;
     std::function<void()> disconnected_callback_;
     std::string last_url_;
     std::vector<std::string> rpc_methods_;
     bool connected_ = false;
+    bool identified_ = false; // Tracks if server.connection.identify was sent
 };
 
 #endif // MOONRAKER_CLIENT_MOCK_H

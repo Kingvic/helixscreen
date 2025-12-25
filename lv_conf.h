@@ -27,13 +27,10 @@
  *====================*/
 
 /*Color depth: 1 (I1), 8 (L8), 16 (RGB565), 24 (RGB888), 32 (XRGB8888)
- * Can be overridden by build system with -DLV_COLOR_DEPTH_OVERRIDE=32
- * (AD5M uses 32-bit XRGB8888 framebuffer) */
-#ifdef LV_COLOR_DEPTH_OVERRIDE
-    #define LV_COLOR_DEPTH LV_COLOR_DEPTH_OVERRIDE
-#else
-    #define LV_COLOR_DEPTH 16
-#endif
+ * Using 32-bit everywhere for consistent thumbnail/image handling.
+ * Memory impact is ~750KB extra for 800x480 display - negligible on
+ * embedded Linux targets with 256MB+ RAM. */
+#define LV_COLOR_DEPTH 32
 
 /*=========================
    STDLIB WRAPPER SETTINGS

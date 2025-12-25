@@ -335,6 +335,28 @@ class MoonrakerClient : public hv::WebSocketClient {
     }
 
     /**
+     * @brief Check if client has been identified to Moonraker
+     *
+     * After a successful server.connection.identify call, this returns true.
+     * The flag is reset on disconnect to allow re-identification on reconnect.
+     *
+     * @return True if already identified to Moonraker on current connection
+     */
+    bool is_identified() const {
+        return identified_.load();
+    }
+
+    /**
+     * @brief Reset identification state (for testing)
+     *
+     * Clears the identified flag. In production, this is done automatically
+     * on disconnect. Exposed for unit tests to verify state transitions.
+     */
+    void reset_identified() {
+        identified_.store(false);
+    }
+
+    /**
      * @brief Get discovered stepper motors
      *
      * Populated during discover_printer() from printer.objects.list.
@@ -716,6 +738,7 @@ class MoonrakerClient : public hv::WebSocketClient {
 
     // Connection state tracking
     std::atomic_bool was_connected_;
+    std::atomic_bool identified_{false}; // True after successful server.connection.identify
     std::atomic<ConnectionState> connection_state_;
     std::atomic_bool is_destroying_{false}; // Prevent callbacks during destruction
     std::atomic<uint64_t> connection_generation_{

@@ -10,7 +10,7 @@
 
 
 ### [L001] [*****/*****] Conventional commits format
-- **Uses**: 48 | **Learned**: 2025-12-21 | **Last**: 2025-12-24 | **Category**: pattern
+- **Uses**: 49 | **Learned**: 2025-12-21 | **Last**: 2025-12-25 | **Category**: pattern
 > Use type(scope): description format for commit messages. Types: feat, fix, refactor, docs, test, chore, style, perf, build. Examples: fix(home): auto-configure LED, feat(thumbnails): add dynamic sizing.
 
 ### [L002] [****+/-----] Verbose flags required
@@ -98,12 +98,12 @@
 > When set_X() updates a member, also update child objects that cached the old value (e.g., file_provider_->set_api() in PrintSelectPanel::set_api)
 
 ### [L023] [*****/*****] Stage files explicitly
-- **Uses**: 56 | **Learned**: 2025-12-19 | **Last**: 2025-12-24 | **Category**: correction
+- **Uses**: 57 | **Learned**: 2025-12-19 | **Last**: 2025-12-25 | **Category**: correction
 > When committing, stage only files you actually modified (`git add <file>`) rather than `git add -A`. But ALSO verify completeness - check `git status` to ensure no critical feature files are missed. Atomic commits need both precision AND completeness.
 
 
 ### [L024] [*****/*****] WIP file safety
-- **Uses**: 40 | **Learned**: 2025-12-21 | **Last**: 2025-12-24 | **Category**: correction
+- **Uses**: 42 | **Learned**: 2025-12-21 | **Last**: 2025-12-25 | **Category**: correction
 > Never modify, stash, restore, or commit files that are part of uncommitted WIP changes without explicit user permission. Focus only on the specific files/changes requested.
 
 ### [L025] [*----/-----] Button content centering
@@ -124,4 +124,9 @@
 ### [L028] [*----/-----] Use project venv
 - **Uses**: 2 | **Learned**: 2025-12-24 | **Last**: 2025-12-24 | **Category**: correction
 > Always use project's .venv for Python packages (.venv/bin/pip install X), never system pip. Project dependencies should stay isolated in the venv.
+
+
+### [L029] [*----/-----] LVGL observer callbacks
+- **Uses**: 2 | **Learned**: 2025-12-25 | **Last**: 2025-12-25 | **Category**: pattern
+> LVGL observer callbacks use C-style function signatures (lv_observer_t*, lv_subject_t*) - NOT lambdas. Must pass user_data via lv_observer_get_user_data(observer). Also: lv_subject_set_*() from non-main threads must use ui_async_call() to avoid render-phase assertions.
 

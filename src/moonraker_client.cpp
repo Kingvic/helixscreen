@@ -493,6 +493,7 @@ int MoonrakerClient::connect(const char* url, std::function<void()> on_connected
             if (was_connected_) {
                 spdlog::warn("[Moonraker Client] WebSocket connection closed");
                 was_connected_ = false;
+                identified_.store(false); // Reset so re-identification happens on reconnect
 
                 // Emit event with rate limiting to prevent spam during reconnect loop
                 if (!g_already_notified_disconnect.load()) {
@@ -918,7 +919,13 @@ void MoonrakerClient::discover_printer(std::function<void()> on_complete) {
     }
 
     // Step 0: Identify ourselves to Moonraker to enable receiving notifications
-    // Without this, we may not receive notify_filelist_changed and other events
+    // Skip if we've already identified on this connection (e.g., wizard tested, then completed)
+    if (identified_.load()) {
+        spdlog::debug("[Moonraker Client] Already identified, skipping identify step");
+        continue_discovery(on_complete);
+        return;
+    }
+
     json identify_params = {{"client_name", "HelixScreen"},
                             {"version", HELIX_VERSION},
                             {"type", "display"},
@@ -931,6 +938,7 @@ void MoonrakerClient::discover_printer(std::function<void()> on_complete) {
                 auto conn_id = identify_response["result"].value("connection_id", 0);
                 spdlog::info("[Moonraker Client] Identified to Moonraker (connection_id: {})",
                              conn_id);
+                identified_.store(true);
             } else if (identify_response.contains("error")) {
                 // Log but continue - older Moonraker versions may not support this
                 spdlog::warn("[Moonraker Client] Failed to identify: {}",

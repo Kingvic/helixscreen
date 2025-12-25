@@ -54,12 +54,10 @@ else ifeq ($(PLATFORM_TARGET),ad5m)
     # -flto: Link-Time Optimization for dead code elimination
     # -ffunction-sections/-fdata-sections: Allow linker to remove unused sections
     # -Wno-error=conversion: LVGL headers have int32_t->float conversions that GCC flags
-    # NOTE: AD5M framebuffer is fixed at 32bpp (ARGB8888) - sysfs lies about supporting 16bpp
+    # NOTE: AD5M framebuffer is 32bpp (ARGB8888), as is lv_conf.h (LV_COLOR_DEPTH=32)
     TARGET_CFLAGS := -march=armv7-a -mfpu=neon-vfpv4 -mfloat-abi=hard -mtune=cortex-a7 \
         -Os -flto -ffunction-sections -fdata-sections \
         -Wno-error=conversion -Wno-error=sign-conversion
-    # Force 32-bit color depth to match AD5M's actual framebuffer format
-    FB_COLOR_DEPTH := 32
     # -Wl,--gc-sections: Remove unused sections during linking (works with -ffunction-sections)
     # -flto: Must match compiler flag for LTO to work
     # -static: Fully static binary - no runtime dependencies on system libs
@@ -178,13 +176,8 @@ ifeq ($(ENABLE_EVDEV),yes)
     SUBMODULE_CXXFLAGS += -DHELIX_INPUT_EVDEV
 endif
 
-# Framebuffer color depth (32-bit for AD5M XRGB8888, default 16-bit RGB565)
-ifdef FB_COLOR_DEPTH
-    CFLAGS += -DLV_COLOR_DEPTH_OVERRIDE=$(FB_COLOR_DEPTH)
-    CXXFLAGS += -DLV_COLOR_DEPTH_OVERRIDE=$(FB_COLOR_DEPTH)
-    SUBMODULE_CFLAGS += -DLV_COLOR_DEPTH_OVERRIDE=$(FB_COLOR_DEPTH)
-    SUBMODULE_CXXFLAGS += -DLV_COLOR_DEPTH_OVERRIDE=$(FB_COLOR_DEPTH)
-endif
+# NOTE: LV_COLOR_DEPTH is now hardcoded to 32 in lv_conf.h for all platforms.
+# This simplifies thumbnail/image handling (always ARGB8888) at negligible memory cost.
 
 # =============================================================================
 # Cross-Compilation Build Targets
