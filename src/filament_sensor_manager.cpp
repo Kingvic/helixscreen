@@ -93,6 +93,27 @@ void FilamentSensorManager::discover_sensors(const std::vector<std::string>& kli
         }
 
         FilamentSensorConfig config(klipper_name, sensor_name, type);
+
+        // Auto-assign RUNOUT role if sensor name suggests it's a runout sensor
+        // (e.g., "runout", "fsensor_runout", "runout_sensor")
+        // Only assign if no other sensor already has RUNOUT role
+        std::string lower_name = sensor_name;
+        std::transform(lower_name.begin(), lower_name.end(), lower_name.begin(), ::tolower);
+        if (lower_name.find("runout") != std::string::npos) {
+            bool runout_already_assigned = false;
+            for (const auto& s : sensors_) {
+                if (s.role == FilamentSensorRole::RUNOUT) {
+                    runout_already_assigned = true;
+                    break;
+                }
+            }
+            if (!runout_already_assigned) {
+                config.role = FilamentSensorRole::RUNOUT;
+                spdlog::info("[FilamentSensorManager] Auto-assigned RUNOUT role to '{}' based on name",
+                             sensor_name);
+            }
+        }
+
         sensors_.push_back(config);
 
         // Initialize state if not already present

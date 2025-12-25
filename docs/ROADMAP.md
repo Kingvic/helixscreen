@@ -1,12 +1,12 @@
 # HelixScreen Development Roadmap
 
-**Last Updated:** 2025-12-18
+**Last Updated:** 2025-12-25
 
 ---
 
-## Project Status: Beta → Feature Parity Complete (Core)
+## Project Status: Feature Parity Complete (Core)
 
-HelixScreen is a production-quality Klipper touchscreen UI. **Core feature parity is largely achieved** - all critical TIER 1 features are now implemented.
+HelixScreen is a production-quality Klipper touchscreen UI. **Core feature parity is complete.**
 
 | Area | Status | Details |
 |------|--------|---------|
@@ -16,25 +16,8 @@ HelixScreen is a production-quality Klipper touchscreen UI. **Core feature parit
 | **Moonraker API** | ✅ Comprehensive | 40+ methods, print history, timelapse, power |
 | **Build System** | ✅ Complete | macOS, Linux, Pi, AD5M |
 | **Test Suite** | ✅ Complete | 51+ unit tests |
-| **Feature Parity (TIER 1)** | ⚠️ 95% | Missing: filament runout handling |
-
----
-
-## 🚨 CRITICAL BUGS - FIX IMMEDIATELY
-
-### Filament Runout Handling
-**Status:** COMPLETELY BROKEN
-**Priority:** P0 - Blocks production use
-
-We have NO working filament runout handling. When filament runs out mid-print:
-- [ ] Detect `filament_switch_sensor` trigger from Moonraker
-- [ ] Pause print automatically (or respond to Klipper's pause)
-- [ ] Show modal: "Filament runout detected - load new filament"
-- [ ] Guide user through filament change (heat, unload, load, purge)
-- [ ] Resume print after user confirms
-- [ ] Handle timeout/cancel gracefully
-
-**Related:** `FilamentSensorManager`, `notify_filament_runout`, M600 macro handling
+| **Filament Runout** | ✅ Core works | Detection + modal; guided recovery planned |
+| **Feature Parity (TIER 1)** | ✅ 100% | All critical features implemented |
 
 ---
 
