@@ -350,9 +350,9 @@ class BacklightBackendAllwinner : public BacklightBackend {
 // ============================================================================
 
 std::unique_ptr<BacklightBackend> BacklightBackend::create() {
-#ifndef HELIX_SPLASH_ONLY
+#if !defined(HELIX_SPLASH_ONLY) && !defined(HELIX_WATCHDOG)
     // 1. Test mode → Simulated backend (UI works normally)
-    // (Skip in splash build - splash doesn't link runtime_config and is never in test mode)
+    // (Skip in splash/watchdog builds - they don't link runtime_config and are never in test mode)
     if (get_runtime_config()->is_test_mode()) {
         spdlog::debug("[Backlight] Test mode - using simulated backend");
         return std::make_unique<BacklightBackendNone>(true); // simulate = true
