@@ -7,6 +7,7 @@
 #include "lvgl.h"
 
 #include <atomic>
+#include <chrono>
 #include <functional>
 #include <map>
 #include <mutex>
@@ -339,6 +340,10 @@ class FilamentSensorManager {
     // Test mode: when true, update_from_status() calls update_subjects() synchronously
     // instead of using lv_async_call(). This avoids LVGL timer dependencies in unit tests.
     bool sync_mode_ = false;
+
+    // Startup time for suppressing initial state notifications
+    // Similar to USB manager, we suppress toasts for 3 seconds after initialization
+    std::chrono::steady_clock::time_point startup_time_;
 
     // LVGL subjects
     bool subjects_initialized_ = false;

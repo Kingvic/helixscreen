@@ -37,7 +37,7 @@ FilamentSensorManager& FilamentSensorManager::instance() {
     return instance;
 }
 
-FilamentSensorManager::FilamentSensorManager() = default;
+FilamentSensorManager::FilamentSensorManager() : startup_time_(std::chrono::steady_clock::now()) {}
 
 FilamentSensorManager::~FilamentSensorManager() = default;
 
@@ -423,6 +423,12 @@ bool FilamentSensorManager::is_motion_active() const {
 // ============================================================================
 
 void FilamentSensorManager::update_from_status(const json& status) {
+    // Suppress toast notifications for initial state at startup
+    // (similar to USB manager - users don't need to be told filament is present)
+    constexpr auto STARTUP_GRACE_PERIOD = std::chrono::seconds(3);
+    auto now = std::chrono::steady_clock::now();
+    bool within_grace_period = (now - startup_time_) < STARTUP_GRACE_PERIOD;
+
     // Collect notifications to send after releasing lock (avoid deadlock)
     struct Notification {
         std::string klipper_name;
@@ -489,8 +495,14 @@ void FilamentSensorManager::update_from_status(const json& status) {
                 notif.old_state = old_state;
                 notif.new_state = state;
                 notif.role = sensor.role;
-                notif.should_toast =
-                    master_enabled_ && sensor.enabled && sensor.role != FilamentSensorRole::NONE;
+                // Suppress toasts during startup grace period (initial state isn't a "change")
+                notif.should_toast = !within_grace_period && master_enabled_ && sensor.enabled &&
+                                     sensor.role != FilamentSensorRole::NONE;
+                if (within_grace_period && master_enabled_ && sensor.enabled &&
+                    sensor.role != FilamentSensorRole::NONE) {
+                    spdlog::debug("[FilamentSensorManager] Suppressing startup toast for {}",
+                                  sensor.sensor_name);
+                }
                 notifications.push_back(notif);
             }
         }
@@ -674,6 +686,9 @@ void FilamentSensorManager::reset_for_testing() {
 
     // Enable sync mode for testing (avoids lv_async_call)
     sync_mode_ = true;
+
+    // Reset startup time so tests can verify toast suppression behavior
+    startup_time_ = std::chrono::steady_clock::now();
 
     // Reset subjects if initialized
     if (subjects_initialized_) {
