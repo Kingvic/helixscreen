@@ -682,6 +682,12 @@ class PrinterState {
     void set_printer_connection_state(int state, const char* message);
 
     /**
+     * @brief Internal: set connection state on main thread
+     * @note Called via ui_async_call from set_printer_connection_state()
+     */
+    void set_printer_connection_state_internal(int state, const char* message);
+
+    /**
      * @brief Check if printer has ever connected this session
      *
      * Returns true if we've successfully connected to Moonraker at least once.

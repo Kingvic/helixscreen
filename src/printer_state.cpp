@@ -103,6 +103,20 @@ void async_klippy_state_callback(void* user_data) {
     delete ctx;
 }
 
+struct AsyncConnectionStateContext {
+    PrinterState* printer_state;
+    int state;
+    std::string message;
+};
+
+void async_connection_state_callback(void* user_data) {
+    auto* ctx = static_cast<AsyncConnectionStateContext*>(user_data);
+    if (ctx && ctx->printer_state) {
+        ctx->printer_state->set_printer_connection_state_internal(ctx->state, ctx->message.c_str());
+    }
+    delete ctx;
+}
+
 // ============================================================================
 // PrintJobState Free Functions
 // ============================================================================
@@ -916,6 +930,13 @@ void PrinterState::update_fan_speed(const std::string& object_name, double speed
 }
 
 void PrinterState::set_printer_connection_state(int state, const char* message) {
+    // Thread-safe wrapper: defer LVGL subject updates to main thread
+    auto* ctx = new AsyncConnectionStateContext{this, state, message ? message : ""};
+    ui_async_call(async_connection_state_callback, ctx);
+}
+
+void PrinterState::set_printer_connection_state_internal(int state, const char* message) {
+    // Called from main thread via ui_async_call
     spdlog::info("[PrinterState] Printer connection state changed: {} - {}", state, message);
 
     // Track if we've ever successfully connected (state 2 = CONNECTED)
