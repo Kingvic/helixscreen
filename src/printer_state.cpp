@@ -356,7 +356,7 @@ void PrinterState::init_subjects(bool register_xml) {
     lv_subject_init_int(&printer_has_spoolman_, 0);
     lv_subject_init_int(&printer_has_speaker_, 0);
     lv_subject_init_int(&printer_has_timelapse_, 0);
-    lv_subject_init_int(&helix_plugin_installed_, 0);
+    lv_subject_init_int(&helix_plugin_installed_, -1); // -1=unknown, 0=not installed, 1=installed
     lv_subject_init_int(&printer_has_firmware_retraction_, 0);
     lv_subject_init_int(&printer_bed_moves_, 0); // 0=gantry moves, 1=bed moves (cartesian)
 
@@ -1101,13 +1101,15 @@ void PrinterState::set_helix_plugin_installed(bool installed) {
 
 bool PrinterState::service_has_helix_plugin() const {
     // Note: lv_subject_get_int is thread-safe (atomic read)
-    return lv_subject_get_int(const_cast<lv_subject_t*>(&helix_plugin_installed_)) != 0;
+    // Tri-state: -1=unknown, 0=not installed, 1=installed
+    return lv_subject_get_int(const_cast<lv_subject_t*>(&helix_plugin_installed_)) == 1;
 }
 
 void PrinterState::update_gcode_modification_visibility() {
     // Recalculate composite subjects: can_show_X = helix_plugin_installed && printer_has_X
     // These control visibility of pre-print G-code modification options in the UI
-    bool plugin = lv_subject_get_int(&helix_plugin_installed_) != 0;
+    // Tri-state: -1=unknown, 0=not installed, 1=installed (only 1 counts as "has plugin")
+    bool plugin = lv_subject_get_int(&helix_plugin_installed_) == 1;
 
     auto update_if_changed = [](lv_subject_t* subject, int new_value) {
         if (lv_subject_get_int(subject) != new_value) {

@@ -572,7 +572,8 @@ void PrintSelectPanel::setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
     }
 
     // Register observer on helix_plugin_installed to show install prompt when plugin not available
-    // This fires after discovery completes and plugin status is known
+    // Subject uses tri-state: -1=unknown (pre-discovery), 0=not installed, 1=installed
+    // Only show modal when explicitly 0 (after discovery confirms plugin is missing)
     lv_subject_t* plugin_subject = printer_state_.get_helix_plugin_installed_subject();
     if (plugin_subject) {
         helix_plugin_observer_ = ObserverGuard(
@@ -582,8 +583,10 @@ void PrintSelectPanel::setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
                 if (!self)
                     return;
 
-                bool plugin_available = lv_subject_get_int(subject) != 0;
-                if (!plugin_available && self->plugin_installer_.should_prompt_install()) {
+                int plugin_state = lv_subject_get_int(subject);
+                // Only show modal when state is explicitly 0 (checked and not installed)
+                // Skip if -1 (unknown/pre-discovery) or 1 (installed)
+                if (plugin_state == 0 && self->plugin_installer_.should_prompt_install()) {
                     spdlog::info("[PrintSelectPanel] helix_print plugin not available, showing "
                                  "install prompt");
                     self->plugin_install_modal_.set_installer(&self->plugin_installer_);

@@ -969,7 +969,7 @@ class PrinterState {
     lv_subject_t printer_has_spoolman_;      // Integer: 0=no, 1=yes (for filament tracking)
     lv_subject_t printer_has_speaker_;       // Integer: 0=no, 1=yes (for M300 audio feedback)
     lv_subject_t printer_has_timelapse_;  // Integer: 0=no, 1=yes (for Moonraker-Timelapse plugin)
-    lv_subject_t helix_plugin_installed_; // Integer: 0=no, 1=yes (for HelixPrint plugin)
+    lv_subject_t helix_plugin_installed_; // Tri-state: -1=unknown, 0=not installed, 1=installed
     lv_subject_t printer_has_firmware_retraction_; // Integer: 0=no, 1=yes (for G10/G11 retraction)
     lv_subject_t printer_bed_moves_; // Integer: 0=no (gantry moves), 1=yes (bed moves on Z)
 
