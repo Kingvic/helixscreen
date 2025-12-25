@@ -46,10 +46,24 @@ void PrintPreparationManager::set_dependencies(MoonrakerAPI* api, PrinterState* 
     api_ = api;
     printer_state_ = printer_state;
 
-    // Trigger PRINT_START macro analysis when dependencies are set
-    // This allows the UI to show macro operations as soon as possible
-    if (api_) {
-        analyze_print_start_macro();
+    // Set up observer to trigger PRINT_START analysis when connected
+    // This avoids making requests before the WebSocket connection is established
+    if (printer_state_) {
+        connection_observer_ = ObserverGuard(printer_state_->get_printer_connection_state_subject(),
+                                             on_connection_state_changed, this);
+    }
+}
+
+void PrintPreparationManager::on_connection_state_changed(lv_observer_t* observer, lv_subject_t* subject) {
+    auto* self = static_cast<PrintPreparationManager*>(lv_observer_get_user_data(observer));
+    if (!self) {
+        return;
+    }
+
+    // Check if we're connected (state == 2 == CONNECTED)
+    int state = lv_subject_get_int(subject);
+    if (state == 2) { // ConnectionState::CONNECTED
+        self->analyze_print_start_macro();
     }
 }
 
@@ -85,6 +99,12 @@ void PrintPreparationManager::analyze_print_start_macro() {
 
     if (!api_) {
         spdlog::warn("[PrintPreparationManager] Cannot analyze PRINT_START - no API connection");
+        return;
+    }
+
+    // Check if WebSocket connection is actually established
+    if (api_->get_client().get_connection_state() != ConnectionState::CONNECTED) {
+        spdlog::debug("[PrintPreparationManager] Deferring PRINT_START analysis - not connected");
         return;
     }
 

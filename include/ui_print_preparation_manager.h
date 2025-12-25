@@ -7,6 +7,7 @@
 #include "gcode_file_modifier.h"
 #include "gcode_ops_detector.h"
 #include "moonraker_api.h"
+#include "ui_observer_guard.h"
 #include "print_start_analyzer.h"
 #include "printer_state.h"
 
@@ -369,6 +370,10 @@ class PrintPreparationManager {
     // === Command Sequencer ===
     std::unique_ptr<gcode::CommandSequencer> pre_print_sequencer_;
 
+    // === Connection Observer ===
+    // Triggers macro analysis when printer connection becomes CONNECTED
+    ObserverGuard connection_observer_;
+
     // === Internal Methods ===
 
     /**
@@ -439,6 +444,11 @@ class PrintPreparationManager {
      * @brief Helper to check if a checkbox is visible and unchecked
      */
     static bool is_option_disabled(lv_obj_t* checkbox);
+
+    /**
+     * @brief Static callback for connection state observer
+     */
+    static void on_connection_state_changed(lv_observer_t* observer, lv_subject_t* subject);
 
     /**
      * @brief Collect macro skip parameters based on user checkboxes and macro analysis

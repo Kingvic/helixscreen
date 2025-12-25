@@ -837,7 +837,8 @@ RequestId MoonrakerClient::send_jsonrpc(const std::string& method, const json& p
                 pending_requests_.erase(it);
             }
         }
-        spdlog::error("[Moonraker Client] Failed to send request {}, removed from pending", id);
+        spdlog::error("[Moonraker Client] Failed to send request {} ({}), removed from pending", id,
+                      method_name.empty() ? "unknown" : method_name);
 
         // Invoke error callback outside lock (prevents deadlock if callback sends new request)
         if (error_callback_copy) {
