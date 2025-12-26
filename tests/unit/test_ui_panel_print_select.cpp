@@ -431,17 +431,17 @@ TEST_CASE("Print Select: Filename - empty filename", "[ui][filename][edge]") {
 TEST_CASE("Print Select: Metadata - print time formatting", "[ui][metadata]") {
     SECTION("Zero minutes") {
         PrintFileData file = create_test_file("test.gcode", 1024, 1, 0, 50.0f);
-        REQUIRE(file.print_time_str == "0m");
+        REQUIRE(file.print_time_str == "0 min");
     }
 
     SECTION("Minutes only") {
         PrintFileData file = create_test_file("test.gcode", 1024, 1, 45, 50.0f);
-        REQUIRE(file.print_time_str == "45m");
+        REQUIRE(file.print_time_str == "45 min");
     }
 
     SECTION("Hours and minutes") {
         PrintFileData file = create_test_file("test.gcode", 1024, 1, 125, 50.0f);
-        REQUIRE(file.print_time_str == "2h5m");
+        REQUIRE(file.print_time_str == "2h 5m");
     }
 
     SECTION("Exact hours") {
@@ -458,22 +458,22 @@ TEST_CASE("Print Select: Metadata - print time formatting", "[ui][metadata]") {
 TEST_CASE("Print Select: Metadata - filament weight formatting", "[ui][metadata]") {
     SECTION("Zero grams") {
         PrintFileData file = create_test_file("test.gcode", 1024, 1, 100, 0.0f);
-        REQUIRE(file.filament_str == "0.0g");
+        REQUIRE(file.filament_str == "0.0 g");
     }
 
     SECTION("Small amount") {
         PrintFileData file = create_test_file("test.gcode", 1024, 1, 100, 2.5f);
-        REQUIRE(file.filament_str == "2.5g");
+        REQUIRE(file.filament_str == "2.5 g");
     }
 
     SECTION("Medium amount") {
         PrintFileData file = create_test_file("test.gcode", 1024, 1, 100, 85.0f);
-        REQUIRE(file.filament_str == "85g");
+        REQUIRE(file.filament_str == "85 g");
     }
 
     SECTION("Large amount") {
         PrintFileData file = create_test_file("test.gcode", 1024, 1, 100, 250.5f);
-        REQUIRE(file.filament_str == "250g");
+        REQUIRE(file.filament_str == "250 g");
     }
 }
 

@@ -1,19 +1,12 @@
-/*
- * Copyright (C) 2025 356C LLC
- * Author: Preston Brown <pbrown@brown-house.net>
- *
- * This file is part of HelixScreen.
- *
- * HelixScreen is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- */
+// Copyright 2025 HelixScreen
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+#include "ui_theme.h"
+#include "ui_utils.h"
+
+#include "../ui_test_utils.h"
 
 #include "../catch_amalgamated.hpp"
-#include "ui_utils.h"
-#include "ui_theme.h"
-#include "../ui_test_utils.h"
 
 using Catch::Approx;
 
@@ -22,16 +15,16 @@ using Catch::Approx;
 // ============================================================================
 
 TEST_CASE("UI Utils: format_print_time - minutes only", "[ui_utils][format]") {
-    REQUIRE(format_print_time(0) == "0m");
-    REQUIRE(format_print_time(5) == "5m");
-    REQUIRE(format_print_time(59) == "59m");
+    REQUIRE(format_print_time(0) == "0 min");
+    REQUIRE(format_print_time(5) == "5 min");
+    REQUIRE(format_print_time(59) == "59 min");
 }
 
 TEST_CASE("UI Utils: format_print_time - hours and minutes", "[ui_utils][format]") {
     REQUIRE(format_print_time(60) == "1h");
-    REQUIRE(format_print_time(90) == "1h30m");
-    REQUIRE(format_print_time(125) == "2h5m");
-    REQUIRE(format_print_time(785) == "13h5m");
+    REQUIRE(format_print_time(90) == "1h 30m");
+    REQUIRE(format_print_time(125) == "2h 5m");
+    REQUIRE(format_print_time(785) == "13h 5m");
 }
 
 TEST_CASE("UI Utils: format_print_time - exact hours", "[ui_utils][format]") {
@@ -42,15 +35,15 @@ TEST_CASE("UI Utils: format_print_time - exact hours", "[ui_utils][format]") {
 
 TEST_CASE("UI Utils: format_print_time - edge cases", "[ui_utils][format][edge]") {
     SECTION("Zero minutes") {
-        REQUIRE(format_print_time(0) == "0m");
+        REQUIRE(format_print_time(0) == "0 min");
     }
 
     SECTION("Very large values") {
-        REQUIRE(format_print_time(10000) == "166h40m");
+        REQUIRE(format_print_time(10000) == "166h 40m");
     }
 
     SECTION("One minute") {
-        REQUIRE(format_print_time(1) == "1m");
+        REQUIRE(format_print_time(1) == "1 min");
     }
 
     SECTION("One hour exactly") {
@@ -58,7 +51,7 @@ TEST_CASE("UI Utils: format_print_time - edge cases", "[ui_utils][format][edge]"
     }
 
     SECTION("Almost two hours") {
-        REQUIRE(format_print_time(119) == "1h59m");
+        REQUIRE(format_print_time(119) == "1h 59m");
     }
 }
 
@@ -67,37 +60,37 @@ TEST_CASE("UI Utils: format_print_time - edge cases", "[ui_utils][format][edge]"
 // ============================================================================
 
 TEST_CASE("UI Utils: format_filament_weight - less than 1 gram", "[ui_utils][format]") {
-    REQUIRE(format_filament_weight(0.0f) == "0.0g");
-    REQUIRE(format_filament_weight(0.5f) == "0.5g");
-    REQUIRE(format_filament_weight(0.9f) == "0.9g");
+    REQUIRE(format_filament_weight(0.0f) == "0.0 g");
+    REQUIRE(format_filament_weight(0.5f) == "0.5 g");
+    REQUIRE(format_filament_weight(0.9f) == "0.9 g");
 }
 
 TEST_CASE("UI Utils: format_filament_weight - 1-10 grams", "[ui_utils][format]") {
-    REQUIRE(format_filament_weight(1.0f) == "1.0g");
-    REQUIRE(format_filament_weight(2.5f) == "2.5g");
-    REQUIRE(format_filament_weight(9.9f) == "9.9g");
+    REQUIRE(format_filament_weight(1.0f) == "1.0 g");
+    REQUIRE(format_filament_weight(2.5f) == "2.5 g");
+    REQUIRE(format_filament_weight(9.9f) == "9.9 g");
 }
 
 TEST_CASE("UI Utils: format_filament_weight - 10+ grams", "[ui_utils][format]") {
-    REQUIRE(format_filament_weight(10.0f) == "10g");
-    REQUIRE(format_filament_weight(45.7f) == "46g");
-    REQUIRE(format_filament_weight(120.3f) == "120g");
-    REQUIRE(format_filament_weight(999.9f) == "1000g");
+    REQUIRE(format_filament_weight(10.0f) == "10 g");
+    REQUIRE(format_filament_weight(45.7f) == "46 g");
+    REQUIRE(format_filament_weight(120.3f) == "120 g");
+    REQUIRE(format_filament_weight(999.9f) == "1000 g");
 }
 
 TEST_CASE("UI Utils: format_filament_weight - edge cases", "[ui_utils][format][edge]") {
     SECTION("Exactly 1 gram boundary") {
-        REQUIRE(format_filament_weight(0.99f) == "1.0g");
-        REQUIRE(format_filament_weight(1.0f) == "1.0g");
+        REQUIRE(format_filament_weight(0.99f) == "1.0 g");
+        REQUIRE(format_filament_weight(1.0f) == "1.0 g");
     }
 
     SECTION("Exactly 10 gram boundary") {
-        REQUIRE(format_filament_weight(9.99f) == "10.0g");
-        REQUIRE(format_filament_weight(10.0f) == "10g");
+        REQUIRE(format_filament_weight(9.99f) == "10.0 g");
+        REQUIRE(format_filament_weight(10.0f) == "10 g");
     }
 
     SECTION("Very large values") {
-        REQUIRE(format_filament_weight(10000.0f) == "10000g");
+        REQUIRE(format_filament_weight(10000.0f) == "10000 g");
     }
 }
 
@@ -143,8 +136,8 @@ TEST_CASE("UI Utils: format_file_size - edge cases", "[ui_utils][format][edge]")
     }
 
     SECTION("Common G-code file sizes") {
-        REQUIRE(format_file_size(125000) == "122.1 KB");  // ~125 KB file
-        REQUIRE(format_file_size(5800000) == "5.5 MB");   // ~5.8 MB file
+        REQUIRE(format_file_size(125000) == "122.1 KB"); // ~125 KB file
+        REQUIRE(format_file_size(5800000) == "5.5 MB");  // ~5.8 MB file
     }
 }
 
@@ -184,9 +177,11 @@ TEST_CASE("UI Utils: format_modified_date - edge cases", "[ui_utils][format][edg
 // NOTE: After the responsive spacing unification (Phase 7), ui_get_header_content_padding()
 // now uses the unified space_* token system. The function returns ui_theme_get_spacing("space_lg"),
 // which is a responsive value set at theme init time based on the display breakpoint.
-// These tests verify the function returns a consistent, positive value (not screen-height dependent).
+// These tests verify the function returns a consistent, positive value (not screen-height
+// dependent).
 
-TEST_CASE("UI Utils: ui_get_header_content_padding - returns space_lg value", "[ui_utils][responsive]") {
+TEST_CASE("UI Utils: ui_get_header_content_padding - returns space_lg value",
+          "[ui_utils][responsive]") {
     // After unification, this function returns space_lg regardless of input height
     // (the height parameter is kept for API stability but ignored)
 
@@ -244,7 +239,8 @@ TEST_CASE("UI Utils: ui_get_responsive_header_height - screen sizes", "[ui_utils
     }
 }
 
-TEST_CASE("UI Utils: ui_get_responsive_header_height - boundary values", "[ui_utils][responsive][edge]") {
+TEST_CASE("UI Utils: ui_get_responsive_header_height - boundary values",
+          "[ui_utils][responsive][edge]") {
     SECTION("At tiny/small boundary (479px)") {
         REQUIRE(ui_get_responsive_header_height(479) == 40);
     }

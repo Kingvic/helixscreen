@@ -669,21 +669,22 @@ TEST_CASE_METHOD(FilamentSensorTestFixture, "FilamentSensorManager - thread safe
 
     SECTION("Concurrent get_sensors returns consistent copy") {
         // This tests that get_sensors() returns a copy, not a reference
+        // Note: Use "toolhead" sensor because "runout" gets auto-assigned RUNOUT role
         auto copy1 = mgr().get_sensors();
 
         // Modify manager state
-        mgr().set_sensor_role("filament_switch_sensor runout", FilamentSensorRole::RUNOUT);
+        mgr().set_sensor_role("filament_switch_sensor toolhead", FilamentSensorRole::TOOLHEAD);
 
         auto copy2 = mgr().get_sensors();
 
         // copy1 should still have the old state (NONE)
         auto it1 = std::find_if(copy1.begin(), copy1.end(),
-                                [](const auto& c) { return c.sensor_name == "runout"; });
+                                [](const auto& c) { return c.sensor_name == "toolhead"; });
         REQUIRE(it1->role == FilamentSensorRole::NONE);
 
         // copy2 should have new state
         auto it2 = std::find_if(copy2.begin(), copy2.end(),
-                                [](const auto& c) { return c.sensor_name == "runout"; });
-        REQUIRE(it2->role == FilamentSensorRole::RUNOUT);
+                                [](const auto& c) { return c.sensor_name == "toolhead"; });
+        REQUIRE(it2->role == FilamentSensorRole::TOOLHEAD);
     }
 }
