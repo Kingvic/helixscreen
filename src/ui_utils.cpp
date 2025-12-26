@@ -93,14 +93,14 @@ std::string resolve_gcode_filename(const std::string& path) {
 std::string format_print_time(int minutes) {
     char buf[32];
     if (minutes < 60) {
-        snprintf(buf, sizeof(buf), "%dm", minutes);
+        snprintf(buf, sizeof(buf), "%d min", minutes);
     } else {
         int hours = minutes / 60;
         int mins = minutes % 60;
         if (mins == 0) {
             snprintf(buf, sizeof(buf), "%dh", hours);
         } else {
-            snprintf(buf, sizeof(buf), "%dh%dm", hours, mins);
+            snprintf(buf, sizeof(buf), "%dh %dm", hours, mins);
         }
     }
     return std::string(buf);
@@ -109,11 +109,39 @@ std::string format_print_time(int minutes) {
 std::string format_filament_weight(float grams) {
     char buf[32];
     if (grams < 1.0f) {
-        snprintf(buf, sizeof(buf), "%.1fg", grams);
+        snprintf(buf, sizeof(buf), "%.1f g", grams);
     } else if (grams < 10.0f) {
-        snprintf(buf, sizeof(buf), "%.1fg", grams);
+        snprintf(buf, sizeof(buf), "%.1f g", grams);
     } else {
-        snprintf(buf, sizeof(buf), "%.0fg", grams);
+        snprintf(buf, sizeof(buf), "%.0f g", grams);
+    }
+    return std::string(buf);
+}
+
+std::string format_layer_count(uint32_t layer_count) {
+    if (layer_count == 0) {
+        return "--";
+    }
+    char buf[32];
+    if (layer_count == 1) {
+        snprintf(buf, sizeof(buf), "1 layer");
+    } else {
+        snprintf(buf, sizeof(buf), "%u layers", layer_count);
+    }
+    return std::string(buf);
+}
+
+std::string format_print_height(double height_mm) {
+    if (height_mm <= 0.0) {
+        return "--";
+    }
+    char buf[32];
+    if (height_mm < 1.0) {
+        snprintf(buf, sizeof(buf), "%.2f mm", height_mm);
+    } else if (height_mm < 10.0) {
+        snprintf(buf, sizeof(buf), "%.1f mm", height_mm);
+    } else {
+        snprintf(buf, sizeof(buf), "%.0f mm", height_mm);
     }
     return std::string(buf);
 }
