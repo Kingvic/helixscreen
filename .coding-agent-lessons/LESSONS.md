@@ -17,8 +17,8 @@
 - **Uses**: 7 | **Learned**: 2025-12-14 | **Last**: 2025-12-25 | **Category**: pattern
 > Always add name='component_name' on XML component tags. Internal view names don't propagate, causing lv_obj_find_by_name to return NULL
 
-### [L004] [**+--/-----] Subject init before create
-- **Uses**: 5 | **Learned**: 2025-12-14 | **Last**: 2025-12-25 | **Category**: pattern
+### [L004] [***--/-----] Subject init before create
+- **Uses**: 6 | **Learned**: 2025-12-14 | **Last**: 2025-12-26 | **Category**: pattern
 > Initialize and register subjects BEFORE lv_xml_create(). Order: fonts, images, components, init subjects, register subjects, create UI
 
 ### [L005] [**+--/-----] Static buffers for subjects
@@ -49,8 +49,8 @@
 - **Uses**: 10 | **Learned**: 2025-12-14 | **Last**: 2025-12-25 | **Category**: gotcha
 > Avoid mutex locks in destructors during static destruction phase. Other objects may already be destroyed, causing deadlock or crash on exit
 
-### [L012] [*****/*+---] Guard async callbacks
-- **Uses**: 13 | **Learned**: 2025-12-14 | **Last**: 2025-12-25 | **Category**: gotcha
+### [L012] [*****/***--] Guard async callbacks
+- **Uses**: 16 | **Learned**: 2025-12-14 | **Last**: 2025-12-26 | **Category**: gotcha
 > Async WebSocket callbacks can fire after object destruction. Use weak_ptr or flag checks to guard against stale this pointers in async handlers
 
 ### [L013] [****-/-----] Callbacks before XML creation
@@ -81,8 +81,8 @@
 - **Uses**: 5 | **Learned**: 2025-12-14 | **Last**: 2025-12-25 | **Category**: gotcha
 > In <styles> blocks use bare names (bg_color). On widgets use style_ prefix (style_bg_color). Mixing them up silently fails
 
-### [L020] [*****/+----] ObserverGuard for cleanup
-- **Uses**: 11 | **Learned**: 2025-12-14 | **Last**: 2025-12-25 | **Category**: gotcha
+### [L020] [*****/*----] ObserverGuard for cleanup
+- **Uses**: 12 | **Learned**: 2025-12-14 | **Last**: 2025-12-26 | **Category**: gotcha
 > Use ObserverGuard RAII wrapper for lv_subject observers. Manual observer cleanup is error-prone and causes use-after-free on panel destruction
 
 ### [L021] [***+-/-----] Centidegrees for temps
@@ -93,8 +93,8 @@
 - **Uses**: 7 | **Learned**: 2025-12-19 | **Last**: 2025-12-25 | **Category**: gotcha
 > When set_X() updates a member, also update child objects that cached the old value (e.g., file_provider_->set_api() in PrintSelectPanel::set_api)
 
-### [L025] [**---/-----] Button content centering
-- **Uses**: 4 | **Learned**: 2025-12-21 | **Last**: 2025-12-25 | **Category**: pattern
+### [L025] [**+--/-----] Button content centering
+- **Uses**: 5 | **Learned**: 2025-12-21 | **Last**: 2025-12-26 | **Category**: pattern
 > Text-only buttons: use `align="center"` on child. Icon+text buttons with flex_flow="row": need ALL THREE flex properties - style_flex_main_place="center" (horizontal), style_flex_cross_place="center" (vertical align items), style_flex_track_place="center" (vertical position of row). Missing track_place causes content to sit at top.
 
 
@@ -118,7 +118,7 @@
 > LVGL observer callbacks use C-style function signatures (lv_observer_t*, lv_subject_t*) - NOT lambdas. Must pass user_data via lv_observer_get_user_data(observer). Also: lv_subject_set_*() from non-main threads must use ui_async_call() to avoid render-phase assertions.
 
 
-### [L030] [**+--/-----] Local vs remote UI design
-- **Uses**: 5 | **Learned**: 2025-12-25 | **Last**: 2025-12-26 | **Category**: pattern
+### [L030] [***--/-----] Local vs remote UI design
+- **Uses**: 6 | **Learned**: 2025-12-25 | **Last**: 2025-12-26 | **Category**: pattern
 > Touchscreen UIs are for physically present users - prioritize tactile controls, at-a-glance info, and real-time tuning. Don't copy features from remote web UIs (cameras, system stats, multi-device views) that assume users aren't standing at the machine.
 
