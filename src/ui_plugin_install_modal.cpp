@@ -323,7 +323,11 @@ void PluginInstallModal::on_copy_clicked() {
 void PluginInstallModal::install_clicked_cb(lv_event_t* e) {
     LVGL_SAFE_EVENT_CB_BEGIN("[PluginInstallModal] install_clicked_cb");
 
-    auto* self = static_cast<PluginInstallModal*>(lv_event_get_user_data(e));
+    // Note: lv_event_get_user_data returns NULL for XML-registered callbacks.
+    // Use lv_event_get_current_target (not get_target) because the click may
+    // originate on a child (e.g., text label) and bubble up to the button.
+    lv_obj_t* btn = static_cast<lv_obj_t*>(lv_event_get_current_target(e));
+    auto* self = static_cast<PluginInstallModal*>(lv_obj_get_user_data(btn));
     if (self) {
         self->on_install_clicked();
     }
@@ -334,7 +338,11 @@ void PluginInstallModal::install_clicked_cb(lv_event_t* e) {
 void PluginInstallModal::copy_clicked_cb(lv_event_t* e) {
     LVGL_SAFE_EVENT_CB_BEGIN("[PluginInstallModal] copy_clicked_cb");
 
-    auto* self = static_cast<PluginInstallModal*>(lv_event_get_user_data(e));
+    // Note: lv_event_get_user_data returns NULL for XML-registered callbacks.
+    // Use lv_event_get_current_target (not get_target) because the click may
+    // originate on a child (e.g., text label) and bubble up to the button.
+    lv_obj_t* btn = static_cast<lv_obj_t*>(lv_event_get_current_target(e));
+    auto* self = static_cast<PluginInstallModal*>(lv_obj_get_user_data(btn));
     if (self) {
         self->on_copy_clicked();
     }
