@@ -370,12 +370,44 @@ bool Application::init_display() {
         spdlog::info("[Application] Signaling splash process (PID {}) to exit...",
                      runtime_config->splash_pid);
         if (kill(runtime_config->splash_pid, SIGUSR1) == 0) {
+            // Wait for splash to exit. Note: we check /proc/<pid>/status for zombie
+            // state because kill(pid, 0) returns 0 for zombies. The splash is reaped
+            // by watchdog, so we just need to know it's done (zombie = exited).
             int wait_attempts = 50;
-            while (wait_attempts-- > 0 && kill(runtime_config->splash_pid, 0) == 0) {
+            char proc_path[64];
+            snprintf(proc_path, sizeof(proc_path), "/proc/%d/status",
+                     runtime_config->splash_pid);
+
+            while (wait_attempts-- > 0) {
+                // First check if process exists at all
+                if (kill(runtime_config->splash_pid, 0) != 0) {
+                    break; // Process gone
+                }
+
+                // Check if it's a zombie (exited but not reaped)
+                FILE* f = fopen(proc_path, "r");
+                if (f) {
+                    char line[256];
+                    bool is_zombie = false;
+                    while (fgets(line, sizeof(line), f)) {
+                        if (strncmp(line, "State:", 6) == 0) {
+                            is_zombie = (strchr(line, 'Z') != nullptr);
+                            break;
+                        }
+                    }
+                    fclose(f);
+                    if (is_zombie) {
+                        spdlog::debug("[Application] Splash process exited (zombie, waiting for reap)");
+                        break;
+                    }
+                }
+
                 usleep(20000);
             }
             if (wait_attempts <= 0) {
                 spdlog::warn("[Application] Splash process did not exit in time");
+            } else {
+                spdlog::info("[Application] Splash process exited");
             }
         }
         runtime_config->splash_pid = 0;

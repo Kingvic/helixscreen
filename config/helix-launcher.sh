@@ -1,11 +1,10 @@
 #!/bin/sh
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
-# helix-launcher.sh - Launch HelixScreen with early splash screen
+# helix-launcher.sh - Launch HelixScreen with watchdog supervision
 #
-# This script starts the splash screen immediately for instant visual feedback,
-# then launches the main application in parallel. The splash automatically exits
-# when the main app takes over the display.
+# When watchdog is available (embedded targets), it manages the splash screen
+# lifecycle and provides crash recovery. Otherwise, launches helix-screen directly.
 #
 # NOTE: Written for POSIX sh compatibility (no bash arrays) to work on AD5M BusyBox.
 #
@@ -66,17 +65,17 @@ done
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # Support installed, deployed, and development layouts
-if [ -x "${SCRIPT_DIR}/helix-splash" ]; then
+if [ -x "${SCRIPT_DIR}/helix-screen" ]; then
     # Installed: binaries in same directory as script
     BIN_DIR="${SCRIPT_DIR}"
-elif [ -x "${SCRIPT_DIR}/../helix-splash" ]; then
+elif [ -x "${SCRIPT_DIR}/../helix-screen" ]; then
     # Deployed: binaries in parent directory (rsync deployment layout)
     BIN_DIR="${SCRIPT_DIR}/.."
-elif [ -x "${SCRIPT_DIR}/../build/bin/helix-splash" ]; then
+elif [ -x "${SCRIPT_DIR}/../build/bin/helix-screen" ]; then
     # Development: binaries in build/bin relative to config/
     BIN_DIR="${SCRIPT_DIR}/../build/bin"
 else
-    echo "Error: Cannot find helix-splash binary" >&2
+    echo "Error: Cannot find helix-screen binary" >&2
     echo "Looked in: ${SCRIPT_DIR}, ${SCRIPT_DIR}/.., and ${SCRIPT_DIR}/../build/bin" >&2
     exit 1
 fi
@@ -107,37 +106,22 @@ if [ -x "${WATCHDOG_BIN}" ]; then
     log "Watchdog available: crash recovery enabled"
 fi
 
+# Check if splash is available (watchdog will manage it)
+SPLASH_ARGS=""
+if [ -x "${SPLASH_BIN}" ]; then
+    SPLASH_ARGS="--splash-bin=${SPLASH_BIN}"
+    log "Splash binary: ${SPLASH_BIN}"
+fi
+
 # Cleanup function for signal handling
 cleanup() {
     log "Shutting down..."
-    # Kill splash if still running
-    if [ -n "${SPLASH_PID:-}" ] && kill -0 "${SPLASH_PID}" 2>/dev/null; then
-        kill "${SPLASH_PID}" 2>/dev/null || true
-        wait "${SPLASH_PID}" 2>/dev/null || true
-    fi
     # Kill watchdog/helix-screen if we started them
-    killall helix-watchdog helix-screen 2>/dev/null || true
+    killall helix-watchdog helix-screen helix-splash 2>/dev/null || true
 }
 
 trap cleanup EXIT INT TERM
 
-# Start splash screen in background (if binary exists)
-if [ -x "${SPLASH_BIN}" ]; then
-    log "Starting splash screen (${HELIX_SCREEN_WIDTH}x${HELIX_SCREEN_HEIGHT})"
-    "${SPLASH_BIN}" -w "${HELIX_SCREEN_WIDTH}" -h "${HELIX_SCREEN_HEIGHT}" &
-    SPLASH_PID=$!
-    log "Splash PID: ${SPLASH_PID}"
-
-    # Pass splash PID to main app so it can signal when ready
-    SPLASH_ARGS="--splash-pid=${SPLASH_PID}"
-else
-    log "Splash binary not found, starting main app directly"
-    SPLASH_PID=""
-    SPLASH_ARGS=""
-fi
-
-# Start main application
-# Main app will send SIGUSR1 to splash when it takes over the display
 log "Starting main application"
 
 # Build command flags
@@ -164,25 +148,19 @@ fi
 # Run main application (via watchdog if available for crash recovery)
 # Note: PASSTHROUGH_ARGS is unquoted to allow word splitting (POSIX compatible)
 if [ "${USE_WATCHDOG}" = "1" ]; then
-    # Watchdog supervises helix-screen: fork/exec, monitor for crash, show recovery dialog
-    # Pass screen dimensions to watchdog, then use -- to separate helix-screen args
+    # Watchdog supervises helix-screen and manages splash lifecycle
+    # Pass screen dimensions and splash binary to watchdog, then use -- to separate helix-screen args
     log "Starting via watchdog supervisor"
     # shellcheck disable=SC2086
-    "${WATCHDOG_BIN}" -w "${HELIX_SCREEN_WIDTH}" -h "${HELIX_SCREEN_HEIGHT}" -- \
-        "${MAIN_BIN}" ${SPLASH_ARGS} ${EXTRA_FLAGS} ${PASSTHROUGH_ARGS}
+    "${WATCHDOG_BIN}" -w "${HELIX_SCREEN_WIDTH}" -h "${HELIX_SCREEN_HEIGHT}" \
+        ${SPLASH_ARGS} -- \
+        "${MAIN_BIN}" ${EXTRA_FLAGS} ${PASSTHROUGH_ARGS}
     EXIT_CODE=$?
 else
     # Direct launch (development, or watchdog not built)
     # shellcheck disable=SC2086
-    "${MAIN_BIN}" ${SPLASH_ARGS} ${EXTRA_FLAGS} ${PASSTHROUGH_ARGS}
+    "${MAIN_BIN}" ${EXTRA_FLAGS} ${PASSTHROUGH_ARGS}
     EXIT_CODE=$?
-fi
-
-# Ensure splash is terminated (should have exited when main app took display)
-if [ -n "${SPLASH_PID}" ] && kill -0 "${SPLASH_PID}" 2>/dev/null; then
-    log "Cleaning up splash process"
-    kill "${SPLASH_PID}" 2>/dev/null || true
-    wait "${SPLASH_PID}" 2>/dev/null || true
 fi
 
 log "Exiting with code ${EXIT_CODE}"

@@ -173,15 +173,17 @@ static int read_config_brightness(int default_value = 100) {
 struct WatchdogArgs {
     int width = DEFAULT_WIDTH;
     int height = DEFAULT_HEIGHT;
+    std::string splash_binary; // Optional: --splash-bin=<path>
     std::string child_binary;
     std::vector<std::string> child_args;
 };
 
 static void print_usage(const char* program) {
-    fprintf(stderr, "Usage: %s [-w width] [-h height] -- <helix-screen> [args...]\n", program);
-    fprintf(stderr, "  -w <width>   Screen width (default: %d)\n", DEFAULT_WIDTH);
-    fprintf(stderr, "  -h <height>  Screen height (default: %d)\n", DEFAULT_HEIGHT);
-    fprintf(stderr, "  --           Separator before child binary and args\n");
+    fprintf(stderr, "Usage: %s [-w width] [-h height] [--splash-bin=<path>] -- <helix-screen> [args...]\n", program);
+    fprintf(stderr, "  -w <width>          Screen width (default: %d)\n", DEFAULT_WIDTH);
+    fprintf(stderr, "  -h <height>         Screen height (default: %d)\n", DEFAULT_HEIGHT);
+    fprintf(stderr, "  --splash-bin=<path> Path to splash screen binary (optional)\n");
+    fprintf(stderr, "  --                  Separator before child binary and args\n");
 }
 
 static bool parse_args(int argc, char** argv, WatchdogArgs& args) {
@@ -200,6 +202,8 @@ static bool parse_args(int argc, char** argv, WatchdogArgs& args) {
             args.width = atoi(argv[++i]);
         } else if (strcmp(argv[i], "-h") == 0 && i + 1 < argc) {
             args.height = atoi(argv[++i]);
+        } else if (strncmp(argv[i], "--splash-bin=", 13) == 0) {
+            args.splash_binary = argv[i] + 13;
         } else if (strcmp(argv[i], "--help") == 0) {
             print_usage(argv[0]);
             exit(0);
@@ -216,25 +220,120 @@ static bool parse_args(int argc, char** argv, WatchdogArgs& args) {
 }
 
 // =============================================================================
+// Splash Process Management
+// =============================================================================
+
+// Global splash PID for cleanup
+static volatile pid_t g_splash_pid = 0;
+
+/**
+ * @brief Start splash screen process
+ * @return PID of splash process, or 0 if not started
+ */
+static pid_t start_splash_process(const WatchdogArgs& args) {
+    if (args.splash_binary.empty()) {
+        return 0;
+    }
+
+    // Check if binary exists
+    if (access(args.splash_binary.c_str(), X_OK) != 0) {
+        spdlog::warn("[Watchdog] Splash binary not found or not executable: {}",
+                     args.splash_binary);
+        return 0;
+    }
+
+    pid_t pid = fork();
+
+    if (pid < 0) {
+        spdlog::error("[Watchdog] Failed to fork splash process: {}", strerror(errno));
+        return 0;
+    }
+
+    if (pid == 0) {
+        // Child process: exec splash
+        char width_str[16], height_str[16];
+        snprintf(width_str, sizeof(width_str), "%d", args.width);
+        snprintf(height_str, sizeof(height_str), "%d", args.height);
+
+        execl(args.splash_binary.c_str(), "helix-splash",
+              "-w", width_str, "-h", height_str, nullptr);
+
+        // If exec fails
+        fprintf(stderr, "[Watchdog] Failed to exec splash: %s\n", strerror(errno));
+        _exit(127);
+    }
+
+    // Parent: splash started successfully
+    spdlog::info("[Watchdog] Started splash process (PID {})", pid);
+    g_splash_pid = pid;
+    return pid;
+}
+
+/**
+ * @brief Clean up splash process if still running
+ */
+static void cleanup_splash(pid_t splash_pid) {
+    if (splash_pid <= 0) {
+        return;
+    }
+
+    // Check if still running
+    if (kill(splash_pid, 0) == 0) {
+        spdlog::debug("[Watchdog] Cleaning up splash process (PID {})", splash_pid);
+        kill(splash_pid, SIGTERM);
+        // Non-blocking wait - don't hang if splash is stuck
+        int status;
+        pid_t result = waitpid(splash_pid, &status, WNOHANG);
+        if (result == 0) {
+            // Still running after SIGTERM, give it a moment
+            usleep(100000); // 100ms
+            waitpid(splash_pid, &status, WNOHANG);
+        }
+    }
+
+    if (g_splash_pid == splash_pid) {
+        g_splash_pid = 0;
+    }
+}
+
+// =============================================================================
 // Process Management
 // =============================================================================
 
 /**
  * @brief Fork and exec helix-screen, wait for it to exit
+ * @param args Watchdog arguments
+ * @param splash_pid PID of splash process to pass to helix-screen (0 if none)
  * @return CrashInfo with exit status
  */
-static CrashInfo run_child_process(const WatchdogArgs& args) {
+static CrashInfo run_child_process(const WatchdogArgs& args, pid_t splash_pid) {
     CrashInfo crash = {};
 
-    // Build argv for execv
-    std::vector<char*> child_argv;
-    child_argv.push_back(const_cast<char*>(args.child_binary.c_str()));
+    // Build argv for execv - need to own the strings for splash_pid arg
+    std::vector<std::string> arg_strings;
+    arg_strings.push_back(args.child_binary);
+
+    // Add splash PID argument if splash is running
+    if (splash_pid > 0) {
+        arg_strings.push_back("--splash-pid=" + std::to_string(splash_pid));
+    }
+
+    // Add remaining child args
     for (const auto& arg : args.child_args) {
+        arg_strings.push_back(arg);
+    }
+
+    // Build char* argv from owned strings
+    std::vector<char*> child_argv;
+    for (auto& arg : arg_strings) {
         child_argv.push_back(const_cast<char*>(arg.c_str()));
     }
     child_argv.push_back(nullptr);
 
     spdlog::info("[Watchdog] Launching: {}", args.child_binary);
+    if (splash_pid > 0) {
+        spdlog::debug("[Watchdog] Passing splash PID {} to child", splash_pid);
+    }
 
     pid_t child_pid = fork();
 
@@ -255,13 +354,20 @@ static CrashInfo run_child_process(const WatchdogArgs& args) {
     }
 
     // Parent: wait for child with proper EINTR handling
+    // Use waitpid(-1) to reap any child, including splash process
     int status;
     while (true) {
-        pid_t result = waitpid(child_pid, &status, 0);
+        pid_t result = waitpid(-1, &status, 0);
 
         if (result == child_pid) {
-            // Child exited
+            // helix-screen exited
             break;
+        }
+
+        if (result == splash_pid) {
+            // Splash exited (reaped) - this is expected, continue waiting for helix-screen
+            spdlog::debug("[Watchdog] Splash process reaped (PID {})", splash_pid);
+            continue;
         }
 
         if (result < 0) {
@@ -277,6 +383,13 @@ static CrashInfo run_child_process(const WatchdogArgs& args) {
                     return crash;
                 }
                 continue;
+            }
+            if (errno == ECHILD) {
+                // No more children - shouldn't happen but handle gracefully
+                spdlog::warn("[Watchdog] No children to wait for");
+                crash.exit_code = 0;
+                crash.was_signaled = false;
+                return crash;
             }
             // Actual error
             spdlog::error("[Watchdog] waitpid error: {}", strerror(errno));
@@ -555,10 +668,27 @@ static DialogChoice show_crash_dialog(int width, int height, const CrashInfo& cr
 static int run_watchdog(const WatchdogArgs& args) {
     spdlog::info("[Watchdog] Starting watchdog supervisor");
     spdlog::info("[Watchdog] Child binary: {}", args.child_binary);
+    if (!args.splash_binary.empty()) {
+        spdlog::info("[Watchdog] Splash binary: {}", args.splash_binary);
+    }
+
+    bool first_launch = true;
 
     while (!g_quit) {
+        // Start splash screen before launching helix-screen
+        // Only show splash on first launch or after normal restart, not after crash
+        // (crash dialog is shown instead)
+        pid_t splash_pid = 0;
+        if (first_launch || (!args.splash_binary.empty())) {
+            splash_pid = start_splash_process(args);
+        }
+        first_launch = false;
+
         // Launch and monitor child process
-        CrashInfo crash = run_child_process(args);
+        CrashInfo crash = run_child_process(args, splash_pid);
+
+        // Clean up splash if still running (safety net)
+        cleanup_splash(splash_pid);
 
         // Check if we're shutting down
         if (g_quit) {
@@ -572,7 +702,7 @@ static int run_watchdog(const WatchdogArgs& args) {
             continue;
         }
 
-        // Crash detected - show recovery dialog
+        // Crash detected - show recovery dialog (no splash during dialog)
         spdlog::warn("[Watchdog] Crash detected, showing recovery dialog");
 
         DialogChoice choice = show_crash_dialog(args.width, args.height, crash);
@@ -582,9 +712,12 @@ static int run_watchdog(const WatchdogArgs& args) {
             // Never returns
         }
 
-        // RESTART_APP: loop continues, will fork new child
+        // RESTART_APP: loop continues, will fork new child with splash
         spdlog::info("[Watchdog] Restarting helix-screen");
     }
+
+    // Final cleanup
+    cleanup_splash(g_splash_pid);
 
     return 0;
 }
