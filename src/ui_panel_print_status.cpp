@@ -237,6 +237,20 @@ void PrintStatusPanel::init_subjects() {
 
     subjects_initialized_ = true;
 
+    // Sync initial state from PrinterState (in case app opens while print is in progress)
+    // This is necessary because observers only fire on VALUE CHANGE, not on subscribe.
+    int initial_progress = lv_subject_get_int(printer_state_.get_print_progress_subject());
+    int initial_layer = lv_subject_get_int(printer_state_.get_print_layer_current_subject());
+    int initial_total_layers = lv_subject_get_int(printer_state_.get_print_layer_total_subject());
+    if (initial_progress > 0 || initial_layer > 0 || initial_total_layers > 0) {
+        current_progress_ = initial_progress;
+        current_layer_ = initial_layer;
+        total_layers_ = initial_total_layers;
+        update_all_displays();
+        spdlog::debug("[{}] Synced initial print state: progress={}%, layer={}/{}",
+                      get_name(), initial_progress, initial_layer, initial_total_layers);
+    }
+
     // Sync initial preparation state from PrinterState (in case panel opens mid-preparation)
     int initial_phase = lv_subject_get_int(printer_state_.get_print_start_phase_subject());
     if (initial_phase != 0) {
@@ -528,22 +542,24 @@ void PrintStatusPanel::load_gcode_file(const char* file_path) {
             // Set print progress to current layer (not 0!) when joining a print in progress.
             // Read directly from PrinterState subjects to get the latest values.
             int viewer_max_layer = ui_gcode_viewer_get_max_layer(viewer);
-            int current_layer = lv_subject_get_int(
-                self->printer_state_.get_print_layer_current_subject());
-            int total_layers = lv_subject_get_int(
-                self->printer_state_.get_print_layer_total_subject());
+            int current_layer =
+                lv_subject_get_int(self->printer_state_.get_print_layer_current_subject());
+            int total_layers =
+                lv_subject_get_int(self->printer_state_.get_print_layer_total_subject());
 
             // Update local state while we're at it
             self->current_layer_ = current_layer;
             self->total_layers_ = total_layers;
 
             // Map from Moonraker layer count to viewer layer count
+            // Note: viewer_max_layer may be -1 if 2D renderer not yet initialized (lazy init)
             int viewer_layer = 0;
-            if (total_layers > 0 && viewer_max_layer > 0) {
+            if (viewer_max_layer > 0 && total_layers > 0) {
                 viewer_layer = (current_layer * viewer_max_layer) / total_layers;
-            } else if (current_layer > 0 && viewer_max_layer > 0) {
-                // Fallback: use current layer directly if no mapping available
-                viewer_layer = std::min(current_layer, viewer_max_layer);
+            } else if (viewer_max_layer <= 0 && current_layer > 0) {
+                // 2D renderer not ready yet - use raw current layer, will be corrected later
+                // The 2D renderer will use this value when it initializes on first render
+                viewer_layer = current_layer;
             }
             ui_gcode_viewer_set_print_progress(viewer, viewer_layer);
             spdlog::debug("[{}] G-code loaded: initial layer progress set to {} "
