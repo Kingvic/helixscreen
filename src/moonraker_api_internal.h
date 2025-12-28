@@ -12,6 +12,7 @@
  */
 
 #include "moonraker_api.h"
+#include "spdlog/spdlog.h"
 
 #include <algorithm>
 #include <cctype>
@@ -152,6 +153,114 @@ inline bool is_safe_distance(double distance, const SafetyLimits& limits) {
 inline bool is_safe_position(double position, const SafetyLimits& limits) {
     return position >= limits.min_absolute_position_mm &&
            position <= limits.max_absolute_position_mm;
+}
+
+// ============================================================================
+// VALIDATION + ERROR HELPERS
+// ============================================================================
+// These functions combine validation with error callback invocation, reducing
+// the ~10-line boilerplate pattern repeated in every API method.
+//
+// Usage:
+//   if (reject_invalid_path(filename, "method_name", on_error)) return;
+//   if (reject_invalid_path(filename, "method_name", on_error, silent)) return;
+
+/**
+ * @brief Validate path and invoke error callback if invalid
+ *
+ * Consolidates the common pattern of:
+ * 1. Check is_safe_path()
+ * 2. NOTIFY_ERROR if !silent
+ * 3. Construct MoonrakerError and call on_error if provided
+ *
+ * @param path Path to validate
+ * @param method Method name for error context
+ * @param on_error Error callback (may be nullptr)
+ * @param silent If true, skip NOTIFY_ERROR (default: false)
+ * @return true if path is INVALID (caller should return), false if valid
+ */
+inline bool reject_invalid_path(const std::string& path, const char* method,
+                                const MoonrakerAPI::ErrorCallback& on_error, bool silent = false) {
+    if (is_safe_path(path)) {
+        return false; // Valid, continue
+    }
+
+    if (!silent) {
+        spdlog::error("[Moonraker API] {}: Invalid path '{}'", method, path);
+    }
+
+    if (on_error) {
+        MoonrakerError err;
+        err.type = MoonrakerErrorType::VALIDATION_ERROR;
+        err.message = "Invalid path contains directory traversal or illegal characters";
+        err.method = method;
+        on_error(err);
+    }
+    return true; // Invalid, caller should return
+}
+
+/**
+ * @brief Validate identifier and invoke error callback if invalid
+ *
+ * For validating root names, heater names, etc.
+ *
+ * @param id Identifier to validate
+ * @param method Method name for error context
+ * @param on_error Error callback (may be nullptr)
+ * @param silent If true, skip error logging (default: false)
+ * @return true if identifier is INVALID (caller should return), false if valid
+ */
+inline bool reject_invalid_identifier(const std::string& id, const char* method,
+                                      const MoonrakerAPI::ErrorCallback& on_error,
+                                      bool silent = false) {
+    if (is_safe_identifier(id)) {
+        return false; // Valid, continue
+    }
+
+    if (!silent) {
+        spdlog::error("[Moonraker API] {}: Invalid identifier '{}'", method, id);
+    }
+
+    if (on_error) {
+        MoonrakerError err;
+        err.type = MoonrakerErrorType::VALIDATION_ERROR;
+        err.message = "Invalid identifier contains illegal characters";
+        err.method = method;
+        on_error(err);
+    }
+    return true; // Invalid, caller should return
+}
+
+/**
+ * @brief Check if value is in range and invoke error callback if not
+ *
+ * For validating temperatures, speeds, positions, etc.
+ *
+ * @param value Value to check
+ * @param min Minimum allowed value
+ * @param max Maximum allowed value
+ * @param param_name Parameter name for error message (e.g., "temperature")
+ * @param method Method name for error context
+ * @param on_error Error callback (may be nullptr)
+ * @return true if value is OUT OF RANGE (caller should return), false if valid
+ */
+inline bool reject_out_of_range(double value, double min, double max, const char* param_name,
+                                const char* method, const MoonrakerAPI::ErrorCallback& on_error) {
+    if (value >= min && value <= max) {
+        return false; // Valid, continue
+    }
+
+    spdlog::error("[Moonraker API] {}: {} {} out of range [{}, {}]", method, param_name, value, min,
+                  max);
+
+    if (on_error) {
+        MoonrakerError err;
+        err.type = MoonrakerErrorType::VALIDATION_ERROR;
+        err.message = std::string(param_name) + " value out of allowed range";
+        err.method = method;
+        on_error(err);
+    }
+    return true; // Invalid, caller should return
 }
 
 } // namespace moonraker_internal
