@@ -1542,6 +1542,9 @@ void PrintSelectPanel::update_sort_indicators() {
 void PrintSelectPanel::create_detail_view() {
     detail_view_ = std::make_unique<helix::ui::PrintSelectDetailView>();
 
+    // Initialize subjects BEFORE create() so XML bindings can find them [L004]
+    detail_view_->init_subjects();
+
     if (!detail_view_->create(parent_screen_)) {
         spdlog::error("[{}] Failed to create detail view", get_name());
         detail_view_.reset();

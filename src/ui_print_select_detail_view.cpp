@@ -25,6 +25,17 @@ PrintSelectDetailView::~PrintSelectDetailView() {
         return;
     }
 
+    // Deinitialize subjects to disconnect observers before widgets are deleted
+    // This prevents dangling pointers and frees observer linked lists
+    if (subjects_initialized_) {
+        lv_subject_deinit(&preprint_bed_leveling_);
+        lv_subject_deinit(&preprint_qgl_);
+        lv_subject_deinit(&preprint_z_tilt_);
+        lv_subject_deinit(&preprint_nozzle_clean_);
+        lv_subject_deinit(&preprint_timelapse_);
+        subjects_initialized_ = false;
+    }
+
     // Clean up confirmation dialog if open
     if (confirmation_dialog_widget_) {
         ui_modal_hide(confirmation_dialog_widget_);
@@ -41,6 +52,33 @@ PrintSelectDetailView::~PrintSelectDetailView() {
 // ============================================================================
 // Setup
 // ============================================================================
+
+void PrintSelectDetailView::init_subjects() {
+    if (subjects_initialized_) {
+        spdlog::debug("[DetailView] Subjects already initialized, skipping");
+        return;
+    }
+
+    // Enable switches default ON (1) - "perform this operation"
+    // Subject=1 means switch is checked, operation is enabled
+    lv_subject_init_int(&preprint_bed_leveling_, 1);
+    lv_subject_init_int(&preprint_qgl_, 1);
+    lv_subject_init_int(&preprint_z_tilt_, 1);
+    lv_subject_init_int(&preprint_nozzle_clean_, 1);
+
+    // Add-on switches default OFF (0) - "don't add extras by default"
+    lv_subject_init_int(&preprint_timelapse_, 0);
+
+    // Register subjects with XML system so bindings can find them
+    lv_xml_register_subject(nullptr, "preprint_bed_leveling", &preprint_bed_leveling_);
+    lv_xml_register_subject(nullptr, "preprint_qgl", &preprint_qgl_);
+    lv_xml_register_subject(nullptr, "preprint_z_tilt", &preprint_z_tilt_);
+    lv_xml_register_subject(nullptr, "preprint_nozzle_clean", &preprint_nozzle_clean_);
+    lv_xml_register_subject(nullptr, "preprint_timelapse", &preprint_timelapse_);
+
+    subjects_initialized_ = true;
+    spdlog::debug("[DetailView] Initialized pre-print option subjects");
+}
 
 bool PrintSelectDetailView::create(lv_obj_t* parent_screen) {
     if (!parent_screen) {
@@ -123,6 +161,15 @@ void PrintSelectDetailView::show(const std::string& filename, const std::string&
         spdlog::warn("[DetailView] Cannot show: widget not created");
         return;
     }
+
+    // Reset pre-print option subjects to defaults for new file
+    // Skip switches default ON (don't skip = preserve file's original behavior)
+    lv_subject_set_int(&preprint_bed_leveling_, 1);
+    lv_subject_set_int(&preprint_qgl_, 1);
+    lv_subject_set_int(&preprint_z_tilt_, 1);
+    lv_subject_set_int(&preprint_nozzle_clean_, 1);
+    // Timelapse stays OFF by default (it's an add-on feature)
+    lv_subject_set_int(&preprint_timelapse_, 0);
 
     // Cache file size for safety checks (before modification attempts)
     if (prep_manager_ && file_size_bytes > 0) {

@@ -63,6 +63,17 @@ class PrintSelectDetailView {
     // === Setup ===
 
     /**
+     * @brief Initialize subjects for pre-print option switches
+     *
+     * Creates and registers subjects that control switch default states.
+     * Skip switches (bed_leveling, qgl, z_tilt, nozzle_clean) default to ON.
+     * Add-on switches (timelapse) default to OFF.
+     *
+     * MUST be called BEFORE create() so bindings can find subjects.
+     */
+    void init_subjects();
+
+    /**
      * @brief Create the detail view widget
      *
      * Creates the print_file_detail XML component and configures it.
@@ -212,6 +223,15 @@ class PrintSelectDetailView {
     // Color requirements display
     lv_obj_t* color_requirements_card_ = nullptr;
     lv_obj_t* color_swatches_row_ = nullptr;
+
+    // Pre-print option subjects (1 = checked/enabled, 0 = unchecked/disabled)
+    // Enable switches default ON, add-on switches default OFF
+    lv_subject_t preprint_bed_leveling_{};
+    lv_subject_t preprint_qgl_{};
+    lv_subject_t preprint_z_tilt_{};
+    lv_subject_t preprint_nozzle_clean_{};
+    lv_subject_t preprint_timelapse_{};
+    bool subjects_initialized_ = false;
 
     // Print preparation manager (owns it)
     std::unique_ptr<PrintPreparationManager> prep_manager_;
