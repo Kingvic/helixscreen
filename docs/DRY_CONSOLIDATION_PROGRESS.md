@@ -88,7 +88,7 @@
 |------------|------|----------|--------------|--------|
 | CR-1 | 2025-12-28 | critical-reviewer | 3 (fixed) | ✅ Passed |
 | CR-2 | 2025-12-28 | critical-reviewer | 2 (fixed) | ✅ Passed |
-| CR-3 | - | - | - | ⏳ Pending |
+| CR-3 | 2025-12-28 | critical-reviewer | 3 (fixed) | ✅ Passed |
 
 **CR-1 Issues Fixed:**
 1. Added `is_object()` guards to all JSON extraction helpers (crash prevention)
@@ -98,6 +98,11 @@
 **CR-2 Issues Fixed:**
 1. Added exception safety try/catch wrapper in `helix::async::invoke()` callback
 2. Added warning logs when button lookup fails in modal helpers
+
+**CR-3 Issues Fixed:**
+1. Added `silent` parameter to `reject_out_of_range()` for consistency with other helpers
+2. Explicitly initialized all string fields in `from_moonraker_file()` (layer_count_str, print_height_str, original_thumbnail_url)
+3. Added unit tests for PrintFileData factory methods (6 test cases, 58 assertions)
 
 ---
 
@@ -167,6 +172,7 @@ These items are documented for opportunistic implementation when touching relate
 | `tests/unit/test_unit_conversions.cpp` | P1-8 | Unit conversion tests |
 | `include/async_helpers.h` | P0-3 | Async callback templates |
 | `src/print_file_data.cpp` | P1-10 | PrintFileData factory implementations |
+| `tests/unit/test_print_file_data.cpp` | P1-10 | PrintFileData factory tests |
 
 ## Files Modified
 
