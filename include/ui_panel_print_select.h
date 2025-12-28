@@ -14,6 +14,7 @@
 
 #include "helix_plugin_installer.h"
 #include "print_file_data.h"
+#include "print_history_manager.h"
 #include "usb_backend.h"
 
 #include <ctime>
@@ -451,6 +452,9 @@ class PrintSelectPanel : public PanelBase {
     ObserverGuard
         print_in_progress_observer_;      ///< Observes workflow in-progress for immediate disable
     ObserverGuard helix_plugin_observer_; ///< Observes plugin status for install prompt
+
+    /// Observer for PrintHistoryManager - updates file status when history changes
+    HistoryChangedCallback history_observer_;
 
     // File list change notification handler name (for unregistering)
     std::string filelist_handler_name_;

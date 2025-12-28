@@ -249,9 +249,9 @@ TEST_CASE_METHOD(HistoryManagerTestFixture, "PrintHistoryManager notifies observ
                  "[history_manager]") {
     std::atomic<int> callback_count{0};
 
-    // Given: an observer is registered
-    auto callback = [&callback_count]() { callback_count++; };
-    manager_->add_observer(callback);
+    // Given: an observer is registered (store in variable, pass pointer)
+    HistoryChangedCallback callback = [&callback_count]() { callback_count++; };
+    manager_->add_observer(&callback);
 
     // When: fetch completes
     manager_->fetch();
@@ -266,9 +266,11 @@ TEST_CASE_METHOD(HistoryManagerTestFixture, "PrintHistoryManager supports multip
     std::atomic<int> callback1_count{0};
     std::atomic<int> callback2_count{0};
 
-    // Given: multiple observers registered
-    manager_->add_observer([&callback1_count]() { callback1_count++; });
-    manager_->add_observer([&callback2_count]() { callback2_count++; });
+    // Given: multiple observers registered (store in variables, pass pointers)
+    HistoryChangedCallback callback1 = [&callback1_count]() { callback1_count++; };
+    HistoryChangedCallback callback2 = [&callback2_count]() { callback2_count++; };
+    manager_->add_observer(&callback1);
+    manager_->add_observer(&callback2);
 
     // When: fetch completes
     manager_->fetch();
@@ -320,7 +322,8 @@ TEST_CASE_METHOD(HistoryManagerTestFixture, "PrintHistoryManager can re-fetch af
 TEST_CASE_METHOD(HistoryManagerTestFixture, "PrintHistoryManager handles concurrent fetch calls",
                  "[history_manager]") {
     std::atomic<int> callback_count{0};
-    manager_->add_observer([&callback_count]() { callback_count++; });
+    HistoryChangedCallback callback = [&callback_count]() { callback_count++; };
+    manager_->add_observer(&callback);
 
     // When: multiple fetches are called rapidly
     manager_->fetch();

@@ -143,6 +143,15 @@ PrintSelectPanel::PrintSelectPanel(PrinterState& printer_state, MoonrakerAPI* ap
 }
 
 PrintSelectPanel::~PrintSelectPanel() {
+    // Remove history manager observer first (simple pointer comparison removal)
+    // Applying [L010]: No spdlog in destructors
+    if (history_observer_) {
+        auto* history_manager = get_print_history_manager();
+        if (history_manager) {
+            history_manager->remove_observer(&history_observer_);
+        }
+    }
+
     // Unregister file list change notification handler
     // CRITICAL: During static destruction, MoonrakerManager may already be destroyed
     // causing the api_ pointer to reference a destroyed client. Guard by checking
@@ -635,15 +644,16 @@ void PrintSelectPanel::setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
     }
 
     // Register observer on PrintHistoryManager to update file status when history changes
-    // (e.g., when a print completes). PrintHistoryManager uses callback-based observer pattern.
+    // (e.g., when a print completes). PrintHistoryManager uses pointer-based observer pattern.
     auto* history_manager = get_print_history_manager();
-    if (history_manager) {
-        history_manager->add_observer([this]() {
+    if (history_manager && !history_observer_) {
+        history_observer_ = [this]() {
             // This runs on main thread (PrintHistoryManager uses ui_queue_update)
             spdlog::debug("[{}] History changed, merging status into file list", get_name());
             merge_history_into_file_list();
             schedule_view_refresh(); // Debounced refresh
-        });
+        };
+        history_manager->add_observer(&history_observer_);
         spdlog::debug("[{}] Registered observer on PrintHistoryManager for history updates",
                       get_name());
     }

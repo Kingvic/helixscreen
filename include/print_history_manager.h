@@ -154,25 +154,28 @@ class PrintHistoryManager {
     // ========================================================================
 
     /**
-     * @brief Register observer callback
+     * @brief Register observer callback by pointer
      *
      * Callback is invoked (on main thread) when:
      * - fetch() completes successfully
      * - Cache is invalidated and re-fetched (via notify_history_changed)
      *
-     * @param cb Callback function (takes no arguments)
+     * IMPORTANT: Pass the address of a member variable, not a temporary.
+     * The pointer must remain valid until remove_observer() is called.
+     *
+     * @param cb Pointer to callback function (stored, not copied)
      */
-    void add_observer(HistoryChangedCallback cb);
+    void add_observer(HistoryChangedCallback* cb);
 
     /**
-     * @brief Remove observer callback
+     * @brief Remove observer callback by pointer
      *
-     * Note: Removal is by function pointer comparison, so lambdas
-     * stored in variables can be removed. Anonymous lambdas cannot.
+     * Removes the callback registered with add_observer(). Uses pointer
+     * comparison, so this actually works (unlike std::function comparison).
      *
-     * @param cb Callback to remove
+     * @param cb Pointer to callback to remove
      */
-    void remove_observer(HistoryChangedCallback cb);
+    void remove_observer(HistoryChangedCallback* cb);
 
   private:
     /**
@@ -209,8 +212,8 @@ class PrintHistoryManager {
     std::vector<PrintHistoryJob> cached_jobs_;
     std::unordered_map<std::string, PrintHistoryStats> filename_stats_;
 
-    // Observers
-    std::vector<HistoryChangedCallback> observers_;
+    // Observers (stored as pointers for reliable removal)
+    std::vector<HistoryChangedCallback*> observers_;
 
     // State
     bool is_loaded_ = false;

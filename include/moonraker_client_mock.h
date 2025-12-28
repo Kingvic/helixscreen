@@ -335,6 +335,20 @@ class MoonrakerClientMock : public MoonrakerClient {
      */
     void set_bed_target(double target);
 
+    // ========== Test Helpers ==========
+
+    /**
+     * @brief Dispatch a method callback to registered handlers
+     *
+     * FOR TESTING ONLY. Invokes all registered callbacks for the given method
+     * with the provided message. Used by unit tests to simulate WebSocket
+     * notifications without actual network I/O.
+     *
+     * @param method Method name (e.g., "notify_gcode_response")
+     * @param msg JSON message to pass to callbacks
+     */
+    void dispatch_method_callback(const std::string& method, const json& msg);
+
     // ========== Internal API (for use by method handler modules) ==========
 
     /**

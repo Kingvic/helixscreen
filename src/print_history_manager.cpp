@@ -85,17 +85,23 @@ void PrintHistoryManager::invalidate() {
 // Observer Pattern
 // ============================================================================
 
-void PrintHistoryManager::add_observer(HistoryChangedCallback cb) {
-    if (cb) {
-        observers_.push_back(std::move(cb));
+void PrintHistoryManager::add_observer(HistoryChangedCallback* cb) {
+    if (cb && *cb) {
+        observers_.push_back(cb);
+        spdlog::debug("[HistoryManager] Added observer (total: {})", observers_.size());
     }
 }
 
-void PrintHistoryManager::remove_observer(HistoryChangedCallback cb) {
-    // Note: std::function doesn't support direct comparison
-    // For now, observers stay registered for the lifetime of the manager
-    // Panels should use weak_ptr pattern or check validity in callback
-    (void)cb;
+void PrintHistoryManager::remove_observer(HistoryChangedCallback* cb) {
+    if (!cb) {
+        return;
+    }
+
+    auto it = std::find(observers_.begin(), observers_.end(), cb);
+    if (it != observers_.end()) {
+        observers_.erase(it);
+        spdlog::debug("[HistoryManager] Removed observer (remaining: {})", observers_.size());
+    }
 }
 
 // ============================================================================
@@ -162,9 +168,9 @@ std::vector<PrintHistoryJob> PrintHistoryManager::get_jobs_since(double since) c
 }
 
 void PrintHistoryManager::notify_observers() {
-    for (const auto& cb : observers_) {
-        if (cb) {
-            cb();
+    for (auto* cb : observers_) {
+        if (cb && *cb) {
+            (*cb)();
         }
     }
 }

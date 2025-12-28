@@ -455,10 +455,11 @@ TEST_CASE("PrintStart: typical noise lines should not match phases", "[print][ne
 // - HELIX:PHASE:COMPLETE -> sets COMPLETE phase
 // - Various phase transitions
 
+#include "ui_update_queue.h"
+
 #include "../lvgl_test_fixture.h"
 #include "moonraker_client_mock.h"
 #include "print_start_collector.h"
-#include "ui_update_queue.h"
 
 /**
  * @brief HELIX:PHASE signal parser for direct testing
@@ -535,9 +536,15 @@ class PrintStartCollectorHeaterFixture : public LVGLTestFixture {
         client_.reset();
     }
 
-    PrinterState& state() { return state_; }
-    MoonrakerClientMock& client() { return *client_; }
-    PrintStartCollector& collector() { return *collector_; }
+    PrinterState& state() {
+        return state_;
+    }
+    MoonrakerClientMock& client() {
+        return *client_;
+    }
+    PrintStartCollector& collector() {
+        return *collector_;
+    }
 
     /**
      * @brief Get current print start phase from PrinterState subject
@@ -595,7 +602,9 @@ class PrintStartCollectorHeaterFixture : public LVGLTestFixture {
      * Since set_print_start_state() uses ui_async_call() to defer subject updates,
      * we need to drain the queue to see the updates in tests.
      */
-    void drain_async_updates() { helix::ui::UpdateQueue::instance().drain_queue_for_testing(); }
+    void drain_async_updates() {
+        helix::ui::UpdateQueue::instance().drain_queue_for_testing();
+    }
 
   protected:
     PrinterState state_;
@@ -877,9 +886,10 @@ TEST_CASE_METHOD(PrintStartCollectorHeaterFixture,
     }
 }
 
-TEST_CASE_METHOD(PrintStartCollectorHeaterFixture,
-                 "Proactive detection: bed at >=50% of target does not trigger HEATING_BED directly",
-                 "[print][collector][proactive][heating]") {
+TEST_CASE_METHOD(
+    PrintStartCollectorHeaterFixture,
+    "Proactive detection: bed at >=50% of target does not trigger HEATING_BED directly",
+    "[print][collector][proactive][heating]") {
     collector().start();
     drain_async_updates();
     collector().enable_fallbacks();
@@ -1175,7 +1185,7 @@ TEST_CASE_METHOD(PrintStartCollectorHeaterFixture,
     set_all_temps(200, 600, 500, 2100);
 
     collector().check_fallback_completion();
-        drain_async_updates();
+    drain_async_updates();
 
     // Fallbacks not enabled, so no proactive detection
     REQUIRE(get_current_phase() == PrintStartPhase::IDLE);
@@ -1190,7 +1200,7 @@ TEST_CASE_METHOD(PrintStartCollectorHeaterFixture,
     set_all_temps(200, 600, 500, 2100);
 
     collector().check_fallback_completion();
-        drain_async_updates();
+    drain_async_updates();
 
     // Collector not active, so no detection
     REQUIRE(get_current_phase() == PrintStartPhase::IDLE);

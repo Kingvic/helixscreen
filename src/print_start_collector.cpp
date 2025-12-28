@@ -133,7 +133,8 @@ void PrintStartCollector::start() {
         // Check _START_PRINT.print_started (AD5M KAMP macro)
         if (status.contains("gcode_macro _START_PRINT")) {
             const auto& macro = status["gcode_macro _START_PRINT"];
-            if (macro.contains("print_started") && macro["print_started"].get<bool>()) {
+            if (macro.contains("print_started") && macro["print_started"].is_boolean() &&
+                macro["print_started"].get<bool>()) {
                 spdlog::info("[PrintStartCollector] Macro signal: print_started=true");
                 self->update_phase(PrintStartPhase::COMPLETE, "Starting Print...");
                 return;
@@ -143,7 +144,8 @@ void PrintStartCollector::start() {
         // Check START_PRINT.preparation_done
         if (status.contains("gcode_macro START_PRINT")) {
             const auto& macro = status["gcode_macro START_PRINT"];
-            if (macro.contains("preparation_done") && macro["preparation_done"].get<bool>()) {
+            if (macro.contains("preparation_done") && macro["preparation_done"].is_boolean() &&
+                macro["preparation_done"].get<bool>()) {
                 spdlog::info("[PrintStartCollector] Macro signal: preparation_done=true");
                 self->update_phase(PrintStartPhase::COMPLETE, "Starting Print...");
                 return;
@@ -153,7 +155,8 @@ void PrintStartCollector::start() {
         // Check _HELIX_STATE.print_started (our custom macro)
         if (status.contains("gcode_macro _HELIX_STATE")) {
             const auto& macro = status["gcode_macro _HELIX_STATE"];
-            if (macro.contains("print_started") && macro["print_started"].get<bool>()) {
+            if (macro.contains("print_started") && macro["print_started"].is_boolean() &&
+                macro["print_started"].get<bool>()) {
                 spdlog::info("[PrintStartCollector] Helix macro signal: print_started=true");
                 self->update_phase(PrintStartPhase::COMPLETE, "Starting Print...");
                 return;

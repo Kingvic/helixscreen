@@ -38,8 +38,9 @@ HistoryListPanel& get_global_history_list_panel() {
     return *g_history_list_panel;
 }
 
-void init_global_history_list_panel(PrinterState& printer_state, MoonrakerAPI* api) {
-    g_history_list_panel = std::make_unique<HistoryListPanel>(printer_state, api);
+void init_global_history_list_panel(PrinterState& printer_state, MoonrakerAPI* api,
+                                    PrintHistoryManager* history_manager) {
+    g_history_list_panel = std::make_unique<HistoryListPanel>(printer_state, api, history_manager);
 
     // Register XML event callbacks (must be done BEFORE XML is created)
     lv_xml_register_event_cb(nullptr, "history_search_changed",
@@ -64,9 +65,18 @@ void init_global_history_list_panel(PrinterState& printer_state, MoonrakerAPI* a
 // Constructor
 // ============================================================================
 
-HistoryListPanel::HistoryListPanel(PrinterState& printer_state, MoonrakerAPI* api)
-    : PanelBase(printer_state, api) {
+HistoryListPanel::HistoryListPanel(PrinterState& printer_state, MoonrakerAPI* api,
+                                   PrintHistoryManager* history_manager)
+    : PanelBase(printer_state, api), history_manager_(history_manager) {
     spdlog::debug("[{}] Constructed", get_name());
+}
+
+// Destructor - remove observer from history manager
+// Applying [L010]: No spdlog in destructors - logger may be destroyed first
+HistoryListPanel::~HistoryListPanel() {
+    if (history_manager_ && history_observer_) {
+        history_manager_->remove_observer(&history_observer_);
+    }
 }
 
 // ============================================================================
@@ -166,13 +176,42 @@ void HistoryListPanel::on_activate() {
     spdlog::debug("[{}] Activated - jobs_received: {}, job_count: {}", get_name(), jobs_received_,
                   jobs_.size());
 
-    if (!jobs_received_) {
+    // Register as history manager observer if manager available
+    if (history_manager_ && !history_observer_) {
+        history_observer_ = [this]() {
+            if (!is_active_) {
+                return;
+            }
+            spdlog::debug("[{}] History manager notified - refreshing", get_name());
+            // Get fresh data from manager and re-apply filters
+            if (history_manager_->is_loaded()) {
+                jobs_ = history_manager_->get_jobs();
+                apply_filters_and_sort();
+            }
+        };
+        history_manager_->add_observer(&history_observer_);
+    }
+
+    // Try to use manager data first (shared cache - DRY)
+    if (history_manager_ && history_manager_->is_loaded()) {
+        jobs_ = history_manager_->get_jobs();
+        jobs_received_ = true;
+        spdlog::debug("[{}] Using {} jobs from shared manager cache", get_name(), jobs_.size());
+        apply_filters_and_sort();
+    } else if (!jobs_received_) {
         // Show loading state while fetching from API
         lv_subject_set_int(&subject_panel_state_, 0); // LOADING
-        // Jobs weren't set by dashboard, fetch from API
-        refresh_from_api();
+
+        // Trigger manager fetch if available, otherwise direct API call
+        if (history_manager_) {
+            spdlog::debug("[{}] Manager not loaded, triggering fetch", get_name());
+            history_manager_->fetch();
+        } else {
+            // Fallback: Jobs weren't set by dashboard, fetch from API
+            refresh_from_api();
+        }
     } else {
-        // Jobs were provided, apply filters and populate the list
+        // Jobs were provided via set_jobs(), apply filters and populate the list
         apply_filters_and_sort();
     }
 }
@@ -180,6 +219,12 @@ void HistoryListPanel::on_activate() {
 void HistoryListPanel::on_deactivate() {
     is_active_ = false;
     spdlog::debug("[{}] Deactivated", get_name());
+
+    // Remove history manager observer
+    if (history_manager_ && history_observer_) {
+        history_manager_->remove_observer(&history_observer_);
+        history_observer_ = nullptr;
+    }
 
     // Cancel any pending search timer
     if (search_timer_) {

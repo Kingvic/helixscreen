@@ -656,12 +656,14 @@ void MoonrakerClient::dispatch_status_update(const json& status) {
         // Also extract build volume from bed_mesh bounds for printer detection
         const json& mesh = status["bed_mesh"];
         if (mesh.contains("mesh_min") && mesh["mesh_min"].is_array() &&
-            mesh["mesh_min"].size() >= 2) {
+            mesh["mesh_min"].size() >= 2 && mesh["mesh_min"][0].is_number() &&
+            mesh["mesh_min"][1].is_number()) {
             build_volume_.x_min = mesh["mesh_min"][0].get<float>();
             build_volume_.y_min = mesh["mesh_min"][1].get<float>();
         }
         if (mesh.contains("mesh_max") && mesh["mesh_max"].is_array() &&
-            mesh["mesh_max"].size() >= 2) {
+            mesh["mesh_max"].size() >= 2 && mesh["mesh_max"][0].is_number() &&
+            mesh["mesh_max"][1].is_number()) {
             build_volume_.x_max = mesh["mesh_max"][0].get<float>();
             build_volume_.y_max = mesh["mesh_max"][1].get<float>();
             spdlog::debug("[Moonraker Client] Build volume from mesh: [{:.0f},{:.0f}] to "

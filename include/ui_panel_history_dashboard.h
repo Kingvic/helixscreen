@@ -7,6 +7,7 @@
 #include "ui_panel_base.h"
 
 #include "print_history_data.h"
+#include "print_history_manager.h"
 
 #include <vector>
 
@@ -45,10 +46,12 @@ class HistoryDashboardPanel : public PanelBase {
      *
      * @param printer_state Reference to PrinterState
      * @param api Pointer to MoonrakerAPI
+     * @param history_manager Pointer to PrintHistoryManager (shared cache)
      */
-    HistoryDashboardPanel(PrinterState& printer_state, MoonrakerAPI* api);
+    HistoryDashboardPanel(PrinterState& printer_state, MoonrakerAPI* api,
+                          PrintHistoryManager* history_manager);
 
-    ~HistoryDashboardPanel() override = default;
+    ~HistoryDashboardPanel() override;
 
     //
     // === PanelBase Implementation ===
@@ -168,15 +171,24 @@ class HistoryDashboardPanel : public PanelBase {
     std::vector<lv_obj_t*> filament_bar_rows_;
 
     //
+    // === Dependencies ===
+    //
+
+    PrintHistoryManager* history_manager_ = nullptr; ///< Shared history cache (DRY)
+
+    //
     // === State ===
     //
 
     HistoryTimeFilter current_filter_ = HistoryTimeFilter::ALL_TIME;
-    std::vector<PrintHistoryJob> cached_jobs_;
-    bool is_active_ = false; // Track if panel is currently visible
+    std::vector<PrintHistoryJob> cached_jobs_; ///< Time-filtered subset for get_cached_jobs()
+    bool is_active_ = false;                   ///< Track if panel is currently visible
 
     // Connection state observer to auto-refresh when connected (ObserverGuard handles cleanup)
     ObserverGuard connection_observer_;
+
+    /// Observer callback for history manager changes
+    HistoryChangedCallback history_observer_;
 
     // Subject for empty state binding (must persist for LVGL binding lifetime)
     lv_subject_t history_has_jobs_subject_;
@@ -285,5 +297,7 @@ HistoryDashboardPanel& get_global_history_dashboard_panel();
  *
  * @param printer_state Reference to PrinterState
  * @param api Pointer to MoonrakerAPI
+ * @param history_manager Pointer to PrintHistoryManager (shared cache)
  */
-void init_global_history_dashboard_panel(PrinterState& printer_state, MoonrakerAPI* api);
+void init_global_history_dashboard_panel(PrinterState& printer_state, MoonrakerAPI* api,
+                                         PrintHistoryManager* history_manager);

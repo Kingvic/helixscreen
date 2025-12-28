@@ -171,10 +171,10 @@ void SubjectInitializer::init_panel_subjects() {
     init_global_spoolman_panel(get_printer_state(), nullptr);
     get_global_spoolman_panel().init_subjects();
 
-    init_global_history_dashboard_panel(get_printer_state(), nullptr);
+    init_global_history_dashboard_panel(get_printer_state(), nullptr, get_print_history_manager());
     get_global_history_dashboard_panel().init_subjects();
 
-    init_global_history_list_panel(get_printer_state(), nullptr);
+    init_global_history_list_panel(get_printer_state(), nullptr, get_print_history_manager());
     get_global_history_list_panel().init_subjects();
 
     // Settings overlays

@@ -550,12 +550,9 @@ std::string PrintPreparationManager::format_preprint_steps() const {
             if (!caps.empty()) {
                 // Map capability keys to friendly names
                 static const std::map<std::string, std::string> cap_friendly_names = {
-                    {"bed_leveling", "Bed leveling"},
-                    {"qgl", "Quad gantry leveling"},
-                    {"z_tilt", "Z-tilt adjustment"},
-                    {"nozzle_clean", "Nozzle cleaning"},
-                    {"priming", "Nozzle priming"},
-                    {"skew_correct", "Skew correction"},
+                    {"bed_leveling", "Bed leveling"},      {"qgl", "Quad gantry leveling"},
+                    {"z_tilt", "Z-tilt adjustment"},       {"nozzle_clean", "Nozzle cleaning"},
+                    {"priming", "Nozzle priming"},         {"skew_correct", "Skew correction"},
                     {"chamber_soak", "Chamber heat soak"},
                 };
 
@@ -569,9 +566,8 @@ std::string PrintPreparationManager::format_preprint_steps() const {
                         // Capabilities from database are skippable via macro params
                         ops[cap_key] = UnifiedOp{name, true};
 
-                        spdlog::debug(
-                            "[PrintPreparationManager] From CAPABILITY DB: {} (key={})", name,
-                            cap_key);
+                        spdlog::debug("[PrintPreparationManager] From CAPABILITY DB: {} (key={})",
+                                      name, cap_key);
                     }
                 }
             }

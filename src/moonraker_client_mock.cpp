@@ -1875,6 +1875,25 @@ void MoonrakerClientMock::set_bed_target(double target) {
     bed_target_.store(target);
 }
 
+void MoonrakerClientMock::dispatch_method_callback(const std::string& method, const json& msg) {
+    std::vector<std::function<void(json)>> callbacks_to_invoke;
+
+    {
+        std::lock_guard<std::mutex> lock(callbacks_mutex_);
+        auto method_it = method_callbacks_.find(method);
+        if (method_it != method_callbacks_.end()) {
+            for (auto& [handler_name, cb] : method_it->second) {
+                callbacks_to_invoke.push_back(cb);
+            }
+        }
+    }
+
+    // Invoke callbacks outside the lock to prevent deadlocks
+    for (auto& cb : callbacks_to_invoke) {
+        cb(msg);
+    }
+}
+
 void MoonrakerClientMock::start_temperature_simulation() {
     // Use exchange for atomic check-and-set - prevents race condition if called concurrently
     if (simulation_running_.exchange(true)) {

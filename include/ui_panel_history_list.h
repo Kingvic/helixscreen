@@ -7,6 +7,7 @@
 #include "ui_panel_base.h"
 
 #include "print_history_data.h"
+#include "print_history_manager.h"
 
 #include <string>
 #include <vector>
@@ -80,10 +81,12 @@ class HistoryListPanel : public PanelBase {
      *
      * @param printer_state Reference to PrinterState
      * @param api Pointer to MoonrakerAPI
+     * @param history_manager Pointer to PrintHistoryManager (shared cache)
      */
-    HistoryListPanel(PrinterState& printer_state, MoonrakerAPI* api);
+    HistoryListPanel(PrinterState& printer_state, MoonrakerAPI* api,
+                     PrintHistoryManager* history_manager);
 
-    ~HistoryListPanel() override = default;
+    ~HistoryListPanel() override;
 
     //
     // === PanelBase Implementation ===
@@ -231,6 +234,15 @@ class HistoryListPanel : public PanelBase {
 
     // Connection state observer to auto-refresh when connected (ObserverGuard handles cleanup)
     ObserverGuard connection_observer_;
+
+    //
+    // === Dependencies ===
+    //
+
+    PrintHistoryManager* history_manager_ = nullptr; ///< Shared history cache (DRY)
+
+    /// Observer callback for history manager changes
+    HistoryChangedCallback history_observer_;
 
     // Pagination state for infinite scroll
     static constexpr int PAGE_SIZE = 100; ///< Jobs per API request
@@ -511,5 +523,7 @@ HistoryListPanel& get_global_history_list_panel();
  *
  * @param printer_state Reference to PrinterState
  * @param api Pointer to MoonrakerAPI
+ * @param history_manager Pointer to PrintHistoryManager (shared cache)
  */
-void init_global_history_list_panel(PrinterState& printer_state, MoonrakerAPI* api);
+void init_global_history_list_panel(PrinterState& printer_state, MoonrakerAPI* api,
+                                    PrintHistoryManager* history_manager);

@@ -36,8 +36,10 @@ HistoryDashboardPanel& get_global_history_dashboard_panel() {
     return *g_history_dashboard_panel;
 }
 
-void init_global_history_dashboard_panel(PrinterState& printer_state, MoonrakerAPI* api) {
-    g_history_dashboard_panel = std::make_unique<HistoryDashboardPanel>(printer_state, api);
+void init_global_history_dashboard_panel(PrinterState& printer_state, MoonrakerAPI* api,
+                                         PrintHistoryManager* history_manager) {
+    g_history_dashboard_panel =
+        std::make_unique<HistoryDashboardPanel>(printer_state, api, history_manager);
 
     // Register XML event callbacks (must be done before XML is created)
     lv_xml_register_event_cb(nullptr, "history_filter_day_clicked",
@@ -63,9 +65,18 @@ void init_global_history_dashboard_panel(PrinterState& printer_state, MoonrakerA
 // CONSTRUCTOR
 // ============================================================================
 
-HistoryDashboardPanel::HistoryDashboardPanel(PrinterState& printer_state, MoonrakerAPI* api)
-    : PanelBase(printer_state, api) {
+HistoryDashboardPanel::HistoryDashboardPanel(PrinterState& printer_state, MoonrakerAPI* api,
+                                             PrintHistoryManager* history_manager)
+    : PanelBase(printer_state, api), history_manager_(history_manager) {
     spdlog::trace("[{}] Constructor", get_name());
+}
+
+// Destructor - remove observer from history manager
+// Applying [L010]: No spdlog in destructors - logger may be destroyed first
+HistoryDashboardPanel::~HistoryDashboardPanel() {
+    if (history_manager_ && history_observer_) {
+        history_manager_->remove_observer(&history_observer_);
+    }
 }
 
 // ============================================================================
@@ -175,6 +186,19 @@ void HistoryDashboardPanel::setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
 
 void HistoryDashboardPanel::on_activate() {
     is_active_ = true;
+
+    // Register as observer of history manager to refresh when data changes
+    // Guard: only register if not already registered (prevents double-registration)
+    if (history_manager_ && !history_observer_) {
+        history_observer_ = [this]() {
+            if (is_active_) {
+                spdlog::debug("[{}] History changed - refreshing data", get_name());
+                refresh_data();
+            }
+        };
+        history_manager_->add_observer(&history_observer_);
+    }
+
     spdlog::debug("[{}] Activated - refreshing data with filter {}", get_name(),
                   static_cast<int>(current_filter_));
     refresh_data();
@@ -182,6 +206,13 @@ void HistoryDashboardPanel::on_activate() {
 
 void HistoryDashboardPanel::on_deactivate() {
     is_active_ = false;
+
+    // Remove observer to prevent callbacks when panel is not visible
+    if (history_manager_ && history_observer_) {
+        history_manager_->remove_observer(&history_observer_);
+        history_observer_ = nullptr;
+    }
+
     spdlog::debug("[{}] Deactivated", get_name());
 }
 
@@ -208,17 +239,16 @@ void HistoryDashboardPanel::set_time_filter(HistoryTimeFilter filter) {
 // ============================================================================
 
 void HistoryDashboardPanel::refresh_data() {
-    if (!api_) {
-        spdlog::warn("[{}] No API available", get_name());
+    if (!history_manager_) {
+        spdlog::warn("[{}] No history manager available", get_name());
         return;
     }
 
-    // Check if WebSocket is actually connected before attempting to send requests
-    // This prevents the race condition where the panel is opened before connection is established
-    ConnectionState state = api_->get_client().get_connection_state();
-    if (state != ConnectionState::CONNECTED) {
-        spdlog::debug("[{}] Cannot fetch history: not connected (state={})", get_name(),
-                      static_cast<int>(state));
+    // If manager hasn't loaded data yet, trigger a fetch
+    // The observer callback will call refresh_data() again when data arrives
+    if (!history_manager_->is_loaded()) {
+        spdlog::debug("[{}] History not loaded, triggering fetch", get_name());
+        history_manager_->fetch();
         return;
     }
 
@@ -245,24 +275,15 @@ void HistoryDashboardPanel::refresh_data() {
         break;
     }
 
-    spdlog::debug("[{}] Fetching history since {} (filter={})", get_name(), since,
+    spdlog::debug("[{}] Filtering history since {} (filter={})", get_name(), since,
                   static_cast<int>(current_filter_));
 
-    // Fetch with reasonable limit - dashboard just needs aggregate stats
-    // Keep at 100 to ensure small response size (~160KB max)
-    api_->get_history_list(
-        100, // limit
-        0,   // start
-        since, 0.0,
-        [this](const std::vector<PrintHistoryJob>& jobs, uint64_t total_count) {
-            spdlog::info("[{}] Received {} jobs (total: {})", get_name(), jobs.size(), total_count);
-            cached_jobs_ = jobs;
-            update_statistics(jobs);
-        },
-        [this](const MoonrakerError& error) {
-            spdlog::error("[{}] Failed to fetch history: {}", get_name(), error.message);
-            ui_toast_show(ToastSeverity::ERROR, "Failed to load print history", 3000);
-        });
+    // Get time-filtered jobs from manager (DRY: uses shared cache)
+    cached_jobs_ = history_manager_->get_jobs_since(since);
+    spdlog::info("[{}] Got {} jobs from manager (filter={})", get_name(), cached_jobs_.size(),
+                 static_cast<int>(current_filter_));
+
+    update_statistics(cached_jobs_);
 }
 
 void HistoryDashboardPanel::update_statistics(const std::vector<PrintHistoryJob>& jobs) {
