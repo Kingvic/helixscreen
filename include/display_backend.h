@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//
-// HelixScreen - Display Backend Abstraction
-//
-// This module provides platform-independent display initialization,
-// allowing HelixScreen to run on:
-// - Desktop (SDL2) for development
-// - Raspberry Pi (DRM/KMS or framebuffer)
-// - Adventurer 5M (framebuffer)
+
+/**
+ * @file display_backend.h
+ * @brief Abstract platform-independent interface for display and input initialization
+ *
+ * @pattern Pure virtual interface + static create()/create_auto() factory methods
+ * @threading Implementation-dependent; see concrete implementations
+ *
+ * @see display_backend_sdl.cpp, display_backend_fbdev.cpp
+ */
 
 #pragma once
 

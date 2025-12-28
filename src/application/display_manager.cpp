@@ -1,5 +1,15 @@
 // Copyright 2025 HelixScreen
 // SPDX-License-Identifier: GPL-3.0-or-later
+/**
+ * @file display_manager.cpp
+ * @brief LVGL display and input device lifecycle management
+ *
+ * @pattern Manager wrapping DisplayBackend with RAII lifecycle
+ * @threading Main thread only
+ * @gotchas NEVER call lv_display_delete/lv_group_delete manually - lv_deinit() handles all cleanup
+ *
+ * @see application.cpp
+ */
 
 #include "display_manager.h"
 

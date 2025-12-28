@@ -1,5 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright 2025 HelixScreen
+/**
+ * @file application.cpp
+ * @brief Application lifecycle orchestrator - startup, main loop, and shutdown coordination
+ *
+ * @pattern Singleton orchestrator with ordered dependency initialization/teardown
+ * @threading Main thread only; shutdown guards against double-call
+ * @gotchas Must call spdlog::shutdown() LAST; m_shutdown_complete prevents destructor re-entry
+ *
+ * @see display_manager.cpp, moonraker_manager.cpp
+ */
 
 #include "application.h"
 

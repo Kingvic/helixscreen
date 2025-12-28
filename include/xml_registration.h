@@ -1,13 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-#pragma once
 
 /**
  * @file xml_registration.h
- * @brief XML component and font/image registration for LVGL
+ * @brief XML component and font registration in correct dependency order
  *
- * Consolidates all LVGL XML registration into a single module.
- * Must be called after LVGL and theme initialization, before UI creation.
+ * @pattern Two-phase: register_fonts_and_images() -> register_xml_components()
+ * @threading Main thread only; must complete before UI creation
+ * @gotchas Fonts need BOTH lv_conf.h enable AND lv_xml_register_font() - missing either silently
+ * falls back
  */
+
+#pragma once
 
 namespace helix {
 

@@ -1,6 +1,16 @@
 // Copyright 2025 HelixScreen
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+/**
+ * @file wifi_backend.h
+ * @brief Abstract platform-independent interface for WiFi operations
+ *
+ * @pattern Pure virtual interface + static create()/create_auto() factory methods
+ * @threading Implementation-dependent; see concrete implementations
+ *
+ * @see wifi_backend_wpa_supplicant.cpp, wifi_backend_macos.cpp
+ */
+
 #pragma once
 
 #include <functional>

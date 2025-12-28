@@ -1,6 +1,16 @@
 // Copyright 2025 HelixScreen
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+/**
+ * @file runtime_config.h
+ * @brief Test mode flags and mock backend selection at runtime
+ *
+ * @pattern Runtime conditionals instead of compile-time #ifdefs
+ * @threading Set once at startup; read-only thereafter
+ *
+ * @see should_mock_wifi(), should_mock_moonraker() for mock selection pattern
+ */
+
 #pragma once
 
 #include <cstdio>      // For snprintf in get_default_test_file_path()

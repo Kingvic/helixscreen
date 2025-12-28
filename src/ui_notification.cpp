@@ -1,6 +1,16 @@
 // Copyright 2025 HelixScreen
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+/**
+ * @file ui_notification.cpp
+ * @brief Thread-safe notification toast system callable from any thread
+ *
+ * @pattern Auto-detects background thread context; marshals to main thread
+ * @threading Safe from any thread - automatically uses ui_async_call() when needed
+ *
+ * @see "Thread-safe:" comment in show() implementation
+ */
+
 #include "ui_notification.h"
 
 #include "ui_modal.h"

@@ -1,6 +1,15 @@
 // Copyright 2025 HelixScreen
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+/**
+ * @file ui_panel_print_select.cpp
+ * @brief Print file selection panel with file browser and metadata display
+ *
+ * @pattern Panel with deferred dependency propagation
+ * @threading File operations may be async
+ * @gotchas set_api() must propagate to file_provider_->set_api()
+ */
+
 #include "ui_panel_print_select.h"
 
 #include "ui_error_reporting.h"

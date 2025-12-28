@@ -1,6 +1,15 @@
 // Copyright 2025 HelixScreen
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+/**
+ * @file ui_modal.h
+ * @brief Unified modal system with RAII lifecycle, backdrop, stacking, and animations
+ *
+ * @pattern RAII lifecycle; subclass hooks (on_show/on_ok/on_cancel); ModalStack singleton
+ * @threading Main thread only
+ * @gotchas Both static and instance show() methods; mark_exiting() flag for animation state
+ */
+
 #pragma once
 
 #include "lvgl/lvgl.h"

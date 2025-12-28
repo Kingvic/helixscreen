@@ -1,6 +1,16 @@
 // Copyright 2025 HelixScreen
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+/**
+ * @file ui_panel_base.h
+ * @brief Abstract base class for all UI panels with lifecycle hooks
+ *
+ * @pattern Two-phase init (init_subjects -> XML -> setup); RAII observer cleanup
+ * @threading Main thread only
+ *
+ * @see ui_panel_bed_mesh.cpp for gold standard implementation
+ */
+
 #pragma once
 
 #include "lvgl/lvgl.h"
@@ -13,14 +23,13 @@ class PrinterState;
 class MoonrakerAPI;
 
 /**
- * @file ui_panel_base.h
  * @brief Abstract base class for all UI panels
  *
  * Provides shared infrastructure for panels including:
  * - Dependency injection (PrinterState, MoonrakerAPI)
  * - RAII observer management (automatic cleanup in destructor)
  * - Move semantics support for std::unique_ptr ownership
- * - Two-phase initialization (init_subjects → XML creation → setup)
+ * - Two-phase initialization (init_subjects -> XML creation -> setup)
  *
  * ## Usage Pattern:
  *

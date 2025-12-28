@@ -1,6 +1,15 @@
 // Copyright 2025 HelixScreen
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+/**
+ * @file ui_observer_guard.h
+ * @brief RAII wrapper for LVGL observer cleanup
+ *
+ * @pattern Guard that removes observer on destruction; release() for pre-destroyed subjects
+ * @threading Main thread only
+ * @gotchas Checks lv_is_initialized() - safe during LVGL shutdown
+ */
+
 #pragma once
 
 #include "lvgl/lvgl.h"

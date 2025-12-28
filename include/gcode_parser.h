@@ -10,6 +10,15 @@
  * See <https://www.gnu.org/licenses/>.
  */
 
+/**
+ * @file gcode_parser.h
+ * @brief Streaming G-code parser extracting toolpath, layers, and metadata
+ *
+ * @pattern Line-by-line streaming (no full buffer); layer-indexed geometry
+ * @threading Main thread only
+ * @gotchas clear_segments() frees 40-160MB after geometry build; layer detection via Z changes
+ */
+
 #pragma once
 
 #include <glm/glm.hpp>
@@ -18,24 +27,6 @@
 #include <memory>
 #include <string>
 #include <vector>
-
-/**
- * @file gcode_parser.h
- * @brief Streaming G-code parser for 3D printer toolpath extraction
- *
- * This parser incrementally processes G-code files line-by-line, extracting
- * movement commands (G0/G1) and building a layer-indexed representation of
- * the toolpath. It also parses Klipper EXCLUDE_OBJECT metadata for object
- * exclusion support.
- *
- * Design goals:
- * - Streaming: Process large files without full buffering
- * - Layer-indexed: Fast access to specific Z-height layers
- * - Object-aware: Track segments belonging to named objects
- * - Efficient: Minimal memory overhead per segment (~32 bytes)
- *
- * @see docs/GCODE_VISUALIZATION.md for complete design
- */
 
 namespace helix {
 namespace gcode {

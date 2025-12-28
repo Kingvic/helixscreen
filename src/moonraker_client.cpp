@@ -1,5 +1,16 @@
 // Copyright 2025 HelixScreen
 // SPDX-License-Identifier: GPL-3.0-or-later
+/**
+ * @file moonraker_client.cpp
+ * @brief WebSocket client for Moonraker printer API communication
+ *
+ * @pattern libhv WebSocketClient with atomic state machine
+ * @threading Callbacks run on libhv event loop thread - use ui_async_call() for LVGL
+ * @gotchas is_destroying_ flag blocks callbacks during destruction; skip cleanup during static
+ * destruction
+ *
+ * @see moonraker_manager.cpp, printer_state.cpp
+ */
 
 #include "moonraker_client.h"
 

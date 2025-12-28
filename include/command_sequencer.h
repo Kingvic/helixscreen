@@ -1,6 +1,16 @@
 // Copyright 2025 356C LLC
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+/**
+ * @file command_sequencer.h
+ * @brief Multi-step printer operation queue with state-based completion detection
+ *
+ * @pattern Thread-safe state machine with atomics (IDLE->RUNNING->WAITING->COMPLETED/FAILED)
+ * @threading Safe for concurrent access; mutex protects callbacks; atomics for state
+ * @gotchas Destructor cancels operations; non-copyable subscription state; 2-level cancellation
+ * escalation
+ */
+
 #pragma once
 
 #include "gcode_ops_detector.h"

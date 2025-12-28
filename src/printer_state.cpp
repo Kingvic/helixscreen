@@ -1,5 +1,15 @@
 // Copyright 2025 HelixScreen
 // SPDX-License-Identifier: GPL-3.0-or-later
+/**
+ * @file printer_state.cpp
+ * @brief Reactive printer state model with LVGL subjects for all printer data
+ *
+ * @pattern Singleton with set_*() -> set_*_internal() for thread-safe updates
+ * @threading Public setters called from WebSocket; internal setters run on main thread
+ * @gotchas Static string buffers; init subjects before XML; temps in centidegrees
+ *
+ * @see moonraker_client.cpp, ui_update_queue.h
+ */
 
 #include "printer_state.h"
 

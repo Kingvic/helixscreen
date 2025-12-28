@@ -1,5 +1,15 @@
 // Copyright 2025 HelixScreen
 // SPDX-License-Identifier: GPL-3.0-or-later
+/**
+ * @file wifi_manager.cpp
+ * @brief High-level WiFi operations manager wrapping platform backends
+ *
+ * @pattern Manager with weak self_ reference for callback safety
+ * @threading Backend callbacks may run on background thread
+ * @gotchas Uses fprintf in destructor instead of spdlog; clears callbacks BEFORE stopping backend
+ *
+ * @see wifi_backend.cpp
+ */
 
 #include "wifi_manager.h"
 

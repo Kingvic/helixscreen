@@ -1,6 +1,15 @@
 // Copyright 2025 HelixScreen
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+/**
+ * @file ui_icon.h
+ * @brief Font-based Material Design Icons with semantic sizing and coloring
+ *
+ * @pattern Semantic variants (primary/secondary/success/error) instead of hardcoded colors
+ * @threading Main thread only
+ * @gotchas Must call ui_icon_register_widget() BEFORE loading icon.xml
+ */
+
 #pragma once
 
 #include "lvgl/lvgl.h"

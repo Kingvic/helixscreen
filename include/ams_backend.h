@@ -1,6 +1,16 @@
 // Copyright 2025 HelixScreen
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+/**
+ * @file ams_backend.h
+ * @brief Abstract platform-independent interface for multi-filament system operations
+ *
+ * @pattern Pure virtual interface + static create()/create_auto() factory methods
+ * @threading Implementation-dependent; see concrete implementations
+ *
+ * @see ams_backend_happyhare.cpp, ams_backend_afc.cpp
+ */
+
 #pragma once
 
 #include "ams_error.h"
@@ -11,7 +21,6 @@
 #include <string>
 
 /**
- * @file ams_backend.h
  * @brief Abstract interface for AMS/MMU backend implementations
  *
  * Provides a platform-agnostic API for multi-filament operations.

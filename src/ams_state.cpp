@@ -1,5 +1,15 @@
 // Copyright 2025 HelixScreen
 // SPDX-License-Identifier: GPL-3.0-or-later
+/**
+ * @file ams_state.cpp
+ * @brief Multi-filament system state singleton with async backend callbacks
+ *
+ * @pattern Singleton with static s_shutdown_flag atomic for callback safety
+ * @threading Updated from WebSocket callbacks; shutdown flag prevents post-destruction access
+ * @gotchas MoonrakerClient may be destroyed during static destruction
+ *
+ * @see ams_backend_afc.cpp, ams_backend_toolchanger.cpp
+ */
 
 #include "ams_state.h"
 

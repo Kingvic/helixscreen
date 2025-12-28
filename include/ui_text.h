@@ -1,6 +1,15 @@
 // Copyright 2025 HelixScreen
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+/**
+ * @file ui_text.h
+ * @brief Semantic text widgets (text_heading, text_body, text_small, text_xs)
+ *
+ * @pattern Semantic typography instead of direct font specification
+ * @threading Main thread only
+ * @gotchas Must call ui_text_init() before creating UI; stroke effect via ui_text_set_stroke()
+ */
+
 #pragma once
 
 #include "lvgl/lvgl.h"

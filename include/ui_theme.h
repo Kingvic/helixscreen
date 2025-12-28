@@ -1,6 +1,15 @@
 // Copyright 2025 HelixScreen
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+/**
+ * @file ui_theme.h
+ * @brief Responsive design token system with breakpoints, spacing, and theme colors
+ *
+ * @pattern Singleton with breakpoint suffixes (_small/_medium/_large) and light/dark variants
+ * @threading Main thread only
+ * @gotchas ui_theme_get_color() looks up tokens; ui_theme_parse_color() parses hex literals only
+ */
+
 #pragma once
 
 #include "ui_fonts.h"

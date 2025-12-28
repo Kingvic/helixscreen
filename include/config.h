@@ -1,6 +1,16 @@
 // Copyright 2025 HelixScreen
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+/**
+ * @file config.h
+ * @brief JSON configuration singleton with RFC 6901 pointer syntax accessors
+ *
+ * @pattern Singleton with template accessors and default fallbacks
+ * @threading Main thread only (not thread-safe)
+ *
+ * @see Friend test access pattern for unit testing
+ */
+
 #pragma once
 
 #include "spdlog/spdlog.h"

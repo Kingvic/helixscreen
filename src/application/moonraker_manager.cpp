@@ -1,5 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright 2025 HelixScreen
+/**
+ * @file moonraker_manager.cpp
+ * @brief Orchestrates MoonrakerClient lifecycle and WebSocket notification dispatch
+ *
+ * @pattern Manager with shared_ptr<atomic<bool>> alive flag for callback safety
+ * @threading Queues notifications from WebSocket thread to main thread
+ * @gotchas Set m_alive flag FIRST in shutdown before waiting on callbacks
+ *
+ * @see moonraker_client.cpp, printer_state.cpp
+ */
 
 #include "moonraker_manager.h"
 

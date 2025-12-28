@@ -1,6 +1,16 @@
 // Copyright 2025 HelixScreen
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+/**
+ * @file ui_panel_bed_mesh.cpp
+ * @brief Bed mesh visualization panel with 3D preview and profile management
+ *
+ * @pattern GOLD STANDARD - declarative XML + subject bindings, no imperative widget manipulation
+ * @threading Destruction flag guards async callbacks
+ *
+ * @see Referenced in CLAUDE.md as exemplar
+ */
+
 #include "ui_panel_bed_mesh.h"
 
 #include "ui_bed_mesh.h"
