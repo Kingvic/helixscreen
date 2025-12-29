@@ -43,24 +43,25 @@ static lv_color_t mute_color(lv_color_t color, lv_opa_t opa) {
 }
 
 // Helper: Convert temperature value to pixel Y coordinate
-// LVGL chart cursors use content-relative coordinates (same as lv_chart_get_point_pos_by_id).
-// The draw_cursors function adds obj->coords.y1 internally to convert to screen coords.
-// So we return content-relative Y position (0 = top of content area).
+// LVGL chart cursors are drawn with obj->coords.y1 as origin (not content area).
+// So we must add pad_top to convert from content-relative to object-relative.
 static int32_t temp_to_pixel_y(ui_temp_graph_t* graph, float temp) {
     int32_t chart_height = lv_obj_get_content_height(graph->chart);
     if (chart_height <= 0) {
         return 0; // Chart not laid out yet
     }
 
-    // Map temperature to pixel position within content area (inverted for Y axis)
-    // temp=max_temp → Y=0 (top), temp=min_temp → Y=chart_height-1 (bottom)
-    // LVGL's lv_chart_get_point_pos_by_id uses (h-1) for 0-indexed pixel coordinates:
-    //   p_out->y = (h - 1) - lv_map(y_ofs, 0, range, 0, h - 1)
-    int32_t h = chart_height - 1; // 0-indexed pixel range
-    int32_t content_y =
-        h - lv_map((int32_t)temp, (int32_t)graph->min_temp, (int32_t)graph->max_temp, 0, h);
+    // Get padding offset - cursor origin is at obj->coords.y1, not content area
+    int32_t pad_top = lv_obj_get_style_pad_top(graph->chart, LV_PART_MAIN);
 
-    return content_y;
+    // Map temperature to pixel position within content area (inverted for Y axis)
+    // Use chart_height directly (not chart_height-1) to match LVGL's internal formula
+    // temp=max_temp → Y=0 (top of content), temp=min_temp → Y=chart_height (bottom)
+    int32_t content_y = chart_height - lv_map((int32_t)temp, (int32_t)graph->min_temp,
+                                              (int32_t)graph->max_temp, 0, chart_height);
+
+    // Return object-relative Y (includes padding offset)
+    return pad_top + content_y;
 }
 
 // Helper: Update all cursor positions (called on resize)
