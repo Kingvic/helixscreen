@@ -73,9 +73,10 @@ ENV PATH="/opt/arm-toolchain/bin:$PATH"
 ENV CROSS_COMPILE=arm-none-linux-gnueabihf-
 ENV CC=arm-none-linux-gnueabihf-gcc
 ENV CXX=arm-none-linux-gnueabihf-g++
-ENV AR=arm-none-linux-gnueabihf-ar
+# Use gcc-ar and gcc-ranlib for LTO compatibility (they load the LTO plugin)
+ENV AR=arm-none-linux-gnueabihf-gcc-ar
 ENV STRIP=arm-none-linux-gnueabihf-strip
-ENV RANLIB=arm-none-linux-gnueabihf-ranlib
+ENV RANLIB=arm-none-linux-gnueabihf-gcc-ranlib
 ENV LD=arm-none-linux-gnueabihf-ld
 
 # Target-specific flags for Cortex-A7
@@ -86,10 +87,12 @@ ENV TARGET_LDFLAGS=""
 # Working directory
 WORKDIR /src
 
-# Verify the toolchain works
+# Verify the toolchain works (including LTO-aware tools)
 RUN arm-none-linux-gnueabihf-gcc --version && \
     arm-none-linux-gnueabihf-g++ --version && \
-    echo "✓ Toolchain verification passed" && \
+    arm-none-linux-gnueabihf-gcc-ar --version && \
+    arm-none-linux-gnueabihf-gcc-ranlib --version && \
+    echo "✓ Toolchain verification passed (including LTO support)" && \
     echo "" && \
     echo "NOTE: This toolchain uses STATIC linking (-static flag in cross.mk)" && \
     echo "to avoid glibc version conflicts. Binary will be self-contained."

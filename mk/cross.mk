@@ -101,9 +101,10 @@ ifneq ($(CROSS_COMPILE),)
     # Override compilers for cross-compilation
     CC := $(CROSS_COMPILE)gcc
     CXX := $(CROSS_COMPILE)g++
-    AR := $(CROSS_COMPILE)ar
+    # Use gcc-ar and gcc-ranlib for LTO compatibility (they load the LTO plugin)
+    AR := $(CROSS_COMPILE)gcc-ar
     STRIP := $(CROSS_COMPILE)strip
-    RANLIB := $(CROSS_COMPILE)ranlib
+    RANLIB := $(CROSS_COMPILE)gcc-ranlib
     LD := $(CROSS_COMPILE)ld
 
     # Override build directories for cross-compilation
