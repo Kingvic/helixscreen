@@ -97,6 +97,9 @@ struct FileMetadata {
     double filament_total = 0.0;              // mm
     double filament_weight_total = 0.0;       // grams
     std::string filament_type;                // e.g., "PLA", "PETG", "ABS", "TPU", "ASA"
+    std::string filament_name;                // Full filament name (e.g., "PolyMaker PolyLite ABS")
+    double layer_height = 0.0;                // mm (per-layer height)
+    double first_layer_height = 0.0;          // mm (first layer height, may differ)
     std::vector<std::string> filament_colors; // Hex colors per tool (e.g., ["#ED1C24", "#00C1AE"])
     double first_layer_bed_temp = 0.0;
     double first_layer_extr_temp = 0.0;

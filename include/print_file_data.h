@@ -41,8 +41,10 @@ struct PrintFileData {
     int print_time_minutes;             ///< Print time in minutes
     float filament_grams;               ///< Filament weight in grams
     std::string filament_type;          ///< Filament type (e.g., "PLA", "PETG", "ABS")
+    std::string filament_name;          ///< Full filament name (e.g., "PolyMaker PolyLite ABS")
     uint32_t layer_count = 0;           ///< Total layer count from slicer
     double object_height = 0.0;         ///< Object height in mm
+    double layer_height = 0.0;          ///< Layer height in mm (e.g., 0.24)
     bool is_dir = false;                ///< True if this is a directory
     std::vector<std::string>
         filament_colors; ///< Hex colors per tool (e.g., ["#ED1C24", "#00C1AE"])
@@ -54,6 +56,7 @@ struct PrintFileData {
     std::string filament_str;
     std::string layer_count_str;  ///< Formatted layer count string
     std::string print_height_str; ///< Formatted print height string
+    std::string layer_height_str; ///< Formatted layer height string (e.g., "0.24 mm")
 
     // Metadata loading state (travels with file during sorting)
     bool metadata_fetched = false; ///< True if metadata has been loaded

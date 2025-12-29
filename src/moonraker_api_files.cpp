@@ -935,6 +935,16 @@ FileMetadata MoonrakerAPI::parse_file_metadata(const json& response) {
         metadata.filament_type =
             (semicolon != std::string::npos) ? raw_type.substr(0, semicolon) : raw_type;
     }
+    // Full filament name (e.g., "PolyMaker PolyLite ABS") - similarly multi-extruder aware
+    std::string raw_name = get_string("filament_name");
+    if (!raw_name.empty()) {
+        size_t semicolon = raw_name.find(';');
+        metadata.filament_name =
+            (semicolon != std::string::npos) ? raw_name.substr(0, semicolon) : raw_name;
+    }
+    // Layer height info
+    metadata.layer_height = get_double("layer_height");
+    metadata.first_layer_height = get_double("first_layer_height");
 
     // Filament colors (array of hex strings from slicer metadata)
     if (result.contains("filament_colors") && result["filament_colors"].is_array()) {

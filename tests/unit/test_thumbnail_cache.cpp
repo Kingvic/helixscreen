@@ -197,3 +197,116 @@ TEST_CASE("ThumbnailCache path edge cases", "[assets][cache]") {
         REQUIRE(!path.empty());
     }
 }
+
+// ============================================================================
+// Cache Age Validation Tests
+// ============================================================================
+
+TEST_CASE("ThumbnailCache age validation", "[assets][cache][invalidation]") {
+    ThumbnailCache& cache = get_thumbnail_cache();
+
+    // Create a unique test file to avoid conflicts
+    std::string test_path = "test_age_validation_" + std::to_string(rand()) + ".png";
+    std::string cache_path = cache.get_cache_path(test_path);
+
+    // Create a cached file
+    {
+        std::ofstream ofs(cache_path, std::ios::binary);
+        REQUIRE(ofs.good());
+        // Write minimal valid PNG header
+        const unsigned char png_header[] = {0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A};
+        ofs.write(reinterpret_cast<const char*>(png_header), sizeof(png_header));
+        ofs.close();
+    }
+
+    SECTION("get_if_cached without source_modified returns cached file") {
+        std::string result = cache.get_if_cached(test_path);
+        REQUIRE(!result.empty());
+        REQUIRE(ThumbnailCache::is_lvgl_path(result));
+    }
+
+    SECTION("get_if_cached with source_modified=0 skips validation") {
+        std::string result = cache.get_if_cached(test_path, 0);
+        REQUIRE(!result.empty());
+    }
+
+    SECTION("get_if_cached with old source_modified returns cached file") {
+        // Source file is older than cache - cache is valid
+        time_t old_time = std::time(nullptr) - 3600; // 1 hour ago
+        std::string result = cache.get_if_cached(test_path, old_time);
+        REQUIRE(!result.empty());
+    }
+
+    SECTION("get_if_cached with future source_modified invalidates and returns empty") {
+        // Source file is newer than cache - cache is stale
+        time_t future_time = std::time(nullptr) + 3600; // 1 hour in future
+        std::string result = cache.get_if_cached(test_path, future_time);
+        REQUIRE(result.empty());
+
+        // File should be removed
+        REQUIRE_FALSE(std::filesystem::exists(cache_path));
+    }
+
+    // Cleanup
+    if (std::filesystem::exists(cache_path)) {
+        std::filesystem::remove(cache_path);
+    }
+}
+
+TEST_CASE("ThumbnailCache invalidation removes all variants", "[assets][cache][invalidation]") {
+    ThumbnailCache& cache = get_thumbnail_cache();
+
+    // Create a unique test path
+    std::string test_path = "test_invalidate_variants_" + std::to_string(rand()) + ".png";
+    std::string cache_path = cache.get_cache_path(test_path);
+    std::string cache_dir = cache.get_cache_dir();
+
+    // Extract hash from the cache path
+    std::filesystem::path p(cache_path);
+    std::string hash_name = p.stem().string(); // e.g., "abc123"
+
+    // Create the main PNG and some .bin variants
+    std::vector<std::string> created_files;
+    {
+        // Main PNG
+        std::ofstream ofs(cache_path, std::ios::binary);
+        ofs << "test";
+        ofs.close();
+        created_files.push_back(cache_path);
+
+        // .bin variants (like the optimized thumbnails)
+        for (const auto& suffix : {"_120x120_RGB565.bin", "_160x160_RGB565.bin"}) {
+            std::string bin_path = cache_dir + "/" + hash_name + suffix;
+            std::ofstream bin_ofs(bin_path, std::ios::binary);
+            bin_ofs << "test";
+            bin_ofs.close();
+            created_files.push_back(bin_path);
+        }
+    }
+
+    SECTION("invalidate removes PNG and all .bin variants") {
+        // Verify files exist
+        for (const auto& file : created_files) {
+            REQUIRE(std::filesystem::exists(file));
+        }
+
+        // Invalidate
+        size_t removed = cache.invalidate(test_path);
+        REQUIRE(removed >= 1); // At least the PNG
+
+        // Verify PNG is gone
+        REQUIRE_FALSE(std::filesystem::exists(cache_path));
+
+        // Verify .bin variants are also gone
+        for (size_t i = 1; i < created_files.size(); ++i) {
+            REQUIRE_FALSE(std::filesystem::exists(created_files[i]));
+        }
+    }
+
+    // Cleanup any remaining files
+    for (const auto& file : created_files) {
+        if (std::filesystem::exists(file)) {
+            std::filesystem::remove(file);
+        }
+    }
+}

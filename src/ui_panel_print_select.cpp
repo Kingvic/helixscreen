@@ -265,6 +265,11 @@ void PrintSelectPanel::init_subjects() {
                                         "", "selected_layer_count");
     UI_SUBJECT_INIT_AND_REGISTER_STRING(selected_print_height_subject_,
                                         selected_print_height_buffer_, "", "selected_print_height");
+    UI_SUBJECT_INIT_AND_REGISTER_STRING(selected_layer_height_subject_,
+                                        selected_layer_height_buffer_, "", "selected_layer_height");
+    UI_SUBJECT_INIT_AND_REGISTER_STRING(selected_filament_type_subject_,
+                                        selected_filament_type_buffer_, "",
+                                        "selected_filament_type");
     // Unified preprint steps (merged file + macro, bulleted list)
     UI_SUBJECT_INIT_AND_REGISTER_STRING(selected_preprint_steps_subject_,
                                         selected_preprint_steps_buffer_, "",
@@ -493,13 +498,21 @@ void PrintSelectPanel::setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
 
                     // Update detail view if this file is selected
                     if (strcmp(panel->selected_filename_buffer_, upd.filename.c_str()) == 0) {
+                        // Use filament_name if available, otherwise filament_type
+                        const std::string& filament_display =
+                            !panel->file_list_[idx].filament_name.empty()
+                                ? panel->file_list_[idx].filament_name
+                                : panel->file_list_[idx].filament_type;
                         panel->set_selected_file(
                             upd.filename.c_str(), panel->file_list_[idx].thumbnail_path.c_str(),
                             panel->file_list_[idx].original_thumbnail_url.c_str(),
                             panel->file_list_[idx].print_time_str.c_str(),
                             panel->file_list_[idx].filament_str.c_str(),
                             panel->file_list_[idx].layer_count_str.c_str(),
-                            panel->file_list_[idx].print_height_str.c_str());
+                            panel->file_list_[idx].print_height_str.c_str(),
+                            panel->file_list_[idx].modified_timestamp,
+                            panel->file_list_[idx].layer_height_str.c_str(),
+                            filament_display.c_str());
                     }
                 }
                 delete c;
@@ -798,8 +811,10 @@ void PrintSelectPanel::fetch_metadata_range(size_t start, size_t end) {
                 int print_time_minutes = static_cast<int>(metadata.estimated_time / 60.0);
                 float filament_grams = static_cast<float>(metadata.filament_weight_total);
                 std::string filament_type = metadata.filament_type;
+                std::string filament_name = metadata.filament_name;
                 uint32_t layer_count = metadata.layer_count;
                 double object_height = metadata.object_height;
+                double layer_height = metadata.layer_height;
 
                 // Smart thumbnail selection: pick smallest that meets display requirements
                 // This reduces download size while ensuring adequate resolution
@@ -813,6 +828,14 @@ void PrintSelectPanel::fetch_metadata_range(size_t start, size_t end) {
                 std::string filament_str = format_filament_weight(filament_grams);
                 std::string layer_count_str = format_layer_count(layer_count);
                 std::string print_height_str = format_print_height(object_height) + " tall";
+                // Format layer height (e.g., "0.24 mm")
+                char layer_height_buf[32];
+                if (layer_height > 0.0) {
+                    snprintf(layer_height_buf, sizeof(layer_height_buf), "%.2f mm", layer_height);
+                } else {
+                    snprintf(layer_height_buf, sizeof(layer_height_buf), "-");
+                }
+                std::string layer_height_str = layer_height_buf;
 
                 // Check if thumbnail is a local file (background thread - filesystem OK)
                 bool thumb_is_local = !thumb_path.empty() && std::filesystem::exists(thumb_path);
@@ -826,12 +849,15 @@ void PrintSelectPanel::fetch_metadata_range(size_t start, size_t end) {
                     int print_time_minutes;
                     float filament_grams;
                     std::string filament_type;
+                    std::string filament_name;
                     std::string print_time_str;
                     std::string filament_str;
                     uint32_t layer_count;
                     std::string layer_count_str;
                     double object_height;
                     std::string print_height_str;
+                    double layer_height;
+                    std::string layer_height_str;
                     std::string thumb_path;
                     bool thumb_is_local;
                     helix::ThumbnailTarget thumb_target; // Target size for pre-scaling
@@ -840,8 +866,9 @@ void PrintSelectPanel::fetch_metadata_range(size_t start, size_t end) {
                 ui_queue_update<MetadataUpdate>(
                     std::make_unique<MetadataUpdate>(MetadataUpdate{
                         self, i, filename, print_time_minutes, filament_grams, filament_type,
-                        print_time_str, filament_str, layer_count, layer_count_str, object_height,
-                        print_height_str, thumb_path, thumb_is_local, target}),
+                        filament_name, print_time_str, filament_str, layer_count, layer_count_str,
+                        object_height, print_height_str, layer_height, layer_height_str, thumb_path,
+                        thumb_is_local, target}),
                     [](MetadataUpdate* d) {
                         auto* self = d->panel;
 
@@ -857,12 +884,15 @@ void PrintSelectPanel::fetch_metadata_range(size_t start, size_t end) {
                         self->file_list_[d->index].print_time_minutes = d->print_time_minutes;
                         self->file_list_[d->index].filament_grams = d->filament_grams;
                         self->file_list_[d->index].filament_type = d->filament_type;
+                        self->file_list_[d->index].filament_name = d->filament_name;
                         self->file_list_[d->index].print_time_str = d->print_time_str;
                         self->file_list_[d->index].filament_str = d->filament_str;
                         self->file_list_[d->index].layer_count = d->layer_count;
                         self->file_list_[d->index].layer_count_str = d->layer_count_str;
                         self->file_list_[d->index].object_height = d->object_height;
                         self->file_list_[d->index].print_height_str = d->print_height_str;
+                        self->file_list_[d->index].layer_height = d->layer_height;
+                        self->file_list_[d->index].layer_height_str = d->layer_height_str;
 
                         spdlog::trace("[{}] Updated metadata for {}: {}min, {}g, {} layers",
                                       self->get_name(), d->filename, d->print_time_minutes,
@@ -887,6 +917,7 @@ void PrintSelectPanel::fetch_metadata_range(size_t start, size_t end) {
                                 size_t file_idx = d->index;
                                 std::string filename_copy = d->filename;
                                 helix::ThumbnailTarget target = d->thumb_target;
+                                time_t modified_ts = self->file_list_[d->index].modified_timestamp;
 
                                 get_thumbnail_cache().fetch_optimized(
                                     self->api_, d->thumb_path, target,
@@ -920,7 +951,9 @@ void PrintSelectPanel::fetch_metadata_range(size_t start, size_t end) {
                                     [self, filename_copy](const std::string& error) {
                                         spdlog::warn("[{}] Failed to fetch thumbnail for {}: {}",
                                                      self->get_name(), filename_copy, error);
-                                    });
+                                    },
+                                    modified_ts); // Source file modification time for cache
+                                                  // validation
                             }
                         }
 
@@ -931,12 +964,17 @@ void PrintSelectPanel::fetch_metadata_range(size_t start, size_t end) {
                         if (strcmp(self->selected_filename_buffer_, d->filename.c_str()) == 0) {
                             spdlog::debug("[{}] Updating detail view for selected file: {}",
                                           self->get_name(), d->filename);
+                            // Use filament_name if available, otherwise filament_type
+                            const std::string& filament_display =
+                                !d->filament_name.empty() ? d->filament_name : d->filament_type;
                             self->set_selected_file(
                                 d->filename.c_str(),
                                 self->file_list_[d->index].thumbnail_path.c_str(),
                                 self->file_list_[d->index].original_thumbnail_url.c_str(),
                                 d->print_time_str.c_str(), d->filament_str.c_str(),
-                                d->layer_count_str.c_str(), d->print_height_str.c_str());
+                                d->layer_count_str.c_str(), d->print_height_str.c_str(),
+                                self->file_list_[d->index].modified_timestamp,
+                                d->layer_height_str.c_str(), filament_display.c_str());
                         }
                     });
             },
@@ -1118,7 +1156,8 @@ void PrintSelectPanel::navigate_up() {
 void PrintSelectPanel::set_selected_file(const char* filename, const char* thumbnail_src,
                                          const char* original_url, const char* print_time,
                                          const char* filament_weight, const char* layer_count,
-                                         const char* print_height) {
+                                         const char* print_height, time_t modified_timestamp,
+                                         const char* layer_height, const char* filament_type) {
     lv_subject_copy_string(&selected_filename_subject_, filename);
 
     // Display filename strips .gcode extension for cleaner UI
@@ -1135,7 +1174,9 @@ void PrintSelectPanel::set_selected_file(const char* filename, const char* thumb
     // The PNG was downloaded by ThumbnailCache alongside the pre-scaled .bin
     if (original_url && original_url[0] != '\0') {
         // Look up the PNG path from the original Moonraker URL
-        std::string png_path = get_thumbnail_cache().get_if_cached(original_url);
+        // Pass modification timestamp to invalidate stale cache entries
+        std::string png_path =
+            get_thumbnail_cache().get_if_cached(original_url, modified_timestamp);
         if (!png_path.empty()) {
             strncpy(selected_detail_thumbnail_buffer_, png_path.c_str(),
                     sizeof(selected_detail_thumbnail_buffer_) - 1);
@@ -1161,6 +1202,8 @@ void PrintSelectPanel::set_selected_file(const char* filename, const char* thumb
     lv_subject_copy_string(&selected_filament_weight_subject_, filament_weight);
     lv_subject_copy_string(&selected_layer_count_subject_, layer_count);
     lv_subject_copy_string(&selected_print_height_subject_, print_height);
+    lv_subject_copy_string(&selected_layer_height_subject_, layer_height ? layer_height : "");
+    lv_subject_copy_string(&selected_filament_type_subject_, filament_type ? filament_type : "");
 
     spdlog::info("[{}] Selected file: {}", get_name(), filename);
 }
@@ -1748,10 +1791,15 @@ void PrintSelectPanel::handle_file_click(size_t file_index) {
         }
     } else {
         // File clicked - show detail view
+        // For filament display, prefer filament_name if available (e.g., "PolyMaker PolyLite ABS")
+        // Fallback to short filament_type (e.g., "ABS") if no name provided
+        std::string filament_display =
+            file.filament_name.empty() ? file.filament_type : file.filament_name;
         set_selected_file(file.filename.c_str(), file.thumbnail_path.c_str(),
                           file.original_thumbnail_url.c_str(), file.print_time_str.c_str(),
                           file.filament_str.c_str(), file.layer_count_str.c_str(),
-                          file.print_height_str.c_str());
+                          file.print_height_str.c_str(), file.modified_timestamp,
+                          file.layer_height_str.c_str(), filament_display.c_str());
         selected_filament_type_ = file.filament_type;
         selected_filament_colors_ = file.filament_colors;
         selected_file_size_bytes_ = file.file_size_bytes;
@@ -1850,10 +1898,13 @@ void PrintSelectPanel::execute_print_start() {
     // Delegate to PrintPreparationManager
     prep_manager->start_print(
         filename_to_print, current_path_,
-        // Navigation callback - no longer needed for main navigation,
-        // but kept for thumbnail source setup which happens after print starts
+        // Navigation callback - called when Moonraker confirms print start
+        // Sets thumbnail source so PrintStatusPanel loads the correct thumbnail
         [self, filename_to_print]() {
-            spdlog::debug("[{}] Print start confirmed, thumbnail source set", self->get_name());
+            auto& status_panel = get_global_print_status_panel();
+            status_panel.set_thumbnail_source(filename_to_print);
+            spdlog::debug("[{}] Print start confirmed, thumbnail source set: {}", self->get_name(),
+                          filename_to_print);
         },
         // Preparing callback - update status panel preparing state
         [](const std::string& op_name, int step, int total) {

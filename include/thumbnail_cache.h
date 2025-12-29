@@ -113,9 +113,13 @@ class ThumbnailCache {
      * Useful for instant display when revisiting cached content.
      *
      * @param relative_path Moonraker relative path
+     * @param source_modified Optional source file modification time (Unix timestamp).
+     *        If provided and the cached file is older than this, the cache is
+     *        invalidated and empty string is returned. Use 0 to skip validation.
      * @return LVGL-ready path ("A:{cache_dir}/...") if cached, empty string otherwise
      */
-    [[nodiscard]] std::string get_if_cached(const std::string& relative_path) const;
+    [[nodiscard]] std::string get_if_cached(const std::string& relative_path,
+                                            time_t source_modified = 0) const;
 
     /**
      * @brief Check if a path is already in LVGL format
@@ -170,13 +174,16 @@ class ThumbnailCache {
      * ThumbnailProcessor::get_target_for_display())
      * @param on_success Called with LVGL path to .bin on success
      * @param on_error Called with error message on failure
+     * @param source_modified Optional source file modification time (Unix timestamp).
+     *        If provided and the cached file is older than this, the cache is
+     *        invalidated and a fresh download is triggered. Use 0 to skip validation.
      *
      * @note Falls back to PNG on pre-scaling failure - display still works, just slower
      * @see docs/THUMBNAIL_OPTIMIZATION_PLAN.md
      */
     void fetch_optimized(MoonrakerAPI* api, const std::string& relative_path,
                          const helix::ThumbnailTarget& target, SuccessCallback on_success,
-                         ErrorCallback on_error);
+                         ErrorCallback on_error, time_t source_modified = 0);
 
     /**
      * @brief Check if a pre-scaled version exists in cache
@@ -186,10 +193,14 @@ class ThumbnailCache {
      *
      * @param relative_path Moonraker relative path
      * @param target Target dimensions to check for
-     * @return LVGL path (A:/...) to .bin if cached, empty string otherwise
+     * @param source_modified Optional source file modification time (Unix timestamp).
+     *        If provided and the cached file is older than this, the cache is
+     *        invalidated and empty string is returned. Use 0 to skip validation.
+     * @return LVGL path (A:/...) to .bin if cached and fresh, empty string otherwise
      */
     [[nodiscard]] std::string get_if_optimized(const std::string& relative_path,
-                                               const helix::ThumbnailTarget& target) const;
+                                               const helix::ThumbnailTarget& target,
+                                               time_t source_modified = 0) const;
 
     /**
      * @brief Clear all cached thumbnails

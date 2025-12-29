@@ -258,7 +258,8 @@ std::string ThumbnailCache::to_lvgl_path(const std::string& local_path) {
     return "A:" + local_path;
 }
 
-std::string ThumbnailCache::get_if_cached(const std::string& relative_path) const {
+std::string ThumbnailCache::get_if_cached(const std::string& relative_path,
+                                          time_t source_modified) const {
     if (relative_path.empty()) {
         return "";
     }
@@ -274,12 +275,36 @@ std::string ThumbnailCache::get_if_cached(const std::string& relative_path) cons
 
     // Check if cached locally
     std::string cache_path = get_cache_path(relative_path);
-    if (std::filesystem::exists(cache_path)) {
-        spdlog::trace("[ThumbnailCache] Cache hit for {}", relative_path);
-        return to_lvgl_path(cache_path);
+    if (!std::filesystem::exists(cache_path)) {
+        return "";
     }
 
-    return "";
+    // If source_modified provided, validate cache freshness
+    if (source_modified > 0) {
+        try {
+            auto cache_time = std::filesystem::last_write_time(cache_path);
+            // Convert file_time_type to time_t for comparison
+            // C++20 provides a cleaner way, but this works for C++17
+            auto sctp = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
+                cache_time - std::filesystem::file_time_type::clock::now() +
+                std::chrono::system_clock::now());
+            time_t cache_epoch = std::chrono::system_clock::to_time_t(sctp);
+
+            if (cache_epoch < source_modified) {
+                spdlog::debug("[ThumbnailCache] Cache stale for {} (cached: {}, source: {})",
+                              relative_path, cache_epoch, source_modified);
+                // Invalidate by removing the file (const_cast needed for invalidation)
+                const_cast<ThumbnailCache*>(this)->invalidate(relative_path);
+                return "";
+            }
+        } catch (const std::filesystem::filesystem_error& e) {
+            spdlog::warn("[ThumbnailCache] Failed to check cache age: {}", e.what());
+            // On error, assume cache is valid (don't break existing behavior)
+        }
+    }
+
+    spdlog::trace("[ThumbnailCache] Cache hit for {}", relative_path);
+    return to_lvgl_path(cache_path);
 }
 
 void ThumbnailCache::set_max_size(size_t max_size) {
@@ -560,18 +585,56 @@ size_t ThumbnailCache::get_cache_size() const {
 // ============================================================================
 
 std::string ThumbnailCache::get_if_optimized(const std::string& relative_path,
-                                             const helix::ThumbnailTarget& target) const {
+                                             const helix::ThumbnailTarget& target,
+                                             time_t source_modified) const {
     if (relative_path.empty()) {
         return "";
     }
 
     // Check for pre-scaled .bin via ThumbnailProcessor
-    return helix::ThumbnailProcessor::instance().get_if_processed(relative_path, target);
+    std::string bin_path =
+        helix::ThumbnailProcessor::instance().get_if_processed(relative_path, target);
+    if (bin_path.empty()) {
+        return "";
+    }
+
+    // Validate cache freshness if source_modified provided
+    if (source_modified > 0) {
+        try {
+            // Strip "A:" prefix to get filesystem path
+            std::string fs_path = bin_path.substr(2);
+            if (!std::filesystem::exists(fs_path)) {
+                return "";
+            }
+
+            auto cache_time = std::filesystem::last_write_time(fs_path);
+            // Convert file_time_type to time_t for comparison
+            auto sctp = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
+                cache_time - std::filesystem::file_time_type::clock::now() +
+                std::chrono::system_clock::now());
+            time_t cache_epoch = std::chrono::system_clock::to_time_t(sctp);
+
+            if (cache_epoch < source_modified) {
+                spdlog::debug(
+                    "[ThumbnailCache] Optimized cache stale for {} (cached: {}, source: {})",
+                    relative_path, cache_epoch, source_modified);
+                // Invalidate all cached variants (PNG + .bin files)
+                const_cast<ThumbnailCache*>(this)->invalidate(relative_path);
+                return "";
+            }
+        } catch (const std::filesystem::filesystem_error& e) {
+            spdlog::warn("[ThumbnailCache] Failed to check optimized cache age: {}", e.what());
+            // On error, assume cache is valid (don't break existing behavior)
+        }
+    }
+
+    return bin_path;
 }
 
 void ThumbnailCache::fetch_optimized(MoonrakerAPI* api, const std::string& relative_path,
                                      const helix::ThumbnailTarget& target,
-                                     SuccessCallback on_success, ErrorCallback on_error) {
+                                     SuccessCallback on_success, ErrorCallback on_error,
+                                     time_t source_modified) {
     if (relative_path.empty()) {
         if (on_error) {
             on_error("Empty thumbnail path");
@@ -579,8 +642,8 @@ void ThumbnailCache::fetch_optimized(MoonrakerAPI* api, const std::string& relat
         return;
     }
 
-    // Step 1: Check for pre-scaled .bin (instant return)
-    std::string optimized = get_if_optimized(relative_path, target);
+    // Step 1: Check for pre-scaled .bin (instant return if fresh)
+    std::string optimized = get_if_optimized(relative_path, target, source_modified);
     if (!optimized.empty()) {
         spdlog::trace("[ThumbnailCache] Pre-scaled cache hit: {}", optimized);
         if (on_success) {
@@ -589,10 +652,10 @@ void ThumbnailCache::fetch_optimized(MoonrakerAPI* api, const std::string& relat
         return;
     }
 
-    // Step 2: Check for cached PNG
-    std::string cached_png = get_if_cached(relative_path);
+    // Step 2: Check for cached PNG (with age validation)
+    std::string cached_png = get_if_cached(relative_path, source_modified);
     if (!cached_png.empty()) {
-        // PNG exists, queue for pre-scaling
+        // PNG exists and is fresh, queue for pre-scaling
         spdlog::trace("[ThumbnailCache] PNG cached, queuing pre-scale: {}", relative_path);
         process_and_callback(cached_png, relative_path, target, on_success, on_error);
         return;

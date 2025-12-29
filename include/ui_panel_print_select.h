@@ -253,11 +253,15 @@ class PrintSelectPanel : public PanelBase {
      * @param filament_weight Formatted filament weight
      * @param layer_count Formatted layer count (or "--" if unknown)
      * @param print_height Formatted print height (or "--" if unknown)
+     * @param modified_timestamp File modification time (for cache validation)
+     * @param layer_height Formatted layer height string (e.g., "0.24 mm")
+     * @param filament_type Filament type/name (e.g., "ABS" or "PolyMaker PolyLite ABS")
      */
     void set_selected_file(const char* filename, const char* thumbnail_src,
                            const char* original_url, const char* print_time,
                            const char* filament_weight, const char* layer_count,
-                           const char* print_height);
+                           const char* print_height, time_t modified_timestamp,
+                           const char* layer_height = "", const char* filament_type = "");
 
     /**
      * @brief Show detail view overlay for selected file
@@ -394,6 +398,12 @@ class PrintSelectPanel : public PanelBase {
 
     lv_subject_t selected_print_height_subject_;
     char selected_print_height_buffer_[32];
+
+    lv_subject_t selected_layer_height_subject_;
+    char selected_layer_height_buffer_[32];
+
+    lv_subject_t selected_filament_type_subject_;
+    char selected_filament_type_buffer_[64]; // Longer for full names like "PolyMaker PolyLite ABS"
 
     /// Unified pre-print steps (merged file + macro ops, bulleted list)
     lv_subject_t selected_preprint_steps_subject_;
