@@ -52,6 +52,9 @@ DB_RECORD_MAX_AGE = 30 * 86400
 # Plugin version - used for API version detection by clients
 PLUGIN_VERSION = "1.0.0"
 
+# Namespace for key-value storage fallback (Moonraker v0.8.x)
+HELIX_NAMESPACE = "helix_temp_files"
+
 
 class PrintInfo:
     """Tracks information about an active modified print."""
@@ -109,7 +112,10 @@ class HelixPrint:
         # State tracking
         self.active_prints: Dict[str, PrintInfo] = {}
         self.gc_path: Optional[Path] = None
-        self._use_sqlite = False  # Set True if execute_db_command is available
+
+        # Database backend flags (mutually exclusive, one will be True after init)
+        self._use_sqlite = False      # Moonraker 0.9+ with execute_db_command
+        self._use_namespace = False   # Moonraker 0.8.x with insert_item/get_item
 
         # Register API endpoints
         self.server.register_endpoint(
@@ -248,46 +254,48 @@ class HelixPrint:
         )
 
     async def _init_database(self) -> None:
-        """Initialize database table for tracking temp files."""
+        """Initialize database for tracking temp files.
+
+        Tries SQLite API first (Moonraker 0.9+), then falls back to
+        namespace key-value API (Moonraker 0.8.x).
+        """
         if self.database is None:
             logging.warning(
                 "HelixPrint: Database not available, persistence disabled"
             )
             return
 
-        # Check if execute_db_command is available (Moonraker 0.9+)
-        if not hasattr(self.database, "execute_db_command"):
-            logging.warning(
-                "HelixPrint: Moonraker version does not support SQLite API "
-                "(execute_db_command). Persistence disabled. "
-                "Plugin will function without cleanup tracking."
-            )
+        # Try SQLite API first (Moonraker 0.9+)
+        if hasattr(self.database, "execute_db_command"):
+            try:
+                await self.database.execute_db_command(
+                    f"""
+                    CREATE TABLE IF NOT EXISTS {HELIX_TEMP_TABLE} (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        original_filename TEXT NOT NULL,
+                        temp_filename TEXT NOT NULL,
+                        symlink_filename TEXT NOT NULL,
+                        modifications TEXT,
+                        job_id TEXT,
+                        created_at REAL NOT NULL,
+                        cleanup_scheduled_at REAL,
+                        status TEXT DEFAULT 'active'
+                    )
+                    """
+                )
+                self._use_sqlite = True
+                logging.info("HelixPrint: Using SQLite database for persistence")
+                return
+            except Exception as e:
+                logging.warning(f"HelixPrint: SQLite init failed: {e}, trying namespace API")
+
+        # Fall back to namespace API (Moonraker 0.8.x)
+        if hasattr(self.database, "insert_item"):
+            self._use_namespace = True
+            logging.info("HelixPrint: Using namespace API for persistence (Moonraker 0.8.x)")
             return
 
-        try:
-            # Create table if it doesn't exist
-            await self.database.execute_db_command(
-                f"""
-                CREATE TABLE IF NOT EXISTS {HELIX_TEMP_TABLE} (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    original_filename TEXT NOT NULL,
-                    temp_filename TEXT NOT NULL,
-                    symlink_filename TEXT NOT NULL,
-                    modifications TEXT,
-                    job_id TEXT,
-                    created_at REAL NOT NULL,
-                    cleanup_scheduled_at REAL,
-                    status TEXT DEFAULT 'active'
-                )
-                """
-            )
-            self._use_sqlite = True
-            logging.debug("HelixPrint: Database table initialized")
-        except Exception as e:
-            logging.warning(
-                f"HelixPrint: Failed to initialize database: {e}. "
-                "Persistence disabled."
-            )
+        logging.warning("HelixPrint: No compatible database API found, persistence disabled")
 
     # =========================================================================
     # API Handlers
@@ -487,27 +495,42 @@ class HelixPrint:
 
     async def _persist_print_info(self, print_info: PrintInfo) -> None:
         """Save print info to database for crash recovery."""
-        if not self._use_sqlite:
-            return
+        record = {
+            "original_filename": print_info.original_filename,
+            "temp_filename": print_info.temp_filename,
+            "symlink_filename": print_info.symlink_filename,
+            "modifications": print_info.modifications,
+            "created_at": time.time(),
+            "cleanup_scheduled_at": None,
+            "status": "active",
+        }
 
         try:
-            result = await self.database.execute_db_command(
-                f"""
-                INSERT INTO {HELIX_TEMP_TABLE}
-                (original_filename, temp_filename, symlink_filename,
-                 modifications, created_at, status)
-                VALUES (?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    print_info.original_filename,
+            if self._use_sqlite:
+                result = await self.database.execute_db_command(
+                    f"""
+                    INSERT INTO {HELIX_TEMP_TABLE}
+                    (original_filename, temp_filename, symlink_filename,
+                     modifications, created_at, status)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        record["original_filename"],
+                        record["temp_filename"],
+                        record["symlink_filename"],
+                        json.dumps(record["modifications"]),
+                        record["created_at"],
+                        record["status"],
+                    ),
+                )
+                print_info.db_id = result.lastrowid
+            elif self._use_namespace:
+                # Use temp_filename as key (unique per print)
+                await self.database.insert_item(
+                    HELIX_NAMESPACE,
                     print_info.temp_filename,
-                    print_info.symlink_filename,
-                    json.dumps(print_info.modifications),
-                    time.time(),
-                    "active",
-                ),
-            )
-            print_info.db_id = result.lastrowid
+                    record,
+                )
         except Exception as e:
             logging.warning(f"HelixPrint: Failed to persist print info: {e}")
 
@@ -632,9 +655,9 @@ class HelixPrint:
         await self._cleanup_thumbnail_symlinks(print_info.temp_filename)
 
         # Update database status
-        if self._use_sqlite:
-            cleanup_time = time.time() + self.cleanup_delay
-            try:
+        cleanup_time = time.time() + self.cleanup_delay
+        try:
+            if self._use_sqlite:
                 await self.database.execute_db_command(
                     f"""
                     UPDATE {HELIX_TEMP_TABLE}
@@ -643,10 +666,19 @@ class HelixPrint:
                     """,
                     (cleanup_time, "pending_cleanup", print_info.temp_filename),
                 )
-            except Exception as e:
-                logging.warning(
-                    f"HelixPrint: Failed to update cleanup status: {e}"
+            elif self._use_namespace:
+                # Update record in namespace storage
+                record = await self.database.get_item(
+                    HELIX_NAMESPACE, print_info.temp_filename
                 )
+                if record:
+                    record["cleanup_scheduled_at"] = cleanup_time
+                    record["status"] = "pending_cleanup"
+                    await self.database.update_item(
+                        HELIX_NAMESPACE, print_info.temp_filename, record
+                    )
+        except Exception as e:
+            logging.warning(f"HelixPrint: Failed to update cleanup status: {e}")
 
         # Schedule delayed cleanup
         self.eventloop.delay_callback(
@@ -690,8 +722,8 @@ class HelixPrint:
             logging.info(f"HelixPrint: Cleaned up {temp_filename}")
 
         # Update database
-        if self._use_sqlite:
-            try:
+        try:
+            if self._use_sqlite:
                 await self.database.execute_db_command(
                     f"""
                     UPDATE {HELIX_TEMP_TABLE}
@@ -700,48 +732,76 @@ class HelixPrint:
                     """,
                     ("cleaned", temp_filename),
                 )
-            except Exception as e:
-                logging.warning(
-                    f"HelixPrint: Failed to update cleanup status: {e}"
-                )
+            elif self._use_namespace:
+                record = await self.database.get_item(HELIX_NAMESPACE, temp_filename)
+                if record:
+                    record["status"] = "cleaned"
+                    await self.database.update_item(
+                        HELIX_NAMESPACE, temp_filename, record
+                    )
+        except Exception as e:
+            logging.warning(f"HelixPrint: Failed to update cleanup status: {e}")
 
     async def _startup_cleanup(self) -> None:
         """Clean up stale temp files on startup."""
-        if self.gc_path is None or not self._use_sqlite:
+        if self.gc_path is None:
+            return
+        if not self._use_sqlite and not self._use_namespace:
             return
 
         now = time.time()
 
         try:
-            # Find files past their cleanup time
-            rows = await self.database.execute_db_command(
-                f"""
-                SELECT temp_filename, symlink_filename
-                FROM {HELIX_TEMP_TABLE}
-                WHERE status = 'pending_cleanup' AND cleanup_scheduled_at < ?
-                """,
-                (now,),
-            )
+            # Get pending cleanup records
+            pending_records: List[Dict[str, Any]] = []
 
+            if self._use_sqlite:
+                rows = await self.database.execute_db_command(
+                    f"""
+                    SELECT temp_filename, symlink_filename
+                    FROM {HELIX_TEMP_TABLE}
+                    WHERE status = 'pending_cleanup' AND cleanup_scheduled_at < ?
+                    """,
+                    (now,),
+                )
+                if rows:
+                    pending_records = [dict(r) for r in rows]
+
+            elif self._use_namespace:
+                # Get all items and filter in Python
+                try:
+                    all_items = await self.database.ns_items(HELIX_NAMESPACE)
+                except Exception:
+                    # Namespace doesn't exist yet (no records)
+                    all_items = []
+                for key, record in all_items:
+                    if (
+                        record.get("status") == "pending_cleanup"
+                        and record.get("cleanup_scheduled_at")
+                        and record["cleanup_scheduled_at"] < now
+                    ):
+                        pending_records.append(record)
+
+            # Clean up each pending file
             cleaned_count = 0
-            if rows:
-                for row in rows:
-                    temp_filename = row["temp_filename"]
-                    symlink_filename = row["symlink_filename"]
+            for record in pending_records:
+                temp_filename = record["temp_filename"]
+                symlink_filename = record["symlink_filename"]
 
-                    # Clean up files
-                    temp_path = self.gc_path / temp_filename
-                    symlink_path = self.gc_path / symlink_filename
+                # Clean up files
+                temp_path = self.gc_path / temp_filename
+                symlink_path = self.gc_path / symlink_filename
 
-                    if temp_path.exists():
-                        temp_path.unlink()
-                    if symlink_path.is_symlink():
-                        symlink_path.unlink()
+                if temp_path.exists():
+                    temp_path.unlink()
+                if symlink_path.is_symlink():
+                    symlink_path.unlink()
 
-                    # Clean up thumbnail symlinks
-                    await self._cleanup_thumbnail_symlinks(temp_filename)
+                # Clean up thumbnail symlinks
+                await self._cleanup_thumbnail_symlinks(temp_filename)
 
-                    # Update status
+                # Update status
+                if self._use_sqlite:
                     await self.database.execute_db_command(
                         f"""
                         UPDATE {HELIX_TEMP_TABLE}
@@ -750,23 +810,51 @@ class HelixPrint:
                         """,
                         ("cleaned", temp_filename),
                     )
-                    cleaned_count += 1
+                elif self._use_namespace:
+                    record["status"] = "cleaned"
+                    await self.database.update_item(
+                        HELIX_NAMESPACE, temp_filename, record
+                    )
+                cleaned_count += 1
 
+            if cleaned_count > 0:
                 logging.info(
                     f"HelixPrint: Startup cleanup removed {cleaned_count} stale files"
                 )
 
-            # Also purge old database records to prevent unbounded growth
-            deleted = await self.database.execute_db_command(
-                f"""
-                DELETE FROM {HELIX_TEMP_TABLE}
-                WHERE status = 'cleaned' AND created_at < ?
-                """,
-                (now - DB_RECORD_MAX_AGE,),
-            )
-            if deleted and deleted.rowcount > 0:
+            # Purge old database records to prevent unbounded growth
+            purge_cutoff = now - DB_RECORD_MAX_AGE
+            purged_count = 0
+
+            if self._use_sqlite:
+                deleted = await self.database.execute_db_command(
+                    f"""
+                    DELETE FROM {HELIX_TEMP_TABLE}
+                    WHERE status = 'cleaned' AND created_at < ?
+                    """,
+                    (purge_cutoff,),
+                )
+                if deleted and deleted.rowcount > 0:
+                    purged_count = deleted.rowcount
+
+            elif self._use_namespace:
+                # Get all items and delete old ones
+                try:
+                    all_items = await self.database.ns_items(HELIX_NAMESPACE)
+                except Exception:
+                    all_items = []
+                for key, record in all_items:
+                    if (
+                        record.get("status") == "cleaned"
+                        and record.get("created_at")
+                        and record["created_at"] < purge_cutoff
+                    ):
+                        await self.database.delete_item(HELIX_NAMESPACE, key)
+                        purged_count += 1
+
+            if purged_count > 0:
                 logging.info(
-                    f"HelixPrint: Purged {deleted.rowcount} old database records"
+                    f"HelixPrint: Purged {purged_count} old database records"
                 )
 
         except Exception as e:
