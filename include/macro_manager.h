@@ -13,7 +13,7 @@
 #include <vector>
 
 /**
- * @file helix_macro_manager.h
+ * @file macro_manager.h
  * @brief HelixScreen helper macro detection and installation
  *
  * The HelixMacroManager handles detection and installation of HelixScreen-specific

@@ -96,20 +96,20 @@ TEST_PLATFORM_DEPS := $(WPA_DEPS)
 TEST_APP_OBJS := $(filter-out \
     $(OBJ_DIR)/main.o \
     $(OBJ_DIR)/app_globals.o \
-    $(OBJ_DIR)/cli_args.o \
-    $(OBJ_DIR)/ui_notification.o \
-    $(OBJ_DIR)/ui_toast.o \
-    $(OBJ_DIR)/ui_toast_manager.o \
-    $(OBJ_DIR)/ui_status_bar_manager.o \
-    $(OBJ_DIR)/ui_text_input.o \
-    $(OBJ_DIR)/ui_emergency_stop.o \
-    $(OBJ_DIR)/ui_switch.o \
+    $(OBJ_DIR)/system/cli_args.o \
+    $(OBJ_DIR)/ui/ui_notification.o \
+    $(OBJ_DIR)/ui/ui_toast.o \
+    $(OBJ_DIR)/ui/ui_toast_manager.o \
+    $(OBJ_DIR)/ui/ui_status_bar_manager.o \
+    $(OBJ_DIR)/ui/ui_text_input.o \
+    $(OBJ_DIR)/ui/ui_emergency_stop.o \
+    $(OBJ_DIR)/ui/ui_switch.o \
     $(OBJ_DIR)/application/application.o \
     $(OBJ_DIR)/application/lvgl_initializer.o \
     $(OBJ_DIR)/application/subject_initializer.o \
     $(OBJ_DIR)/application/moonraker_manager.o \
     $(OBJ_DIR)/application/panel_factory.o \
-    ,$(APP_OBJS) $(APP_C_OBJS) $(APP_MODULE_OBJS))
+    ,$(APP_OBJS) $(APP_C_OBJS))
 
 # ============================================================================
 # Test Targets

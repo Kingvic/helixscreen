@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2025 HelixScreen Authors
 
-#include "../../src/moonraker_api_internal.h"
+#include "../../src/api/moonraker_api_internal.h"
 
 #include "../catch_amalgamated.hpp"
 

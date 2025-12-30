@@ -55,18 +55,18 @@ $(BUILD_DIR)/watchdog/%.o: src/%.cpp | $(BUILD_DIR)/watchdog
 
 # Watchdog needs config.o (for reading helixconfig.json), backlight_backend.o,
 # logging_init.o (for spdlog journal/syslog detection), and notification stub
-WATCHDOG_EXTRA_OBJS := $(OBJ_DIR)/config.o \
+WATCHDOG_EXTRA_OBJS := $(OBJ_DIR)/system/config.o \
                        $(BUILD_DIR)/watchdog/backlight_backend.o \
                        $(BUILD_DIR)/watchdog/logging_init.o \
                        $(BUILD_DIR)/watchdog/ui_notification_stub.o
 
 # Compile backlight backend for watchdog (with HELIX_WATCHDOG to skip runtime_config dependency)
-$(BUILD_DIR)/watchdog/backlight_backend.o: src/backlight_backend.cpp | $(BUILD_DIR)/watchdog
+$(BUILD_DIR)/watchdog/backlight_backend.o: src/api/backlight_backend.cpp | $(BUILD_DIR)/watchdog
 	@echo "[CXX] $< (watchdog)"
 	$(Q)$(CXX) $(WATCHDOG_CXXFLAGS) $(DEPFLAGS) -c $< -o $@
 
 # Compile logging_init for watchdog
-$(BUILD_DIR)/watchdog/logging_init.o: src/logging_init.cpp | $(BUILD_DIR)/watchdog
+$(BUILD_DIR)/watchdog/logging_init.o: src/system/logging_init.cpp | $(BUILD_DIR)/watchdog
 	@echo "[CXX] $< (watchdog)"
 	$(Q)$(CXX) $(WATCHDOG_CXXFLAGS) $(DEPFLAGS) -c $< -o $@
 

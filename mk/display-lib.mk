@@ -12,29 +12,29 @@ DISPLAY_LIB := $(BUILD_DIR)/lib/libhelix-display.a
 
 # Core display backend sources (always included)
 DISPLAY_SRCS := \
-    src/display_backend.cpp
+    src/api/display_backend.cpp
 
 # Platform-specific backends
 ifeq ($(UNAME_S),Darwin)
     # macOS: SDL only
-    DISPLAY_SRCS += src/display_backend_sdl.cpp
+    DISPLAY_SRCS += src/api/display_backend_sdl.cpp
 else
     # Linux: framebuffer and DRM for embedded, SDL for desktop
-    DISPLAY_SRCS += src/display_backend_fbdev.cpp
-    DISPLAY_SRCS += src/display_backend_drm.cpp
+    DISPLAY_SRCS += src/api/display_backend_fbdev.cpp
+    DISPLAY_SRCS += src/api/display_backend_drm.cpp
     ifndef CROSS_COMPILE
         # Native Linux desktop also gets SDL
-        DISPLAY_SRCS += src/display_backend_sdl.cpp
+        DISPLAY_SRCS += src/api/display_backend_sdl.cpp
     endif
 endif
 
-DISPLAY_OBJS := $(DISPLAY_SRCS:src/%.cpp=$(BUILD_DIR)/display/%.o)
+DISPLAY_OBJS := $(DISPLAY_SRCS:src/api/%.cpp=$(BUILD_DIR)/display/%.o)
 
 # Display library needs LVGL headers, project includes, libhv (for config.h -> json.hpp), and SDL2
 DISPLAY_CXXFLAGS := $(CXXFLAGS) -I$(INC_DIR) $(LVGL_INC) $(SPDLOG_INC) $(LIBHV_INC) $(SDL2_INC)
 
 # Build object files (with dependency tracking for header changes)
-$(BUILD_DIR)/display/%.o: src/%.cpp | $(BUILD_DIR)/display
+$(BUILD_DIR)/display/%.o: src/api/%.cpp | $(BUILD_DIR)/display
 	@echo "[CXX] $<"
 	$(Q)$(CXX) $(DISPLAY_CXXFLAGS) $(DEPFLAGS) -c $< -o $@
 

@@ -51,10 +51,10 @@ $(BUILD_DIR)/splash/%.o: src/%.cpp | $(BUILD_DIR)/splash
 # on backlight at startup), and a UI notification stub (config.cpp calls ui_notification_error
 # on save failures). Note: backlight_backend needs to be compiled separately with HELIX_SPLASH_ONLY
 # to skip test mode check (which requires runtime_config from main.cpp).
-SPLASH_EXTRA_OBJS := $(OBJ_DIR)/config.o $(BUILD_DIR)/splash/backlight_backend.o $(BUILD_DIR)/splash/ui_notification_stub.o
+SPLASH_EXTRA_OBJS := $(OBJ_DIR)/system/config.o $(BUILD_DIR)/splash/backlight_backend.o $(BUILD_DIR)/splash/ui_notification_stub.o
 
 # Compile backlight backend for splash (with HELIX_SPLASH_ONLY to skip runtime_config dependency)
-$(BUILD_DIR)/splash/backlight_backend.o: src/backlight_backend.cpp | $(BUILD_DIR)/splash
+$(BUILD_DIR)/splash/backlight_backend.o: src/api/backlight_backend.cpp | $(BUILD_DIR)/splash
 	@echo "[CXX] $< (splash)"
 	$(Q)$(CXX) $(SPLASH_CXXFLAGS) $(DEPFLAGS) -c $< -o $@
 

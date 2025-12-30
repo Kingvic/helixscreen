@@ -1,7 +1,7 @@
 // Copyright 2025 356C LLC
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "helix_macro_manager.h"
+#include "macro_manager.h"
 #include "moonraker_api.h"
 #include "moonraker_client_mock.h"
 #include "printer_state.h"
