@@ -125,23 +125,25 @@ void AdvancedPanel::handle_spoolman_clicked() {
 
     // Create Spoolman panel on first access (lazy initialization)
     if (!spoolman_panel_ && parent_screen_) {
-        spdlog::debug("[{}] Creating Spoolman panel...", get_name());
+        auto& spoolman = get_global_spoolman_panel();
 
-        // Create from XML
-        spoolman_panel_ =
-            static_cast<lv_obj_t*>(lv_xml_create(parent_screen_, "spoolman_panel", nullptr));
-        if (spoolman_panel_) {
-            // Setup event handlers and data loading
-            get_global_spoolman_panel().setup(spoolman_panel_, parent_screen_);
+        // Initialize subjects and callbacks if not already done
+        if (!spoolman.are_subjects_initialized()) {
+            spoolman.init_subjects();
+        }
+        spoolman.register_callbacks();
 
-            // Initially hidden
-            lv_obj_add_flag(spoolman_panel_, LV_OBJ_FLAG_HIDDEN);
-            spdlog::info("[{}] Spoolman panel created", get_name());
-        } else {
+        // Create overlay UI
+        spoolman_panel_ = spoolman.create(parent_screen_);
+        if (!spoolman_panel_) {
             spdlog::error("[{}] Failed to create Spoolman panel from XML", get_name());
             ui_toast_show(ToastSeverity::ERROR, "Failed to open Spoolman", 2000);
             return;
         }
+
+        // Register with NavigationManager for lifecycle callbacks
+        NavigationManager::instance().register_overlay_instance(spoolman_panel_, &spoolman);
+        spdlog::info("[{}] Spoolman panel created", get_name());
     }
 
     // Push Spoolman panel onto navigation history and show it

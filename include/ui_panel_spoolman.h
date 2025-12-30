@@ -3,8 +3,7 @@
 
 #pragma once
 
-#include "ui_panel_base.h"
-
+#include "overlay_base.h"
 #include "spoolman_types.h" // For SpoolInfo
 
 #include <vector>
@@ -34,19 +33,26 @@ enum class SpoolmanPanelState : int32_t {
  *
  * Capability-gated: Only accessible when printer_has_spoolman=1
  */
-class SpoolmanPanel : public PanelBase {
+class SpoolmanPanel : public OverlayBase {
   public:
-    SpoolmanPanel(PrinterState& printer_state, MoonrakerAPI* api);
+    SpoolmanPanel();
     ~SpoolmanPanel() override = default;
 
+    // === OverlayBase interface ===
     void init_subjects() override;
-    void setup(lv_obj_t* panel, lv_obj_t* parent_screen) override;
-
+    void register_callbacks() override;
+    lv_obj_t* create(lv_obj_t* parent) override;
     const char* get_name() const override {
         return "Spoolman";
     }
-    const char* get_xml_component_name() const override {
-        return "spoolman_panel";
+
+    // === Lifecycle hooks ===
+    void on_activate() override;
+    void on_deactivate() override;
+
+    // === Public API ===
+    lv_obj_t* get_panel() const {
+        return overlay_root_;
     }
 
     /**
@@ -60,6 +66,10 @@ class SpoolmanPanel : public PanelBase {
   private:
     // ========== UI Widget Pointers ==========
     lv_obj_t* spool_list_ = nullptr; // Still needed for populate_spool_list()
+
+    // ========== Parent Screen ==========
+    lv_obj_t* parent_screen_ = nullptr;
+    bool callbacks_registered_ = false;
 
     // ========== State ==========
     std::vector<SpoolInfo> cached_spools_;
@@ -93,15 +103,7 @@ class SpoolmanPanel : public PanelBase {
 /**
  * @brief Get global SpoolmanPanel instance
  * @return Reference to the singleton panel
- * @throws std::runtime_error if not initialized
+ *
+ * Creates the instance on first call. Used by static callbacks.
  */
 SpoolmanPanel& get_global_spoolman_panel();
-
-/**
- * @brief Initialize global SpoolmanPanel instance
- * @param printer_state Reference to printer state
- * @param api Pointer to MoonrakerAPI
- *
- * Called by main.cpp during startup.
- */
-void init_global_spoolman_panel(PrinterState& printer_state, MoonrakerAPI* api);

@@ -33,7 +33,7 @@
 | Phase 2a: MotionOverlay | ✅ COMPLETE | Converted to OverlayBase pattern |
 | Phase 2b: FanOverlay | ✅ COMPLETE | Converted to OverlayBase pattern |
 | Phase 2c: MacrosOverlay | ✅ COMPLETE | Converted to OverlayBase pattern |
-| Phase 2d: SpoolmanOverlay | ⬜ NOT STARTED | Medium |
+| Phase 2d: SpoolmanOverlay | ✅ COMPLETE | Converted to OverlayBase pattern |
 | Phase 2e: ConsoleOverlay | ⬜ NOT STARTED | Medium, has lifecycle |
 | Phase 2f: HistoryListOverlay | ⬜ NOT STARTED | Has lifecycle |
 | Phase 2g: BedMeshOverlay | ⬜ NOT STARTED | Complex |
@@ -275,27 +275,35 @@ class MotionOverlay : public OverlayBase {
 
 ## Phase 2d: SpoolmanOverlay
 
-### Status: ⬜ NOT STARTED
+### Status: ✅ COMPLETE
 
 ### Files
-- [ ] Rename `include/ui_panel_spoolman.h` → `include/spoolman_overlay.h`
-- [ ] Rename `src/ui/ui_panel_spoolman.cpp` → `src/ui/spoolman_overlay.cpp`
-- [ ] Update caller in `ui_panel_advanced.cpp`
+- [x] Modified `include/ui_panel_spoolman.h` - converted to OverlayBase
+- [x] Modified `src/ui/ui_panel_spoolman.cpp` - new pattern
+- [x] Updated caller in `ui_panel_advanced.cpp`
 
 ### Current State
 - Constructor: `SpoolmanPanel(PrinterState&, MoonrakerAPI*)`
-- Observers: None
-- Lifecycle hooks: None
-- Singleton: `init_global_spoolman_panel()` (early init)
+- Observers: 2x (panel_state, spool_count)
+- Lifecycle hooks: on_activate() for data refresh
+- Singleton: `get_global_spoolman_overlay()` (lazy-loaded)
 - Has panel state subject
 
 ### Acceptance Criteria
-- [ ] Opens from Advanced panel without warning
-- [ ] Spool list loads
-- [ ] Spool selection works
+- [x] Opens from Advanced panel without warning
+- [x] Spool list loads
+- [x] Spool selection works
 
 ### Review Notes
-<!-- Code review agent findings go here -->
+**Completed 2024-12-30:**
+- Successfully converted from PanelBase to OverlayBase inheritance
+- Removed early initialization (was `init_global_spoolman_panel()`, now lazy-loaded with `get_global_spoolman_overlay()`)
+- Data refresh moved to on_activate() for proper timing when overlay opens
+- Uses global accessors (get_moonraker_api, get_printer_state) instead of member references
+- NavigationManager registration added before push (eliminates warning)
+- ObserverGuards manage 2 subjects: panel_state and spool_count
+- Build passes with no errors
+- Review approved - ready for commit
 
 ---
 

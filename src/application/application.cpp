@@ -859,10 +859,14 @@ void Application::create_overlays() {
     }
 
     if (m_args.overlays.spoolman) {
-        auto* panel_obj =
-            static_cast<lv_obj_t*>(lv_xml_create(m_screen, "spoolman_panel", nullptr));
+        auto& spoolman = get_global_spoolman_panel();
+        if (!spoolman.are_subjects_initialized()) {
+            spoolman.init_subjects();
+        }
+        spoolman.register_callbacks();
+        lv_obj_t* panel_obj = spoolman.create(m_screen);
         if (panel_obj) {
-            get_global_spoolman_panel().setup(panel_obj, m_screen);
+            NavigationManager::instance().register_overlay_instance(panel_obj, &spoolman);
             ui_nav_push_overlay(panel_obj);
         }
     }

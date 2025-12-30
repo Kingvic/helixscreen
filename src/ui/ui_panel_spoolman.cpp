@@ -4,13 +4,16 @@
 #include "ui_panel_spoolman.h"
 
 #include "ui_nav.h"
+#include "ui_nav_manager.h"
 #include "ui_panel_common.h"
 #include "ui_spool_canvas.h"
 #include "ui_subject_registry.h"
 #include "ui_theme.h"
 #include "ui_toast.h"
 
+#include "app_globals.h"
 #include "moonraker_api.h"
+#include "printer_state.h"
 
 #include <spdlog/spdlog.h>
 
@@ -25,22 +28,16 @@ static std::unique_ptr<SpoolmanPanel> g_spoolman_panel;
 
 SpoolmanPanel& get_global_spoolman_panel() {
     if (!g_spoolman_panel) {
-        spdlog::error("[Spoolman] get_global_spoolman_panel() called before initialization!");
-        throw std::runtime_error("SpoolmanPanel not initialized");
+        g_spoolman_panel = std::make_unique<SpoolmanPanel>();
     }
     return *g_spoolman_panel;
-}
-
-void init_global_spoolman_panel(PrinterState& printer_state, MoonrakerAPI* api) {
-    g_spoolman_panel = std::make_unique<SpoolmanPanel>(printer_state, api);
 }
 
 // ============================================================================
 // Constructor
 // ============================================================================
 
-SpoolmanPanel::SpoolmanPanel(PrinterState& printer_state, MoonrakerAPI* api)
-    : PanelBase(printer_state, api) {
+SpoolmanPanel::SpoolmanPanel() {
     spdlog::trace("[{}] Constructor", get_name());
 
     // Initialize buffer
@@ -53,9 +50,11 @@ SpoolmanPanel::SpoolmanPanel(PrinterState& printer_state, MoonrakerAPI* api)
 
 void SpoolmanPanel::init_subjects() {
     if (subjects_initialized_) {
-        spdlog::warn("[{}] init_subjects() called twice - ignoring", get_name());
+        spdlog::debug("[{}] Subjects already initialized", get_name());
         return;
     }
+
+    spdlog::debug("[{}] Initializing subjects", get_name());
 
     // Initialize panel state subject (starts in LOADING state)
     UI_SUBJECT_INIT_AND_REGISTER_INT(panel_state_subject_,
@@ -66,44 +65,97 @@ void SpoolmanPanel::init_subjects() {
     UI_SUBJECT_INIT_AND_REGISTER_STRING(spool_count_subject_, spool_count_buf_, "",
                                         "spoolman_spool_count");
 
-    // Register event callbacks BEFORE XML creation
-    lv_xml_register_event_cb(nullptr, "on_spoolman_spool_row_clicked", on_spool_row_clicked);
-    lv_xml_register_event_cb(nullptr, "on_spoolman_refresh_clicked", on_refresh_clicked);
-
     subjects_initialized_ = true;
-    spdlog::debug("[{}] Subjects initialized and event callbacks registered", get_name());
+    spdlog::debug("[{}] Subjects initialized: spoolman_panel_state, spoolman_spool_count",
+                  get_name());
 }
 
 // ============================================================================
-// Setup
+// Callback Registration
 // ============================================================================
 
-void SpoolmanPanel::setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
-    PanelBase::setup(panel, parent_screen);
-
-    if (!panel_) {
-        spdlog::error("[{}] NULL panel", get_name());
+void SpoolmanPanel::register_callbacks() {
+    if (callbacks_registered_) {
+        spdlog::debug("[{}] Callbacks already registered", get_name());
         return;
     }
 
+    spdlog::debug("[{}] Registering event callbacks", get_name());
+
+    // Register XML event callbacks
+    lv_xml_register_event_cb(nullptr, "on_spoolman_spool_row_clicked", on_spool_row_clicked);
+    lv_xml_register_event_cb(nullptr, "on_spoolman_refresh_clicked", on_refresh_clicked);
+
+    callbacks_registered_ = true;
+    spdlog::debug("[{}] Event callbacks registered", get_name());
+}
+
+// ============================================================================
+// Create
+// ============================================================================
+
+lv_obj_t* SpoolmanPanel::create(lv_obj_t* parent) {
+    if (!parent) {
+        spdlog::error("[{}] Cannot create: null parent", get_name());
+        return nullptr;
+    }
+
+    spdlog::debug("[{}] Creating overlay from XML", get_name());
+
+    parent_screen_ = parent;
+
+    // Reset cleanup flag when (re)creating
+    cleanup_called_ = false;
+
+    // Create overlay from XML
+    overlay_root_ = static_cast<lv_obj_t*>(lv_xml_create(parent, "spoolman_panel", nullptr));
+
+    if (!overlay_root_) {
+        spdlog::error("[{}] Failed to create from XML", get_name());
+        return nullptr;
+    }
+
     // Standard overlay setup (handles back button and responsive layout)
-    ui_overlay_panel_setup_standard(panel_, parent_screen_, "overlay_header", "overlay_content");
+    ui_overlay_panel_setup_standard(overlay_root_, parent_screen_, "overlay_header",
+                                    "overlay_content");
 
     // Find widget references
-    lv_obj_t* content = lv_obj_find_by_name(panel_, "overlay_content");
+    lv_obj_t* content = lv_obj_find_by_name(overlay_root_, "overlay_content");
     if (content) {
         spool_list_ = lv_obj_find_by_name(content, "spool_list");
     }
 
     if (!spool_list_) {
         spdlog::error("[{}] spool_list not found!", get_name());
-        return;
+        return nullptr;
     }
 
-    spdlog::info("[{}] Setup complete, fetching spools...", get_name());
+    // Initially hidden
+    lv_obj_add_flag(overlay_root_, LV_OBJ_FLAG_HIDDEN);
 
-    // Load initial data
+    spdlog::info("[{}] Overlay created successfully", get_name());
+    return overlay_root_;
+}
+
+// ============================================================================
+// Lifecycle Hooks
+// ============================================================================
+
+void SpoolmanPanel::on_activate() {
+    // Call base class first
+    OverlayBase::on_activate();
+
+    spdlog::debug("[{}] on_activate()", get_name());
+
+    // Refresh spool list when panel becomes visible
     refresh_spools();
+}
+
+void SpoolmanPanel::on_deactivate() {
+    spdlog::debug("[{}] on_deactivate()", get_name());
+
+    // Call base class
+    OverlayBase::on_deactivate();
 }
 
 // ============================================================================
@@ -111,7 +163,8 @@ void SpoolmanPanel::setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
 // ============================================================================
 
 void SpoolmanPanel::refresh_spools() {
-    if (!api_) {
+    MoonrakerAPI* api = get_moonraker_api();
+    if (!api) {
         spdlog::warn("[{}] No API available, cannot refresh", get_name());
         show_empty_state();
         return;
@@ -119,13 +172,21 @@ void SpoolmanPanel::refresh_spools() {
 
     show_loading_state();
 
-    api_->get_spoolman_spools(
+    api->get_spoolman_spools(
         [this](const std::vector<SpoolInfo>& spools) {
             spdlog::info("[{}] Received {} spools from Spoolman", get_name(), spools.size());
             cached_spools_ = spools;
 
             // Also get active spool ID
-            api_->get_spoolman_status(
+            MoonrakerAPI* api_inner = get_moonraker_api();
+            if (!api_inner) {
+                spdlog::warn("[{}] API unavailable for status check", get_name());
+                active_spool_id_ = -1;
+                populate_spool_list();
+                return;
+            }
+
+            api_inner->get_spoolman_status(
                 [this](bool /*connected*/, int active_id) {
                     active_spool_id_ = active_id;
                     spdlog::debug("[{}] Active spool ID: {}", get_name(), active_spool_id_);
@@ -310,12 +371,13 @@ void SpoolmanPanel::handle_spool_clicked(lv_obj_t* row) {
 }
 
 void SpoolmanPanel::set_active_spool(int spool_id) {
-    if (!api_) {
+    MoonrakerAPI* api = get_moonraker_api();
+    if (!api) {
         spdlog::warn("[{}] No API, cannot set active spool", get_name());
         return;
     }
 
-    api_->set_active_spool(
+    api->set_active_spool(
         spool_id,
         [this, spool_id]() {
             spdlog::info("[{}] Set active spool to {}", get_name(), spool_id);
