@@ -164,6 +164,7 @@ class SettingsPanel : public PanelBase {
     void handle_factory_reset_clicked();
     void show_theme_restart_dialog();
     void populate_sensor_list();
+    void populate_macro_dropdowns();
 
     //
     // === Static Trampolines ===

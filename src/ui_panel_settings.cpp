@@ -176,8 +176,10 @@ static void on_quick_button_1_changed(lv_event_t* e) {
     std::string slot_name = quick_button_index_to_slot_name(index);
 
     Config* config = Config::get_instance();
-    config->set<std::string>("/standard_macros/quick_button_1", slot_name);
-    config->save();
+    if (config) {
+        config->set<std::string>("/standard_macros/quick_button_1", slot_name);
+        config->save();
+    }
 
     spdlog::info("[SettingsPanel] Quick button 1 set to: {}",
                  slot_name.empty() ? "(empty)" : slot_name);
@@ -190,8 +192,10 @@ static void on_quick_button_2_changed(lv_event_t* e) {
     std::string slot_name = quick_button_index_to_slot_name(index);
 
     Config* config = Config::get_instance();
-    config->set<std::string>("/standard_macros/quick_button_2", slot_name);
-    config->save();
+    if (config) {
+        config->set<std::string>("/standard_macros/quick_button_2", slot_name);
+        config->save();
+    }
 
     spdlog::info("[SettingsPanel] Quick button 2 set to: {}",
                  slot_name.empty() ? "(empty)" : slot_name);
@@ -838,132 +842,141 @@ void SettingsPanel::handle_macro_buttons_clicked() {
 
         // Back button already wired via header_bar XML event_cb (on_header_back_clicked)
 
-        // === Populate Quick Button Dropdowns ===
-        // Options: "(Empty)", then slot display names
-        std::string quick_button_options = "(Empty)";
-        for (const auto& slot : StandardMacros::instance().all()) {
-            quick_button_options += "\n" + slot.display_name;
-        }
-
-        // Get current quick button config
-        Config* config = Config::get_instance();
-        std::string qb1_slot =
-            config->get<std::string>("/standard_macros/quick_button_1", "clean_nozzle");
-        std::string qb2_slot =
-            config->get<std::string>("/standard_macros/quick_button_2", "bed_level");
-
-        // Helper to find index for a slot name
-        auto find_slot_index = [](const std::string& slot_name) -> int {
-            if (slot_name.empty())
-                return 0; // (Empty)
-            const auto& slots = StandardMacros::instance().all();
-            for (size_t i = 0; i < slots.size(); ++i) {
-                if (slots[i].slot_name == slot_name) {
-                    return static_cast<int>(i) + 1; // +1 because 0 is "(Empty)"
-                }
-            }
-            return 0;
-        };
-
-        // Quick Button 1
-        lv_obj_t* qb1_row = lv_obj_find_by_name(macro_buttons_overlay_, "row_quick_button_1");
-        lv_obj_t* qb1_dropdown = qb1_row ? lv_obj_find_by_name(qb1_row, "dropdown") : nullptr;
-        if (qb1_dropdown) {
-            lv_dropdown_set_options(qb1_dropdown, quick_button_options.c_str());
-            lv_dropdown_set_selected(qb1_dropdown, find_slot_index(qb1_slot));
-            spdlog::debug("[{}]   ✓ Quick Button 1 dropdown (current: {})", get_name(), qb1_slot);
-        }
-
-        // Quick Button 2
-        lv_obj_t* qb2_row = lv_obj_find_by_name(macro_buttons_overlay_, "row_quick_button_2");
-        lv_obj_t* qb2_dropdown = qb2_row ? lv_obj_find_by_name(qb2_row, "dropdown") : nullptr;
-        if (qb2_dropdown) {
-            lv_dropdown_set_options(qb2_dropdown, quick_button_options.c_str());
-            lv_dropdown_set_selected(qb2_dropdown, find_slot_index(qb2_slot));
-            spdlog::debug("[{}]   ✓ Quick Button 2 dropdown (current: {})", get_name(), qb2_slot);
-        }
-
-        // === Populate Standard Macro Dropdowns ===
-        // Get sorted list of all printer macros from MoonrakerClient
-        std::vector<std::string> printer_macros;
-        MoonrakerClient* client = get_moonraker_client();
-        if (client) {
-            const auto& caps = client->capabilities();
-            for (const auto& macro : caps.macros()) {
-                printer_macros.push_back(macro);
-            }
-            std::sort(printer_macros.begin(), printer_macros.end());
-        }
-
-        // Row names matching XML
-        const std::vector<std::pair<StandardMacroSlot, std::string>> slot_rows = {
-            {StandardMacroSlot::LoadFilament, "row_load_filament"},
-            {StandardMacroSlot::UnloadFilament, "row_unload_filament"},
-            {StandardMacroSlot::Purge, "row_purge"},
-            {StandardMacroSlot::Pause, "row_pause"},
-            {StandardMacroSlot::Resume, "row_resume"},
-            {StandardMacroSlot::Cancel, "row_cancel"},
-            {StandardMacroSlot::BedLevel, "row_bed_level"},
-            {StandardMacroSlot::CleanNozzle, "row_clean_nozzle"},
-            {StandardMacroSlot::HeatSoak, "row_heat_soak"},
-        };
-
-        for (const auto& [slot, row_name] : slot_rows) {
-            lv_obj_t* row = lv_obj_find_by_name(macro_buttons_overlay_, row_name.c_str());
-            lv_obj_t* dropdown = row ? lv_obj_find_by_name(row, "dropdown") : nullptr;
-            if (!dropdown)
-                continue;
-
-            const auto& info = StandardMacros::instance().get(slot);
-
-            // Build options string
-            std::string options;
-
-            // First option: "(Auto: X)" if detected, otherwise "(Empty)"
-            if (!info.detected_macro.empty()) {
-                options = "(Auto: " + info.detected_macro + ")";
-            } else if (!info.fallback_macro.empty()) {
-                options = "(Auto: " + info.fallback_macro + ")";
-            } else {
-                options = "(Empty)";
-            }
-
-            // Add all printer macros
-            for (const auto& macro : printer_macros) {
-                options += "\n" + macro;
-            }
-
-            lv_dropdown_set_options(dropdown, options.c_str());
-
-            // Set selected value
-            if (!info.configured_macro.empty()) {
-                // Find the configured macro in the list
-                int idx = 1; // Start after "(Auto/Empty)"
-                for (const auto& macro : printer_macros) {
-                    if (macro == info.configured_macro) {
-                        lv_dropdown_set_selected(dropdown, idx);
-                        break;
-                    }
-                    ++idx;
-                }
-            } else {
-                // Use auto (index 0)
-                lv_dropdown_set_selected(dropdown, 0);
-            }
-
-            spdlog::debug("[{}]   ✓ {} dropdown (resolved: {})", get_name(), info.display_name,
-                          info.get_macro().empty() ? "(none)" : info.get_macro());
-        }
-
-        // Initially hidden
+        // Initially hidden (dropdowns populated via populate_macro_dropdowns())
         lv_obj_add_flag(macro_buttons_overlay_, LV_OBJ_FLAG_HIDDEN);
         spdlog::info("[{}] Macro buttons overlay created", get_name());
     }
+
+    // Populate dropdowns every time overlay is shown (handles printer reconnection)
+    populate_macro_dropdowns();
 
     // Push overlay onto navigation history and show it
     if (macro_buttons_overlay_) {
         ui_nav_push_overlay(macro_buttons_overlay_);
     }
+}
+
+void SettingsPanel::populate_macro_dropdowns() {
+    if (!macro_buttons_overlay_) {
+        return;
+    }
+
+    spdlog::debug("[{}] Refreshing macro dropdowns...", get_name());
+
+    // === Populate Quick Button Dropdowns ===
+    // Options: "(Empty)", then slot display names
+    std::string quick_button_options = "(Empty)";
+    for (const auto& slot : StandardMacros::instance().all()) {
+        quick_button_options += "\n" + slot.display_name;
+    }
+
+    // Get current quick button config
+    Config* config = Config::get_instance();
+    std::string qb1_slot =
+        config ? config->get<std::string>("/standard_macros/quick_button_1", "clean_nozzle")
+               : "clean_nozzle";
+    std::string qb2_slot =
+        config ? config->get<std::string>("/standard_macros/quick_button_2", "bed_level")
+               : "bed_level";
+
+    // Helper to find index for a slot name
+    auto find_slot_index = [](const std::string& slot_name) -> int {
+        if (slot_name.empty())
+            return 0; // (Empty)
+        const auto& slots = StandardMacros::instance().all();
+        for (size_t i = 0; i < slots.size(); ++i) {
+            if (slots[i].slot_name == slot_name) {
+                return static_cast<int>(i) + 1; // +1 because 0 is "(Empty)"
+            }
+        }
+        return 0;
+    };
+
+    // Quick Button 1
+    lv_obj_t* qb1_row = lv_obj_find_by_name(macro_buttons_overlay_, "row_quick_button_1");
+    lv_obj_t* qb1_dropdown = qb1_row ? lv_obj_find_by_name(qb1_row, "dropdown") : nullptr;
+    if (qb1_dropdown) {
+        lv_dropdown_set_options(qb1_dropdown, quick_button_options.c_str());
+        lv_dropdown_set_selected(qb1_dropdown, find_slot_index(qb1_slot));
+    }
+
+    // Quick Button 2
+    lv_obj_t* qb2_row = lv_obj_find_by_name(macro_buttons_overlay_, "row_quick_button_2");
+    lv_obj_t* qb2_dropdown = qb2_row ? lv_obj_find_by_name(qb2_row, "dropdown") : nullptr;
+    if (qb2_dropdown) {
+        lv_dropdown_set_options(qb2_dropdown, quick_button_options.c_str());
+        lv_dropdown_set_selected(qb2_dropdown, find_slot_index(qb2_slot));
+    }
+
+    // === Populate Standard Macro Dropdowns ===
+    // Get sorted list of all printer macros from MoonrakerClient
+    std::vector<std::string> printer_macros;
+    MoonrakerClient* client = get_moonraker_client();
+    if (client) {
+        const auto& caps = client->capabilities();
+        for (const auto& macro : caps.macros()) {
+            printer_macros.push_back(macro);
+        }
+        std::sort(printer_macros.begin(), printer_macros.end());
+    }
+
+    // Row names matching XML
+    const std::vector<std::pair<StandardMacroSlot, std::string>> slot_rows = {
+        {StandardMacroSlot::LoadFilament, "row_load_filament"},
+        {StandardMacroSlot::UnloadFilament, "row_unload_filament"},
+        {StandardMacroSlot::Purge, "row_purge"},
+        {StandardMacroSlot::Pause, "row_pause"},
+        {StandardMacroSlot::Resume, "row_resume"},
+        {StandardMacroSlot::Cancel, "row_cancel"},
+        {StandardMacroSlot::BedLevel, "row_bed_level"},
+        {StandardMacroSlot::CleanNozzle, "row_clean_nozzle"},
+        {StandardMacroSlot::HeatSoak, "row_heat_soak"},
+    };
+
+    for (const auto& [slot, row_name] : slot_rows) {
+        lv_obj_t* row = lv_obj_find_by_name(macro_buttons_overlay_, row_name.c_str());
+        lv_obj_t* dropdown = row ? lv_obj_find_by_name(row, "dropdown") : nullptr;
+        if (!dropdown)
+            continue;
+
+        const auto& info = StandardMacros::instance().get(slot);
+
+        // Build options string - first option shows auto-detected or empty
+        std::string options;
+        if (!info.detected_macro.empty()) {
+            options = "(Auto: " + info.detected_macro + ")";
+        } else if (!info.fallback_macro.empty()) {
+            options = "(Auto: " + info.fallback_macro + ")";
+        } else {
+            options = "(Empty)";
+        }
+
+        // Add all printer macros
+        for (const auto& macro : printer_macros) {
+            options += "\n" + macro;
+        }
+
+        lv_dropdown_set_options(dropdown, options.c_str());
+
+        // Set selected value
+        if (!info.configured_macro.empty()) {
+            // Find the configured macro in the list
+            int idx = 1; // Start after "(Auto/Empty)"
+            for (const auto& macro : printer_macros) {
+                if (macro == info.configured_macro) {
+                    lv_dropdown_set_selected(dropdown, idx);
+                    break;
+                }
+                ++idx;
+            }
+        } else {
+            // Use auto (index 0)
+            lv_dropdown_set_selected(dropdown, 0);
+        }
+    }
+
+    spdlog::debug("[{}] Macro dropdowns refreshed ({} printer macros)", get_name(),
+                  printer_macros.size());
 }
 
 void SettingsPanel::populate_sensor_list() {

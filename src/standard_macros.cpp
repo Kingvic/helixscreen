@@ -298,9 +298,9 @@ std::string StandardMacros::try_detect(const PrinterCapabilities& caps,
 
     for (const auto& pattern : patterns) {
         std::string upper_pattern = to_upper(pattern);
-        // Check if the pattern exists as a macro
+        // Check if the pattern exists as a macro (both are uppercase)
         if (macros.find(upper_pattern) != macros.end()) {
-            // Return the original case from the pattern (matches what Klipper expects)
+            // Return the pattern as-is (Klipper macros are case-insensitive)
             return pattern;
         }
     }
