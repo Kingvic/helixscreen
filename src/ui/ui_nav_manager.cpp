@@ -25,23 +25,27 @@
 // SINGLETON INSTANCE
 // ============================================================================
 
+// Flag set by NavigationManager destructor to detect static destruction.
+// Using namespace-scope static ensures it's initialized before main() and
+// outlives all function-local statics, including the singleton itself.
+namespace {
+bool g_nav_manager_destroyed = false;
+}
+
+NavigationManager::~NavigationManager() {
+    g_nav_manager_destroyed = true;
+}
+
 NavigationManager& NavigationManager::instance() {
-    static NavigationManager instance;
-    return instance;
+    static NavigationManager inst;
+    return inst;
 }
 
 bool NavigationManager::is_destroyed() {
     // Guard against Static Destruction Order Fiasco.
-    // The nested struct's destructor sets destroyed=true when NavigationManager
-    // is being destroyed, allowing other destructors to safely skip operations
-    // that would otherwise access the destroyed singleton.
-    static bool destroyed = false;
-    static struct DestructionGuard {
-        ~DestructionGuard() {
-            destroyed = true;
-        }
-    } guard;
-    return destroyed;
+    // This flag is set by NavigationManager's destructor, so it accurately
+    // reflects whether the singleton's internal data structures are valid.
+    return g_nav_manager_destroyed;
 }
 
 // ============================================================================

@@ -231,9 +231,9 @@ class NavigationManager {
     bool is_panel_in_stack(lv_obj_t* panel) const;
 
   private:
-    // Private constructor for singleton
+    // Private constructor/destructor for singleton
     NavigationManager() = default;
-    ~NavigationManager() = default;
+    ~NavigationManager(); // Defined in .cpp - sets g_nav_manager_destroyed flag
 
     // Panel ID to name mapping for E-Stop visibility
     static const char* panel_id_to_name(ui_panel_id_t id);
