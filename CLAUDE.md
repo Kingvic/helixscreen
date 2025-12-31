@@ -83,9 +83,10 @@
 | 13 | **NO lv_obj_add_event_cb()** | `lv_obj_add_event_cb(btn, cb, ...)` | XML `<event_cb trigger="clicked" callback="name"/>` + `lv_xml_register_event_cb()` |
 | 14 | **NO imperative visibility** | `lv_obj_add_flag(obj, LV_OBJ_FLAG_HIDDEN)` | XML `<bind_flag_if_eq subject="state" flag="hidden" ref_value="0"/>` |
 | 15 | **NO lv_label_set_text for data** | `lv_label_set_text(lbl, "value")` | Subject binding: `<text_body bind_text="my_subject"/>` |
-| 16 | **NO inline styling** | `lv_obj_set_style_bg_color(obj, ...)` | XML design tokens: `style_bg_color="#card_bg"` |
+| 16 | **NO C++ styling** | `lv_obj_set_style_bg_color(obj, ...)` | XML design tokens: `style_bg_color="#card_bg"` |
 | 17 | **Observer cleanup in DELETE** | Free struct with subjects | Save & remove observers first (see Rule 17 below) |
 | 18 | **NO manual LVGL cleanup** | `lv_display_delete()`, `lv_group_delete()` | Just call `lv_deinit()` - it handles everything |
+| 19 | **bind_style priority** | `style_bg_color` + `bind_style` | Inline attrs override bind_style - use TWO bind_styles |
 
 **Rule 1 - Design Tokens (MANDATORY):**
 

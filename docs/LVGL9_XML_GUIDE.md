@@ -313,6 +313,25 @@ Apply entire style objects conditionally:
 </lv_label>
 ```
 
+**⚠️ CRITICAL: Style Priority**
+
+Inline style attributes (e.g., `style_bg_color="#card_bg"`) have **higher priority** than `bind_style` in LVGL's style cascade. If you set an inline style on an element, `bind_style` cannot override that property.
+
+```xml
+<!-- ❌ WRONG - inline bg_color will override bind_style -->
+<lv_button style_bg_color="#card_bg">
+    <bind_style name="active_style" subject="is_active" ref_value="1"/>
+</lv_button>
+
+<!-- ✅ CORRECT - use TWO bind_styles, no inline bg_color -->
+<lv_button>
+    <bind_style name="inactive_style" subject="is_active" ref_value="0"/>
+    <bind_style name="active_style" subject="is_active" ref_value="1"/>
+</lv_button>
+```
+
+**Rule:** When using `bind_style` for reactive visual changes, do NOT set inline style attributes for the properties you want to change reactively.
+
 #### Binding Limitations
 
 **❌ Text Conditionals DO NOT EXIST:**
