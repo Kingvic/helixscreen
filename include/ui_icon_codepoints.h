@@ -177,9 +177,9 @@ static const IconMapping ICON_MAP[] = {
     {"router",             "\xF3\xB0\x91\xA9"},  // F0469 router-wireless
     {"ruler",              "\xF3\xB0\x91\xAD"},  // F046D ruler (print height)
 
-    // SD card / Send
-    {"sd",                 "\xF3\xB0\x91\xB9"},  // F0479 sd
+    // Script / SD card / Send
     {"script_text",        "\xF3\xB0\xAF\x82"},  // F0BC2 script-text (macro/script)
+    {"sd",                 "\xF3\xB0\x91\xB9"},  // F0479 sd
     {"send",               "\xF3\xB0\x92\x8A"},  // F048A send
     {"settings",           "\xF3\xB0\x92\x93"},  // F0493 cog
     {"sine_wave",          "\xF3\xB0\xA5\x9B"},  // F095B sine-wave
@@ -200,9 +200,9 @@ static const IconMapping ICON_MAP[] = {
     {"trash_can_outline",  "\xF3\xB0\xA9\xBA"},  // F0A7A trash-can-outline (delete)
     {"tray_arrow_up",      "\xF3\xB0\x84\x9D"},  // F011D tray-arrow-up (unload/eject)
     {"tune",               "\xF3\xB0\x98\xAE"},  // F062E tune
-    {"undo",               "\xF3\xB0\x95\x8C"},  // F054C undo (counter-clockwise arrow - loosen)
     {"tune_variant",       "\xF3\xB1\x95\x82"},  // F1542 tune-variant
     {"tune_vertical_variant", "\xF3\xB1\x95\x83"},  // F1543 tune-vertical-variant
+    {"undo",               "\xF3\xB0\x95\x8C"},  // F054C undo (counter-clockwise arrow - loosen)
 
     // Update
     {"update",             "\xF3\xB0\x9A\xB0"},  // F06B0 update
