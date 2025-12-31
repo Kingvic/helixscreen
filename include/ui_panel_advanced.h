@@ -4,6 +4,7 @@
 #pragma once
 
 #include "ui_panel_base.h"
+#include "ui_panel_history_dashboard.h"
 #include "ui_plugin_install_modal.h"
 
 #include "helix_plugin_installer.h"
@@ -99,6 +100,7 @@ class AdvancedPanel : public PanelBase {
     void handle_spoolman_clicked();
     void handle_macros_clicked();
     void handle_console_clicked();
+    void handle_history_clicked();
     void handle_configure_print_start_clicked();
     void handle_helix_plugin_install_clicked();
     void handle_helix_plugin_uninstall_clicked();
@@ -113,6 +115,7 @@ class AdvancedPanel : public PanelBase {
     static void on_spoolman_clicked(lv_event_t* e);
     static void on_macros_clicked(lv_event_t* e);
     static void on_console_clicked(lv_event_t* e);
+    static void on_history_clicked(lv_event_t* e);
     static void on_configure_print_start_clicked(lv_event_t* e);
     static void on_helix_plugin_install_clicked(lv_event_t* e);
     static void on_helix_plugin_uninstall_clicked(lv_event_t* e);
@@ -133,6 +136,7 @@ class AdvancedPanel : public PanelBase {
     lv_obj_t* spoolman_panel_ = nullptr;
     lv_obj_t* macros_panel_ = nullptr;
     lv_obj_t* console_panel_ = nullptr;
+    lv_obj_t* history_dashboard_panel_ = nullptr;
 };
 
 /**

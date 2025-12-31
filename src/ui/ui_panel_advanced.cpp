@@ -58,6 +58,7 @@ void AdvancedPanel::init_subjects() {
     lv_xml_register_event_cb(nullptr, "on_advanced_spoolman", on_spoolman_clicked);
     lv_xml_register_event_cb(nullptr, "on_advanced_macros", on_macros_clicked);
     lv_xml_register_event_cb(nullptr, "on_console_row_clicked", on_console_clicked);
+    lv_xml_register_event_cb(nullptr, "on_history_row_clicked", on_history_clicked);
     lv_xml_register_event_cb(nullptr, "on_configure_print_start", on_configure_print_start_clicked);
     lv_xml_register_event_cb(nullptr, "on_helix_plugin_install_clicked",
                              on_helix_plugin_install_clicked);
@@ -218,6 +219,38 @@ void AdvancedPanel::handle_console_clicked() {
     }
 }
 
+void AdvancedPanel::handle_history_clicked() {
+    spdlog::debug("[{}] History clicked - opening panel", get_name());
+
+    // Create History Dashboard panel on first access (lazy initialization)
+    if (!history_dashboard_panel_ && parent_screen_) {
+        auto& history = get_global_history_dashboard_panel();
+
+        // Initialize subjects and callbacks if not already done
+        if (!history.are_subjects_initialized()) {
+            history.init_subjects();
+        }
+        history.register_callbacks();
+
+        // Create overlay UI
+        history_dashboard_panel_ = history.create(parent_screen_);
+        if (!history_dashboard_panel_) {
+            spdlog::error("[{}] Failed to create History Dashboard panel from XML", get_name());
+            ui_toast_show(ToastSeverity::ERROR, "Failed to open Print History", 2000);
+            return;
+        }
+
+        // Register with NavigationManager for lifecycle callbacks
+        NavigationManager::instance().register_overlay_instance(history_dashboard_panel_, &history);
+        spdlog::info("[{}] History Dashboard panel created", get_name());
+    }
+
+    // Push History Dashboard panel onto navigation history and show it
+    if (history_dashboard_panel_) {
+        ui_nav_push_overlay(history_dashboard_panel_);
+    }
+}
+
 void AdvancedPanel::handle_configure_print_start_clicked() {
     spdlog::debug("[{}] Configure PRINT_START clicked", get_name());
 
@@ -257,6 +290,10 @@ void AdvancedPanel::on_macros_clicked(lv_event_t* /*e*/) {
 
 void AdvancedPanel::on_console_clicked(lv_event_t* /*e*/) {
     get_global_advanced_panel().handle_console_clicked();
+}
+
+void AdvancedPanel::on_history_clicked(lv_event_t* /*e*/) {
+    get_global_advanced_panel().handle_history_clicked();
 }
 
 void AdvancedPanel::on_configure_print_start_clicked(lv_event_t* /*e*/) {
