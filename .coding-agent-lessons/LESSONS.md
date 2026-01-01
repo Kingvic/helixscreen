@@ -35,7 +35,7 @@
 
 
 ### [L007] [***--|-----] XML event callbacks only
-- **Uses**: 6 | **Velocity**: 0.01 | **Learned**: 2025-12-14 | **Last**: 2025-12-28 | **Category**: correction
+- **Uses**: 7 | **Velocity**: 0.01 | **Learned**: 2025-12-14 | **Last**: 2026-01-01 | **Category**: correction
 > Never use lv_obj_add_event_cb() in C++. Always use XML event_cb trigger and register with lv_xml_register_event_cb()
 
 
@@ -45,7 +45,7 @@
 
 
 ### [L009] [***--|-----] Icon font sync workflow
-- **Uses**: 8 | **Velocity**: 0.01 | **Learned**: 2025-12-14 | **Last**: 2025-12-31 | **Category**: gotcha
+- **Uses**: 9 | **Velocity**: 0.01 | **Learned**: 2025-12-14 | **Last**: 2026-01-01 | **Category**: gotcha
 > After adding icon to codepoints.h: add to regen_mdi_fonts.sh, run make regen-fonts, then rebuild. Forgetting any step = missing icon
 
 
@@ -60,7 +60,7 @@
 
 
 ### [L013] [***--|-----] Callbacks before XML creation
-- **Uses**: 9 | **Velocity**: 0.01 | **Learned**: 2025-12-14 | **Last**: 2025-12-30 | **Category**: correction
+- **Uses**: 12 | **Velocity**: 0.01 | **Learned**: 2025-12-14 | **Last**: 2026-01-01 | **Category**: correction
 > Register event callbacks with lv_xml_register_event_cb() BEFORE calling lv_xml_create(). XML parser needs callbacks available during creation
 
 
@@ -100,7 +100,7 @@
 
 
 ### [L021] [***--|-----] Centidegrees for temps
-- **Uses**: 7 | **Velocity**: 0.0 | **Learned**: 2025-12-14 | **Last**: 2025-12-25 | **Category**: pattern
+- **Uses**: 8 | **Velocity**: 0.01 | **Learned**: 2025-12-14 | **Last**: 2025-12-31 | **Category**: pattern
 > Use centidegrees (int) for temperature subjects to preserve 0.1C resolution. Float subjects lose precision in LVGL binding
 
 
@@ -110,7 +110,7 @@
 
 
 ### [L025] [***--|-----] Button content centering
-- **Uses**: 6 | **Velocity**: 0.0 | **Learned**: 2025-12-21 | **Last**: 2025-12-27 | **Category**: pattern
+- **Uses**: 7 | **Velocity**: 0.01 | **Learned**: 2025-12-21 | **Last**: 2025-12-31 | **Category**: pattern
 > Text-only buttons: use `align="center"` on child. Icon+text buttons with flex_flow="row": need ALL THREE flex properties - style_flex_main_place="center" (horizontal), style_flex_cross_place="center" (vertical align items), style_flex_track_place="center" (vertical position of row). Missing track_place causes content to sit at top.
 
 
@@ -130,7 +130,7 @@
 
 
 ### [L029] [***--|-----] LVGL observer callbacks
-- **Uses**: 10 | **Velocity**: 0.01 | **Learned**: 2025-12-25 | **Last**: 2025-12-28 | **Category**: pattern
+- **Uses**: 12 | **Velocity**: 0.01 | **Learned**: 2025-12-25 | **Last**: 2026-01-01 | **Category**: pattern
 > LVGL observer callbacks use C-style function signatures (lv_observer_t*, lv_subject_t*) - NOT lambdas. Must pass user_data via lv_observer_get_user_data(observer). Also: lv_subject_set_*() from non-main threads must use ui_async_call() to avoid render-phase assertions.
 
 
@@ -139,13 +139,13 @@
 > Touchscreen UIs are for physically present users - prioritize tactile controls, at-a-glance info, and real-time tuning. Don't copy features from remote web UIs (cameras, system stats, multi-device views) that assume users aren't standing at the machine.
 
 
-### [L031] [**---|-----] XML no recompile
-- **Uses**: 5 | **Velocity**: 0.04 | **Learned**: 2025-12-27 | **Last**: 2025-12-31 | **Category**: gotcha
+### [L031] [***--|-----] XML no recompile
+- **Uses**: 7 | **Velocity**: 0.01 | **Learned**: 2025-12-27 | **Last**: 2025-12-31 | **Category**: gotcha
 > XML layout changes (ui_xml/*.xml) don't require recompilation - just restart the app. Only C++ changes need make.
 
 
 ### [L032] [*****|-----] Re-stage after pre-commit format
-- **Uses**: 32 | **Velocity**: 0.04 | **Learned**: 2025-12-27 | **Last**: 2025-12-31 | **Category**: correction
+- **Uses**: 44 | **Velocity**: 0.13 | **Learned**: 2025-12-27 | **Last**: 2026-01-01 | **Category**: correction
 > When pre-commit hook auto-formats files, they are NOT automatically re-staged. Always check git status after a commit and amend if the hook formatted files. Look for 'Auto-formatted: <file>' messages and run 'git add -u && git commit --amend --no-edit'.
 
 
@@ -184,6 +184,11 @@
 > When using bind_style for reactive visual changes, inline style attributes (style_bg_color, style_text_color, etc.) have higher priority in LVGL's style cascade. bind_style cannot override them. Solution: use TWO bind_styles (one per state) with NO inline styling for properties you want to change reactively.
 
 
-### [L041] [*----|+----] Subject init/deinit symmetry
-- **Uses**: 2 | **Velocity**: 1.0 | **Learned**: 2025-12-31 | **Last**: 2025-12-31 | **Category**: pattern
+### [L041] [***--|-----] Subject init/deinit symmetry
+- **Uses**: 8 | **Velocity**: 0.01 | **Learned**: 2025-12-31 | **Last**: 2026-01-01 | **Category**: pattern
 > Every init_subjects() must have a corresponding deinit_subjects() that calls lv_subject_deinit() on each subject. This applies to singletons AND panel classes with local lv_subject_t members.
+
+
+### [L042] [*----|-----] XML bind_flag exclusive visibility
+- **Uses**: 2 | **Velocity**: 0.01 | **Learned**: 2025-12-31 | **Last**: 2025-12-31 | **Category**: pattern
+> Multiple bind_flag_if_eq on same object creates independent observers where last one wins (race condition). For 'show only when X=value' logic, use single bind_flag_if_not_eq instead. Example: bind_flag_if_not_eq ref_value="0" shows only when value IS 0.
