@@ -2,13 +2,31 @@
 // Copyright (C) 2025 HelixScreen Contributors
 #pragma once
 
+#include "lvgl/lvgl.h"
+
+#include <cstddef>
+
 /**
  * @file ui_temperature_utils.h
- * @brief Shared temperature validation and safety utilities
+ * @brief Shared temperature validation, formatting, and display utilities
  *
- * This module provides centralized temperature validation, clamping, and
- * safety checking logic used across multiple temperature-related panels
- * (controls/temp, filament, extrusion).
+ * This module provides centralized temperature validation, clamping,
+ * formatting, and color-coding logic used across multiple temperature-related
+ * panels (controls/temp, filament, extrusion).
+ *
+ * ## Formatting Functions
+ *
+ * Use these for consistent temperature display across the UI:
+ * - `format_temperature()` - Single temp: "210°C"
+ * - `format_temperature_pair()` - Current/target: "210 / 245°C"
+ *
+ * ## Color-Coding Function
+ *
+ * Use `get_heating_state_color()` for consistent 4-state thermal feedback:
+ * - Off (target=0): gray (text_secondary)
+ * - Heating (current < target-2): red (primary_color)
+ * - At-temp (within ±2): green (success_color)
+ * - Cooling (current > target+2): blue (info_color)
  */
 
 namespace helix {
@@ -111,6 +129,72 @@ bool is_extrusion_safe(int current_temp, int min_extrusion_temp);
  * @return Status message (e.g., "Ready" or "Heating (45°C below minimum)")
  */
 const char* get_extrusion_safety_status(int current_temp, int min_extrusion_temp);
+
+// ============================================================================
+// Formatting Functions
+// ============================================================================
+
+/**
+ * @brief Format a temperature value with degree symbol
+ *
+ * Formats as "210°C" for consistent display across the UI.
+ *
+ * @param temp Temperature in degrees (not centidegrees)
+ * @param buffer Output buffer
+ * @param buffer_size Size of buffer (recommended: 16)
+ * @return Pointer to buffer for chaining convenience
+ *
+ * @code{.cpp}
+ * char buf[16];
+ * lv_label_set_text(label, format_temperature(210, buf, sizeof(buf)));
+ * @endcode
+ */
+char* format_temperature(int temp, char* buffer, size_t buffer_size);
+
+/**
+ * @brief Format a current/target temperature pair
+ *
+ * Formats as "210 / 245°C" or "210 / --°C" when target is 0 (heater off).
+ *
+ * @param current Current temperature in degrees
+ * @param target Target temperature in degrees (0 = heater off, shows "--")
+ * @param buffer Output buffer
+ * @param buffer_size Size of buffer (recommended: 24)
+ * @return Pointer to buffer for chaining convenience
+ */
+char* format_temperature_pair(int current, int target, char* buffer, size_t buffer_size);
+
+// ============================================================================
+// Display Color Functions
+// ============================================================================
+
+/** Default tolerance for "at temperature" state detection (±degrees) */
+constexpr int DEFAULT_AT_TEMP_TOLERANCE = 2;
+
+/**
+ * @brief Get theme color for temperature display based on 4-state heating logic
+ *
+ * Returns a color indicating the thermal state of a heater:
+ * - **Off** (target=0): text_secondary (gray) - heater disabled
+ * - **Heating** (current < target - tolerance): primary_color (red) - actively heating
+ * - **At-temp** (within ±tolerance): success_color (green) - stable at target
+ * - **Cooling** (current > target + tolerance): info_color (blue) - cooling down
+ *
+ * This function provides consistent color-coding across all temperature displays
+ * (temp_display widget, filament panel, etc.).
+ *
+ * @param current_deg Current temperature in degrees
+ * @param target_deg Target temperature in degrees (0 = heater off)
+ * @param tolerance Degrees tolerance for "at temp" state (default: 2)
+ * @return lv_color_t Theme color based on thermal state
+ *
+ * @code{.cpp}
+ * lv_color_t color = get_heating_state_color(nozzle_current, nozzle_target);
+ * lv_obj_set_style_text_color(temp_label, color, LV_PART_MAIN);
+ * @endcode
+ */
+lv_color_t get_heating_state_color(int current_deg, int target_deg,
+                                   int tolerance = DEFAULT_AT_TEMP_TOLERANCE);
 
 } // namespace temperature
 } // namespace ui

@@ -186,6 +186,9 @@ class FilamentPanel : public PanelBase {
     lv_subject_t operation_in_progress_subject_;
     bool operation_in_progress_ = false;
 
+    // Cooldown button visibility (1 when nozzle target > 0, 0 otherwise)
+    lv_subject_t nozzle_heating_subject_;
+
     // Purge amount state
     int purge_amount_ = 10; // Default 10mm
 
@@ -224,6 +227,10 @@ class FilamentPanel : public PanelBase {
     lv_obj_t* safety_warning_ = nullptr;
     lv_obj_t* status_icon_ = nullptr;
     lv_obj_t* preset_buttons_[4] = {nullptr};
+
+    // Temperature labels for color updates (4-state heating color)
+    lv_obj_t* nozzle_current_label_ = nullptr;
+    lv_obj_t* bed_current_label_ = nullptr;
 
     // Purge amount selector buttons
     lv_obj_t* purge_5mm_btn_ = nullptr;
@@ -267,6 +274,7 @@ class FilamentPanel : public PanelBase {
     void handle_unload_button();
     void handle_purge_button();
     void handle_purge_amount_select(int amount);
+    void handle_cooldown();
     void update_material_temp_display();
     void update_left_card_temps();
     void update_status_icon_for_state();
@@ -305,6 +313,9 @@ class FilamentPanel : public PanelBase {
     static void on_purge_5mm_clicked(lv_event_t* e);
     static void on_purge_10mm_clicked(lv_event_t* e);
     static void on_purge_25mm_clicked(lv_event_t* e);
+
+    // Cooldown callback (XML event_cb)
+    static void on_cooldown_clicked(lv_event_t* e);
 
     // Keypad callback bridges (different signature - not LVGL events)
     static void custom_nozzle_keypad_cb(float value, void* user_data);

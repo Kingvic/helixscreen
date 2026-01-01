@@ -21,6 +21,7 @@
 #include <unordered_map>
 
 using helix::ui::temperature::centi_to_degrees;
+using helix::ui::temperature::get_heating_state_color;
 
 // ============================================================================
 // Constants
@@ -110,30 +111,15 @@ static constexpr int AT_TEMP_TOLERANCE = 2;
 /**
  * @brief Update current temp label color based on 4-state thermal logic
  *
- * Color indicates thermal state:
- * - Off (target == 0): text_secondary (gray) - heater disabled
- * - Heating (current < target - tolerance): primary_color (red) - actively heating
- * - At-temp (within ±tolerance): success_color (green) - stable at target
- * - Cooling (current > target + tolerance): info_color (blue) - cooling down
+ * Uses the shared get_heating_state_color() utility for consistent
+ * color-coding across all temperature displays.
  */
 static void update_heating_color(TempDisplayData* data) {
     if (!data || !data->current_label)
         return;
 
-    lv_color_t color;
-    if (data->target_temp == 0) {
-        // OFF: Heater is disabled - GRAY
-        color = ui_theme_get_color("text_secondary");
-    } else if (data->current_temp < data->target_temp - AT_TEMP_TOLERANCE) {
-        // HEATING: Actively heating up - RED
-        color = ui_theme_get_color("primary_color");
-    } else if (data->current_temp > data->target_temp + AT_TEMP_TOLERANCE) {
-        // COOLING: Cooling down to target - BLUE
-        color = ui_theme_get_color("info_color");
-    } else {
-        // AT_TEMP: Within tolerance of target - GREEN
-        color = ui_theme_get_color("success_color");
-    }
+    lv_color_t color =
+        get_heating_state_color(data->current_temp, data->target_temp, AT_TEMP_TOLERANCE);
     lv_obj_set_style_text_color(data->current_label, color, LV_PART_MAIN);
 }
 

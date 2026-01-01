@@ -3,6 +3,8 @@
 
 #include "ui_temperature_utils.h"
 
+#include "ui_theme.h"
+
 #include "spdlog/spdlog.h"
 
 #include <cstdio>
@@ -43,6 +45,44 @@ const char* get_extrusion_safety_status(int current_temp, int min_extrusion_temp
     int deficit = min_extrusion_temp - current_temp;
     snprintf(status_buf, sizeof(status_buf), "Heating (%d°C below minimum)", deficit);
     return status_buf;
+}
+
+// ============================================================================
+// Formatting Functions
+// ============================================================================
+
+char* format_temperature(int temp, char* buffer, size_t buffer_size) {
+    snprintf(buffer, buffer_size, "%d°C", temp);
+    return buffer;
+}
+
+char* format_temperature_pair(int current, int target, char* buffer, size_t buffer_size) {
+    if (target == 0) {
+        snprintf(buffer, buffer_size, "%d / --°C", current);
+    } else {
+        snprintf(buffer, buffer_size, "%d / %d°C", current, target);
+    }
+    return buffer;
+}
+
+// ============================================================================
+// Display Color Functions
+// ============================================================================
+
+lv_color_t get_heating_state_color(int current_deg, int target_deg, int tolerance) {
+    if (target_deg == 0) {
+        // OFF: Heater is disabled - GRAY
+        return ui_theme_get_color("text_secondary");
+    } else if (current_deg < target_deg - tolerance) {
+        // HEATING: Actively heating up - RED
+        return ui_theme_get_color("primary_color");
+    } else if (current_deg > target_deg + tolerance) {
+        // COOLING: Cooling down to target - BLUE
+        return ui_theme_get_color("info_color");
+    } else {
+        // AT_TEMP: Within tolerance of target - GREEN
+        return ui_theme_get_color("success_color");
+    }
 }
 
 } // namespace temperature

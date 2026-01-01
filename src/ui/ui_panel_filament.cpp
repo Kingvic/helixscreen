@@ -36,6 +36,7 @@ static const int MATERIAL_BED_TEMPS[] = {60, 80, 100, 50};
 static const char* MATERIAL_NAMES[] = {"PLA", "PETG", "ABS", "TPU"};
 
 using helix::ui::temperature::centi_to_degrees;
+using helix::ui::temperature::get_heating_state_color;
 
 // ============================================================================
 // CONSTRUCTOR
@@ -82,6 +83,9 @@ FilamentPanel::FilamentPanel(PrinterState& printer_state, MoonrakerAPI* api)
     lv_xml_register_event_cb(nullptr, "on_filament_purge_10mm", on_purge_10mm_clicked);
     lv_xml_register_event_cb(nullptr, "on_filament_purge_25mm", on_purge_25mm_clicked);
 
+    // Cooldown button
+    lv_xml_register_event_cb(nullptr, "on_filament_cooldown", on_cooldown_clicked);
+
     // Subscribe to PrinterState temperatures to show actual printer state
     // NOTE: Observers must defer UI updates via ui_async_call to avoid render-phase assertions
     // [L029]
@@ -98,6 +102,7 @@ FilamentPanel::FilamentPanel(PrinterState& printer_state, MoonrakerAPI* api)
                         panel->update_temp_display();
                         panel->update_warning_text();
                         panel->update_safety_state();
+                        panel->update_status(); // Update status text based on new temp
                     },
                     self);
             }
@@ -116,6 +121,10 @@ FilamentPanel::FilamentPanel(PrinterState& printer_state, MoonrakerAPI* api)
                         panel->update_left_card_temps();
                         panel->update_material_temp_display();
                         panel->update_warning_text();
+                        panel->update_status(); // Status depends on target temp too
+                        // Update cooldown button visibility
+                        lv_subject_set_int(&panel->nozzle_heating_subject_,
+                                           panel->nozzle_target_ > 0 ? 1 : 0);
                     },
                     self);
             }
@@ -217,6 +226,9 @@ void FilamentPanel::init_subjects() {
     UI_SUBJECT_INIT_AND_REGISTER_INT(operation_in_progress_subject_, 0,
                                      "filament_operation_in_progress");
 
+    // Cooldown button visibility (1 when nozzle target > 0)
+    UI_SUBJECT_INIT_AND_REGISTER_INT(nozzle_heating_subject_, 0, "filament_nozzle_heating");
+
     subjects_initialized_ = true;
     spdlog::debug("[{}] Subjects initialized: temp={}/{}°C, material={}", get_name(),
                   nozzle_current_, nozzle_target_, selected_material_);
@@ -227,7 +239,8 @@ void FilamentPanel::deinit_subjects() {
         return;
     }
 
-    // Deinitialize all subjects in reverse order of initialization
+    // Deinitialize all subjects in reverse order of initialization [L041]
+    lv_subject_deinit(&nozzle_heating_subject_);
     lv_subject_deinit(&operation_in_progress_subject_);
     lv_subject_deinit(&bed_target_subject_);
     lv_subject_deinit(&bed_current_subject_);
@@ -280,6 +293,10 @@ void FilamentPanel::setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
 
     // Find status icon for dynamic updates
     status_icon_ = lv_obj_find_by_name(panel_, "status_icon");
+
+    // Find temperature labels for color updates
+    nozzle_current_label_ = lv_obj_find_by_name(panel_, "nozzle_current_temp");
+    bed_current_label_ = lv_obj_find_by_name(panel_, "bed_current_temp");
 
     // Initialize visual state
     update_preset_buttons_visual();
@@ -557,6 +574,17 @@ void FilamentPanel::update_left_card_temps() {
     }
     lv_subject_copy_string(&nozzle_target_subject_, nozzle_target_buf_);
     lv_subject_copy_string(&bed_target_subject_, bed_target_buf_);
+
+    // Update temperature label colors using 4-state heating logic
+    // (matches temp_display widget: gray=off, red=heating, green=at-temp, blue=cooling)
+    if (nozzle_current_label_) {
+        lv_color_t nozzle_color = get_heating_state_color(nozzle_current_, nozzle_target_);
+        lv_obj_set_style_text_color(nozzle_current_label_, nozzle_color, LV_PART_MAIN);
+    }
+    if (bed_current_label_) {
+        lv_color_t bed_color = get_heating_state_color(bed_current_, bed_target_);
+        lv_obj_set_style_text_color(bed_current_label_, bed_color, LV_PART_MAIN);
+    }
 }
 
 void FilamentPanel::update_status_icon_for_state() {
@@ -818,6 +846,7 @@ void FilamentPanel::custom_bed_keypad_cb(float value, void* user_data) {
 void FilamentPanel::on_nozzle_target_tap_clicked(lv_event_t* e) {
     LVGL_SAFE_EVENT_CB_BEGIN("[FilamentPanel] on_nozzle_target_tap_clicked");
     LV_UNUSED(e);
+    spdlog::info("[FilamentPanel] on_nozzle_target_tap_clicked TRIGGERED");
     get_global_filament_panel().handle_nozzle_temp_tap();
     LVGL_SAFE_EVENT_CB_END();
 }
@@ -825,6 +854,7 @@ void FilamentPanel::on_nozzle_target_tap_clicked(lv_event_t* e) {
 void FilamentPanel::on_bed_target_tap_clicked(lv_event_t* e) {
     LVGL_SAFE_EVENT_CB_BEGIN("[FilamentPanel] on_bed_target_tap_clicked");
     LV_UNUSED(e);
+    spdlog::info("[FilamentPanel] on_bed_target_tap_clicked TRIGGERED");
     get_global_filament_panel().handle_bed_temp_tap();
     LVGL_SAFE_EVENT_CB_END();
 }
@@ -849,6 +879,38 @@ void FilamentPanel::on_purge_25mm_clicked(lv_event_t* e) {
     LV_UNUSED(e);
     get_global_filament_panel().handle_purge_amount_select(25);
     LVGL_SAFE_EVENT_CB_END();
+}
+
+void FilamentPanel::on_cooldown_clicked(lv_event_t* e) {
+    LVGL_SAFE_EVENT_CB_BEGIN("[FilamentPanel] on_cooldown_clicked");
+    LV_UNUSED(e);
+    get_global_filament_panel().handle_cooldown();
+    LVGL_SAFE_EVENT_CB_END();
+}
+
+void FilamentPanel::handle_cooldown() {
+    spdlog::info("[{}] Cooldown requested - turning off heaters", get_name());
+
+    // Turn off nozzle heater
+    if (api_) {
+        api_->set_temperature(
+            "extruder", 0.0, []() { NOTIFY_SUCCESS("Nozzle heater off"); },
+            [](const MoonrakerError& error) {
+                NOTIFY_ERROR("Failed to turn off nozzle: {}", error.user_message());
+            });
+
+        // Also turn off bed heater for full cooldown
+        api_->set_temperature(
+            "heater_bed", 0.0, []() { NOTIFY_SUCCESS("Bed heater off"); },
+            [](const MoonrakerError& error) {
+                NOTIFY_ERROR("Failed to turn off bed: {}", error.user_message());
+            });
+    }
+
+    // Clear material selection since we're cooling down
+    selected_material_ = -1;
+    lv_subject_set_int(&material_selected_subject_, selected_material_);
+    update_preset_buttons_visual();
 }
 
 // ============================================================================
