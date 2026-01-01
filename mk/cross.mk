@@ -62,7 +62,8 @@ else ifeq ($(PLATFORM_TARGET),ad5m)
     # -flto: Must match compiler flag for LTO to work
     # -static: Fully static binary - no runtime dependencies on system libs
     # This avoids glibc version mismatch (binary needs 2.33, system has 2.25)
-    TARGET_LDFLAGS := -Wl,--gc-sections -flto -static
+    # -lstdc++fs: Required for std::experimental::filesystem on GCC 10.x
+    TARGET_LDFLAGS := -Wl,--gc-sections -flto -static -lstdc++fs
     # SSL disabled for embedded - Moonraker communication is local/plaintext
     ENABLE_SSL := no
     DISPLAY_BACKEND := fbdev
