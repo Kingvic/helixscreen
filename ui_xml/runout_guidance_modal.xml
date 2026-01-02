@@ -80,22 +80,22 @@
     <lv_obj width="100%" height="#button_height" style_bg_opa="0" style_border_width="0"
             style_pad_all="0" style_pad_gap="0" flex_flow="row">
       <lv_obj-bind_flag_if_not_eq subject="print_state_enum" flag="hidden" ref_value="2"/>
-      <!-- Resume Print button -->
-      <lv_button name="btn_resume"
-                 height="100%" flex_grow="1" style_radius="0" style_border_width="0" style_shadow_width="0"
-                 clickable="true">
-        <event_cb trigger="clicked" callback="on_runout_resume"/>
-        <text_body text="Resume Print" align="center"/>
-      </lv_button>
-      <!-- Vertical divider -->
-      <lv_obj width="1" height="100%" style_bg_color="#text_secondary" style_bg_opa="64"
-              style_border_width="0" style_pad_all="0"/>
       <!-- Cancel Print button -->
       <lv_button name="btn_cancel_print"
                  height="100%" flex_grow="1" style_radius="0" style_border_width="0" style_shadow_width="0"
                  style_bg_color="#error_color" clickable="true">
         <event_cb trigger="clicked" callback="on_runout_cancel_print"/>
         <text_body text="Cancel Print" align="center" style_text_color="#text_primary"/>
+      </lv_button>
+      <!-- Vertical divider -->
+      <lv_obj width="1" height="100%" style_bg_color="#text_secondary" style_bg_opa="64"
+              style_border_width="0" style_pad_all="0"/>
+      <!-- Resume Print button -->
+      <lv_button name="btn_resume"
+                 height="100%" flex_grow="1" style_radius="0" style_border_width="0" style_shadow_width="0"
+                 clickable="true">
+        <event_cb trigger="clicked" callback="on_runout_resume"/>
+        <text_body text="Resume Print" align="center"/>
       </lv_button>
     </lv_obj>
   </view>
