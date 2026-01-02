@@ -23,9 +23,11 @@ CompileFlags:
     # System includes (macOS homebrew fallback)
     - -I/opt/homebrew/include
     - -I/opt/homebrew/include/SDL2
-    # Required defines for LVGL
+    # Required defines
     - -DLV_CONF_INCLUDE_SIMPLE
     - -DLV_LVGL_H_INCLUDE_SIMPLE
+    - -DHELIX_DISPLAY_SDL
+    - -DENABLE_TINYGL_3D
     # C++ standard
     - -std=c++17
 
