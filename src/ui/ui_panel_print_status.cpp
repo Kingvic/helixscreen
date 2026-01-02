@@ -259,6 +259,7 @@ void PrintStatusPanel::init_subjects() {
     lv_xml_register_event_cb(nullptr, "on_print_status_pause", on_pause_clicked);
     lv_xml_register_event_cb(nullptr, "on_print_status_tune", on_tune_clicked);
     lv_xml_register_event_cb(nullptr, "on_print_status_cancel", on_cancel_clicked);
+    lv_xml_register_event_cb(nullptr, "on_print_status_reprint", on_reprint_clicked);
     lv_xml_register_event_cb(nullptr, "on_print_status_nozzle_clicked", on_nozzle_card_clicked);
     lv_xml_register_event_cb(nullptr, "on_print_status_bed_clicked", on_bed_card_clicked);
 
@@ -417,11 +418,18 @@ lv_obj_t* PrintStatusPanel::create(lv_obj_t* parent) {
     btn_pause_ = lv_obj_find_by_name(overlay_content, "btn_pause");
     btn_tune_ = lv_obj_find_by_name(overlay_content, "btn_tune");
     btn_cancel_ = lv_obj_find_by_name(overlay_content, "btn_cancel");
+    btn_reprint_ = lv_obj_find_by_name(overlay_content, "btn_reprint");
 
     // Print complete celebration badge (for animation)
     success_badge_ = lv_obj_find_by_name(overlay_content, "success_badge");
     if (success_badge_) {
         spdlog::debug("[{}]   ✓ Success badge", get_name());
+    }
+
+    // Print cancelled badge (for animation)
+    cancel_badge_ = lv_obj_find_by_name(overlay_content, "cancel_badge");
+    if (cancel_badge_) {
+        spdlog::debug("[{}]   ✓ Cancel badge", get_name());
     }
 
     // Progress bar widget
@@ -1057,6 +1065,52 @@ void PrintStatusPanel::handle_cancel_button() {
     cancel_modal_.show(lv_screen_active());
 }
 
+void PrintStatusPanel::handle_reprint_button() {
+    spdlog::info("[{}] Reprint button clicked - reprinting: {}", get_name(),
+                 current_print_filename_);
+
+    if (current_print_filename_.empty()) {
+        spdlog::warn("[{}] No filename to reprint", get_name());
+        NOTIFY_WARNING("No file to reprint");
+        return;
+    }
+
+    if (!api_) {
+        spdlog::error("[{}] Cannot reprint: API not available", get_name());
+        NOTIFY_ERROR("Cannot reprint: not connected to printer");
+        return;
+    }
+
+    // Disable button immediately to prevent double-press
+    if (btn_cancel_) {
+        lv_obj_add_state(btn_cancel_, LV_STATE_DISABLED);
+        lv_obj_set_style_opa(btn_cancel_, LV_OPA_50, LV_PART_MAIN);
+    }
+
+    // Capture variables for async callback [L012]
+    auto alive = m_alive;
+    std::string filename = current_print_filename_;
+
+    api_->start_print(
+        filename,
+        [this, alive, filename]() {
+            spdlog::info("[{}] Reprint started: {}", get_name(), filename);
+            // State will update via PrinterState observer when Moonraker confirms
+            // Button will transform back to Cancel mode when state changes to Printing
+        },
+        [this, alive](const MoonrakerError& err) {
+            spdlog::error("[{}] Failed to reprint: {}", get_name(), err.message);
+            NOTIFY_ERROR("Failed to reprint: {}", err.user_message());
+            // Re-enable button on failure (with lifetime guard)
+            if (!alive->load())
+                return;
+            if (btn_cancel_) {
+                lv_obj_remove_state(btn_cancel_, LV_STATE_DISABLED);
+                lv_obj_set_style_opa(btn_cancel_, LV_OPA_COVER, LV_PART_MAIN);
+            }
+        });
+}
+
 void PrintStatusPanel::handle_resize() {
     spdlog::debug("[{}] Handling resize event", get_name());
 
@@ -1119,6 +1173,13 @@ void PrintStatusPanel::on_cancel_clicked(lv_event_t* e) {
     LVGL_SAFE_EVENT_CB_BEGIN("[PrintStatusPanel] on_cancel_clicked");
     (void)e;
     get_global_print_status_panel().handle_cancel_button();
+    LVGL_SAFE_EVENT_CB_END();
+}
+
+void PrintStatusPanel::on_reprint_clicked(lv_event_t* e) {
+    LVGL_SAFE_EVENT_CB_BEGIN("[PrintStatusPanel] on_reprint_clicked");
+    (void)e;
+    get_global_print_status_panel().handle_reprint_button();
     LVGL_SAFE_EVENT_CB_END();
 }
 
@@ -1354,13 +1415,14 @@ void PrintStatusPanel::on_print_state_changed(PrintJobState job_state) {
         break;
     }
 
-    // Special handling for Complete -> Idle transition:
-    // Moonraker/Klipper often transitions to Standby shortly after Complete.
-    // We want to keep the "Print Complete!" display visible with final stats
+    // Special handling for Complete/Cancelled -> Idle transition:
+    // Moonraker/Klipper often transitions to Standby shortly after Complete/Cancelled.
+    // We want to keep the badge and Reprint button visible with final stats
     // until a new print starts (Printing state).
-    if (current_state_ == PrintState::Complete && new_state == PrintState::Idle) {
-        spdlog::debug("[{}] Ignoring Complete -> Idle transition (preserving complete state)",
-                      get_name());
+    if ((current_state_ == PrintState::Complete || current_state_ == PrintState::Cancelled) &&
+        new_state == PrintState::Idle) {
+        spdlog::debug("[{}] Ignoring {} -> Idle transition (preserving state for UI)", get_name(),
+                      current_state_ == PrintState::Complete ? "Complete" : "Cancelled");
         return;
     }
 
@@ -1435,6 +1497,12 @@ void PrintStatusPanel::on_print_state_changed(PrintJobState job_state) {
 
             spdlog::info("[{}] Print complete! Final progress: {}%, elapsed: {}s", get_name(),
                          current_progress_, elapsed_seconds_);
+        }
+
+        // Show print cancelled overlay when entering Cancelled state
+        if (new_state == PrintState::Cancelled) {
+            animate_print_cancelled();
+            spdlog::info("[{}] Print cancelled at progress: {}%", get_name(), current_progress_);
         }
 
         // Update e-stop button visibility: show only during active print
@@ -1883,6 +1951,72 @@ void PrintStatusPanel::animate_print_complete() {
     lv_anim_start(&settle_anim);
 
     spdlog::debug("[{}] Print complete celebration animation started", get_name());
+}
+
+void PrintStatusPanel::animate_print_cancelled() {
+    if (!cancel_badge_) {
+        return;
+    }
+
+    // Skip animation if disabled - show badge in final state
+    if (!SettingsManager::instance().get_animations_enabled()) {
+        constexpr int32_t SCALE_FINAL = 256; // 100% scale
+        lv_obj_set_style_transform_scale(cancel_badge_, SCALE_FINAL, LV_PART_MAIN);
+        lv_obj_set_style_opa(cancel_badge_, LV_OPA_COVER, LV_PART_MAIN);
+        spdlog::debug("[{}] Animations disabled - showing cancel badge instantly", get_name());
+        return;
+    }
+
+    // Animation constants - same pop-in effect as completion
+    constexpr int32_t CELEBRATION_DURATION_MS = 300;
+    constexpr int32_t SETTLE_DURATION_MS = 150;
+    constexpr int32_t SCALE_START = 128;     // 50% scale (128/256)
+    constexpr int32_t SCALE_OVERSHOOT = 282; // ~110% scale (slight overshoot)
+    constexpr int32_t SCALE_FINAL = 256;     // 100% scale (256/256)
+
+    // Start badge small and transparent
+    lv_obj_set_style_transform_scale(cancel_badge_, SCALE_START, LV_PART_MAIN);
+    lv_obj_set_style_opa(cancel_badge_, LV_OPA_TRANSP, LV_PART_MAIN);
+
+    // Stage 1: Scale up with overshoot + fade in
+    lv_anim_t scale_anim;
+    lv_anim_init(&scale_anim);
+    lv_anim_set_var(&scale_anim, cancel_badge_);
+    lv_anim_set_values(&scale_anim, SCALE_START, SCALE_OVERSHOOT);
+    lv_anim_set_duration(&scale_anim, CELEBRATION_DURATION_MS);
+    lv_anim_set_path_cb(&scale_anim, lv_anim_path_overshoot);
+    lv_anim_set_exec_cb(&scale_anim, [](void* obj, int32_t value) {
+        lv_obj_set_style_transform_scale(static_cast<lv_obj_t*>(obj), value, LV_PART_MAIN);
+    });
+    lv_anim_start(&scale_anim);
+
+    // Fade in animation (parallel with scale)
+    lv_anim_t fade_anim;
+    lv_anim_init(&fade_anim);
+    lv_anim_set_var(&fade_anim, cancel_badge_);
+    lv_anim_set_values(&fade_anim, LV_OPA_TRANSP, LV_OPA_COVER);
+    lv_anim_set_duration(&fade_anim, CELEBRATION_DURATION_MS);
+    lv_anim_set_path_cb(&fade_anim, lv_anim_path_ease_out);
+    lv_anim_set_exec_cb(&fade_anim, [](void* obj, int32_t value) {
+        lv_obj_set_style_opa(static_cast<lv_obj_t*>(obj), static_cast<lv_opa_t>(value),
+                             LV_PART_MAIN);
+    });
+    lv_anim_start(&fade_anim);
+
+    // Stage 2: Settle from overshoot to final size (delayed start)
+    lv_anim_t settle_anim;
+    lv_anim_init(&settle_anim);
+    lv_anim_set_var(&settle_anim, cancel_badge_);
+    lv_anim_set_values(&settle_anim, SCALE_OVERSHOOT, SCALE_FINAL);
+    lv_anim_set_duration(&settle_anim, SETTLE_DURATION_MS);
+    lv_anim_set_delay(&settle_anim, CELEBRATION_DURATION_MS);
+    lv_anim_set_path_cb(&settle_anim, lv_anim_path_ease_in_out);
+    lv_anim_set_exec_cb(&settle_anim, [](void* obj, int32_t value) {
+        lv_obj_set_style_transform_scale(static_cast<lv_obj_t*>(obj), value, LV_PART_MAIN);
+    });
+    lv_anim_start(&settle_anim);
+
+    spdlog::debug("[{}] Print cancelled animation started", get_name());
 }
 
 void PrintStatusPanel::handle_tune_speed_changed(int value) {

@@ -525,17 +525,22 @@ void PrinterState::update_from_status(const json& state) {
             PrintJobState new_state = parse_print_job_state(state_str.c_str());
             auto current_state = static_cast<PrintJobState>(lv_subject_get_int(&print_state_enum_));
 
-            // Guard: Preserve COMPLETE state when transitioning to STANDBY
-            // Moonraker sends "standby" shortly after print completes (cooldown).
-            // We want to keep showing "Print Complete!" until a NEW print starts.
-            // Only a transition to PRINTING should clear the complete state.
-            if (current_state == PrintJobState::COMPLETE && new_state == PrintJobState::STANDBY) {
+            // Guard: Preserve COMPLETE/CANCELLED states when transitioning to STANDBY
+            // Moonraker sends "standby" shortly after print completes or cancels.
+            // We want to keep showing the badge/reprint button until a NEW print starts.
+            // Only a transition to PRINTING should clear the complete/cancelled state.
+            bool preserve_state = (current_state == PrintJobState::COMPLETE ||
+                                   current_state == PrintJobState::CANCELLED) &&
+                                  new_state == PrintJobState::STANDBY;
+            if (preserve_state) {
                 if (!complete_standby_logged_) {
-                    spdlog::debug("[PrinterState] Ignoring COMPLETE -> STANDBY transition "
-                                  "(preserving complete state for UI)");
+                    spdlog::debug("[PrinterState] Ignoring {} -> STANDBY transition "
+                                  "(preserving state for UI)",
+                                  current_state == PrintJobState::COMPLETE ? "COMPLETE"
+                                                                           : "CANCELLED");
                     complete_standby_logged_ = true;
                 }
-                // Still update print_active to 0 below, but keep print_state_enum at COMPLETE
+                // Still update print_active to 0 below, but keep print_state_enum unchanged
             } else {
                 complete_standby_logged_ = false; // Reset on any actual state change
                 if (new_state != current_state) {

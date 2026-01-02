@@ -623,9 +623,13 @@ class PrintStatusPanel : public OverlayBase {
     lv_obj_t* btn_pause_ = nullptr;
     lv_obj_t* btn_tune_ = nullptr;
     lv_obj_t* btn_cancel_ = nullptr;
+    lv_obj_t* btn_reprint_ = nullptr;
 
     // Print completion celebration badge (animated on print complete)
     lv_obj_t* success_badge_ = nullptr;
+
+    // Print cancelled badge (animated on print cancel)
+    lv_obj_t* cancel_badge_ = nullptr;
 
     // Header bar (for e-stop visibility control)
     lv_obj_t* overlay_header_ = nullptr;
@@ -667,9 +671,10 @@ class PrintStatusPanel : public OverlayBase {
     void setup_tune_panel(lv_obj_t* panel);
     void update_tune_display();
     void update_z_offset_icons(lv_obj_t* panel); ///< Update Z-offset icons based on kinematics
-    void update_button_states();   ///< Enable/disable buttons based on current print state
-    void animate_print_complete(); ///< Celebratory animation when print finishes
-    void cleanup_temp_gcode();     ///< Remove temp G-code file downloaded for viewing
+    void update_button_states();    ///< Enable/disable buttons based on current print state
+    void animate_print_complete();  ///< Celebratory animation when print finishes
+    void animate_print_cancelled(); ///< Warning animation when print is cancelled
+    void cleanup_temp_gcode();      ///< Remove temp G-code file downloaded for viewing
 
     static void format_time(int seconds, char* buf, size_t buf_size);
 
@@ -684,6 +689,7 @@ class PrintStatusPanel : public OverlayBase {
     void handle_pause_button();
     void handle_tune_button();
     void handle_cancel_button();
+    void handle_reprint_button(); ///< Reprint the cancelled file
     void handle_resize();
 
     //
@@ -697,6 +703,7 @@ class PrintStatusPanel : public OverlayBase {
     static void on_pause_clicked(lv_event_t* e);
     static void on_tune_clicked(lv_event_t* e);
     static void on_cancel_clicked(lv_event_t* e);
+    static void on_reprint_clicked(lv_event_t* e);
 
     // Static resize callback (registered with ui_resize_handler)
     static void on_resize_static();
