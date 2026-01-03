@@ -1,22 +1,5 @@
-/*
- * Copyright (C) 2025 356C LLC
- * Author: Preston Brown <pbrown@brown-house.net>
- *
- * This file is part of HelixScreen.
- *
- * HelixScreen is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * HelixScreen is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with HelixScreen. If not, see <https://www.gnu.org/licenses/>.
- */
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2025 356C LLC
 
 #include "ui_wizard.h"
 #include "ui_wizard_connection.h"
@@ -119,7 +102,7 @@ class WizardConnectionUIFixture {
 // The test fixture's ensure_components_registered() is a stub that doesn't
 // actually register XML components. To run these tests, you need to either:
 // - Set up the XML filesystem driver in the test infrastructure
-// - Run tests with: ./build/bin/run_tests "[ui_integration]"
+// - Run tests with: ./build/bin/helix-tests "[ui_integration]"
 // =============================================================================
 
 TEST_CASE_METHOD(WizardConnectionUIFixture, "Connection UI: All widgets exist",
