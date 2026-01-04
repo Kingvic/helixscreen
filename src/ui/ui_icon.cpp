@@ -126,19 +126,19 @@ static void apply_variant(lv_obj_t* obj, IconVariant variant) {
     switch (variant) {
     case IconVariant::PRIMARY:
         // Primary text color (white in dark mode)
-        color = UI_COLOR_TEXT_PRIMARY;
+        color = ui_theme_get_color("text_primary");
         break;
     case IconVariant::SECONDARY:
         // Secondary text color (gray)
-        color = UI_COLOR_TEXT_SECONDARY;
+        color = ui_theme_get_color("text_secondary");
         break;
     case IconVariant::ACCENT:
         // Accent color (red)
-        color = UI_COLOR_PRIMARY;
+        color = ui_theme_get_color("primary_color");
         break;
     case IconVariant::DISABLED:
         // Primary text color at 50% opacity
-        color = UI_COLOR_TEXT_PRIMARY;
+        color = ui_theme_get_color("text_primary");
         opa = LV_OPA_50;
         break;
     case IconVariant::SUCCESS:
@@ -156,7 +156,7 @@ static void apply_variant(lv_obj_t* obj, IconVariant variant) {
     case IconVariant::NONE:
     default:
         // Use default text color (inherit from theme)
-        color = UI_COLOR_TEXT_PRIMARY;
+        color = ui_theme_get_color("text_primary");
         break;
     }
 

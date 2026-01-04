@@ -251,12 +251,12 @@ static void draw_x_axis_labels_cb(lv_event_t* e) {
     int32_t content_x2 = coords.x2 - pad_right;
 
     // Setup label descriptor - match Y-axis label style exactly
-    // Y-axis labels use UI_FONT_SMALL and get their color from LVGL's theme default
+    // Y-axis labels use font_small and get their color from LVGL's theme default
     // We get the text color from the chart's LV_PART_TICKS style (used for axis labels)
     lv_draw_label_dsc_t label_dsc;
     lv_draw_label_dsc_init(&label_dsc);
     label_dsc.color = lv_obj_get_style_text_color(chart, LV_PART_MAIN); // Use chart's text color
-    label_dsc.font = UI_FONT_SMALL; // Same font as Y-axis labels (noto_sans_16)
+    label_dsc.font = ui_theme_get_font("font_small"); // Same font as Y-axis labels (noto_sans_16)
     label_dsc.align = LV_TEXT_ALIGN_CENTER;
     label_dsc.opa = lv_obj_get_style_text_opa(chart, LV_PART_MAIN); // Use chart's text opacity
 
@@ -275,8 +275,8 @@ static void draw_x_axis_labels_cb(lv_event_t* e) {
     // Label positioning: Y is aligned with bottom Y-axis label (0° baseline)
     // The Y-axis labels use space_between layout, with 0° at the chart content bottom
     int32_t pad_bottom = lv_obj_get_style_pad_bottom(chart, LV_PART_MAIN);
-    int32_t label_height =
-        ui_theme_get_font_height(UI_FONT_SMALL); // Get actual font height dynamically
+    int32_t label_height = ui_theme_get_font_height(
+        ui_theme_get_font("font_small")); // Get actual font height dynamically
     // Add small gap between chart content and X-axis labels
     int32_t space_xs = ui_theme_get_spacing("space_xs"); // 4/5/6px gap
     // Position below chart content with responsive gap
@@ -394,7 +394,7 @@ static void draw_y_axis_labels_cb(lv_event_t* e) {
 
     // Chart content area (where data is drawn)
     // Account for extra X-axis label space in bottom padding
-    int32_t x_axis_label_height = ui_theme_get_font_height(UI_FONT_SMALL);
+    int32_t x_axis_label_height = ui_theme_get_font_height(ui_theme_get_font("font_small"));
     int32_t content_top = coords.y1 + pad_top;
     int32_t content_bottom = coords.y2 - (space_xs + x_axis_label_height + space_xs);
     int32_t content_height = content_bottom - content_top;
@@ -403,12 +403,12 @@ static void draw_y_axis_labels_cb(lv_event_t* e) {
     lv_draw_label_dsc_t label_dsc;
     lv_draw_label_dsc_init(&label_dsc);
     label_dsc.color = lv_obj_get_style_text_color(chart, LV_PART_MAIN);
-    label_dsc.font = UI_FONT_SMALL;
+    label_dsc.font = ui_theme_get_font("font_small");
     label_dsc.align = LV_TEXT_ALIGN_RIGHT; // Right-align Y-axis labels
     label_dsc.opa = lv_obj_get_style_text_opa(chart, LV_PART_MAIN);
 
     // Y-axis label width (for positioning)
-    int32_t label_height = ui_theme_get_font_height(UI_FONT_SMALL);
+    int32_t label_height = ui_theme_get_font_height(ui_theme_get_font("font_small"));
     int32_t label_width = 40; // Fixed width for Y-axis labels (fits "320°")
 
     // Temperature range
@@ -496,7 +496,7 @@ ui_temp_graph_t* ui_temp_graph_create(lv_obj_t* parent) {
     // Use responsive spacing from theme constants
     int32_t space_md = ui_theme_get_spacing("space_md"); // 8/10/12px
     int32_t space_xs = ui_theme_get_spacing("space_xs"); // 4/5/6px for axis label gaps
-    int32_t label_height = ui_theme_get_font_height(UI_FONT_SMALL);
+    int32_t label_height = ui_theme_get_font_height(ui_theme_get_font("font_small"));
     int32_t y_axis_label_width = 40; // Width for Y-axis labels (fits "320°")
 
     lv_obj_set_style_pad_top(graph->chart, space_md, LV_PART_MAIN);

@@ -400,7 +400,7 @@ void PrintSelectDetailView::update_color_swatches(const std::vector<std::string>
         snprintf(tool_str, sizeof(tool_str), "T%zu", i);
         lv_label_set_text(label, tool_str);
         lv_obj_center(label);
-        lv_obj_set_style_text_font(label, UI_FONT_SMALL, 0);
+        lv_obj_set_style_text_font(label, ui_theme_get_font("font_small"), 0);
 
         // Use contrasting text color based on background brightness
         auto parsed_color = ui_parse_hex_color(hex_color);

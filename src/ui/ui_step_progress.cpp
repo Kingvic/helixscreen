@@ -161,10 +161,10 @@ static void apply_step_styling(lv_obj_t* step_item, ui_step_state_t state) {
     // Apply label styling (larger + brighter for active, dimmed for others)
     if (label) {
         if (state == UI_STEP_STATE_ACTIVE) {
-            lv_obj_set_style_text_font(label, UI_FONT_HEADING, 0);     // Larger
+            lv_obj_set_style_text_font(label, ui_theme_get_font("font_heading"), 0); // Larger
             lv_obj_set_style_text_color(label, color_label_active, 0); // Theme-aware active color
         } else {
-            lv_obj_set_style_text_font(label, UI_FONT_BODY, 0); // Normal size
+            lv_obj_set_style_text_font(label, ui_theme_get_font("font_body"), 0); // Normal size
             lv_obj_set_style_text_color(label, color_label_inactive,
                                         0); // Theme-aware inactive color
         }
@@ -321,7 +321,7 @@ lv_obj_t* ui_step_progress_create(lv_obj_t* parent, const ui_step_t* steps, int 
         snprintf(num_buf, sizeof(num_buf), "%d", i + 1); // 1-indexed step numbers
         lv_label_set_text(step_number, num_buf);
         lv_obj_align(step_number, LV_ALIGN_CENTER, 0, 0);
-        lv_obj_set_style_text_font(step_number, UI_FONT_BODY, 0);
+        lv_obj_set_style_text_font(step_number, ui_theme_get_font("font_body"), 0);
         lv_obj_set_style_text_color(step_number, color_number_active,
                                     0); // Theme-aware, will be updated by apply_step_styling()
 

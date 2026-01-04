@@ -16,14 +16,8 @@
 
 #include "lvgl/lvgl.h"
 
-// Theme colors - only essential colors used by code that needs explicit control
-// (Most colors provided automatically by LVGL theme system)
-#define UI_COLOR_PRIMARY lv_color_hex(0xFF4444)   // rgb(255, 68, 68) - Primary/Active color (red)
-#define UI_COLOR_SECONDARY lv_color_hex(0x00AAFF) // rgb(0, 170, 255) - Secondary accent (blue)
-
-// Text colors
-#define UI_COLOR_TEXT_PRIMARY lv_color_hex(0xFFFFFF)   // rgb(255, 255, 255) - White text
-#define UI_COLOR_TEXT_SECONDARY lv_color_hex(0xAAAAAA) // rgb(170, 170, 170) - Gray text
+// Theme colors: Use ui_theme_get_color() to retrieve from globals.xml
+// Available tokens: primary_color, text_primary, text_secondary, success_color, etc.
 
 // Layout constants
 #define UI_NAV_WIDTH_PERCENT 10 // Nav bar is 1/10th of screen width
@@ -67,11 +61,8 @@
 #define UI_NAV_WIDTH_MEDIUM 94 // Medium screens: 70px button + 12px padding each side
 #define UI_NAV_WIDTH_LARGE 102 // Large screens: 70px button + 16px padding each side
 
-// Semantic font constants (matching globals.xml - uses Noto Sans)
-// Font declarations are in ui_fonts.h
-#define UI_FONT_HEADING (&noto_sans_20) // Section headings, large text
-#define UI_FONT_BODY (&noto_sans_16)    // Standard body text, medium text
-#define UI_FONT_SMALL (&noto_sans_12)   // Small text (hints, helpers, warnings, chart labels)
+// Semantic fonts: Use ui_theme_get_font() to retrieve responsive fonts from globals.xml
+// Available tokens: font_heading, font_body, font_small
 
 /**
  * @brief Initialize LVGL theme system
@@ -223,3 +214,20 @@ void ui_set_overlay_width(lv_obj_t* obj, lv_obj_t* screen);
  * @return Spacing value in pixels, or 0 if token not found
  */
 int32_t ui_theme_get_spacing(const char* token);
+
+/**
+ * @brief Get responsive font by token name
+ *
+ * Retrieves font pointer from globals.xml based on current display breakpoint.
+ * The font returned is responsive - it depends on the breakpoint used during
+ * theme initialization (small/medium/large).
+ *
+ * Available tokens:
+ *   font_heading: 20/26/28px (small/medium/large breakpoints)
+ *   font_body:    14/18/20px
+ *   font_small:   12/16/18px
+ *
+ * @param token Font token name (e.g., "font_small", "font_body", "font_heading")
+ * @return Font pointer, or nullptr if token not found
+ */
+const lv_font_t* ui_theme_get_font(const char* token);

@@ -119,7 +119,7 @@ void ActionPromptModal::create_text_lines() {
         lv_label_set_long_mode(label, LV_LABEL_LONG_WRAP);
 
         // Apply body text styling
-        lv_obj_set_style_text_font(label, UI_FONT_BODY, LV_PART_MAIN);
+        lv_obj_set_style_text_font(label, ui_theme_get_font("font_body"), LV_PART_MAIN);
         lv_obj_set_style_text_color(label, ui_theme_get_color("text_primary"), LV_PART_MAIN);
 
         created_text_labels_.push_back(label);
@@ -208,7 +208,7 @@ void ActionPromptModal::create_button(const PromptButton& btn, lv_obj_t* contain
     lv_obj_t* label = lv_label_create(button);
     lv_label_set_text(label, btn.label.c_str());
     lv_obj_center(label);
-    lv_obj_set_style_text_font(label, UI_FONT_BODY, LV_PART_MAIN);
+    lv_obj_set_style_text_font(label, ui_theme_get_font("font_body"), LV_PART_MAIN);
     lv_obj_set_style_text_color(label, lv_color_white(), LV_PART_MAIN);
 
     // Store the gcode in user_data for callback

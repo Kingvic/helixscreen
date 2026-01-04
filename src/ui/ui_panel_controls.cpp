@@ -628,7 +628,7 @@ void ControlsPanel::populate_secondary_fans() {
         lv_obj_t* name_label = lv_label_create(row);
         lv_label_set_text(name_label, fan.display_name.c_str());
         lv_obj_set_style_text_color(name_label, ui_theme_get_color("text_secondary"), 0);
-        lv_obj_set_style_text_font(name_label, UI_FONT_SMALL, 0);
+        lv_obj_set_style_text_font(name_label, ui_theme_get_font("font_small"), 0);
 
         // Speed + indicator container
         lv_obj_t* right_container = lv_obj_create(row);
@@ -654,7 +654,7 @@ void ControlsPanel::populate_secondary_fans() {
         lv_obj_t* speed_label = lv_label_create(right_container);
         lv_label_set_text(speed_label, speed_buf);
         lv_obj_set_style_text_color(speed_label, ui_theme_get_color("text_secondary"), 0);
-        lv_obj_set_style_text_font(speed_label, UI_FONT_SMALL, 0);
+        lv_obj_set_style_text_font(speed_label, ui_theme_get_font("font_small"), 0);
 
         // Track this row for reactive speed updates
         secondary_fan_rows_.push_back({fan.object_name, speed_label});

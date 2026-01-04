@@ -176,15 +176,15 @@ TEST_CASE("Icon XML size attribute", "[ui_icon][xml]") {
 TEST_CASE("Icon XML variant attribute", "[ui_icon][xml]") {
     IconTest fixture;
 
-    // The variant attribute determines the icon color
-    // - primary: UI_COLOR_TEXT_PRIMARY
-    // - secondary: UI_COLOR_TEXT_SECONDARY
-    // - accent: UI_COLOR_PRIMARY (red)
-    // - disabled: UI_COLOR_TEXT_PRIMARY at 50% opacity
-    // - success: success_color from globals.xml
-    // - warning: warning_color from globals.xml
-    // - error: error_color from globals.xml
-    // - none: UI_COLOR_TEXT_PRIMARY (default)
+    // The variant attribute determines the icon color (from globals.xml)
+    // - primary: text_primary
+    // - secondary: text_secondary
+    // - accent: primary_color (red)
+    // - disabled: text_primary at 50% opacity
+    // - success: success_color
+    // - warning: warning_color
+    // - error: error_color
+    // - none: text_primary (default)
 
     SUCCEED("variant=\"primary\" uses primary text color");
     SUCCEED("variant=\"secondary\" uses secondary text color");

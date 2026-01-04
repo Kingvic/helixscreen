@@ -288,12 +288,12 @@ void ConsolePanel::create_entry_widget(const GcodeEntry& entry) {
         color = ui_theme_get_color("success_color");
     } else {
         // Commands use primary text color
-        color = UI_COLOR_TEXT_PRIMARY;
+        color = ui_theme_get_color("text_primary");
     }
     lv_obj_set_style_text_color(label, color, 0);
 
     // Use small font from theme (responsive)
-    lv_obj_set_style_text_font(label, UI_FONT_SMALL, 0);
+    lv_obj_set_style_text_font(label, ui_theme_get_font("font_small"), 0);
 }
 
 void ConsolePanel::clear_entries() {

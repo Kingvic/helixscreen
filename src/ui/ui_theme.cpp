@@ -586,17 +586,17 @@ void ui_theme_apply_bg_color(lv_obj_t* obj, const char* base_name, lv_part_t par
  * This includes ascender, descender, and line gap. Useful for calculating layout
  * heights before widgets are created.
  *
- * @param font Font to query (e.g., UI_FONT_HEADING, &noto_sans_16)
+ * @param font Font to query (e.g., ui_theme_get_font("font_heading"), &noto_sans_16)
  * @return Line height in pixels, or 0 if font is NULL
  *
  * Examples:
- *   int32_t heading_h = ui_theme_get_font_height(UI_FONT_HEADING);  // ~24px
- *   int32_t body_h = ui_theme_get_font_height(UI_FONT_BODY);        // ~20px
- *   int32_t small_h = ui_theme_get_font_height(UI_FONT_SMALL);      // ~15px
+ *   int32_t heading_h = ui_theme_get_font_height(ui_theme_get_font("font_heading"));
+ *   int32_t body_h = ui_theme_get_font_height(ui_theme_get_font("font_body"));
+ *   int32_t small_h = ui_theme_get_font_height(ui_theme_get_font("font_small"));
  *
  *   // Calculate total height for multi-line layout
- *   int32_t total = ui_theme_get_font_height(UI_FONT_HEADING) +
- *                   (ui_theme_get_font_height(UI_FONT_BODY) * 3) +
+ *   int32_t total = ui_theme_get_font_height(ui_theme_get_font("font_heading")) +
+ *                   (ui_theme_get_font_height(ui_theme_get_font("font_body")) * 3) +
  *                   (4 * 8);  // 4 gaps of 8px padding
  */
 int32_t ui_theme_get_font_height(const lv_font_t* font) {
@@ -666,4 +666,37 @@ int32_t ui_theme_get_spacing(const char* token) {
     }
 
     return std::atoi(value);
+}
+
+/**
+ * Get responsive font by token name
+ *
+ * Looks up the font token (e.g., "font_small") which was registered during
+ * theme init with the appropriate breakpoint variant value (e.g., "noto_sans_16"),
+ * then retrieves the actual font pointer.
+ *
+ * @param token Font token name (e.g., "font_small", "font_body", "font_heading")
+ * @return Font pointer, or nullptr if not found
+ */
+const lv_font_t* ui_theme_get_font(const char* token) {
+    if (!token) {
+        spdlog::warn("[Theme] ui_theme_get_font: NULL token");
+        return nullptr;
+    }
+
+    // Get the font name from the registered constant (e.g., "font_small" -> "noto_sans_16")
+    const char* font_name = lv_xml_get_const(nullptr, token);
+    if (!font_name) {
+        spdlog::warn("[Theme] Font token '{}' not found - is theme initialized?", token);
+        return nullptr;
+    }
+
+    // Get the actual font pointer
+    const lv_font_t* font = lv_xml_get_font(nullptr, font_name);
+    if (!font) {
+        spdlog::warn("[Theme] Font '{}' (from token '{}') not registered", font_name, token);
+        return nullptr;
+    }
+
+    return font;
 }

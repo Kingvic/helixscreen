@@ -426,8 +426,8 @@ static void gcode_viewer_draw_cb(lv_event_t* e) {
                         lv_obj_set_style_text_color(state->ghost_progress_label_,
                                                     ui_theme_get_color("text_secondary"),
                                                     LV_PART_MAIN);
-                        lv_obj_set_style_text_font(state->ghost_progress_label_, UI_FONT_SMALL,
-                                                   LV_PART_MAIN);
+                        lv_obj_set_style_text_font(state->ghost_progress_label_,
+                                                   ui_theme_get_font("font_small"), LV_PART_MAIN);
                         lv_obj_align(state->ghost_progress_label_, LV_ALIGN_BOTTOM_LEFT, 8, -8);
                     }
                     static char text[32];
