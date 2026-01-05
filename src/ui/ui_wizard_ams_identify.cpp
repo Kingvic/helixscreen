@@ -7,11 +7,16 @@
 #include "ams_types.h"
 #include "lvgl/lvgl.h"
 #include "static_panel_registry.h"
+#include "ui_subject_registry.h"
 
 #include <spdlog/spdlog.h>
 
 #include <memory>
 #include <string>
+
+// Static buffer definitions for subject strings
+char WizardAmsIdentifyStep::ams_type_buffer_[64] = {};
+char WizardAmsIdentifyStep::ams_details_buffer_[128] = {};
 
 // ============================================================================
 // Global Instance
@@ -41,7 +46,14 @@ WizardAmsIdentifyStep::WizardAmsIdentifyStep() {
 }
 
 WizardAmsIdentifyStep::~WizardAmsIdentifyStep() {
-    // NOTE: Do NOT call LVGL functions here - LVGL may be destroyed first
+    // CRITICAL: Deinitialize subjects BEFORE they're destroyed
+    // This prevents use-after-free when widgets with bindings are deleted
+    if (subjects_initialized_) {
+        lv_subject_deinit(&wizard_ams_type_);
+        lv_subject_deinit(&wizard_ams_details_);
+        subjects_initialized_ = false;
+    }
+
     // NOTE: Do NOT log here - spdlog may be destroyed first
     screen_root_ = nullptr;
 }
@@ -51,25 +63,48 @@ WizardAmsIdentifyStep::~WizardAmsIdentifyStep() {
 // ============================================================================
 
 WizardAmsIdentifyStep::WizardAmsIdentifyStep(WizardAmsIdentifyStep&& other) noexcept
-    : screen_root_(other.screen_root_) {
+    : screen_root_(other.screen_root_),
+      wizard_ams_type_(other.wizard_ams_type_),
+      wizard_ams_details_(other.wizard_ams_details_),
+      subjects_initialized_(other.subjects_initialized_) {
     other.screen_root_ = nullptr;
+    other.subjects_initialized_ = false; // Prevent double-deinit
 }
 
 WizardAmsIdentifyStep& WizardAmsIdentifyStep::operator=(WizardAmsIdentifyStep&& other) noexcept {
     if (this != &other) {
+        // Deinit our subjects first
+        if (subjects_initialized_) {
+            lv_subject_deinit(&wizard_ams_type_);
+            lv_subject_deinit(&wizard_ams_details_);
+        }
+
         screen_root_ = other.screen_root_;
+        wizard_ams_type_ = other.wizard_ams_type_;
+        wizard_ams_details_ = other.wizard_ams_details_;
+        subjects_initialized_ = other.subjects_initialized_;
+
         other.screen_root_ = nullptr;
+        other.subjects_initialized_ = false; // Prevent double-deinit
     }
     return *this;
 }
 
 // ============================================================================
-// Subject Initialization (no-op for this step)
+// Subject Initialization
 // ============================================================================
 
 void WizardAmsIdentifyStep::init_subjects() {
-    spdlog::debug("[{}] Initializing subjects (no-op)", get_name());
-    // No subjects needed - this is a display-only step
+    spdlog::debug("[{}] Initializing subjects", get_name());
+
+    // Initialize string subjects with buffers and register with XML system
+    UI_SUBJECT_INIT_AND_REGISTER_STRING(wizard_ams_type_, ams_type_buffer_, "Unknown",
+                                        "wizard_ams_type");
+    UI_SUBJECT_INIT_AND_REGISTER_STRING(wizard_ams_details_, ams_details_buffer_, "",
+                                        "wizard_ams_details");
+
+    subjects_initialized_ = true;
+    spdlog::debug("[{}] Subjects initialized", get_name());
 }
 
 // ============================================================================
@@ -118,20 +153,32 @@ void WizardAmsIdentifyStep::update_display() {
         return;
     }
 
-    // Find and update the AMS type label
-    lv_obj_t* type_label = lv_obj_find_by_name(screen_root_, "ams_type_label");
-    if (type_label) {
-        std::string type_name = get_ams_type_name();
-        lv_label_set_text(type_label, type_name.c_str());
-        spdlog::debug("[{}] Set type label: {}", get_name(), type_name);
-    }
+    auto& ams = AmsState::instance();
+    AmsBackend* backend = ams.get_backend();
 
-    // Find and update the details label
-    lv_obj_t* details_label = lv_obj_find_by_name(screen_root_, "ams_details_label");
-    if (details_label) {
-        std::string details = get_ams_details();
-        lv_label_set_text(details_label, details.c_str());
-        spdlog::debug("[{}] Set details label: {}", get_name(), details);
+    // Update type via subject (reactive binding)
+    std::string type_name = get_ams_type_name();
+    lv_subject_copy_string(&wizard_ams_type_, type_name.c_str());
+    spdlog::debug("[{}] Set type subject: {}", get_name(), type_name);
+
+    // Update details via subject (reactive binding)
+    std::string details = get_ams_details();
+    lv_subject_copy_string(&wizard_ams_details_, details.c_str());
+    spdlog::debug("[{}] Set details subject: {}", get_name(), details);
+
+    // Set logo image (imperative - images don't support bind_src)
+    lv_obj_t* logo = lv_obj_find_by_name(screen_root_, "ams_logo");
+    if (logo && backend) {
+        const char* logo_path = AmsState::get_logo_path(backend->get_system_info().type_name);
+        if (logo_path && logo_path[0] != '\0') {
+            lv_image_set_src(logo, logo_path);
+            lv_obj_remove_flag(logo, LV_OBJ_FLAG_HIDDEN);
+            spdlog::debug("[{}] Set logo: {}", get_name(), logo_path);
+        } else {
+            lv_obj_add_flag(logo, LV_OBJ_FLAG_HIDDEN);
+            spdlog::debug("[{}] No logo for type: {}", get_name(),
+                          backend->get_system_info().type_name);
+        }
     }
 }
 
@@ -167,11 +214,22 @@ std::string WizardAmsIdentifyStep::get_ams_details() const {
     }
 
     AmsSystemInfo info = backend->get_system_info();
+    std::string details;
+
+    // Start with lane count if available
     if (info.total_slots > 0) {
-        return std::to_string(info.total_slots) + " lanes detected";
+        details = std::to_string(info.total_slots) + " lanes";
     }
 
-    return "System detected";
+    // Add unit name if available (e.g., "• Turtle_1")
+    if (!info.units.empty() && !info.units[0].name.empty()) {
+        if (!details.empty()) {
+            details += " • ";
+        }
+        details += info.units[0].name;
+    }
+
+    return details.empty() ? "System detected" : details;
 }
 
 // ============================================================================

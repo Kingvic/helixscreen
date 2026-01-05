@@ -91,6 +91,13 @@ class WizardAmsIdentifyStep {
   private:
     lv_obj_t* screen_root_{nullptr};
 
+    // Subjects for reactive XML binding
+    lv_subject_t wizard_ams_type_{};
+    lv_subject_t wizard_ams_details_{};
+    static char ams_type_buffer_[64];
+    static char ams_details_buffer_[128];
+    bool subjects_initialized_{false};
+
     /**
      * @brief Update display labels with current AMS info
      */
@@ -103,8 +110,8 @@ class WizardAmsIdentifyStep {
     [[nodiscard]] std::string get_ams_type_name() const;
 
     /**
-     * @brief Get AMS details string (lane count, etc.)
-     * @return String like "4 lanes detected"
+     * @brief Get AMS details string (lane count + unit name)
+     * @return String like "4 lanes • Turtle_1"
      */
     [[nodiscard]] std::string get_ams_details() const;
 };

@@ -59,6 +59,18 @@ class AmsState {
      */
     static AmsState& instance();
 
+    /**
+     * @brief Map AMS system/type name to logo image path
+     *
+     * Maps both generic firmware names (Happy Hare, AFC) and specific hardware
+     * names (ERCF, Box Turtle, etc.) to their logo assets. Performs case-insensitive
+     * matching and strips common suffixes like " (mock)".
+     *
+     * @param type_name System or type name (e.g., "AFC", "Happy Hare", "ERCF")
+     * @return Logo asset path or nullptr if no matching logo
+     */
+    static const char* get_logo_path(const std::string& type_name);
+
     // Non-copyable, non-movable singleton
     AmsState(const AmsState&) = delete;
     AmsState& operator=(const AmsState&) = delete;

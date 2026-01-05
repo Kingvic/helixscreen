@@ -23,7 +23,9 @@
 #include <spdlog/spdlog.h>
 
 #include <atomic>
+#include <cctype>
 #include <cstring>
+#include <unordered_map>
 
 // Async callback data for thread-safe LVGL updates
 namespace {
@@ -57,6 +59,59 @@ void async_sync_callback(void* data) {
 AmsState& AmsState::instance() {
     static AmsState instance;
     return instance;
+}
+
+const char* AmsState::get_logo_path(const std::string& type_name) {
+    // Normalize to lowercase for matching
+    std::string lower_name = type_name;
+    for (auto& c : lower_name) {
+        c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    }
+
+    // Strip common suffixes like " (mock)", " (test)", etc.
+    size_t paren_pos = lower_name.find(" (");
+    if (paren_pos != std::string::npos) {
+        lower_name = lower_name.substr(0, paren_pos);
+    }
+
+    // Map system names to logo paths
+    // Note: All logos are 64x64 white-on-transparent PNGs
+    static const std::unordered_map<std::string, const char*> logo_map = {
+        // AFC/Box Turtle (AFC firmware only runs on Box Turtle hardware)
+        {"afc", "A:assets/images/ams/box_turtle_64.png"},
+        {"box turtle", "A:assets/images/ams/box_turtle_64.png"},
+        {"box_turtle", "A:assets/images/ams/box_turtle_64.png"},
+        {"boxturtle", "A:assets/images/ams/box_turtle_64.png"},
+
+        // Happy Hare - generic firmware, defaults to ERCF logo
+        // (most common hardware running Happy Hare)
+        {"happy hare", "A:assets/images/ams/ercf_64.png"},
+        {"happy_hare", "A:assets/images/ams/ercf_64.png"},
+        {"happyhare", "A:assets/images/ams/ercf_64.png"},
+
+        // Specific hardware types (when detected or configured)
+        {"ercf", "A:assets/images/ams/ercf_64.png"},
+        {"3ms", "A:assets/images/ams/3ms_64.png"},
+        {"tradrack", "A:assets/images/ams/tradrack_64.png"},
+        {"mmx", "A:assets/images/ams/mmx_64.png"},
+        {"night owl", "A:assets/images/ams/night_owl_64.png"},
+        {"night_owl", "A:assets/images/ams/night_owl_64.png"},
+        {"nightowl", "A:assets/images/ams/night_owl_64.png"},
+        {"quattro box", "A:assets/images/ams/quattro_box_64.png"},
+        {"quattro_box", "A:assets/images/ams/quattro_box_64.png"},
+        {"quattrobox", "A:assets/images/ams/quattro_box_64.png"},
+        {"btt vivid", "A:assets/images/ams/btt_vivid_64.png"},
+        {"btt_vivid", "A:assets/images/ams/btt_vivid_64.png"},
+        {"bttvivid", "A:assets/images/ams/btt_vivid_64.png"},
+        {"vivid", "A:assets/images/ams/btt_vivid_64.png"},
+        {"kms", "A:assets/images/ams/kms_64.png"},
+    };
+
+    auto it = logo_map.find(lower_name);
+    if (it != logo_map.end()) {
+        return it->second;
+    }
+    return nullptr;
 }
 
 AmsState::AmsState() {
