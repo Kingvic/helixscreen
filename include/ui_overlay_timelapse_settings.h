@@ -6,7 +6,6 @@
 #include "lvgl.h"
 #include "moonraker_api.h"
 #include "overlay_base.h"
-#include "printer_state.h"
 
 /**
  * @file ui_overlay_timelapse_settings.h
@@ -32,10 +31,9 @@ class TimelapseSettingsOverlay : public OverlayBase {
   public:
     /**
      * @brief Construct TimelapseSettingsOverlay
-     * @param printer_state Reference to global printer state
      * @param api Pointer to MoonrakerAPI (may be nullptr in test mode)
      */
-    TimelapseSettingsOverlay(PrinterState& printer_state, MoonrakerAPI* api);
+    explicit TimelapseSettingsOverlay(MoonrakerAPI* api);
 
     //
     // === OverlayBase Implementation ===
@@ -132,7 +130,6 @@ class TimelapseSettingsOverlay : public OverlayBase {
     // === Injected Dependencies ===
     //
 
-    PrinterState& printer_state_;
     MoonrakerAPI* api_;
 
     // Current settings (loaded from API)
@@ -163,4 +160,4 @@ class TimelapseSettingsOverlay : public OverlayBase {
 
 // Global accessor
 TimelapseSettingsOverlay& get_global_timelapse_settings();
-void init_global_timelapse_settings(PrinterState& printer_state, MoonrakerAPI* api);
+void init_global_timelapse_settings(MoonrakerAPI* api);

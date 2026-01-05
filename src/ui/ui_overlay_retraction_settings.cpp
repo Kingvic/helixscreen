@@ -28,21 +28,19 @@ RetractionSettingsOverlay& get_global_retraction_settings() {
     return *g_retraction_settings;
 }
 
-void init_global_retraction_settings(PrinterState& printer_state, MoonrakerClient* client) {
+void init_global_retraction_settings(MoonrakerClient* client) {
     if (g_retraction_settings) {
         spdlog::warn(
             "[Retraction Settings] RetractionSettingsOverlay already initialized, skipping");
         return;
     }
-    g_retraction_settings = std::make_unique<RetractionSettingsOverlay>(printer_state, client);
+    g_retraction_settings = std::make_unique<RetractionSettingsOverlay>(client);
     StaticPanelRegistry::instance().register_destroy("RetractionSettingsOverlay",
                                                      []() { g_retraction_settings.reset(); });
     spdlog::debug("[Retraction Settings] RetractionSettingsOverlay initialized");
 }
 
-RetractionSettingsOverlay::RetractionSettingsOverlay(PrinterState& printer_state,
-                                                     MoonrakerClient* client)
-    : printer_state_(printer_state), client_(client) {
+RetractionSettingsOverlay::RetractionSettingsOverlay(MoonrakerClient* client) : client_(client) {
     spdlog::debug("[{}] Constructor", get_name());
 }
 

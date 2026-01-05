@@ -6,7 +6,6 @@
 #include "lvgl.h"
 #include "moonraker_client.h"
 #include "overlay_base.h"
-#include "printer_state.h"
 
 /**
  * @file ui_overlay_retraction_settings.h
@@ -31,10 +30,9 @@ class RetractionSettingsOverlay : public OverlayBase {
   public:
     /**
      * @brief Construct RetractionSettingsOverlay
-     * @param printer_state Reference to global printer state
      * @param client Pointer to MoonrakerClient for sending G-code
      */
-    RetractionSettingsOverlay(PrinterState& printer_state, MoonrakerClient* client);
+    explicit RetractionSettingsOverlay(MoonrakerClient* client);
     ~RetractionSettingsOverlay() override;
 
     //
@@ -151,7 +149,6 @@ class RetractionSettingsOverlay : public OverlayBase {
     // === Injected Dependencies ===
     //
 
-    PrinterState& printer_state_;
     MoonrakerClient* client_ = nullptr;
 
     // Debounce - don't send G-code while syncing from printer state
@@ -160,4 +157,4 @@ class RetractionSettingsOverlay : public OverlayBase {
 
 // Global accessor
 RetractionSettingsOverlay& get_global_retraction_settings();
-void init_global_retraction_settings(PrinterState& printer_state, MoonrakerClient* client);
+void init_global_retraction_settings(MoonrakerClient* client);

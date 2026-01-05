@@ -198,10 +198,10 @@ void SubjectInitializer::init_panel_subjects() {
     // HistoryListPanel is now lazy-initialized by HistoryDashboardPanel (OverlayBase pattern)
 
     // Settings overlays
-    init_global_timelapse_settings(get_printer_state(), nullptr);
+    init_global_timelapse_settings(nullptr);
     get_global_timelapse_settings().init_subjects();
 
-    init_global_retraction_settings(get_printer_state(), nullptr);
+    init_global_retraction_settings(nullptr);
     get_global_retraction_settings().init_subjects();
 
     // Fan control overlay (opened from Controls panel secondary fans list)

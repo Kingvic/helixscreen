@@ -28,12 +28,12 @@ TimelapseSettingsOverlay& get_global_timelapse_settings() {
     return *g_timelapse_settings;
 }
 
-void init_global_timelapse_settings(PrinterState& printer_state, MoonrakerAPI* api) {
+void init_global_timelapse_settings(MoonrakerAPI* api) {
     if (g_timelapse_settings) {
         spdlog::warn("[Timelapse Settings] TimelapseSettingsOverlay already initialized, skipping");
         return;
     }
-    g_timelapse_settings = std::make_unique<TimelapseSettingsOverlay>(printer_state, api);
+    g_timelapse_settings = std::make_unique<TimelapseSettingsOverlay>(api);
     StaticPanelRegistry::instance().register_destroy("TimelapseSettingsOverlay",
                                                      []() { g_timelapse_settings.reset(); });
     spdlog::debug("[Timelapse Settings] TimelapseSettingsOverlay initialized");
@@ -58,8 +58,7 @@ int TimelapseSettingsOverlay::index_to_framerate(int index) {
     return 30; // Default to 30fps
 }
 
-TimelapseSettingsOverlay::TimelapseSettingsOverlay(PrinterState& printer_state, MoonrakerAPI* api)
-    : printer_state_(printer_state), api_(api) {
+TimelapseSettingsOverlay::TimelapseSettingsOverlay(MoonrakerAPI* api) : api_(api) {
     spdlog::debug("[{}] Constructor", get_name());
 }
 
