@@ -34,7 +34,7 @@ SCREENSHOTS=(
     "motion-panel:motion:--test"
     "bed-mesh-panel:bed-mesh:--test"
     "settings-panel:settings:--test"
-    "gcode-viewer:gcode-test:--test"
+    "ams-panel:ams:--test"
     "wizard-wifi::--wizard --test"
 )
 

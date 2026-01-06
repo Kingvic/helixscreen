@@ -53,7 +53,7 @@ Guided 8-step setup with WiFi configuration and auto-discovery of printer compon
 
 ---
 
-## G-Code Viewer
-<img src="images/screenshot-gcode-viewer.png" alt="G-Code Viewer" width="800"/>
+## AMS Panel
+<img src="images/screenshot-ams-panel.png" alt="AMS Panel" width="800"/>
 
-G-code layer preview with slider navigation and print progress visualization.
+AMS (Automatic Material System) management with filament slot configuration, color editing, and material presets.
