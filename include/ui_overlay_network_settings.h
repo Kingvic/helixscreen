@@ -22,6 +22,7 @@
  * ## Subject Bindings:
  *
  * WiFi subjects:
+ * - wifi_hardware_available (int) - 0=unavailable, 1=available
  * - wifi_enabled (int) - 0=off, 1=on
  * - wifi_connected (int) - 0=disconnected, 1=connected
  * - wifi_only_24ghz (int) - 1 if hardware limited to 2.4GHz only
@@ -181,6 +182,7 @@ class NetworkSettingsOverlay : public OverlayBase {
     lv_obj_t* networks_list_ = nullptr;
 
     // WiFi subjects
+    lv_subject_t wifi_hardware_available_; // 0=unavailable, 1=available
     lv_subject_t wifi_enabled_;
     lv_subject_t wifi_connected_;
     lv_subject_t wifi_only_24ghz_; // 1 if hardware only supports 2.4GHz

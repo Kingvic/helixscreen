@@ -6,6 +6,7 @@
 <component>
   <subjects>
     <!-- WiFi subjects -->
+    <subject name="wifi_hardware_available" type="int" value="1"/>
     <subject name="wifi_enabled" type="int" value="0"/>
     <subject name="wifi_connected" type="int" value="0"/>
     <subject name="wifi_only_24ghz" type="int" value="0"/>
@@ -44,6 +45,8 @@
                 width="100%" height="content" style_bg_color="#app_bg_color" style_bg_opa="255"
                 style_radius="#border_radius" style_border_width="0" style_pad_all="#space_lg" scrollable="false"
                 flex_flow="column" style_pad_gap="#space_sm">
+          <!-- Disable card when WiFi hardware unavailable -->
+          <lv_obj-bind_state_if_eq subject="wifi_hardware_available" state="disabled" ref_value="0"/>
           <!-- Header Row: WiFi label + toggle -->
           <lv_obj width="100%"
                   height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false"
@@ -54,13 +57,15 @@
                     flex_grow="1" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false"
                     flex_flow="column" style_pad_gap="#space_xxs">
               <text_body text="WiFi" style_text_color="#text_primary"/>
-              <!-- Only show band limitation if hardware doesn't support 5GHz -->
+              <!-- Only show band limitation if hardware doesn't support 5GHz AND hardware available -->
               <text_small text="2.4GHz only" style_text_color="#text_secondary">
                 <lv_obj-bind_flag_if_eq subject="wifi_only_24ghz" flag="hidden" ref_value="0"/>
+                <lv_obj-bind_flag_if_eq subject="wifi_hardware_available" flag="hidden" ref_value="0"/>
               </text_small>
             </lv_obj>
             <!-- Toggle Switch (fixed width, won't shrink) -->
             <lv_switch name="wlan_toggle" width="50" height="#space_2xl" flex_shrink="0">
+              <lv_obj-bind_state_if_eq subject="wifi_hardware_available" state="disabled" ref_value="0"/>
               <lv_obj-bind_state_if_eq subject="wifi_enabled" state="checked" ref_value="1"/>
               <event_cb trigger="value_changed" callback="on_wlan_toggle_changed"/>
             </lv_switch>
@@ -69,11 +74,20 @@
           <lv_obj width="100%"
                   height="1" style_bg_color="#card_border" style_bg_opa="80" style_border_width="0" scrollable="false"
                   style_margin_top="#space_xs" style_margin_bottom="#space_xs"/>
-          <!-- Connected State (shown when wifi_connected == 1) -->
+          <!-- Hardware Unavailable State (shown when wifi_hardware_available == 0) -->
+          <lv_obj name="wifi_unavailable_state"
+                  width="100%" height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0"
+                  scrollable="false" flex_flow="row" style_flex_cross_place="center" style_pad_gap="#space_sm">
+            <lv_obj-bind_flag_if_eq subject="wifi_hardware_available" flag="hidden" ref_value="1"/>
+            <icon src="wifi_off" size="sm" variant="secondary"/>
+            <text_body text="WiFi control unavailable" style_text_color="#text_secondary"/>
+          </lv_obj>
+          <!-- Connected State (shown when wifi_connected == 1 AND hardware available) -->
           <lv_obj name="wifi_connected_state"
                   width="100%" height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0"
                   scrollable="false" flex_flow="column" style_pad_gap="#space_sm">
             <lv_obj-bind_flag_if_eq subject="wifi_connected" flag="hidden" ref_value="0"/>
+            <lv_obj-bind_flag_if_eq subject="wifi_hardware_available" flag="hidden" ref_value="0"/>
             <!-- SSID with checkmark and signal -->
             <lv_obj width="100%"
                     height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false"
@@ -99,11 +113,12 @@
               <text_small name="mac_label" bind_text="mac_address" style_text_color="#text_primary"/>
             </lv_obj>
           </lv_obj>
-          <!-- Disconnected State (shown when wifi_connected == 0) -->
+          <!-- Disconnected State (shown when wifi_connected == 0 AND hardware available) -->
           <lv_obj name="wifi_disconnected_state"
                   width="100%" height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0"
                   scrollable="false" flex_flow="row" style_flex_cross_place="center" style_pad_gap="#space_sm">
             <lv_obj-bind_flag_if_eq subject="wifi_connected" flag="hidden" ref_value="1"/>
+            <lv_obj-bind_flag_if_eq subject="wifi_hardware_available" flag="hidden" ref_value="0"/>
             <icon src="wifi_off" size="sm" variant="secondary"/>
             <text_body text="Not connected" style_text_color="#text_secondary"/>
           </lv_obj>
@@ -209,6 +224,7 @@
                      width="content" height="36" style_radius="#border_radius" style_border_width="0"
                      style_pad_left="#space_lg" style_pad_right="#space_lg">
             <lv_obj-bind_state_if_eq subject="wifi_scanning" state="disabled" ref_value="1"/>
+            <lv_obj-bind_state_if_eq subject="wifi_hardware_available" state="disabled" ref_value="0"/>
             <lv_obj width="content"
                     height="100%" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false"
                     flex_flow="row" style_flex_cross_place="center" style_pad_gap="#space_xs">
@@ -230,12 +246,22 @@
                 style_radius="#border_radius" style_border_width="0" style_pad_all="0" scrollable="true"
                 scroll_dir="VER" scroll_elastic="false" style_clip_corner="true" flex_flow="column">
           <!-- wifi_network_item components are created here dynamically by C++ -->
-          <!-- Placeholder when no networks (shown when WiFi disabled) -->
+          <!-- Placeholder when hardware unavailable (shown when wifi_hardware_available == 0) -->
+          <lv_obj name="wifi_hardware_unavailable_placeholder"
+                  width="100%" flex_grow="1" style_bg_opa="0" style_border_width="0" style_pad_all="#space_lg"
+                  scrollable="false" flex_flow="column" style_flex_main_place="center" style_flex_cross_place="center"
+                  style_flex_track_place="center">
+            <lv_obj-bind_flag_if_eq subject="wifi_hardware_available" flag="hidden" ref_value="1"/>
+            <icon src="wifi_off" size="md" variant="secondary"/>
+            <text_small text="WiFi control unavailable" style_text_color="#text_secondary" style_margin_top="#space_sm"/>
+          </lv_obj>
+          <!-- Placeholder when no networks (shown when WiFi disabled AND hardware available) -->
           <lv_obj name="wifi_disabled_placeholder"
                   width="100%" flex_grow="1" style_bg_opa="0" style_border_width="0" style_pad_all="#space_lg"
                   scrollable="false" flex_flow="column" style_flex_main_place="center" style_flex_cross_place="center"
                   style_flex_track_place="center">
             <lv_obj-bind_flag_if_eq subject="wifi_enabled" flag="hidden" ref_value="1"/>
+            <lv_obj-bind_flag_if_eq subject="wifi_hardware_available" flag="hidden" ref_value="0"/>
             <icon src="wifi_off" size="md" variant="secondary"/>
             <text_small text="Enable WiFi to scan" style_text_color="#text_secondary" style_margin_top="#space_sm"/>
           </lv_obj>
@@ -249,10 +275,11 @@
             <text_small text="Scanning for networks..." style_text_color="#text_secondary" style_margin_top="#space_sm"/>
           </lv_obj>
         </lv_obj>
-        <!-- Add Hidden Network Button -->
+        <!-- Add Hidden Network Button (hidden when hardware unavailable) -->
         <lv_button name="add_other_btn"
                    width="100%" height="content" style_radius="#border_radius" style_border_width="0"
                    style_pad_ver="#space_sm">
+          <lv_obj-bind_flag_if_eq subject="wifi_hardware_available" flag="hidden" ref_value="0"/>
           <lv_obj width="100%"
                   height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false"
                   flex_flow="row" style_flex_main_place="center" style_flex_cross_place="center"

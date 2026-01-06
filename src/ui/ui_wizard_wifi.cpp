@@ -129,6 +129,7 @@ WizardWifiStep::~WizardWifiStep() {
         lv_subject_deinit(&wifi_scanning_);
         lv_subject_deinit(&wifi_password_modal_ssid_);
         lv_subject_deinit(&wifi_connecting_);
+        lv_subject_deinit(&wifi_hardware_available_);
         subjects_initialized_ = false;
     }
 
@@ -148,7 +149,9 @@ WizardWifiStep::WizardWifiStep(WizardWifiStep&& other) noexcept
       wifi_status_(other.wifi_status_), ethernet_status_(other.ethernet_status_),
       wifi_scanning_(other.wifi_scanning_),
       wifi_password_modal_ssid_(other.wifi_password_modal_ssid_),
-      wifi_connecting_(other.wifi_connecting_), wifi_manager_(std::move(other.wifi_manager_)),
+      wifi_connecting_(other.wifi_connecting_),
+      wifi_hardware_available_(other.wifi_hardware_available_),
+      wifi_manager_(std::move(other.wifi_manager_)),
       ethernet_manager_(std::move(other.ethernet_manager_)),
       current_network_is_secured_(other.current_network_is_secured_),
       subjects_initialized_(other.subjects_initialized_) {
@@ -176,6 +179,7 @@ WizardWifiStep& WizardWifiStep::operator=(WizardWifiStep&& other) noexcept {
         wifi_scanning_ = other.wifi_scanning_;
         wifi_password_modal_ssid_ = other.wifi_password_modal_ssid_;
         wifi_connecting_ = other.wifi_connecting_;
+        wifi_hardware_available_ = other.wifi_hardware_available_;
         wifi_manager_ = std::move(other.wifi_manager_);
         ethernet_manager_ = std::move(other.ethernet_manager_);
         current_network_is_secured_ = other.current_network_is_secured_;
@@ -479,6 +483,12 @@ void WizardWifiStep::handle_wifi_toggle_changed(lv_event_t* e) {
     if (!toggle)
         return;
 
+    // Don't process toggle if hardware unavailable
+    if (lv_subject_get_int(&wifi_hardware_available_) == 0) {
+        spdlog::debug("[{}] Ignoring toggle - WiFi hardware unavailable", get_name());
+        return;
+    }
+
     bool checked = lv_obj_get_state(toggle) & LV_STATE_CHECKED;
     spdlog::debug("[{}] WiFi toggle changed: {}", get_name(), checked ? "ON" : "OFF");
 
@@ -712,6 +722,7 @@ void WizardWifiStep::init_subjects() {
     UI_SUBJECT_INIT_AND_REGISTER_INT(wifi_enabled_, 0, "wifi_enabled");
     UI_SUBJECT_INIT_AND_REGISTER_INT(wifi_scanning_, 0, "wifi_scanning");
     UI_SUBJECT_INIT_AND_REGISTER_INT(wifi_connecting_, 0, "wifi_connecting");
+    UI_SUBJECT_INIT_AND_REGISTER_INT(wifi_hardware_available_, 1, "wifi_hardware_available");
 
     UI_SUBJECT_INIT_AND_REGISTER_STRING(wifi_password_modal_ssid_, wifi_password_modal_ssid_buffer_,
                                         "", "wifi_password_modal_ssid");
@@ -796,6 +807,16 @@ void WizardWifiStep::init_wifi_manager() {
     ethernet_manager_ = std::make_unique<EthernetManager>();
 
     update_ethernet_status();
+
+    // Check WiFi hardware availability and update subject
+    bool hw_available = wifi_manager_ && wifi_manager_->has_hardware();
+    lv_subject_set_int(&wifi_hardware_available_, hw_available ? 1 : 0);
+
+    if (!hw_available) {
+        spdlog::info("[{}] WiFi hardware not available - controls disabled", get_name());
+        update_wifi_status("WiFi control unavailable");
+        return;
+    }
 
     // Detect actual WiFi state from system wpa_supplicant
     // Try to connect to existing wpa_supplicant and query state

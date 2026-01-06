@@ -108,6 +108,7 @@ NetworkSettingsOverlay::~NetworkSettingsOverlay() {
 
     // Deinitialize subjects to disconnect observers
     if (subjects_initialized_) {
+        lv_subject_deinit(&wifi_hardware_available_);
         lv_subject_deinit(&wifi_enabled_);
         lv_subject_deinit(&wifi_connected_);
         lv_subject_deinit(&wifi_only_24ghz_);
@@ -147,6 +148,7 @@ void NetworkSettingsOverlay::init_subjects() {
     spdlog::debug("[NetworkSettingsOverlay] Initializing subjects");
 
     // WiFi subjects
+    UI_SUBJECT_INIT_AND_REGISTER_INT(wifi_hardware_available_, 1, "wifi_hardware_available");
     UI_SUBJECT_INIT_AND_REGISTER_INT(wifi_enabled_, 0, "wifi_enabled");
     UI_SUBJECT_INIT_AND_REGISTER_INT(wifi_connected_, 0, "wifi_connected");
     UI_SUBJECT_INIT_AND_REGISTER_INT(wifi_only_24ghz_, 1,
@@ -272,6 +274,14 @@ lv_obj_t* NetworkSettingsOverlay::create(lv_obj_t* parent_screen) {
         wifi_manager_ = std::make_shared<WiFiManager>();
         wifi_manager_->init_self_reference(wifi_manager_);
         spdlog::debug("[NetworkSettingsOverlay] WiFiManager initialized");
+
+        // Check WiFi hardware availability and update subject
+        bool hw_available = wifi_manager_->has_hardware();
+        lv_subject_set_int(&wifi_hardware_available_, hw_available ? 1 : 0);
+        if (!hw_available) {
+            spdlog::info(
+                "[NetworkSettingsOverlay] WiFi hardware not available - controls disabled");
+        }
     }
 
     // Initialize Ethernet manager
@@ -732,6 +742,12 @@ void NetworkSettingsOverlay::handle_wlan_toggle_changed(lv_event_t* e) {
     if (!sw)
         return;
 
+    // Don't process toggle if hardware unavailable
+    if (lv_subject_get_int(&wifi_hardware_available_) == 0) {
+        spdlog::debug("[NetworkSettingsOverlay] Ignoring toggle - WiFi hardware unavailable");
+        return;
+    }
+
     bool enabled = lv_obj_has_state(sw, LV_STATE_CHECKED);
     spdlog::info("[NetworkSettingsOverlay] WiFi toggle: {}", enabled ? "ON" : "OFF");
 
@@ -781,6 +797,12 @@ void NetworkSettingsOverlay::handle_wlan_toggle_changed(lv_event_t* e) {
 
 void NetworkSettingsOverlay::handle_refresh_clicked() {
     spdlog::debug("[NetworkSettingsOverlay] Refresh clicked");
+
+    // Don't refresh if hardware unavailable
+    if (lv_subject_get_int(&wifi_hardware_available_) == 0) {
+        spdlog::debug("[NetworkSettingsOverlay] Ignoring refresh - WiFi hardware unavailable");
+        return;
+    }
 
     if (!wifi_manager_ || !wifi_manager_->is_enabled()) {
         spdlog::warn("[NetworkSettingsOverlay] Cannot refresh: WiFi not enabled");
@@ -922,6 +944,12 @@ void NetworkSettingsOverlay::handle_test_network_clicked() {
 
 void NetworkSettingsOverlay::handle_add_other_clicked() {
     spdlog::debug("[NetworkSettingsOverlay] Add Hidden Network clicked");
+
+    // Don't add network if hardware unavailable
+    if (lv_subject_get_int(&wifi_hardware_available_) == 0) {
+        spdlog::debug("[NetworkSettingsOverlay] Ignoring add other - WiFi hardware unavailable");
+        return;
+    }
 
     // Create modal if not already created
     if (!hidden_network_modal_) {
