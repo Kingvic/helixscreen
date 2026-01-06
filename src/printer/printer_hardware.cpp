@@ -410,6 +410,10 @@ bool PrinterHardware::is_ams_sensor(const std::string& sensor_name) {
         return true;
     if (lower_name.find("slot") != std::string::npos)
         return true;
+    if (lower_name.find("bypass") != std::string::npos)
+        return true;
+    if (lower_name.find("quiet") != std::string::npos)
+        return true;
 
     // ERCF (Enraged Rabbit Carrot Feeder) patterns
     if (lower_name.find("ercf") != std::string::npos)

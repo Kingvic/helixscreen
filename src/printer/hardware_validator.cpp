@@ -603,8 +603,8 @@ void HardwareValidator::validate_new_hardware(Config* config, const MoonrakerCli
             json& sensors_config = config->get_json(config->df() + "filament_sensors/sensors");
             if (sensors_config.is_array()) {
                 for (const auto& sensor : sensors_config) {
-                    if (sensor.is_object() && sensor.contains("name")) {
-                        configured_names.push_back(sensor["name"].get<std::string>());
+                    if (sensor.is_object() && sensor.contains("klipper_name")) {
+                        configured_names.push_back(sensor["klipper_name"].get<std::string>());
                     }
                 }
             }
