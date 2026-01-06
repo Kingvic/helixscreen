@@ -276,6 +276,13 @@ std::string PrinterHardware::guess_exhaust_fan() const {
         return match;
     }
 
+    // "external" - external/outside venting
+    match = find_containing(fans_, "external");
+    if (!match.empty()) {
+        spdlog::debug("[PrinterHardware] guess_exhaust_fan() -> '{}' (contains 'external')", match);
+        return match;
+    }
+
     // "vent" - ventilation
     match = find_containing(fans_, "vent");
     if (!match.empty()) {

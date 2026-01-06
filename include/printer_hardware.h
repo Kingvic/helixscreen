@@ -156,6 +156,7 @@ class PrinterHardware {
      * 1. Exact match: "exhaust_fan"
      * 2. Substring priority chain:
      *    - "exhaust" - direct exhaust
+     *    - "external" - external/outside venting
      *    - "vent" - ventilation
      * 3. Return empty if no match (optional hardware)
      *

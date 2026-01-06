@@ -542,6 +542,24 @@ TEST_CASE("PrinterHardware::guess_exhaust_fan", "[slow][printer][guessing]") {
         REQUIRE(hw.guess_exhaust_fan() == "enclosure_ventilation");
     }
 
+    SECTION("Substring match: 'external' for outside venting") {
+        std::vector<std::string> fans = {"fan", "heater_fan hotend_fan", "external_fan"};
+        PrinterHardware hw(heaters, sensors, fans, leds);
+        REQUIRE(hw.guess_exhaust_fan() == "external_fan");
+    }
+
+    SECTION("Priority: 'exhaust' wins over 'external'") {
+        std::vector<std::string> fans = {"fan", "external_fan", "exhaust_blower"};
+        PrinterHardware hw(heaters, sensors, fans, leds);
+        REQUIRE(hw.guess_exhaust_fan() == "exhaust_blower");
+    }
+
+    SECTION("Priority: 'external' wins over 'vent'") {
+        std::vector<std::string> fans = {"fan", "vent_fan", "external_fan"};
+        PrinterHardware hw(heaters, sensors, fans, leds);
+        REQUIRE(hw.guess_exhaust_fan() == "external_fan");
+    }
+
     SECTION("No match: returns empty string (optional hardware)") {
         std::vector<std::string> fans = {"fan", "heater_fan hotend_fan", "controller_fan"};
         PrinterHardware hw(heaters, sensors, fans, leds);
