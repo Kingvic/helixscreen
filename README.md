@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/images/helix-icon-64.png" alt="HelixScreen" width="128"/>
+  <img src="assets/images/helix-icon-256.png" alt="HelixScreen" width="128"/>
   <br>
   <h1 align="center">HelixScreen</h1>
   <p align="center"><em>A modern touch interface for Klipper/Moonraker 3D printers</em></p>
