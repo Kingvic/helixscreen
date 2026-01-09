@@ -26,6 +26,7 @@
 
 #include "app_globals.h"
 #include "config.h"
+#include "display_manager.h"
 #include "gcode_parser.h" // For extract_thumbnails_from_content (USB thumbnail fallback)
 #include "lvgl/src/xml/lv_xml.h"
 #include "moonraker_api.h"
@@ -567,16 +568,18 @@ void PrintSelectPanel::setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
     create_detail_view();
 
     // Register resize callback
-    // Note: ui_resize_handler_register expects a C callback, so we use a static trampoline
+    // Note: register_resize_callback expects a C callback, so we use a static trampoline
     // We store 'this' in a static variable since the resize system doesn't support user_data
     // This is safe because there's only one PrintSelectPanel instance
     static PrintSelectPanel* resize_self = nullptr;
     resize_self = this;
-    ui_resize_handler_register([]() {
-        if (resize_self) {
-            resize_self->handle_resize();
-        }
-    });
+    if (auto* dm = DisplayManager::instance()) {
+        dm->register_resize_callback([]() {
+            if (resize_self) {
+                resize_self->handle_resize();
+            }
+        });
+    }
 
     // Mark panel as fully initialized (enables resize callbacks)
     panel_initialized_ = true;

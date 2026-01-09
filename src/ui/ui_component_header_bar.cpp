@@ -6,6 +6,7 @@
 #include "ui_theme.h"
 #include "ui_utils.h"
 
+#include "display_manager.h"
 #include "spdlog/spdlog.h"
 
 #include <algorithm>
@@ -108,7 +109,9 @@ bool ui_header_bar_set_action_button_text(lv_obj_t* header_bar_widget, const cha
 
 void ui_component_header_bar_init() {
     // Register global resize callback for all header_bar instances
-    ui_resize_handler_register(on_app_resize);
+    if (auto* dm = DisplayManager::instance()) {
+        dm->register_resize_callback(on_app_resize);
+    }
 
     spdlog::debug("[HeaderBar] Component system initialized");
 }

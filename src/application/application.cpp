@@ -598,7 +598,7 @@ bool Application::init_display() {
     ui_set_window_icon(m_display->display());
 
     // Initialize resize handler
-    ui_resize_handler_init(m_screen);
+    m_display->init_resize_handler(m_screen);
 
     // Initialize tips manager
     TipsManager* tips_mgr = TipsManager::get_instance();

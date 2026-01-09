@@ -387,3 +387,78 @@ void DisplayManager::reenable_input_cb(lv_timer_t* timer) {
 
     spdlog::debug("[DisplayManager] Input re-enabled after wake");
 }
+
+// ============================================================================
+// Window Resize Handler (Desktop/SDL)
+// ============================================================================
+
+void DisplayManager::resize_timer_cb(lv_timer_t* timer) {
+    auto* self = static_cast<DisplayManager*>(lv_timer_get_user_data(timer));
+    if (!self) {
+        return;
+    }
+
+    spdlog::debug("[DisplayManager] Resize debounce complete, calling {} registered callbacks",
+                  self->m_resize_callbacks.size());
+
+    // Call all registered callbacks
+    for (auto callback : self->m_resize_callbacks) {
+        if (callback) {
+            callback();
+        }
+    }
+
+    // Delete one-shot timer
+    lv_timer_delete(timer);
+    self->m_resize_debounce_timer = nullptr;
+}
+
+void DisplayManager::resize_event_cb(lv_event_t* e) {
+    lv_event_code_t code = lv_event_get_code(e);
+
+    if (code == LV_EVENT_SIZE_CHANGED) {
+        auto* self = static_cast<DisplayManager*>(lv_event_get_user_data(e));
+        if (!self) {
+            return;
+        }
+
+        lv_obj_t* screen = static_cast<lv_obj_t*>(lv_event_get_target(e));
+        lv_coord_t width = lv_obj_get_width(screen);
+        lv_coord_t height = lv_obj_get_height(screen);
+
+        spdlog::debug("[DisplayManager] Screen size changed to {}x{}, resetting debounce timer",
+                      width, height);
+
+        // Reset or create debounce timer
+        if (self->m_resize_debounce_timer) {
+            lv_timer_reset(self->m_resize_debounce_timer);
+        } else {
+            self->m_resize_debounce_timer =
+                lv_timer_create(resize_timer_cb, RESIZE_DEBOUNCE_MS, self);
+            lv_timer_set_repeat_count(self->m_resize_debounce_timer, 1); // One-shot
+        }
+    }
+}
+
+void DisplayManager::init_resize_handler(lv_obj_t* screen) {
+    if (!screen) {
+        spdlog::error("[DisplayManager] Cannot init resize handler: screen is null");
+        return;
+    }
+
+    // Add SIZE_CHANGED event listener to screen
+    lv_obj_add_event_cb(screen, resize_event_cb, LV_EVENT_SIZE_CHANGED, this);
+
+    spdlog::debug("[DisplayManager] Resize handler initialized on screen");
+}
+
+void DisplayManager::register_resize_callback(ResizeCallback callback) {
+    if (!callback) {
+        spdlog::warn("[DisplayManager] Attempted to register null resize callback");
+        return;
+    }
+
+    m_resize_callbacks.push_back(callback);
+    spdlog::debug("[DisplayManager] Registered resize callback ({} total)",
+                  m_resize_callbacks.size());
+}

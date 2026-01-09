@@ -232,37 +232,6 @@ int ui_color_distance(uint32_t color1, uint32_t color2);
 lv_coord_t ui_get_responsive_header_height(lv_coord_t screen_height);
 
 // ============================================================================
-// App-level resize handling
-// ============================================================================
-
-/**
- * @brief Callback type for resize notifications
- *
- * Called when display size changes, debounced to avoid excessive calls.
- */
-typedef void (*ui_resize_callback_t)(void);
-
-/**
- * @brief Initialize app-level resize handler
- *
- * Sets up automatic monitoring for display size changes.
- * Must be called once during app initialization, after screen is created.
- *
- * @param screen Main screen object to monitor for size changes
- */
-void ui_resize_handler_init(lv_obj_t* screen);
-
-/**
- * @brief Register callback for resize events
- *
- * Callbacks are invoked after debounce period (250ms default) to avoid
- * excessive redraws during continuous resize operations.
- *
- * @param callback Function to call when resize occurs
- */
-void ui_resize_handler_register(ui_resize_callback_t callback);
-
-// ============================================================================
 // Image Scaling Utilities
 // ============================================================================
 

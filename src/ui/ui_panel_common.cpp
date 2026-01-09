@@ -8,6 +8,8 @@
 #include "ui_theme.h"
 #include "ui_utils.h"
 
+#include "display_manager.h"
+
 #include <spdlog/spdlog.h>
 
 // ============================================================================
@@ -115,7 +117,7 @@ static void resize_trampoline_impl_7(void) {
     panel_resize_callback_wrapper(trampoline_contexts[7]);
 }
 
-static ui_resize_callback_t trampoline_funcs[8] = {
+static DisplayManager::ResizeCallback trampoline_funcs[8] = {
     resize_trampoline_impl_0, resize_trampoline_impl_1, resize_trampoline_impl_2,
     resize_trampoline_impl_3, resize_trampoline_impl_4, resize_trampoline_impl_5,
     resize_trampoline_impl_6, resize_trampoline_impl_7,
@@ -134,7 +136,9 @@ void ui_panel_setup_resize_callback(ui_panel_resize_context_t* context) {
 
     // Store context and register corresponding trampoline
     trampoline_contexts[trampoline_count] = context;
-    ui_resize_handler_register(trampoline_funcs[trampoline_count]);
+    if (auto* dm = DisplayManager::instance()) {
+        dm->register_resize_callback(trampoline_funcs[trampoline_count]);
+    }
     trampoline_count++;
 
     spdlog::debug("[PanelCommon] Resize callback registered for content '{}'",

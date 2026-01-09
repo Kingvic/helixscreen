@@ -21,6 +21,7 @@
 #include "abort_manager.h"
 #include "app_globals.h"
 #include "config.h"
+#include "display_manager.h"
 #include "filament_sensor_manager.h"
 #include "format_utils.h"
 #include "injection_point_manager.h"
@@ -413,7 +414,9 @@ lv_obj_t* PrintStatusPanel::create(lv_obj_t* parent) {
     lv_obj_update_layout(overlay_root_);
 
     // Register resize callback
-    ui_resize_handler_register(on_resize_static);
+    if (auto* dm = DisplayManager::instance()) {
+        dm->register_resize_callback(on_resize_static);
+    }
     resize_registered_ = true;
 
     // Store button references for potential state queries (not event wiring - that's in XML)

@@ -8,6 +8,7 @@
 
 #include <lvgl.h>
 #include <memory>
+#include <vector>
 
 /**
  * @brief Manages LVGL display initialization and lifecycle
@@ -238,6 +239,35 @@ class DisplayManager {
      */
     static void delay(uint32_t ms);
 
+    // ========================================================================
+    // Window Resize Handler (Desktop/SDL)
+    // ========================================================================
+
+    /**
+     * @brief Callback type for resize notifications
+     */
+    using ResizeCallback = void (*)();
+
+    /**
+     * @brief Initialize resize handler on the given screen
+     *
+     * Sets up SIZE_CHANGED event listener with debouncing. Call once during
+     * application startup after the screen is created.
+     *
+     * @param screen Root screen object to monitor
+     */
+    void init_resize_handler(lv_obj_t* screen);
+
+    /**
+     * @brief Register callback for resize events
+     *
+     * Callbacks are invoked after 250ms debounce to avoid excessive
+     * redraws during continuous resize operations.
+     *
+     * @param callback Function to call when resize completes
+     */
+    void register_resize_callback(ResizeCallback callback);
+
   private:
     bool m_initialized = false;
     int m_width = 0;
@@ -257,6 +287,14 @@ class DisplayManager {
     bool m_display_dimmed = false;
     int m_dim_timeout_sec = 300;
     int m_dim_brightness_percent = 30;
+
+    // Resize handler state
+    std::vector<ResizeCallback> m_resize_callbacks;
+    lv_timer_t* m_resize_debounce_timer = nullptr;
+    static constexpr uint32_t RESIZE_DEBOUNCE_MS = 250;
+
+    static void resize_event_cb(lv_event_t* e);
+    static void resize_timer_cb(lv_timer_t* timer);
 
     /**
      * @brief Configure scroll behavior on pointer device
