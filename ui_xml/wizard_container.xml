@@ -2,64 +2,35 @@
 <!-- Copyright (C) 2025-2026 356C LLC -->
 <!-- SPDX-License-Identifier: GPL-3.0-or-later -->
 <component>
-  <!-- Wizard-specific responsive constants (LARGE screen defaults) -->
-  <!-- C++ overrides ALL constants below based on screen size before component creation -->
+  <!-- Wizard-specific constants -->
+  <!-- wizard_button_width is responsive: C++ overrides based on screen size -->
   <!-- See ui_wizard.cpp::ui_wizard_container_register_responsive_constants() -->
   <consts>
-    <!-- Layout dimensions (RESPONSIVE: SMALL=4/MEDIUM=6/LARGE=8) -->
-    <const name="list_item_padding" value="#space_md"/>
-    <!-- Layout dimensions (RESPONSIVE: inherits from globals padding_normal/gap_normal) -->
-    <const name="wizard_padding" value="#space_xl"/>
-    <!-- SMALL=12/MEDIUM=16/LARGE=20 -->
-    <const name="wizard_gap" value="#space_lg"/>
-    <!-- SMALL=8/MEDIUM=10/LARGE=12 -->
-    <!-- Layout dimensions (RESPONSIVE: scales with screen size) -->
-    <const name="wizard_header_height" value="48"/>
-    <!-- SMALL=32/MEDIUM=42/LARGE=48 -->
-    <const name="wizard_footer_height" value="88"/>
-    <!-- SMALL=72/MEDIUM=82/LARGE=88 -->
+    <!-- Button width (RESPONSIVE: SMALL=110/MEDIUM=140/LARGE=160) -->
     <const name="wizard_button_width" value="160"/>
-    <!-- SMALL=110/MEDIUM=140/LARGE=160 -->
-    <!-- Typography (RESPONSIVE: smaller fonts for smaller screens) -->
-    <const name="wizard_header_font" value="montserrat_20"/>
-    <!-- SMALL=14/MEDIUM=16/LARGE=20 -->
-    <const name="wizard_title_font" value="montserrat_20"/>
-    <!-- SMALL=16/MEDIUM=20/LARGE=font_heading -->
-    <!-- WiFi screen dimensions (RESPONSIVE: scales with screen size) -->
-    <const name="wifi_toggle_height" value="64"/>
-    <!-- SMALL=32/MEDIUM=48/LARGE=64 -->
-    <const name="wifi_card_height" value="140"/>
-    <!-- SMALL=80/MEDIUM=120/LARGE=140 -->
-    <const name="wifi_ethernet_height" value="120"/>
-    <!-- SMALL=70/MEDIUM=100/LARGE=120 -->
-    <const name="network_item_height" value="100"/>
-    <!-- SMALL=60/MEDIUM=80/LARGE=100 -->
-    <const name="network_icon_size" value="32"/>
-    <!-- SMALL=20/MEDIUM=24/LARGE=32 -->
-    <!-- WiFi screen typography (RESPONSIVE: smaller fonts for smaller screens) -->
-    <const name="wifi_network_title_font" value="montserrat_16"/>
-    <!-- SMALL=14/MEDIUM=16/LARGE=font_body -->
   </consts>
   <!-- Wizard Container Root: Vertical stack (header, content, footer) -->
   <!-- Background color applied via app_bg_color runtime constant (theme-aware: light/dark variants) -->
   <view name="wizard_container"
-        extends="lv_obj" width="100%" height="100%" style_bg_color="#app_bg_color" flex_flow="column"
-        style_flex_main_place="space_between" style_pad_all="0" style_border_width="0">
+        extends="lv_obj" width="100%" height="100%" style_bg_color="#app_bg_color" flex_flow="column" style_pad_all="0"
+        style_pad_hor="#space_md" style_border_width="0">
+
     <!-- ==================== HEADER ==================== -->
     <!-- Reusable header component with title and progress indicator -->
     <wizard_header_bar name="wizard_header"/>
+
     <!-- ==================== CONTENT ==================== -->
     <lv_obj name="wizard_content"
-            width="100%" height="0" flex_grow="1" scrollable="true" style_bg_opa="0" style_pad_all="0"
-            style_border_width="0">
+            width="100%" flex_grow="1" scrollable="true" style_bg_opa="0" style_pad_all="0" style_border_width="0">
       <!-- Wizard screens loaded here by C++ (lv_obj_set_parent) -->
     </lv_obj>
+
     <!-- ==================== FOOTER ==================== -->
     <lv_obj name="wizard_footer"
-            width="100%" height="#wizard_footer_height" style_min_height="#wizard_footer_height" flex_flow="row"
-            style_flex_main_place="space_between" style_flex_cross_place="center" style_flex_track_place="end"
-            style_pad_all="0" scrollable="false" style_bg_opa="255" style_border_width="2" style_border_color="0xcc0000">
-     
+            width="100%" height="content" flex_flow="row" style_flex_main_place="space_between"
+            style_flex_cross_place="center" style_flex_track_place="center" style_pad_all="0" style_pad_gap="0"
+            style_pad_bottom="#space_md" scrollable="false" style_bg_opa="0" style_border_width="0">
+
       <!-- BACK BUTTON (hidden on step 1 via conditional binding) -->
       <lv_button name="btn_back" width="#wizard_button_width" height="#button_height">
         <text_body text="Back" align="center"/>
@@ -67,14 +38,13 @@
         <!-- Hide when current_step == 1 -->
         <lv_obj-bind_flag_if_eq subject="current_step" flag="hidden" ref_value="1"/>
       </lv_button>
-     
+
       <!-- make sure that the Next button is right justified -->
       <lv_obj name="wizard_footer_spacer"
               width="0" height="#button_height" style_border_width="0" style_bg_opa="0" flex_grow="1"/>
-     
+
       <!-- NEXT/FINISH BUTTON (text bound to subject, clickable only when connection_test_passed == 1) -->
-      <lv_button name="btn_next" width="#wizard_button_width" height="#button_height"
-                 style_bg_color="#primary_color">
+      <lv_button name="btn_next" width="#wizard_button_width" height="#button_height" style_bg_color="#primary_color">
         <text_body name="btn_next_label"
                    bind_text="wizard_next_button_text" align="center" style_text_color="#text_primary"
                    style_border_width="0"/>
@@ -83,7 +53,7 @@
         <lv_obj-bind_state_if_not_eq subject="connection_test_passed" state="disabled" ref_value="1"/>
         <lv_obj-bind_flag_if_eq subject="connection_test_passed" flag="clickable" ref_value="1"/>
       </lv_button>
-    
+
     </lv_obj>
   </view>
 </component>

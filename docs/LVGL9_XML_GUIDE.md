@@ -631,11 +631,11 @@ lv_xml_register_const(scope, "space_md", appropriate_value);
 Constants are resolved at parse time. Modify BEFORE creating widgets:
 
 ```cpp
-// Get globals scope
-lv_xml_component_scope_t* scope = lv_xml_component_get_scope("globals");
+// Get component scope
+lv_xml_component_scope_t* scope = lv_xml_component_get_scope("wizard_container");
 
-// Register responsive value
-lv_xml_register_const(scope, "wizard_padding", "12");
+// Register responsive value based on screen size
+lv_xml_register_const(scope, "wizard_button_width", "140");
 
 // NOW create widget - picks up the constant
 lv_obj_t* wizard = lv_xml_create(parent, "wizard_container", NULL);

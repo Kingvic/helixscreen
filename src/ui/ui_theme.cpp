@@ -1110,7 +1110,6 @@ std::vector<std::string> ui_theme_validate_constant_sets(const char* directory) 
             // WIP wizard constants (user actively working on these)
             "wizard_footer_height",
             "wizard_button_width",
-            "wifi_toggle_height",
         };
 
         // Step 1: Collect all defined constants from all element types
