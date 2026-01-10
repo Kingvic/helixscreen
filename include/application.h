@@ -8,6 +8,7 @@
 #include "cli_args.h"
 #include "lvgl/lvgl.h"
 
+#include <chrono>
 #include <memory>
 
 // Forward declarations
@@ -158,4 +159,10 @@ class Application {
     bool m_wizard_active = false;
     bool m_shutdown_complete = false;
     bool m_splash_signaled = false;
+
+    // Deferred splash exit - wait for discovery before dismissing splash
+    // Splash stays visible until discovery completes OR timeout elapsed
+    bool m_discovery_complete = false;
+    std::chrono::steady_clock::time_point m_splash_start_time{std::chrono::steady_clock::now()};
+    static constexpr int64_t DISCOVERY_TIMEOUT_MS = 5000;
 };

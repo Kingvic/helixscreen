@@ -356,11 +356,28 @@ void Application::signal_splash_exit() {
     if (m_splash_signaled) {
         return; // Already signaled
     }
-    m_splash_signaled = true;
 
     RuntimeConfig* runtime_config = get_runtime_config();
     if (runtime_config->splash_pid <= 0) {
-        return; // No splash to signal
+        m_splash_signaled = true; // No splash, mark as done
+        return;
+    }
+
+    // Wait for discovery completion OR timeout before dismissing splash
+    auto elapsed = std::chrono::steady_clock::now() - m_splash_start_time;
+    auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count();
+
+    if (!m_discovery_complete && elapsed_ms < DISCOVERY_TIMEOUT_MS) {
+        return; // Keep splash showing, will retry on next main loop iteration
+    }
+
+    m_splash_signaled = true;
+
+    if (!m_discovery_complete) {
+        spdlog::warn("[Application] Discovery timeout ({}ms elapsed), exiting splash anyway",
+                     elapsed_ms);
+    } else {
+        spdlog::debug("[Application] Discovery complete after {}ms, dismissing splash", elapsed_ms);
     }
 
     spdlog::info("[Application] UI ready, signaling splash process (PID {}) to exit...",
@@ -608,6 +625,10 @@ bool Application::init_display() {
 
     spdlog::debug("[Application] Display initialized");
     helix::MemoryMonitor::log_now("after_display_init");
+
+    // Record splash start time for deferred exit timeout
+    m_splash_start_time = std::chrono::steady_clock::now();
+
     return true;
 }
 
@@ -1227,6 +1248,10 @@ bool Application::connect_moonraker() {
                     delete ctx;
                     return;
                 }
+
+                // Mark discovery complete so splash can exit
+                app_ptr->m_discovery_complete = true;
+                spdlog::info("[Application] Moonraker discovery complete, splash can exit");
 
                 get_printer_state().set_printer_capabilities(std::get<0>(*ctx));
                 get_printer_state().init_fans(client_ptr->get_fans());
