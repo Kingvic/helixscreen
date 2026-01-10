@@ -9,11 +9,6 @@
 ## Active Lessons
 
 
-### [L003] [***--|-----] Component names explicit
-- **Uses**: 10 | **Velocity**: 0.01 | **Learned**: 2025-12-14 | **Last**: 2025-12-30 | **Category**: pattern | **Type**: constraint
-> Always add name='component_name' on XML component tags. Internal view names don't propagate, causing lv_obj_find_by_name to return NULL
-
-
 ### [L004] [****-|-----] Subject init before create
 - **Uses**: 16 | **Velocity**: 0.01 | **Learned**: 2025-12-14 | **Last**: 2026-01-08 | **Category**: pattern | **Type**: informational
 > Initialize and register subjects BEFORE lv_xml_create(). Order: fonts, images, components, init subjects, register subjects, create UI
@@ -65,7 +60,7 @@
 
 
 ### [L027] [***--|-----] Worktree initialization
-- **Uses**: 8 | **Velocity**: 0.13 | **Learned**: 2025-12-24 | **Last**: 2026-01-09 | **Category**: pattern | **Type**: constraint
+- **Uses**: 8 | **Velocity**: 0.07 | **Learned**: 2025-12-24 | **Last**: 2026-01-09 | **Category**: pattern | **Type**: constraint
 > When creating a git worktree, ALWAYS run ./scripts/init-worktree.sh BEFORE any commits. Worktrees don't auto-initialize submodules - uninitialized submodules appear as deletions and will be silently removed from git's tree on your next commit.
 
 
@@ -80,7 +75,7 @@
 
 
 ### [L032] [*****|+----] Re-stage after pre-commit format
-- **Uses**: 81 | **Velocity**: 1.02 | **Learned**: 2025-12-27 | **Last**: 2026-01-09 | **Category**: correction | **Type**: constraint
+- **Uses**: 81 | **Velocity**: 0.51 | **Learned**: 2025-12-27 | **Last**: 2026-01-09 | **Category**: correction | **Type**: constraint
 > When pre-commit hook auto-formats files, they are NOT automatically re-staged. Always check git status after a commit and amend if the hook formatted files. Look for 'Auto-formatted: <file>' messages and run 'git add -u && git commit --amend --no-edit'.
 
 
@@ -145,7 +140,7 @@
 
 
 ### [L049] [**---|-----] Test fixture LVGL cleanup
-- **Uses**: 4 | **Velocity**: 0.13 | **Learned**: 2026-01-08 | **Last**: 2026-01-09 | **Category**: gotcha | **Type**: constraint
+- **Uses**: 4 | **Velocity**: 0.07 | **Learned**: 2026-01-08 | **Last**: 2026-01-09 | **Category**: gotcha | **Type**: constraint
 > Test fixtures using LVGL subjects must: 1) Remove observers before local user_data goes out of scope (lv_observer_remove), 2) Call deinit_subjects() in fixture destructor BEFORE base LVGLTestFixture tears down LVGL. Dangling pointers cause SIGSEGV on test cleanup.
 
 
@@ -159,6 +154,6 @@
 > When using lv_timer_create with object pointer as user_data, wrap in struct that captures alive_guard. Check alive_guard BEFORE dereferencing object pointer to prevent use-after-free if object destroyed during timer delay.
 
 
-### [L052] [**---|**---] Tag hv::EventLoop tests as slow
-- **Uses**: 4 | **Velocity**: 3.0 | **Learned**: 2026-01-09 | **Last**: 2026-01-09 | **Category**: gotcha | **Type**: constraint
+### [L052] [**---|*----] Tag hv::EventLoop tests as slow
+- **Uses**: 4 | **Velocity**: 1.5 | **Learned**: 2026-01-09 | **Last**: 2026-01-09 | **Category**: gotcha | **Type**: constraint
 > Tests using hv::EventLoop (libhv network operations) MUST be tagged [slow] or they cause parallel test shards to hang indefinitely. This includes fixtures like MoonrakerRobustnessFixture, MoonrakerClientSecurityFixture, NewFeaturesTestFixture, EventTestFixture. The [slow] tag excludes them from default `make test-run` which uses filter `~[.] ~[slow]`.
