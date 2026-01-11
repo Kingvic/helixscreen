@@ -1,6 +1,47 @@
 // Copyright (C) 2025-2026 356C LLC
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+/**
+ * @file moonraker_api.h
+ * @brief MoonrakerAPI - Domain Operations Layer
+ *
+ * ## Responsibilities
+ *
+ * - High-level printer operations (print, move, heat, home, etc.)
+ * - Input validation and safety checks (temperature limits, movement bounds)
+ * - HTTP file upload/download (G-code files, thumbnails, config)
+ * - Response parsing and error handling
+ * - Domain-specific callbacks (progress, completion, errors)
+ * - Bed mesh operations (delegating to MoonrakerClient for storage)
+ * - Print history and timelapse management
+ * - Spoolman filament tracking integration
+ *
+ * ## NOT Responsible For
+ *
+ * - WebSocket connection management (done by MoonrakerClient)
+ * - JSON-RPC protocol details (done by MoonrakerClient)
+ * - Hardware discovery (done by MoonrakerClient)
+ * - Raw subscription handling (done by MoonrakerClient)
+ *
+ * ## Architecture Notes
+ *
+ * MoonrakerAPI is the domain layer that provides a clean, high-level interface
+ * for printer operations. It uses MoonrakerClient for transport (WebSocket
+ * communication) and adds:
+ *
+ * - Safety validation (temperature limits, movement bounds)
+ * - HTTP file transfers (multipart uploads, range downloads)
+ * - Response transformation (JSON -> domain types)
+ * - Error handling with domain-specific error types
+ *
+ * Application code should prefer MoonrakerAPI for all printer interactions.
+ * Direct MoonrakerClient access should only be needed for low-level operations
+ * like custom G-code execution or subscription management.
+ *
+ * @see MoonrakerClient for transport layer details
+ * @see SafetyLimits for input validation configuration
+ */
+
 #pragma once
 
 #include "advanced_panel_types.h"

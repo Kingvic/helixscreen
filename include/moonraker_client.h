@@ -1,6 +1,39 @@
 // Copyright (C) 2025-2026 356C LLC
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+/**
+ * @file moonraker_client.h
+ * @brief MoonrakerClient - WebSocket Transport Layer
+ *
+ * ## Responsibilities
+ *
+ * - WebSocket connection lifecycle (connect, reconnect, disconnect)
+ * - JSON-RPC 2.0 protocol handling (request/response, notifications)
+ * - Subscription management for status updates (notify_status_update)
+ * - Printer discovery orchestration (objects.list -> server.info -> printer.info)
+ * - Hardware data storage via PrinterHardwareDiscovery member
+ * - Bed mesh data parsing and storage (from WebSocket notifications)
+ *
+ * ## NOT Responsible For
+ *
+ * - Domain-specific operations (use MoonrakerAPI instead)
+ * - Input validation (done by MoonrakerAPI)
+ * - HTTP file transfers (done by MoonrakerAPI)
+ * - High-level printer commands like start_print, home_axes (use MoonrakerAPI)
+ *
+ * ## Architecture Notes
+ *
+ * MoonrakerClient is the transport layer that handles raw WebSocket communication
+ * with Moonraker. It receives JSON-RPC messages, parses them, and stores hardware
+ * state discovered during the connection handshake.
+ *
+ * MoonrakerAPI is the domain layer that builds on top of MoonrakerClient to provide
+ * high-level operations like printing, motion control, and file management.
+ *
+ * @see MoonrakerAPI for domain-specific operations
+ * @see PrinterHardwareDiscovery for hardware capabilities
+ */
+
 #pragma once
 
 #include "hv/WebSocketClient.h"
@@ -351,7 +384,8 @@ class MoonrakerClient : public hv::WebSocketClient {
      * @brief Get kinematics type (corexy, cartesian, delta, etc.)
      * @deprecated Use hardware().kinematics() instead
      */
-    [[deprecated("Use hardware().kinematics() instead")]] const std::string& get_kinematics() const {
+    [[deprecated("Use hardware().kinematics() instead")]] const std::string&
+    get_kinematics() const {
         return kinematics_;
     }
 
