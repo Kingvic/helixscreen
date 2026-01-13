@@ -165,4 +165,8 @@ class Application {
     bool m_discovery_complete = false;
     std::chrono::steady_clock::time_point m_splash_start_time{std::chrono::steady_clock::now()};
     static constexpr int64_t DISCOVERY_TIMEOUT_MS = 5000;
+
+    // Post-splash screen refresh - force multiple full redraws after splash exits
+    // to ensure framebuffer is fully repainted after handoff
+    int m_post_splash_refresh_frames = 0;
 };

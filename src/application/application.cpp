@@ -425,6 +425,12 @@ void Application::signal_splash_exit() {
         }
     }
     runtime_config->splash_pid = 0;
+
+    // Schedule full screen refresh after splash exits
+    // The splash clears the framebuffer, but LVGL's cached dirty state doesn't match
+    // We need at least one full invalidation cycle to repaint after handoff
+    spdlog::info("[Application] Splash exited, scheduling post-splash refresh");
+    m_post_splash_refresh_frames = 1;
 }
 
 bool Application::parse_args(int argc, char** argv) {
@@ -1472,6 +1478,20 @@ int Application::main_loop() {
         // Signal splash to exit after first frame is rendered
         // This ensures our UI is visible before splash disappears
         signal_splash_exit();
+
+        // Post-splash full screen refresh after splash exits
+        // The splash clears the framebuffer; we need to repaint our UI
+        if (m_post_splash_refresh_frames > 0) {
+            spdlog::debug("[Application] Post-splash refresh frame {} remaining",
+                          m_post_splash_refresh_frames);
+            lv_obj_t* screen = lv_screen_active();
+            if (screen) {
+                lv_obj_update_layout(screen);
+                invalidate_all_recursive(screen);
+                lv_refr_now(nullptr);
+            }
+            m_post_splash_refresh_frames--;
+        }
 
         // Benchmark mode
         if (m_benchmark_mode) {
