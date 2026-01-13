@@ -61,6 +61,14 @@ class MemoryProfiler {
      * @brief Check if periodic reporting is enabled
      */
     static bool is_periodic_enabled();
+
+    /**
+     * @brief Shutdown memory profiling and clean up resources
+     *
+     * Deletes the LVGL timer. Safe to call during shutdown.
+     * Checks lv_is_initialized() to avoid crash during static destruction.
+     */
+    static void shutdown();
 };
 
 } // namespace helix

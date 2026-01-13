@@ -154,8 +154,8 @@ TEST_CASE("Geometry Builder: RibbonGeometry - construction and destruction",
     REQUIRE(geometry.strips.empty());
     REQUIRE(geometry.normal_palette.empty());
     REQUIRE(geometry.color_palette.empty());
-    REQUIRE(geometry.normal_cache_ptr != nullptr);
-    REQUIRE(geometry.color_cache_ptr != nullptr);
+    REQUIRE(geometry.normal_cache != nullptr);
+    REQUIRE(geometry.color_cache != nullptr);
 }
 
 TEST_CASE("Geometry Builder: RibbonGeometry - move semantics", "[gcode][geometry][ribbon]") {
@@ -167,7 +167,7 @@ TEST_CASE("Geometry Builder: RibbonGeometry - move semantics", "[gcode][geometry
 
     REQUIRE(geom2.vertices.size() == 1);
     REQUIRE(geom2.extrusion_triangle_count == 42);
-    REQUIRE(geom2.normal_cache_ptr != nullptr);
+    REQUIRE(geom2.normal_cache != nullptr);
 }
 
 TEST_CASE("Geometry Builder: RibbonGeometry - clear", "[gcode][geometry][ribbon]") {

@@ -11,7 +11,9 @@
 
 #include <cstdint>
 #include <glm/glm.hpp>
+#include <memory>
 #include <optional>
+#include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <vector>
@@ -109,9 +111,44 @@ using TriangleIndices = std::array<uint32_t, 3>;
  */
 using TriangleStrip = std::array<uint32_t, 4>;
 
-// Forward declarations for hash functions (defined in .cpp)
-struct Vec3Hash;
-struct Vec3Equal;
+// ============================================================================
+// Palette Cache Types
+// ============================================================================
+
+/**
+ * @brief Hash function for quantized normals (use in unordered_map)
+ */
+struct Vec3Hash {
+    std::size_t operator()(const glm::vec3& v) const {
+        // Quantize to grid for hashing (same as QUANT_STEP = 0.001)
+        int32_t x = static_cast<int32_t>(std::round(v.x * 1000.0f));
+        int32_t y = static_cast<int32_t>(std::round(v.y * 1000.0f));
+        int32_t z = static_cast<int32_t>(std::round(v.z * 1000.0f));
+
+        // Combine hashes (boost::hash_combine pattern)
+        std::size_t h = 0;
+        h ^= std::hash<int32_t>{}(x) + 0x9e3779b9 + (h << 6) + (h >> 2);
+        h ^= std::hash<int32_t>{}(y) + 0x9e3779b9 + (h << 6) + (h >> 2);
+        h ^= std::hash<int32_t>{}(z) + 0x9e3779b9 + (h << 6) + (h >> 2);
+        return h;
+    }
+};
+
+/**
+ * @brief Equality operator for quantized normals (needed for unordered_map)
+ */
+struct Vec3Equal {
+    bool operator()(const glm::vec3& a, const glm::vec3& b) const {
+        constexpr float EPSILON = 0.0001f;
+        return glm::length(a - b) < EPSILON;
+    }
+};
+
+/// Type alias for normal palette cache (O(1) lookup)
+using NormalCache = std::unordered_map<glm::vec3, uint16_t, Vec3Hash, Vec3Equal>;
+
+/// Type alias for color palette cache (O(1) lookup)
+using ColorCache = std::unordered_map<uint32_t, uint8_t>;
 
 /**
  * @brief Complete ribbon geometry for rendering
@@ -135,11 +172,8 @@ struct RibbonGeometry {
     std::vector<AABB> layer_bboxes; ///< AABB per layer for frustum culling
 
     // Palette lookup caches (O(1) lookup instead of O(N) linear search)
-    // NOTE: These use raw pointer types to avoid template bloat in header
-    // Actual types: std::unordered_map<glm::vec3, uint16_t, Vec3Hash, Vec3Equal>
-    //               std::unordered_map<uint32_t, uint8_t>
-    void* normal_cache_ptr = nullptr; ///< Cache for normal palette lookups
-    void* color_cache_ptr = nullptr;  ///< Cache for color palette lookups
+    std::unique_ptr<NormalCache> normal_cache; ///< Cache for normal palette lookups
+    std::unique_ptr<ColorCache> color_cache;   ///< Cache for color palette lookups
 
     size_t extrusion_triangle_count; ///< Triangles for extrusion moves
     size_t travel_triangle_count;    ///< Triangles for travel moves

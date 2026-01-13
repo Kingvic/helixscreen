@@ -861,20 +861,18 @@ void NetworkSettingsOverlay::handle_test_network_clicked() {
 
     NetworkSettingsOverlay* self = this;
 
-    network_tester_->start_test([self](NetworkTester::TestState state,
-                                       const NetworkTester::TestResult& result) {
-        // Use lv_async_call for thread safety
-        struct CallbackData {
-            NetworkSettingsOverlay* overlay;
-            NetworkTester::TestState state;
-            NetworkTester::TestResult result;
-        };
+    network_tester_->start_test(
+        [self](NetworkTester::TestState state, const NetworkTester::TestResult& result) {
+            // Use ui_queue_update for thread safety with RAII
+            struct CallbackData {
+                NetworkSettingsOverlay* overlay;
+                NetworkTester::TestState state;
+                NetworkTester::TestResult result;
+            };
 
-        auto* data = new CallbackData{self, state, result};
+            auto data = std::make_unique<CallbackData>(CallbackData{self, state, result});
 
-        ui_async_call(
-            [](void* ctx) {
-                auto* cb_data = static_cast<CallbackData*>(ctx);
+            ui_queue_update<CallbackData>(std::move(data), [](CallbackData* cb_data) {
                 if (!cb_data->overlay->cleanup_called()) {
                     cb_data->overlay->update_test_state(cb_data->state, cb_data->result);
 
@@ -912,10 +910,8 @@ void NetworkSettingsOverlay::handle_test_network_clicked() {
                         }
                     }
                 }
-                delete cb_data;
-            },
-            data);
-    });
+            });
+        });
 }
 
 void NetworkSettingsOverlay::handle_add_other_clicked() {

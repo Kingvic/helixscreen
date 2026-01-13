@@ -107,7 +107,7 @@ class ToastManager {
   private:
     // Private constructor for singleton
     ToastManager() = default;
-    ~ToastManager() = default;
+    ~ToastManager();
 
     // Internal helper
     void create_toast_internal(ToastSeverity severity, const char* message, uint32_t duration_ms,

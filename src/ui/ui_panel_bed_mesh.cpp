@@ -508,30 +508,25 @@ void BedMeshPanel::setup_moonraker_subscription() {
                 return;
             }
 
-            // CRITICAL: Defer LVGL modifications to main thread via ui_async_call [L012]
+            // CRITICAL: Defer LVGL modifications to main thread via ui_queue_update [L012]
             // WebSocket callbacks run on libhv thread - direct lv_subject_* calls cause crashes
             struct Ctx {
                 BedMeshPanel* panel;
                 MoonrakerAPI* api;
                 std::shared_ptr<std::atomic<bool>> alive;
             };
-            auto* ctx = new Ctx{this, api, alive};
-            ui_async_call(
-                [](void* user_data) {
-                    auto* c = static_cast<Ctx*>(user_data);
-                    // Check again on main thread - panel could be destroyed between queue and exec
-                    if (!c->alive->load()) {
-                        delete c;
-                        return;
-                    }
-                    const BedMeshProfile* mesh = c->api->get_active_bed_mesh();
-                    if (mesh) {
-                        c->panel->on_mesh_update_internal(*mesh);
-                    }
-                    c->panel->update_profile_list_subjects();
-                    delete c;
-                },
-                ctx);
+            auto ctx = std::make_unique<Ctx>(Ctx{this, api, alive});
+            ui_queue_update<Ctx>(std::move(ctx), [](Ctx* c) {
+                // Check again on main thread - panel could be destroyed between queue and exec
+                if (!c->alive->load()) {
+                    return;
+                }
+                const BedMeshProfile* mesh = c->api->get_active_bed_mesh();
+                if (mesh) {
+                    c->panel->on_mesh_update_internal(*mesh);
+                }
+                c->panel->update_profile_list_subjects();
+            });
         });
 
     // Store in RAII guard for automatic cleanup on destruction
@@ -711,15 +706,16 @@ void BedMeshPanel::start_calibration() {
         [this, alive](int current, int total) {
             if (!alive->load())
                 return;
-            // Must use ui_async_call for thread safety [L012]
-            auto* ctx = new std::tuple<BedMeshPanel*, int, int>{this, current, total};
-            ui_async_call(
-                [](void* data) {
-                    auto* c = static_cast<std::tuple<BedMeshPanel*, int, int>*>(data);
-                    std::get<0>(*c)->on_probe_progress(std::get<1>(*c), std::get<2>(*c));
-                    delete c;
-                },
-                ctx);
+            // Must use ui_queue_update for thread safety [L012]
+            struct ProgressCtx {
+                BedMeshPanel* panel;
+                int current;
+                int total;
+            };
+            auto ctx = std::make_unique<ProgressCtx>(ProgressCtx{this, current, total});
+            ui_queue_update<ProgressCtx>(std::move(ctx), [](ProgressCtx* c) {
+                c->panel->on_probe_progress(c->current, c->total);
+            });
         },
         // Complete callback (from WebSocket thread)
         [this, alive]() {
@@ -733,15 +729,13 @@ void BedMeshPanel::start_calibration() {
         [this, alive](const MoonrakerError& err) {
             if (!alive->load())
                 return;
-            std::string msg = err.message;
-            auto* ctx = new std::pair<BedMeshPanel*, std::string>{this, std::move(msg)};
-            ui_async_call(
-                [](void* data) {
-                    auto* c = static_cast<std::pair<BedMeshPanel*, std::string>*>(data);
-                    c->first->on_calibration_error(c->second);
-                    delete c;
-                },
-                ctx);
+            struct ErrorCtx {
+                BedMeshPanel* panel;
+                std::string message;
+            };
+            auto ctx = std::make_unique<ErrorCtx>(ErrorCtx{this, err.message});
+            ui_queue_update<ErrorCtx>(
+                std::move(ctx), [](ErrorCtx* c) { c->panel->on_calibration_error(c->message); });
         });
 }
 

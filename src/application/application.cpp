@@ -1217,17 +1217,16 @@ bool Application::connect_moonraker() {
 
     client->set_on_hardware_discovered([api,
                                         client](const helix::PrinterHardwareDiscovery& hardware) {
-        ui_async_call(
-            [](void* user_data) {
-                auto* ctx =
-                    static_cast<std::pair<helix::PrinterHardwareDiscovery,
-                                          std::pair<MoonrakerAPI*, MoonrakerClient*>>*>(user_data);
-                helix::init_subsystems_from_hardware(ctx->first, ctx->second.first,
-                                                     ctx->second.second);
-                delete ctx;
-            },
-            new std::pair<helix::PrinterHardwareDiscovery,
-                          std::pair<MoonrakerAPI*, MoonrakerClient*>>(hardware, {api, client}));
+        struct HardwareDiscoveredCtx {
+            helix::PrinterHardwareDiscovery hardware;
+            MoonrakerAPI* api;
+            MoonrakerClient* client;
+        };
+        auto ctx =
+            std::make_unique<HardwareDiscoveredCtx>(HardwareDiscoveredCtx{hardware, api, client});
+        ui_queue_update<HardwareDiscoveredCtx>(std::move(ctx), [](HardwareDiscoveredCtx* c) {
+            helix::init_subsystems_from_hardware(c->hardware, c->api, c->client);
+        });
     });
 
     // Capture Application pointer for callback - used to check shutdown state and access plugin
@@ -1236,66 +1235,57 @@ bool Application::connect_moonraker() {
 
     client->set_on_discovery_complete([api, client,
                                        app](const helix::PrinterHardwareDiscovery& hardware) {
-        ui_async_call(
-            [](void* user_data) {
-                auto* ctx = static_cast<
-                    std::tuple<helix::PrinterHardwareDiscovery,
-                               std::pair<MoonrakerAPI*, MoonrakerClient*>, Application*>*>(
-                    user_data);
-                auto* api_ptr = std::get<1>(*ctx).first;
-                auto* client_ptr = std::get<1>(*ctx).second;
-                auto* app_ptr = std::get<2>(*ctx);
+        struct DiscoveryCompleteCtx {
+            helix::PrinterHardwareDiscovery hardware;
+            MoonrakerAPI* api;
+            MoonrakerClient* client;
+            Application* app;
+        };
+        auto ctx = std::make_unique<DiscoveryCompleteCtx>(
+            DiscoveryCompleteCtx{hardware, api, client, app});
+        ui_queue_update<DiscoveryCompleteCtx>(std::move(ctx), [](DiscoveryCompleteCtx* c) {
+            // Safety check: if Application is shutting down, skip all processing
+            // This prevents use-after-free if shutdown races with callback delivery
+            if (c->app->m_shutdown_complete) {
+                return;
+            }
 
-                // Safety check: if Application is shutting down, skip all processing
-                // This prevents use-after-free if shutdown races with callback delivery
-                if (app_ptr->m_shutdown_complete) {
-                    delete ctx;
-                    return;
-                }
+            // Mark discovery complete so splash can exit
+            c->app->m_discovery_complete = true;
+            spdlog::info("[Application] Moonraker discovery complete, splash can exit");
 
-                // Mark discovery complete so splash can exit
-                app_ptr->m_discovery_complete = true;
-                spdlog::info("[Application] Moonraker discovery complete, splash can exit");
+            get_printer_state().set_hardware(c->hardware);
+            get_printer_state().init_fans(c->hardware.fans());
+            get_printer_state().set_klipper_version(c->hardware.software_version());
+            get_printer_state().set_moonraker_version(c->hardware.moonraker_version());
 
-                const auto& hw = std::get<0>(*ctx);
-                get_printer_state().set_hardware(hw);
-                get_printer_state().init_fans(hw.fans());
-                get_printer_state().set_klipper_version(hw.software_version());
-                get_printer_state().set_moonraker_version(hw.moonraker_version());
+            // Hardware validation: check config expectations vs discovered hardware
+            HardwareValidator validator;
+            auto validation_result =
+                validator.validate(Config::get_instance(), c->client, c->hardware);
+            get_printer_state().set_hardware_validation_result(validation_result);
 
-                // Hardware validation: check config expectations vs discovered hardware
-                HardwareValidator validator;
-                auto validation_result = validator.validate(Config::get_instance(), client_ptr, hw);
-                get_printer_state().set_hardware_validation_result(validation_result);
+            if (validation_result.has_issues()) {
+                validator.notify_user(validation_result);
+            }
 
-                if (validation_result.has_issues()) {
-                    validator.notify_user(validation_result);
-                }
+            // Save session snapshot for next comparison (even if no issues)
+            validator.save_session_snapshot(Config::get_instance(), c->client, c->hardware);
 
-                // Save session snapshot for next comparison (even if no issues)
-                validator.save_session_snapshot(Config::get_instance(), client_ptr, hw);
+            // Detect helix_print plugin during discovery (not UI-initiated)
+            // This ensures plugin status is known early for UI gating
+            c->api->check_helix_plugin(
+                [](bool available) { get_printer_state().set_helix_plugin_installed(available); },
+                [](const MoonrakerError&) {
+                    // Silently treat errors as "plugin not installed"
+                    get_printer_state().set_helix_plugin_installed(false);
+                });
 
-                // Detect helix_print plugin during discovery (not UI-initiated)
-                // This ensures plugin status is known early for UI gating
-                api_ptr->check_helix_plugin(
-                    [](bool available) {
-                        get_printer_state().set_helix_plugin_installed(available);
-                    },
-                    [](const MoonrakerError&) {
-                        // Silently treat errors as "plugin not installed"
-                        get_printer_state().set_helix_plugin_installed(false);
-                    });
-
-                // Notify plugins that Moonraker is connected
-                if (app_ptr->m_plugin_manager) {
-                    app_ptr->m_plugin_manager->on_moonraker_connected();
-                }
-
-                delete ctx;
-            },
-            new std::tuple<helix::PrinterHardwareDiscovery,
-                           std::pair<MoonrakerAPI*, MoonrakerClient*>, Application*>(
-                hardware, {api, client}, app));
+            // Notify plugins that Moonraker is connected
+            if (c->app->m_plugin_manager) {
+                c->app->m_plugin_manager->on_moonraker_connected();
+            }
+        });
     });
 
     // Set HTTP base URL for API

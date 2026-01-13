@@ -40,6 +40,9 @@ int64_t g_baseline_rss_kb = 0;
 /// Track if already initialized
 bool g_initialized = false;
 
+/// Timer for periodic memory reporting
+lv_timer_t* g_report_timer = nullptr;
+
 /**
  * @brief Log current memory usage
  * @param label Label for the log entry
@@ -118,7 +121,7 @@ void MemoryProfiler::init(bool enable_periodic) {
     g_periodic_enabled.store(enable_periodic, std::memory_order_release);
 
     // Create LVGL timer for periodic reporting (30 seconds)
-    lv_timer_create(memory_report_timer_cb, 30000, nullptr);
+    g_report_timer = lv_timer_create(memory_report_timer_cb, 30000, nullptr);
 }
 
 void MemoryProfiler::request_snapshot() {
@@ -135,6 +138,18 @@ void MemoryProfiler::set_periodic_enabled(bool enabled) {
 
 bool MemoryProfiler::is_periodic_enabled() {
     return g_periodic_enabled.load(std::memory_order_acquire);
+}
+
+void MemoryProfiler::shutdown() {
+    // Clean up timer - must be deleted explicitly before LVGL shutdown
+    // Check lv_is_initialized() to avoid crash during static destruction
+    if (lv_is_initialized()) {
+        if (g_report_timer) {
+            lv_timer_delete(g_report_timer);
+            g_report_timer = nullptr;
+        }
+    }
+    g_initialized = false;
 }
 
 } // namespace helix

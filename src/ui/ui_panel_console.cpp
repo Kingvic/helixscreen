@@ -458,20 +458,14 @@ void ConsolePanel::on_gcode_response(const nlohmann::json& msg) {
     entry.type = GcodeEntry::Type::RESPONSE;
     entry.is_error = is_error_message(line);
 
-    // CRITICAL: Defer LVGL operations to main thread via ui_async_call [L012]
+    // CRITICAL: Defer LVGL operations to main thread via ui_queue_update [L012]
     // WebSocket callbacks run on libhv thread - direct LVGL calls cause crashes
     struct Ctx {
         ConsolePanel* panel;
         GcodeEntry entry;
     };
-    auto* ctx = new Ctx{this, std::move(entry)};
-    ui_async_call(
-        [](void* user_data) {
-            auto* c = static_cast<Ctx*>(user_data);
-            c->panel->add_entry(c->entry);
-            delete c;
-        },
-        ctx);
+    auto ctx = std::make_unique<Ctx>(Ctx{this, std::move(entry)});
+    ui_queue_update<Ctx>(std::move(ctx), [](Ctx* c) { c->panel->add_entry(c->entry); });
 }
 
 void ConsolePanel::add_entry(const GcodeEntry& entry) {

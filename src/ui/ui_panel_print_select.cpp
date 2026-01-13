@@ -413,66 +413,61 @@ void PrintSelectPanel::setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
             PrintSelectPanel* panel;
             std::vector<PrintFileData> files;
         };
-        auto* ctx = new FilesReadyContext{self, std::move(files)};
+        auto ctx = std::make_unique<FilesReadyContext>(FilesReadyContext{self, std::move(files)});
 
-        ui_async_call(
-            [](void* user_data) {
-                auto* c = static_cast<FilesReadyContext*>(user_data);
-                auto* panel = c->panel;
+        ui_queue_update<FilesReadyContext>(std::move(ctx), [](FilesReadyContext* c) {
+            auto* panel = c->panel;
 
-                // Move data into panel (now safe - on main thread)
-                panel->file_list_ = std::move(c->files);
+            // Move data into panel (now safe - on main thread)
+            panel->file_list_ = std::move(c->files);
 
-                panel->apply_sort();
-                panel->merge_history_into_file_list(); // Populate history status for each file
-                panel->update_sort_indicators();
+            panel->apply_sort();
+            panel->merge_history_into_file_list(); // Populate history status for each file
+            panel->update_sort_indicators();
 
-                // Preserve scroll if still in the same directory (e.g., refresh after metadata)
-                bool same_dir = (panel->current_path_ == panel->last_populated_path_);
-                if (panel->current_view_mode_ == PrintSelectViewMode::CARD) {
-                    panel->populate_card_view(same_dir);
-                } else {
-                    panel->populate_list_view(same_dir);
+            // Preserve scroll if still in the same directory (e.g., refresh after metadata)
+            bool same_dir = (panel->current_path_ == panel->last_populated_path_);
+            if (panel->current_view_mode_ == PrintSelectViewMode::CARD) {
+                panel->populate_card_view(same_dir);
+            } else {
+                panel->populate_list_view(same_dir);
+            }
+            panel->last_populated_path_ = panel->current_path_;
+
+            panel->update_empty_state();
+
+            // Check for pending file selection
+            std::string pending;
+            if (!panel->pending_file_selection_.empty()) {
+                pending = panel->pending_file_selection_;
+                panel->pending_file_selection_.clear();
+            } else if (get_runtime_config()->select_file != nullptr) {
+                static bool select_file_checked = false;
+                if (!select_file_checked) {
+                    pending = get_runtime_config()->select_file;
+                    select_file_checked = true;
                 }
-                panel->last_populated_path_ = panel->current_path_;
-
-                panel->update_empty_state();
-
-                // Check for pending file selection
-                std::string pending;
-                if (!panel->pending_file_selection_.empty()) {
-                    pending = panel->pending_file_selection_;
-                    panel->pending_file_selection_.clear();
-                } else if (get_runtime_config()->select_file != nullptr) {
-                    static bool select_file_checked = false;
-                    if (!select_file_checked) {
-                        pending = get_runtime_config()->select_file;
-                        select_file_checked = true;
-                    }
+            }
+            if (!pending.empty()) {
+                if (!panel->select_file_by_name(pending)) {
+                    spdlog::warn("[{}] Pending file selection '{}' not found in file list",
+                                 panel->get_name(), pending);
                 }
-                if (!pending.empty()) {
-                    if (!panel->select_file_by_name(pending)) {
-                        spdlog::warn("[{}] Pending file selection '{}' not found in file list",
-                                     panel->get_name(), pending);
-                    }
-                }
+            }
 
-                // Fetch metadata for visible items
-                int visible_start = 0, visible_end = 0;
-                if (panel->current_view_mode_ == PrintSelectViewMode::CARD && panel->card_view_) {
-                    panel->card_view_->get_visible_range(visible_start, visible_end);
-                } else if (panel->list_view_) {
-                    panel->list_view_->get_visible_range(visible_start, visible_end);
-                }
-                if (visible_end == 0 && !panel->file_list_.empty()) {
-                    visible_end = static_cast<int>(std::min(panel->file_list_.size(), size_t{20}));
-                }
-                panel->fetch_metadata_range(static_cast<size_t>(visible_start),
-                                            static_cast<size_t>(visible_end));
-
-                delete c;
-            },
-            ctx);
+            // Fetch metadata for visible items
+            int visible_start = 0, visible_end = 0;
+            if (panel->current_view_mode_ == PrintSelectViewMode::CARD && panel->card_view_) {
+                panel->card_view_->get_visible_range(visible_start, visible_end);
+            } else if (panel->list_view_) {
+                panel->list_view_->get_visible_range(visible_start, visible_end);
+            }
+            if (visible_end == 0 && !panel->file_list_.empty()) {
+                visible_end = static_cast<int>(std::min(panel->file_list_.size(), size_t{20}));
+            }
+            panel->fetch_metadata_range(static_cast<size_t>(visible_start),
+                                        static_cast<size_t>(visible_end));
+        });
     });
     file_provider_->set_on_metadata_updated([self](size_t index, const PrintFileData& updated) {
         // CRITICAL: Defer all work to main thread [L012]
@@ -482,64 +477,58 @@ void PrintSelectPanel::setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
             size_t index;
             PrintFileData updated; // Copy the data
         };
-        auto* ctx = new MetadataUpdateContext{self, index, updated};
-        ui_async_call(
-            [](void* user_data) {
-                auto* c = static_cast<MetadataUpdateContext*>(user_data);
-                auto* panel = c->panel;
-                size_t idx = c->index;
-                const auto& upd = c->updated;
+        auto ctx =
+            std::make_unique<MetadataUpdateContext>(MetadataUpdateContext{self, index, updated});
+        ui_queue_update<MetadataUpdateContext>(std::move(ctx), [](MetadataUpdateContext* c) {
+            auto* panel = c->panel;
+            size_t idx = c->index;
+            const auto& upd = c->updated;
 
-                // Update file in list
-                if (idx < panel->file_list_.size() &&
-                    panel->file_list_[idx].filename == upd.filename) {
-                    // Merge updated fields
-                    if (upd.print_time_minutes > 0) {
-                        panel->file_list_[idx].print_time_minutes = upd.print_time_minutes;
-                        panel->file_list_[idx].print_time_str = upd.print_time_str;
-                    }
-                    if (upd.filament_grams > 0) {
-                        panel->file_list_[idx].filament_grams = upd.filament_grams;
-                        panel->file_list_[idx].filament_str = upd.filament_str;
-                    }
-                    if (!upd.filament_type.empty()) {
-                        panel->file_list_[idx].filament_type = upd.filament_type;
-                    }
-                    if (upd.layer_count > 0) {
-                        panel->file_list_[idx].layer_count = upd.layer_count;
-                        panel->file_list_[idx].layer_count_str = upd.layer_count_str;
-                    }
-                    if (!upd.thumbnail_path.empty() &&
-                        !helix::ui::PrintSelectCardView::is_placeholder_thumbnail(
-                            upd.thumbnail_path)) {
-                        panel->file_list_[idx].thumbnail_path = upd.thumbnail_path;
-                    }
-
-                    // Schedule debounced view refresh
-                    panel->schedule_view_refresh();
-
-                    // Update detail view if this file is selected
-                    if (strcmp(panel->selected_filename_buffer_, upd.filename.c_str()) == 0) {
-                        // Use filament_name if available, otherwise filament_type
-                        const std::string& filament_display =
-                            !panel->file_list_[idx].filament_name.empty()
-                                ? panel->file_list_[idx].filament_name
-                                : panel->file_list_[idx].filament_type;
-                        panel->set_selected_file(
-                            upd.filename.c_str(), panel->file_list_[idx].thumbnail_path.c_str(),
-                            panel->file_list_[idx].original_thumbnail_url.c_str(),
-                            panel->file_list_[idx].print_time_str.c_str(),
-                            panel->file_list_[idx].filament_str.c_str(),
-                            panel->file_list_[idx].layer_count_str.c_str(),
-                            panel->file_list_[idx].print_height_str.c_str(),
-                            panel->file_list_[idx].modified_timestamp,
-                            panel->file_list_[idx].layer_height_str.c_str(),
-                            filament_display.c_str());
-                    }
+            // Update file in list
+            if (idx < panel->file_list_.size() && panel->file_list_[idx].filename == upd.filename) {
+                // Merge updated fields
+                if (upd.print_time_minutes > 0) {
+                    panel->file_list_[idx].print_time_minutes = upd.print_time_minutes;
+                    panel->file_list_[idx].print_time_str = upd.print_time_str;
                 }
-                delete c;
-            },
-            ctx);
+                if (upd.filament_grams > 0) {
+                    panel->file_list_[idx].filament_grams = upd.filament_grams;
+                    panel->file_list_[idx].filament_str = upd.filament_str;
+                }
+                if (!upd.filament_type.empty()) {
+                    panel->file_list_[idx].filament_type = upd.filament_type;
+                }
+                if (upd.layer_count > 0) {
+                    panel->file_list_[idx].layer_count = upd.layer_count;
+                    panel->file_list_[idx].layer_count_str = upd.layer_count_str;
+                }
+                if (!upd.thumbnail_path.empty() &&
+                    !helix::ui::PrintSelectCardView::is_placeholder_thumbnail(upd.thumbnail_path)) {
+                    panel->file_list_[idx].thumbnail_path = upd.thumbnail_path;
+                }
+
+                // Schedule debounced view refresh
+                panel->schedule_view_refresh();
+
+                // Update detail view if this file is selected
+                if (strcmp(panel->selected_filename_buffer_, upd.filename.c_str()) == 0) {
+                    // Use filament_name if available, otherwise filament_type
+                    const std::string& filament_display =
+                        !panel->file_list_[idx].filament_name.empty()
+                            ? panel->file_list_[idx].filament_name
+                            : panel->file_list_[idx].filament_type;
+                    panel->set_selected_file(
+                        upd.filename.c_str(), panel->file_list_[idx].thumbnail_path.c_str(),
+                        panel->file_list_[idx].original_thumbnail_url.c_str(),
+                        panel->file_list_[idx].print_time_str.c_str(),
+                        panel->file_list_[idx].filament_str.c_str(),
+                        panel->file_list_[idx].layer_count_str.c_str(),
+                        panel->file_list_[idx].print_height_str.c_str(),
+                        panel->file_list_[idx].modified_timestamp,
+                        panel->file_list_[idx].layer_height_str.c_str(), filament_display.c_str());
+                }
+            }
+        });
     });
     file_provider_->set_on_error([self](const std::string& error) {
         NOTIFY_ERROR("Failed to refresh file list");
@@ -2076,6 +2065,12 @@ void PrintSelectPanel::delete_file() {
 
         spdlog::info("[{}] Deleting file: {}", get_name(), full_path);
 
+        // Context struct for async callbacks
+        struct DeleteFileContext {
+            PrintSelectPanel* panel;
+            std::weak_ptr<std::atomic<bool>> alive;
+        };
+
         api_->delete_file(
             full_path,
             // Success callback - dispatch to main thread for LVGL safety
@@ -2086,24 +2081,20 @@ void PrintSelectPanel::delete_file() {
                     return;
                 }
                 spdlog::info("[{}] File deleted successfully", self->get_name());
-                ui_async_call(
-                    [](void* user_data) {
-                        auto* ctx = static_cast<
-                            std::pair<PrintSelectPanel*, std::weak_ptr<std::atomic<bool>>>*>(
-                            user_data);
-                        auto alive_weak = ctx->second.lock();
-                        if (!alive_weak || !alive_weak->load()) {
-                            delete ctx;
-                            return;
-                        }
-                        auto* panel = ctx->first;
-                        panel->hide_delete_confirmation();
-                        panel->hide_detail_view();
-                        panel->refresh_files();
-                        delete ctx;
-                    },
-                    new std::pair<PrintSelectPanel*, std::weak_ptr<std::atomic<bool>>>(self,
-                                                                                       alive));
+                struct SuccessContext {
+                    PrintSelectPanel* panel;
+                    std::weak_ptr<std::atomic<bool>> alive;
+                };
+                auto ctx = std::make_unique<SuccessContext>(SuccessContext{self, alive});
+                ui_queue_update<SuccessContext>(std::move(ctx), [](SuccessContext* c) {
+                    auto alive_weak = c->alive.lock();
+                    if (!alive_weak || !alive_weak->load()) {
+                        return;
+                    }
+                    c->panel->hide_delete_confirmation();
+                    c->panel->hide_detail_view();
+                    c->panel->refresh_files();
+                });
             },
             // Error callback - dispatch to main thread for LVGL safety
             [self, alive](const MoonrakerError& error) {
@@ -2114,23 +2105,19 @@ void PrintSelectPanel::delete_file() {
                 }
                 LOG_ERROR_INTERNAL("[{}] File delete error: {} ({})", self->get_name(),
                                    error.message, error.get_type_string());
-                ui_async_call(
-                    [](void* user_data) {
-                        auto* ctx = static_cast<
-                            std::pair<PrintSelectPanel*, std::weak_ptr<std::atomic<bool>>>*>(
-                            user_data);
-                        auto alive_weak = ctx->second.lock();
-                        if (!alive_weak || !alive_weak->load()) {
-                            delete ctx;
-                            return;
-                        }
-                        auto* panel = ctx->first;
-                        NOTIFY_ERROR("Failed to delete file");
-                        panel->hide_delete_confirmation();
-                        delete ctx;
-                    },
-                    new std::pair<PrintSelectPanel*, std::weak_ptr<std::atomic<bool>>>(self,
-                                                                                       alive));
+                struct ErrorContext {
+                    PrintSelectPanel* panel;
+                    std::weak_ptr<std::atomic<bool>> alive;
+                };
+                auto ctx = std::make_unique<ErrorContext>(ErrorContext{self, alive});
+                ui_queue_update<ErrorContext>(std::move(ctx), [](ErrorContext* c) {
+                    auto alive_weak = c->alive.lock();
+                    if (!alive_weak || !alive_weak->load()) {
+                        return;
+                    }
+                    NOTIFY_ERROR("Failed to delete file");
+                    c->panel->hide_delete_confirmation();
+                });
             });
     } else {
         NOTIFY_WARNING("Cannot delete file: printer not connected");

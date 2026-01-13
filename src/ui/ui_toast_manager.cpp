@@ -31,6 +31,17 @@ ToastManager& ToastManager::instance() {
     return instance;
 }
 
+ToastManager::~ToastManager() {
+    // Clean up timer - must be deleted explicitly before LVGL shutdown
+    // Check lv_is_initialized() to avoid crash during static destruction
+    if (lv_is_initialized()) {
+        if (dismiss_timer_) {
+            lv_timer_delete(dismiss_timer_);
+            dismiss_timer_ = nullptr;
+        }
+    }
+}
+
 // ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
@@ -364,7 +375,7 @@ void ui_toast_init() {
 }
 
 // Thread-safe toast showing - can be called from any thread
-// Uses ui_async_call to defer to main thread if needed
+// Uses ui_queue_update to defer to main thread if needed
 void ui_toast_show(ToastSeverity severity, const char* message, uint32_t duration_ms) {
     // Capture parameters by value (copy strings to heap)
     struct ToastParams {
@@ -373,15 +384,12 @@ void ui_toast_show(ToastSeverity severity, const char* message, uint32_t duratio
         uint32_t duration_ms;
     };
 
-    auto* params = new ToastParams{severity, message ? message : "", duration_ms};
+    auto params =
+        std::make_unique<ToastParams>(ToastParams{severity, message ? message : "", duration_ms});
 
-    ui_async_call(
-        [](void* user_data) {
-            auto* p = static_cast<ToastParams*>(user_data);
-            ToastManager::instance().show(p->severity, p->message.c_str(), p->duration_ms);
-            delete p;
-        },
-        params);
+    ui_queue_update<ToastParams>(std::move(params), [](ToastParams* p) {
+        ToastManager::instance().show(p->severity, p->message.c_str(), p->duration_ms);
+    });
 }
 
 void ui_toast_show_with_action(ToastSeverity severity, const char* message, const char* action_text,
@@ -397,22 +405,15 @@ void ui_toast_show_with_action(ToastSeverity severity, const char* message, cons
         uint32_t duration_ms;
     };
 
-    auto* params = new ToastActionParams{severity,
-                                         message ? message : "",
-                                         action_text ? action_text : "",
-                                         action_callback,
-                                         user_data,
-                                         duration_ms};
+    auto params = std::make_unique<ToastActionParams>(
+        ToastActionParams{severity, message ? message : "", action_text ? action_text : "",
+                          action_callback, user_data, duration_ms});
 
-    ui_async_call(
-        [](void* data) {
-            auto* p = static_cast<ToastActionParams*>(data);
-            ToastManager::instance().show_with_action(p->severity, p->message.c_str(),
-                                                      p->action_text.c_str(), p->action_callback,
-                                                      p->user_data, p->duration_ms);
-            delete p;
-        },
-        params);
+    ui_queue_update<ToastActionParams>(std::move(params), [](ToastActionParams* p) {
+        ToastManager::instance().show_with_action(p->severity, p->message.c_str(),
+                                                  p->action_text.c_str(), p->action_callback,
+                                                  p->user_data, p->duration_ms);
+    });
 }
 
 void ui_toast_hide() {

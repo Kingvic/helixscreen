@@ -38,22 +38,6 @@ struct AsyncSyncData {
     int slot_index; // Only used if full_sync == false
 };
 
-void async_sync_callback(void* data) {
-    auto* sync_data = static_cast<AsyncSyncData*>(data);
-
-    // Skip if shutdown is in progress - AmsState singleton may be destroyed
-    if (s_shutdown_flag.load(std::memory_order_acquire)) {
-        delete sync_data;
-        return;
-    }
-
-    if (sync_data->full_sync) {
-        AmsState::instance().sync_from_backend();
-    } else {
-        AmsState::instance().update_slot(sync_data->slot_index);
-    }
-    delete sync_data;
-}
 } // namespace
 
 AmsState& AmsState::instance() {
@@ -568,18 +552,25 @@ void AmsState::update_slot(int slot_index) {
 void AmsState::on_backend_event(const std::string& event, const std::string& data) {
     spdlog::trace("[AMS State] Received event '{}' data='{}'", event, data);
 
-    // Use lv_async_call to post updates to LVGL's main thread
+    // Use ui_queue_update to post updates to LVGL's main thread
     // This is required because backend events may come from background threads
     // and LVGL is not thread-safe
 
-    // Helper to safely queue async call with error handling
+    // Helper to safely queue async call using RAII pattern
     auto queue_sync = [](bool full_sync, int slot_index) {
-        auto* sync_data = new AsyncSyncData{full_sync, slot_index};
-        lv_result_t res = ui_async_call(async_sync_callback, sync_data);
-        if (res != LV_RESULT_OK) {
-            delete sync_data;
-            spdlog::warn("[AMS State] lv_async_call failed, state update dropped");
-        }
+        auto sync_data = std::make_unique<AsyncSyncData>(AsyncSyncData{full_sync, slot_index});
+        ui_queue_update<AsyncSyncData>(std::move(sync_data), [](AsyncSyncData* d) {
+            // Skip if shutdown is in progress - AmsState singleton may be destroyed
+            if (s_shutdown_flag.load(std::memory_order_acquire)) {
+                return;
+            }
+
+            if (d->full_sync) {
+                AmsState::instance().sync_from_backend();
+            } else {
+                AmsState::instance().update_slot(d->slot_index);
+            }
+        });
     };
 
     if (event == AmsBackend::EVENT_STATE_CHANGED) {

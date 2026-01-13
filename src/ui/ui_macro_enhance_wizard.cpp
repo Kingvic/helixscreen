@@ -550,56 +550,45 @@ void MacroEnhanceWizard::apply_enhancements() {
             if (!*guard) {
                 return;
             }
-            // Allocate context - will be freed in async handler
-            auto* ctx = new AsyncProgressCtx{guard, this, step};
-            ui_async_call(
-                [](void* user_data) {
-                    auto* ctx = static_cast<AsyncProgressCtx*>(user_data);
-                    // Check guard in main thread [SERIOUS-5: Thread safety]
-                    auto guard_locked = ctx->guard.lock();
-                    if (guard_locked && *guard_locked && ctx->wizard->is_visible()) {
-                        ctx->wizard->show_applying(ctx->message);
-                    }
-                    delete ctx;
-                },
-                ctx);
+            auto ctx = std::make_unique<AsyncProgressCtx>(AsyncProgressCtx{guard, this, step});
+            ui_queue_update<AsyncProgressCtx>(std::move(ctx), [](AsyncProgressCtx* c) {
+                // Check guard in main thread [SERIOUS-5: Thread safety]
+                auto guard_locked = c->guard.lock();
+                if (guard_locked && *guard_locked && c->wizard->is_visible()) {
+                    c->wizard->show_applying(c->message);
+                }
+            });
         },
         // Success callback
         [this, guard, approved_count = approved.size()](const helix::EnhancementResult& result) {
             if (!*guard) {
                 return;
             }
-            auto* ctx = new AsyncSuccessCtx{guard, this, approved_count, result.backup_filename};
-            ui_async_call(
-                [](void* user_data) {
-                    auto* ctx = static_cast<AsyncSuccessCtx*>(user_data);
-                    auto guard_locked = ctx->guard.lock();
-                    if (guard_locked && *guard_locked && ctx->wizard->is_visible()) {
-                        std::string msg = "Successfully enhanced " + std::to_string(ctx->count) +
-                                          " operation(s).\n\nBackup: " + ctx->backup +
-                                          "\n\nKlipper is restarting...";
-                        ctx->wizard->show_success(msg);
-                    }
-                    delete ctx;
-                },
-                ctx);
+            auto ctx = std::make_unique<AsyncSuccessCtx>(
+                AsyncSuccessCtx{guard, this, approved_count, result.backup_filename});
+            ui_queue_update<AsyncSuccessCtx>(std::move(ctx), [](AsyncSuccessCtx* c) {
+                auto guard_locked = c->guard.lock();
+                if (guard_locked && *guard_locked && c->wizard->is_visible()) {
+                    std::string msg = "Successfully enhanced " + std::to_string(c->count) +
+                                      " operation(s).\n\nBackup: " + c->backup +
+                                      "\n\nKlipper is restarting...";
+                    c->wizard->show_success(msg);
+                }
+            });
         },
         // Error callback
         [this, guard](const MoonrakerError& err) {
             if (!*guard) {
                 return;
             }
-            auto* ctx = new AsyncErrorCtx{guard, this, err.user_message()};
-            ui_async_call(
-                [](void* user_data) {
-                    auto* ctx = static_cast<AsyncErrorCtx*>(user_data);
-                    auto guard_locked = ctx->guard.lock();
-                    if (guard_locked && *guard_locked && ctx->wizard->is_visible()) {
-                        ctx->wizard->show_error(ctx->message);
-                    }
-                    delete ctx;
-                },
-                ctx);
+            auto ctx =
+                std::make_unique<AsyncErrorCtx>(AsyncErrorCtx{guard, this, err.user_message()});
+            ui_queue_update<AsyncErrorCtx>(std::move(ctx), [](AsyncErrorCtx* c) {
+                auto guard_locked = c->guard.lock();
+                if (guard_locked && *guard_locked && c->wizard->is_visible()) {
+                    c->wizard->show_error(c->message);
+                }
+            });
         });
 }
 

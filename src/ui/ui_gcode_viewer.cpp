@@ -398,7 +398,7 @@ static void gcode_viewer_draw_cb(lv_event_t* e) {
 
         // Update ghost build progress label (streaming mode)
         // IMPORTANT: Cannot create/delete/modify objects during draw callback!
-        // Use ui_async_call() to defer all label operations to after render completes.
+        // Use ui_queue_update() to defer all label operations to after render completes.
         if (st->layer_renderer_2d_->is_ghost_build_running()) {
             int percent =
                 static_cast<int>(st->layer_renderer_2d_->get_ghost_build_progress() * 100.0f);
@@ -407,35 +407,28 @@ static void gcode_viewer_draw_cb(lv_event_t* e) {
                 lv_obj_t* viewer;
                 int percent;
             };
-            auto* update = new GhostProgressUpdate{obj, percent};
-            ui_async_call(
-                [](void* user_data) {
-                    auto* u = static_cast<GhostProgressUpdate*>(user_data);
-                    if (!lv_obj_is_valid(u->viewer)) {
-                        delete u;
-                        return;
-                    }
-                    auto* state = static_cast<GCodeViewerState*>(lv_obj_get_user_data(u->viewer));
-                    if (!state) {
-                        delete u;
-                        return;
-                    }
-                    // Create label if needed
-                    if (!state->ghost_progress_label_) {
-                        state->ghost_progress_label_ = lv_label_create(u->viewer);
-                        lv_obj_set_style_text_color(state->ghost_progress_label_,
-                                                    ui_theme_get_color("text_secondary"),
-                                                    LV_PART_MAIN);
-                        lv_obj_set_style_text_font(state->ghost_progress_label_,
-                                                   ui_theme_get_font("font_small"), LV_PART_MAIN);
-                        lv_obj_align(state->ghost_progress_label_, LV_ALIGN_BOTTOM_LEFT, 8, -8);
-                    }
-                    static char text[32];
-                    lv_snprintf(text, sizeof(text), "Building preview: %d%%", u->percent);
-                    lv_label_set_text(state->ghost_progress_label_, text);
-                    delete u;
-                },
-                update);
+            auto update = std::make_unique<GhostProgressUpdate>(GhostProgressUpdate{obj, percent});
+            ui_queue_update<GhostProgressUpdate>(std::move(update), [](GhostProgressUpdate* u) {
+                if (!lv_obj_is_valid(u->viewer)) {
+                    return;
+                }
+                auto* state = static_cast<GCodeViewerState*>(lv_obj_get_user_data(u->viewer));
+                if (!state) {
+                    return;
+                }
+                // Create label if needed
+                if (!state->ghost_progress_label_) {
+                    state->ghost_progress_label_ = lv_label_create(u->viewer);
+                    lv_obj_set_style_text_color(state->ghost_progress_label_,
+                                                ui_theme_get_color("text_secondary"), LV_PART_MAIN);
+                    lv_obj_set_style_text_font(state->ghost_progress_label_,
+                                               ui_theme_get_font("font_small"), LV_PART_MAIN);
+                    lv_obj_align(state->ghost_progress_label_, LV_ALIGN_BOTTOM_LEFT, 8, -8);
+                }
+                static char text[32];
+                lv_snprintf(text, sizeof(text), "Building preview: %d%%", u->percent);
+                lv_label_set_text(state->ghost_progress_label_, text);
+            });
         } else if (st->ghost_progress_label_) {
             // Defer label deletion to after render
             lv_obj_t* label_to_delete = st->ghost_progress_label_;

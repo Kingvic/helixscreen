@@ -616,16 +616,12 @@ void PrintStatusPanel::load_gcode_file(const char* file_path) {
                 lv_obj_t* viewer;
                 int layer;
             };
-            auto* ctx = new ViewerProgressCtx{viewer, viewer_layer};
-            ui_async_call(
-                [](void* user_data) {
-                    auto* c = static_cast<ViewerProgressCtx*>(user_data);
-                    if (c->viewer && lv_obj_is_valid(c->viewer)) {
-                        ui_gcode_viewer_set_print_progress(c->viewer, c->layer);
-                    }
-                    delete c;
-                },
-                ctx);
+            auto ctx = std::make_unique<ViewerProgressCtx>(ViewerProgressCtx{viewer, viewer_layer});
+            ui_queue_update<ViewerProgressCtx>(std::move(ctx), [](ViewerProgressCtx* c) {
+                if (c->viewer && lv_obj_is_valid(c->viewer)) {
+                    ui_gcode_viewer_set_print_progress(c->viewer, c->layer);
+                }
+            });
 
             spdlog::debug("[{}] G-code loaded: initial layer progress set to {} "
                           "(current={}/{}, viewer_max={})",
@@ -1440,16 +1436,13 @@ void PrintStatusPanel::on_print_layer_changed(int current_layer) {
             lv_obj_t* viewer;
             int layer;
         };
-        auto* ctx = new ViewerProgressCtx{gcode_viewer_, viewer_layer};
-        ui_async_call(
-            [](void* user_data) {
-                auto* c = static_cast<ViewerProgressCtx*>(user_data);
-                if (c->viewer && lv_obj_is_valid(c->viewer)) {
-                    ui_gcode_viewer_set_print_progress(c->viewer, c->layer);
-                }
-                delete c;
-            },
-            ctx);
+        auto ctx =
+            std::make_unique<ViewerProgressCtx>(ViewerProgressCtx{gcode_viewer_, viewer_layer});
+        ui_queue_update<ViewerProgressCtx>(std::move(ctx), [](ViewerProgressCtx* c) {
+            if (c->viewer && lv_obj_is_valid(c->viewer)) {
+                ui_gcode_viewer_set_print_progress(c->viewer, c->layer);
+            }
+        });
 
         spdlog::trace("[{}] G-code viewer ghost layer updated to {} (Moonraker: {}/{})", get_name(),
                       viewer_layer, current_layer, total_layers_);

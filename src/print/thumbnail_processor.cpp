@@ -132,14 +132,10 @@ void ThumbnailProcessor::process_async(const std::vector<uint8_t>& png_data,
                         ProcessSuccessCallback callback;
                         std::string path;
                     };
-                    auto* ctx = new SuccessCtx{on_success, result.output_path};
-                    ui_async_call(
-                        [](void* user_data) {
-                            auto* c = static_cast<SuccessCtx*>(user_data);
-                            c->callback(c->path);
-                            delete c;
-                        },
-                        ctx);
+                    auto ctx =
+                        std::make_unique<SuccessCtx>(SuccessCtx{on_success, result.output_path});
+                    ui_queue_update<SuccessCtx>(std::move(ctx),
+                                                [](SuccessCtx* c) { c->callback(c->path); });
                 }
             } else {
                 spdlog::warn("[ThumbnailProcessor] Failed to process {}: {}", source_copy,
@@ -150,14 +146,9 @@ void ThumbnailProcessor::process_async(const std::vector<uint8_t>& png_data,
                         ProcessErrorCallback callback;
                         std::string error;
                     };
-                    auto* ctx = new ErrorCtx{on_error, result.error};
-                    ui_async_call(
-                        [](void* user_data) {
-                            auto* c = static_cast<ErrorCtx*>(user_data);
-                            c->callback(c->error);
-                            delete c;
-                        },
-                        ctx);
+                    auto ctx = std::make_unique<ErrorCtx>(ErrorCtx{on_error, result.error});
+                    ui_queue_update<ErrorCtx>(std::move(ctx),
+                                              [](ErrorCtx* c) { c->callback(c->error); });
                 }
             }
         });

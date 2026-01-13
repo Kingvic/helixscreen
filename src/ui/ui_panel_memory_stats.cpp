@@ -28,6 +28,17 @@ MemoryStatsOverlay& MemoryStatsOverlay::instance() {
     return instance;
 }
 
+MemoryStatsOverlay::~MemoryStatsOverlay() {
+    // Clean up timer - must be deleted explicitly before LVGL shutdown
+    // Check lv_is_initialized() to avoid crash during static destruction
+    if (lv_is_initialized()) {
+        if (update_timer_) {
+            lv_timer_delete(update_timer_);
+            update_timer_ = nullptr;
+        }
+    }
+}
+
 void MemoryStatsOverlay::init(lv_obj_t* /*parent*/, bool initially_visible) {
     if (initialized_) {
         spdlog::debug("[MemoryStats] Already initialized");

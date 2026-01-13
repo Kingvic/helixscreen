@@ -57,7 +57,7 @@ class MemoryStatsOverlay {
 
   private:
     MemoryStatsOverlay() = default;
-    ~MemoryStatsOverlay() = default;
+    ~MemoryStatsOverlay();
 
     // Non-copyable
     MemoryStatsOverlay(const MemoryStatsOverlay&) = delete;

@@ -23,35 +23,6 @@ namespace helix {
 namespace gcode {
 
 // ============================================================================
-// Hash Functions for Palette Caches
-// ============================================================================
-
-// Hash function for quantized normals (use in unordered_map)
-struct Vec3Hash {
-    std::size_t operator()(const glm::vec3& v) const {
-        // Quantize to grid for hashing (same as QUANT_STEP = 0.001)
-        int32_t x = static_cast<int32_t>(std::round(v.x * 1000.0f));
-        int32_t y = static_cast<int32_t>(std::round(v.y * 1000.0f));
-        int32_t z = static_cast<int32_t>(std::round(v.z * 1000.0f));
-
-        // Combine hashes (boost::hash_combine pattern)
-        std::size_t h = 0;
-        h ^= std::hash<int32_t>{}(x) + 0x9e3779b9 + (h << 6) + (h >> 2);
-        h ^= std::hash<int32_t>{}(y) + 0x9e3779b9 + (h << 6) + (h >> 2);
-        h ^= std::hash<int32_t>{}(z) + 0x9e3779b9 + (h << 6) + (h >> 2);
-        return h;
-    }
-};
-
-// Equality operator for quantized normals (needed for unordered_map)
-struct Vec3Equal {
-    bool operator()(const glm::vec3& a, const glm::vec3& b) const {
-        constexpr float EPSILON = 0.0001f;
-        return glm::length(a - b) < EPSILON;
-    }
-};
-
-// ============================================================================
 // Debug Face Colors
 // ============================================================================
 
@@ -124,23 +95,11 @@ glm::vec3 QuantizationParams::dequantize_vec3(const QuantizedVertex& qv) const {
 // RibbonGeometry Implementation
 // ============================================================================
 
-// Type aliases for cache maps
-using NormalCache = std::unordered_map<glm::vec3, uint16_t, Vec3Hash, Vec3Equal>;
-using ColorCache = std::unordered_map<uint32_t, uint8_t>;
+RibbonGeometry::RibbonGeometry()
+    : normal_cache(std::make_unique<NormalCache>()), color_cache(std::make_unique<ColorCache>()),
+      extrusion_triangle_count(0), travel_triangle_count(0) {}
 
-RibbonGeometry::RibbonGeometry() {
-    // Initialize caches
-    normal_cache_ptr = new NormalCache();
-    color_cache_ptr = new ColorCache();
-    extrusion_triangle_count = 0;
-    travel_triangle_count = 0;
-}
-
-RibbonGeometry::~RibbonGeometry() {
-    // Clean up cache pointers
-    delete static_cast<NormalCache*>(normal_cache_ptr);
-    delete static_cast<ColorCache*>(color_cache_ptr);
-}
+RibbonGeometry::~RibbonGeometry() = default;
 
 RibbonGeometry::RibbonGeometry(RibbonGeometry&& other) noexcept
     : vertices(std::move(other.vertices)), indices(std::move(other.indices)),
@@ -149,21 +108,13 @@ RibbonGeometry::RibbonGeometry(RibbonGeometry&& other) noexcept
       strip_layer_index(std::move(other.strip_layer_index)),
       layer_strip_ranges(std::move(other.layer_strip_ranges)),
       max_layer_index(other.max_layer_index), layer_bboxes(std::move(other.layer_bboxes)),
-      normal_cache_ptr(other.normal_cache_ptr), color_cache_ptr(other.color_cache_ptr),
+      normal_cache(std::move(other.normal_cache)), color_cache(std::move(other.color_cache)),
       extrusion_triangle_count(other.extrusion_triangle_count),
-      travel_triangle_count(other.travel_triangle_count), quantization(other.quantization) {
-    // Prevent double-delete
-    other.normal_cache_ptr = nullptr;
-    other.color_cache_ptr = nullptr;
-}
+      travel_triangle_count(other.travel_triangle_count), quantization(other.quantization) {}
 
 RibbonGeometry& RibbonGeometry::operator=(RibbonGeometry&& other) noexcept {
     if (this != &other) {
-        // Clean up existing caches
-        delete static_cast<NormalCache*>(normal_cache_ptr);
-        delete static_cast<ColorCache*>(color_cache_ptr);
-
-        // Move data
+        // Move data (unique_ptr handles cleanup automatically)
         vertices = std::move(other.vertices);
         indices = std::move(other.indices);
         strips = std::move(other.strips);
@@ -173,15 +124,11 @@ RibbonGeometry& RibbonGeometry::operator=(RibbonGeometry&& other) noexcept {
         layer_strip_ranges = std::move(other.layer_strip_ranges);
         layer_bboxes = std::move(other.layer_bboxes);
         max_layer_index = other.max_layer_index;
-        normal_cache_ptr = other.normal_cache_ptr;
-        color_cache_ptr = other.color_cache_ptr;
+        normal_cache = std::move(other.normal_cache);
+        color_cache = std::move(other.color_cache);
         extrusion_triangle_count = other.extrusion_triangle_count;
         travel_triangle_count = other.travel_triangle_count;
         quantization = other.quantization;
-
-        // Prevent double-delete
-        other.normal_cache_ptr = nullptr;
-        other.color_cache_ptr = nullptr;
     }
     return *this;
 }
@@ -198,11 +145,11 @@ void RibbonGeometry::clear() {
     max_layer_index = 0;
 
     // Clear caches
-    if (normal_cache_ptr) {
-        static_cast<NormalCache*>(normal_cache_ptr)->clear();
+    if (normal_cache) {
+        normal_cache->clear();
     }
-    if (color_cache_ptr) {
-        static_cast<ColorCache*>(color_cache_ptr)->clear();
+    if (color_cache) {
+        color_cache->clear();
     }
 
     extrusion_triangle_count = 0;
@@ -263,9 +210,8 @@ uint16_t GeometryBuilder::add_to_normal_palette(RibbonGeometry& geometry, const 
     }
 
     // Check cache first (O(1) lookup)
-    auto* cache = static_cast<NormalCache*>(geometry.normal_cache_ptr);
-    auto it = cache->find(quantized);
-    if (it != cache->end()) {
+    auto it = geometry.normal_cache->find(quantized);
+    if (it != geometry.normal_cache->end()) {
         return it->second; // Cache hit!
     }
 
@@ -277,7 +223,7 @@ uint16_t GeometryBuilder::add_to_normal_palette(RibbonGeometry& geometry, const 
 
     uint16_t index = static_cast<uint16_t>(geometry.normal_palette.size());
     geometry.normal_palette.push_back(quantized);
-    (*cache)[quantized] = index; // Add to cache
+    (*geometry.normal_cache)[quantized] = index; // Add to cache
 
     // Log palette size periodically
     if (geometry.normal_palette.size() % 1000 == 0) {
@@ -290,9 +236,8 @@ uint16_t GeometryBuilder::add_to_normal_palette(RibbonGeometry& geometry, const 
 
 uint8_t GeometryBuilder::add_to_color_palette(RibbonGeometry& geometry, uint32_t color_rgb) {
     // Check cache first (O(1) lookup)
-    auto* cache = static_cast<ColorCache*>(geometry.color_cache_ptr);
-    auto it = cache->find(color_rgb);
-    if (it != cache->end()) {
+    auto it = geometry.color_cache->find(color_rgb);
+    if (it != geometry.color_cache->end()) {
         return it->second; // Cache hit!
     }
 
@@ -304,7 +249,7 @@ uint8_t GeometryBuilder::add_to_color_palette(RibbonGeometry& geometry, uint32_t
 
     uint8_t index = static_cast<uint8_t>(geometry.color_palette.size());
     geometry.color_palette.push_back(color_rgb);
-    (*cache)[color_rgb] = index; // Add to cache
+    (*geometry.color_cache)[color_rgb] = index; // Add to cache
 
     return index;
 }
@@ -601,10 +546,8 @@ RibbonGeometry GeometryBuilder::build(const ParsedGCodeFile& gcode,
                  use_smooth_shading_);
 
     // Log cache statistics
-    auto* normal_cache = static_cast<NormalCache*>(geometry.normal_cache_ptr);
-    auto* color_cache = static_cast<ColorCache*>(geometry.color_cache_ptr);
     spdlog::debug("[GCode::Builder] Cache stats: normal_cache={} entries, color_cache={} entries",
-                  normal_cache->size(), color_cache->size());
+                  geometry.normal_cache->size(), geometry.color_cache->size());
 
     if (segments_skipped > 0) {
         spdlog::debug("[GCode::Builder] Skipped {} travel move segments (non-extrusion)",

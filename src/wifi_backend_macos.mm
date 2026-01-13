@@ -99,13 +99,16 @@ void WifiBackendMacOS::stop() {
     fprintf(stderr, "[WiFiMacOS] Stopping CoreWLAN backend\n");
 
     // Cancel any pending timers
-    if (scan_timer_) {
-        lv_timer_del(scan_timer_);
-        scan_timer_ = nullptr;
-    }
-    if (connect_timer_) {
-        lv_timer_del(connect_timer_);
-        connect_timer_ = nullptr;
+    // Check lv_is_initialized() to avoid crash during static destruction
+    if (lv_is_initialized()) {
+        if (scan_timer_) {
+            lv_timer_delete(scan_timer_);
+            scan_timer_ = nullptr;
+        }
+        if (connect_timer_) {
+            lv_timer_delete(connect_timer_);
+            connect_timer_ = nullptr;
+        }
     }
 
     running_ = false;
@@ -153,7 +156,7 @@ WiFiError WifiBackendMacOS::trigger_scan() {
 
     // Cancel any existing scan timer
     if (scan_timer_) {
-        lv_timer_del(scan_timer_);
+        lv_timer_delete(scan_timer_);
         scan_timer_ = nullptr;
     }
 
@@ -271,7 +274,7 @@ WiFiError WifiBackendMacOS::connect_network(const std::string& ssid, const std::
 
     // Cancel any existing connect timer
     if (connect_timer_) {
-        lv_timer_del(connect_timer_);
+        lv_timer_delete(connect_timer_);
         connect_timer_ = nullptr;
     }
 
