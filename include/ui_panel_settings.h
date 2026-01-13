@@ -134,7 +134,8 @@ class SettingsPanel : public PanelBase {
 
     // Lazily-created overlay panels
     lv_obj_t* display_settings_overlay_ = nullptr;
-    lv_obj_t* filament_sensors_overlay_ = nullptr;
+    // Note: Filament Sensors overlay is now managed by FilamentSensorSettingsOverlay class
+    // See ui_settings_filament_sensors.h
     // Note: Macro Buttons overlay is now managed by MacroButtonsOverlay class
     // See ui_settings_macro_buttons.h
     lv_obj_t* hardware_health_overlay_ = nullptr;
@@ -179,7 +180,7 @@ class SettingsPanel : public PanelBase {
     void handle_network_clicked();
     void handle_factory_reset_clicked();
     void show_theme_restart_dialog();
-    void populate_sensor_list();
+    // Note: populate_sensor_list() moved to FilamentSensorSettingsOverlay
     // Note: populate_macro_dropdowns() moved to MacroButtonsOverlay
     void populate_hardware_issues();
 
