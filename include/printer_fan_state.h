@@ -5,10 +5,11 @@
 
 #include <lvgl.h>
 #include <memory>
-#include <nlohmann/json.hpp>
 #include <string>
 #include <unordered_map>
 #include <vector>
+
+#include "hv/json.hpp"
 
 namespace helix {
 

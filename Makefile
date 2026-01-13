@@ -422,14 +422,13 @@ ifneq ($(CROSS_COMPILE),)
     # No SDL2 - display handled by framebuffer/DRM
     # SSL is optional - only needed if connecting to remote Moonraker over HTTPS
     # Note: libnl must come AFTER wpa_client (static linking order matters)
-    LDFLAGS := $(LIBHV_LIBS) $(TINYGL_LIB) $(FMT_LIBS) $(WPA_CLIENT_LIB) $(LIBNL_LIBS) $(SYSTEMD_LIBS) -ldl -lm -lpthread
+    # Note: -L path MUST come before library flags (-lsystemd, -ldrm, etc.)
+    LDFLAGS := -L/usr/lib/$(TARGET_TRIPLE) $(LIBHV_LIBS) $(TINYGL_LIB) $(FMT_LIBS) $(WPA_CLIENT_LIB) $(LIBNL_LIBS) $(SYSTEMD_LIBS) -ldl -lm -lpthread
     ifeq ($(ENABLE_SSL),yes)
         LDFLAGS += -lssl -lcrypto
     endif
     # Add target-specific linker flags (e.g., -lstdc++fs for GCC 8)
     LDFLAGS += $(TARGET_LDFLAGS)
-    # Add target-specific library path for cross-compilation
-    LDFLAGS += -L/usr/lib/$(TARGET_TRIPLE)
     # DRM backend requires libdrm and libinput for LVGL display/input drivers
     ifeq ($(DISPLAY_BACKEND),drm)
         LDFLAGS += -ldrm -linput

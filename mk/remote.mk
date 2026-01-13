@@ -41,7 +41,7 @@ endif
 # Remote Sync Targets
 # =============================================================================
 
-.PHONY: remote-sync remote-fetch remote-clean remote-fetch-pi remote-fetch-ad5m remote-fetch-native remote-fetch-pi-full remote-fetch-ad5m-full
+.PHONY: remote-sync remote-fetch remote-fetch-full remote-clean remote-fetch-pi remote-fetch-ad5m remote-fetch-native remote-fetch-pi-full remote-fetch-ad5m-full
 
 # Sync source code to remote host
 # Note: We explicitly exclude build artifacts rather than using .gitignore filtering
@@ -55,6 +55,9 @@ remote-sync:
 		--exclude='.git/' \
 		--exclude='*.o' \
 		--exclude='*.a' \
+		--exclude='*.d' \
+		--exclude='*.so' \
+		--exclude='*.dylib' \
 		--exclude='.venv/' \
 		--exclude='node_modules/' \
 		--exclude='.DS_Store' \
@@ -62,18 +65,36 @@ remote-sync:
 		--exclude='__pycache__/' \
 		--exclude='*.log' \
 		--exclude='.claude/plans/' \
+		--exclude='lib/libhv/hconfig.h' \
+		--exclude='lib/libhv/lib/' \
+		--exclude='lib/libnl/Makefile' \
+		--exclude='lib/libnl/config.*' \
+		--exclude='lib/libnl/lib/.libs/' \
 		./ $(REMOTE_SSH_TARGET):$(REMOTE_DIR)/
 	@echo "$(GREEN)✓ Source synced to $(REMOTE_HOST)$(RESET)"
 
 # Fetch build artifacts from remote host
-# Retrieves all build directories (native, pi, ad5m)
+# Retrieves only final binaries (not object files) - use remote-fetch-full for everything
 remote-fetch:
 	@echo "$(CYAN)$(BOLD)Fetching binaries from $(REMOTE_SSH_TARGET):$(REMOTE_DIR)/build/...$(RESET)"
+	@mkdir -p build/pi/bin build/ad5m/bin build/bin
+	rsync -avz --progress \
+		--exclude='*.o' \
+		--exclude='*.d' \
+		--exclude='*.a' \
+		--exclude='obj/' \
+		$(REMOTE_SSH_TARGET):$(REMOTE_DIR)/build/ \
+		./build/
+	@echo "$(GREEN)✓ Binaries retrieved from $(REMOTE_HOST)$(RESET)"
+
+# Fetch everything including object files (for incremental local rebuilds)
+remote-fetch-full:
+	@echo "$(CYAN)$(BOLD)Fetching FULL build from $(REMOTE_SSH_TARGET):$(REMOTE_DIR)/build/...$(RESET)"
 	@mkdir -p build
 	rsync -avz --progress \
 		$(REMOTE_SSH_TARGET):$(REMOTE_DIR)/build/ \
 		./build/
-	@echo "$(GREEN)✓ Binaries retrieved from $(REMOTE_HOST)$(RESET)"
+	@echo "$(GREEN)✓ Full build retrieved from $(REMOTE_HOST)$(RESET)"
 
 # Fetch only specific target binaries (fast - only final executables)
 # For full build cache (including .o files), use remote-fetch-pi-full

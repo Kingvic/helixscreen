@@ -42,6 +42,7 @@ make pi-test                         # Build on thelio + deploy + run
 | **Icon sync** | Add icon, forget fonts | codepoints.h + `make regen-fonts` + rebuild |
 | **Formatting** | Manual formatting | Let pre-commit hook (clang-format) fix |
 | **No auto-mock** | `if(!start()) return Mock()` | Check `RuntimeConfig::should_mock_*()` |
+| **JSON include** | `#include <nlohmann/json.hpp>` | `#include "hv/json.hpp"` (libhv's bundled version) |
 
 **ALWAYS:** Search the SAME FILE you're editing for similar patterns before implementing.
 

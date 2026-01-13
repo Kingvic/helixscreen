@@ -16,6 +16,7 @@ LABEL description="Cross-compilation toolchain for Raspberry Pi (aarch64)"
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Install base build tools
+# Note: autotools required for building libnl submodule
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     crossbuild-essential-arm64 \
@@ -26,6 +27,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     cmake \
     libfmt-dev \
     python3 \
+    autoconf \
+    automake \
+    libtool \
+    flex \
+    bison \
     && rm -rf /var/lib/apt/lists/*
 
 # Add arm64 architecture and install target libraries
@@ -38,6 +44,9 @@ RUN dpkg --add-architecture arm64 && apt-get update && apt-get install -y --no-i
     libudev-dev:arm64 \
     libfmt-dev:arm64 \
     libsystemd-dev:arm64 \
+    # NOTE: nlohmann-json is bundled with libhv (lib/libhv/cpputil/json.hpp)
+    # DO NOT install nlohmann-json3-dev - it causes ABI mismatches
+    # Always use: #include "hv/json.hpp" (NOT <nlohmann/json.hpp>)
     # OpenGL ES / EGL / GBM for GPU-accelerated rendering on Pi
     libgbm-dev:arm64 \
     libgles2-mesa-dev:arm64 \

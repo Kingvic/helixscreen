@@ -14,7 +14,8 @@
 #include <fstream>
 #include <unordered_set>
 
-#ifdef __APPLE__
+// C++17 filesystem - use std::filesystem if available, fall back to experimental
+#if __cplusplus >= 201703L && __has_include(<filesystem>)
 #include <filesystem>
 namespace fs = std::filesystem;
 #else

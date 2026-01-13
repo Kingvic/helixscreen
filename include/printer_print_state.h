@@ -4,8 +4,9 @@
 #include "subject_managed_panel.h"
 
 #include <lvgl.h>
-#include <nlohmann/json.hpp>
 #include <string>
+
+#include "hv/json.hpp"
 
 // Forward declaration - enums are defined in printer_state.h
 enum class PrintJobState;
