@@ -538,28 +538,35 @@ instead of creating separate XML files per state. This is simpler and already wo
 
 ### Phase 6: First-Run Wizard Integration (Chunk C7)
 
-**Status**: ⬜ Not Started
+**Status**: ✅ Complete
 
 #### Checkpoints:
-- [ ] Tests written for skip logic
-- [ ] Tests written for wizard flow
-- [ ] `WizardInputShaperStep` header created
-- [ ] Step implementation using calibrator
-- [ ] XML template created
-- [ ] Integration with `ui_wizard.cpp`
-- [ ] Skip logic works when no accelerometer
-- [ ] Full flow works with accelerometer
-- [ ] All tests pass
-- [ ] Code reviewed
+- [x] Tests written for skip logic
+- [x] Tests written for wizard flow
+- [x] `WizardInputShaperStep` header created
+- [x] Step implementation using calibrator
+- [x] XML template created
+- [x] Integration with `ui_wizard.cpp`
+- [x] Skip logic works when no accelerometer
+- [x] Full flow works with accelerometer
+- [x] All tests pass (309 assertions in 63 test cases)
+- [x] Code reviewed
 
-**Files to create:**
+**Files created:**
 - `include/ui_wizard_input_shaper.h`
 - `src/ui/ui_wizard_input_shaper.cpp`
 - `ui_xml/wizard_input_shaper.xml`
 - `tests/unit/test_wizard_input_shaper_step.cpp`
 
-**Files to modify:**
-- `src/ui/ui_wizard.cpp`
+**Files modified:**
+- `src/ui/ui_wizard.cpp` - Added step 9 (input shaper), renumbered summary to step 10
+- `src/xml_registration.cpp` - Registered wizard_input_shaper.xml component
+
+**Design decisions:**
+- Wizard step is skippable when no accelerometer detected
+- Uses existing InputShaperCalibrator for calibration workflow
+- User can "Skip for now" to configure later in Settings
+- Step validated when calibration complete OR user explicitly skips
 
 ---
 
