@@ -136,6 +136,22 @@ restore_forgex_display() {
     return 1
 }
 
+# Restore stock FlashForge UI in auto_run.sh
+# This reverses what disable_stock_firmware_ui() does in install.sh
+restore_stock_firmware_ui() {
+    local auto_run="/opt/auto_run.sh"
+    if [ -f "$auto_run" ]; then
+        # Check if our disabled line exists
+        if grep -q "^# Disabled by HelixScreen: /opt/PROGRAM/ffstartup-arm" "$auto_run"; then
+            log_info "Re-enabling stock FlashForge UI in auto_run.sh..."
+            sed -i 's|^# Disabled by HelixScreen: /opt/PROGRAM/ffstartup-arm|/opt/PROGRAM/ffstartup-arm|' "$auto_run"
+            log_success "Stock FlashForge UI re-enabled"
+            return 0
+        fi
+    fi
+    return 1
+}
+
 # Check if running as root
 check_root() {
     if [ "$(id -u)" != "0" ]; then
@@ -254,10 +270,11 @@ reenable_previous_ui() {
     local found_ui=false
     local restored_xorg=false
 
-    # For ForgeX firmware, restore display setting in variables.cfg first
+    # For ForgeX firmware, restore display setting and stock UI in auto_run.sh
     # This must happen before re-enabling GuppyScreen init script
     if [ "$AD5M_FIRMWARE" = "forge_x" ]; then
         restore_forgex_display || true
+        restore_stock_firmware_ui || true
     fi
 
     # For Klipper Mod, re-enable Xorg first (required for KlipperScreen)

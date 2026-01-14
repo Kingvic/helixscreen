@@ -71,6 +71,9 @@ class DisplayBackendDRM : public DisplayBackend {
     }
     bool is_available() const override;
 
+    // Framebuffer operations
+    bool clear_framebuffer(uint32_t color) override;
+
     // Configuration
     void set_drm_device(const std::string& path) {
         drm_device_ = path;

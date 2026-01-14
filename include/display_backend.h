@@ -146,6 +146,23 @@ class DisplayBackend {
         return true;
     }
 
+    /**
+     * @brief Clear the entire framebuffer to a solid color
+     *
+     * Used by splash screen to wipe any pre-existing content (like Linux
+     * console text) before rendering the UI. This writes directly to the
+     * framebuffer, bypassing LVGL's dirty region tracking.
+     *
+     * Must be called AFTER create_display() and before any LVGL rendering.
+     *
+     * @param color 32-bit ARGB color (0xAARRGGBB format, use 0xFF for full opacity)
+     * @return true if framebuffer was cleared, false on error or not supported
+     */
+    virtual bool clear_framebuffer(uint32_t color) {
+        (void)color;
+        return false; // Not supported by default
+    }
+
     // ========================================================================
     // Factory Methods
     // ========================================================================

@@ -189,6 +189,40 @@ configure_forgex_display() {
     return 1
 }
 
+# Disable stock FlashForge UI in auto_run.sh
+# The stock firmware UI (ffstartup-arm/firmwareExe) is started by /opt/auto_run.sh
+# which runs AFTER init scripts. We comment out the line to prevent it starting.
+disable_stock_firmware_ui() {
+    local auto_run="/opt/auto_run.sh"
+    if [ -f "$auto_run" ]; then
+        # Check if ffstartup-arm line exists and is not already commented
+        if grep -q "^/opt/PROGRAM/ffstartup-arm" "$auto_run"; then
+            log_info "Disabling stock FlashForge UI in auto_run.sh..."
+            # Comment out the ffstartup-arm line
+            $SUDO sed -i 's|^/opt/PROGRAM/ffstartup-arm|# Disabled by HelixScreen: /opt/PROGRAM/ffstartup-arm|' "$auto_run"
+            log_success "Stock FlashForge UI disabled"
+            return 0
+        fi
+    fi
+    return 1
+}
+
+# Re-enable stock FlashForge UI in auto_run.sh (for uninstall)
+restore_stock_firmware_ui() {
+    local auto_run="/opt/auto_run.sh"
+    if [ -f "$auto_run" ]; then
+        # Check if our disabled line exists
+        if grep -q "^# Disabled by HelixScreen: /opt/PROGRAM/ffstartup-arm" "$auto_run"; then
+            log_info "Re-enabling stock FlashForge UI in auto_run.sh..."
+            # Uncomment the ffstartup-arm line
+            $SUDO sed -i 's|^# Disabled by HelixScreen: /opt/PROGRAM/ffstartup-arm|/opt/PROGRAM/ffstartup-arm|' "$auto_run"
+            log_success "Stock FlashForge UI re-enabled"
+            return 0
+        fi
+    fi
+    return 1
+}
+
 # Set installation paths based on platform and firmware
 # Sets: INSTALL_DIR, INIT_SCRIPT_DEST, PREVIOUS_UI_SCRIPT, TMP_DIR
 set_install_paths() {
@@ -363,6 +397,24 @@ stop_competing_uis() {
     log_info "Checking for competing screen UIs..."
 
     local found_any=false
+
+    # Stop stock FlashForge firmware UI (AD5M/Adventurer 5M)
+    # ffstartup-arm is the startup manager that launches firmwareExe (the stock Qt UI)
+    if [ -f /opt/PROGRAM/ffstartup-arm ]; then
+        log_info "Stopping stock FlashForge UI..."
+        if command -v killall &> /dev/null; then
+            $SUDO killall firmwareExe 2>/dev/null || true
+            $SUDO killall ffstartup-arm 2>/dev/null || true
+        elif command -v pidof &> /dev/null; then
+            for pid in $(pidof firmwareExe 2>/dev/null); do
+                $SUDO kill "$pid" 2>/dev/null || true
+            done
+            for pid in $(pidof ffstartup-arm 2>/dev/null); do
+                $SUDO kill "$pid" 2>/dev/null || true
+            done
+        fi
+        found_any=true
+    fi
 
     # On Klipper Mod, stop Xorg first (required for framebuffer access)
     # Xorg takes over /dev/fb0 layer, preventing direct framebuffer rendering
@@ -803,7 +855,17 @@ uninstall() {
     fi
 
     if [ -z "$restored_ui" ]; then
-        # Forge-X - restore GuppyScreen
+        # Forge-X - restore GuppyScreen and stock UI settings
+        # Restore ForgeX display mode to GUPPY
+        if [ -f "/opt/config/mod_data/variables.cfg" ]; then
+            if grep -q "display[[:space:]]*=[[:space:]]*'STOCK'" "/opt/config/mod_data/variables.cfg"; then
+                log_info "Restoring ForgeX display mode to GUPPY..."
+                sed -i "s/display[[:space:]]*=[[:space:]]*'STOCK'/display = 'GUPPY'/" "/opt/config/mod_data/variables.cfg"
+            fi
+        fi
+        # Restore stock FlashForge UI in auto_run.sh
+        restore_stock_firmware_ui || true
+        # Re-enable GuppyScreen init script
         if [ -f "/opt/config/mod/.root/S80guppyscreen" ]; then
             $SUDO chmod +x "/opt/config/mod/.root/S80guppyscreen" 2>/dev/null || true
             restored_ui="GuppyScreen (/opt/config/mod/.root/S80guppyscreen)"
@@ -1016,6 +1078,8 @@ main() {
     # This prevents ForgeX's start.sh from launching GuppyScreen on boot
     if [ "$AD5M_FIRMWARE" = "forge_x" ]; then
         configure_forgex_display || true
+        # Also disable stock FlashForge UI in auto_run.sh (runs after init scripts)
+        disable_stock_firmware_ui || true
     fi
 
     # Stop competing UIs (GuppyScreen, KlipperScreen, FeatherScreen, etc.)

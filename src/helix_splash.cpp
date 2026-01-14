@@ -215,6 +215,13 @@ int main(int argc, char** argv) {
         return 1;
     }
 
+    // Clear framebuffer to remove any pre-existing content (Linux console text)
+    // This must happen AFTER create_display (which opens the framebuffer)
+    // but BEFORE we render the splash UI
+    if (backend->clear_framebuffer(BG_COLOR_DARK | 0xFF000000)) {
+        fprintf(stderr, "helix-splash: Framebuffer cleared\n");
+    }
+
     // Turn on backlight immediately (may have been off from sleep or crash)
     // Use configured brightness instead of hardcoded 100%
     auto backlight = BacklightBackend::create();

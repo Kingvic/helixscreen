@@ -240,6 +240,8 @@ class BacklightBackendAllwinner : public BacklightBackend {
     // See: https://linux-sunxi.org/Sunxi_disp_driver_interface
     static constexpr unsigned long DISP_LCD_SET_BRIGHTNESS = 0x102;
     static constexpr unsigned long DISP_LCD_GET_BRIGHTNESS = 0x103;
+    static constexpr unsigned long DISP_LCD_BACKLIGHT_ENABLE = 0x104;
+    static constexpr unsigned long DISP_LCD_BACKLIGHT_DISABLE = 0x105;
 
     static constexpr int MAX_BRIGHTNESS = 255;
 
@@ -263,17 +265,42 @@ class BacklightBackendAllwinner : public BacklightBackend {
         int brightness = (percent * MAX_BRIGHTNESS) / 100;
         brightness = std::clamp(brightness, 0, MAX_BRIGHTNESS);
 
-        // ioctl args: [screen_id, brightness, 0, 0]
-        unsigned long args[4] = {0, static_cast<unsigned long>(brightness), 0, 0};
-        int ret = ioctl(fd.get(), DISP_LCD_SET_BRIGHTNESS, args);
+        // ioctl args: [screen_id, arg1, 0, 0]
+        unsigned long args[4] = {0, 0, 0, 0};
 
-        if (ret < 0) {
-            int err = errno; // Capture immediately
-            spdlog::warn("[Backlight-Allwinner] ioctl SET_BRIGHTNESS failed: {}", strerror(err));
-            return false;
+        if (brightness == 0) {
+            // Disable backlight for 0% brightness
+            int ret = ioctl(fd.get(), DISP_LCD_BACKLIGHT_DISABLE, args);
+            if (ret < 0) {
+                int err = errno;
+                spdlog::warn("[Backlight-Allwinner] ioctl BACKLIGHT_DISABLE failed: {}",
+                             strerror(err));
+                return false;
+            }
+            spdlog::debug("[Backlight-Allwinner] Backlight disabled");
+        } else {
+            // Enable backlight first (required on AD5M before SET_BRIGHTNESS works)
+            int ret = ioctl(fd.get(), DISP_LCD_BACKLIGHT_ENABLE, args);
+            if (ret < 0) {
+                int err = errno;
+                spdlog::warn("[Backlight-Allwinner] ioctl BACKLIGHT_ENABLE failed: {}",
+                             strerror(err));
+                // Continue anyway - some devices may not need explicit enable
+            }
+
+            // Set brightness level
+            args[1] = static_cast<unsigned long>(brightness);
+            ret = ioctl(fd.get(), DISP_LCD_SET_BRIGHTNESS, args);
+            if (ret < 0) {
+                int err = errno;
+                spdlog::warn("[Backlight-Allwinner] ioctl SET_BRIGHTNESS failed: {}",
+                             strerror(err));
+                return false;
+            }
+            spdlog::debug("[Backlight-Allwinner] Set brightness to {}/255 ({}%)", brightness,
+                          percent);
         }
 
-        spdlog::debug("[Backlight-Allwinner] Set brightness to {}/255 ({}%)", brightness, percent);
         return true;
     }
 

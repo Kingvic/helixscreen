@@ -18,6 +18,9 @@
 #include <cstring>
 #include <dirent.h>
 #include <fcntl.h>
+#include <linux/fb.h>
+#include <sys/ioctl.h>
+#include <sys/mman.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <vector>
@@ -266,6 +269,77 @@ lv_indev_t* DisplayBackendDRM::create_input_pointer() {
 
     spdlog::error("[DRM Backend] Failed to create any input device");
     return nullptr;
+}
+
+bool DisplayBackendDRM::clear_framebuffer(uint32_t color) {
+    // For DRM, we can try to clear via /dev/fb0 if it exists (legacy fbdev emulation)
+    // Many DRM systems provide /dev/fb0 as a compatibility layer
+    int fd = open("/dev/fb0", O_RDWR);
+    if (fd < 0) {
+        spdlog::debug("[DRM Backend] Cannot open /dev/fb0 for clearing (DRM-only system)");
+        return false;
+    }
+
+    // Get variable screen info
+    struct fb_var_screeninfo vinfo;
+    if (ioctl(fd, FBIOGET_VSCREENINFO, &vinfo) < 0) {
+        spdlog::warn("[DRM Backend] Cannot get vscreeninfo from /dev/fb0");
+        close(fd);
+        return false;
+    }
+
+    // Get fixed screen info
+    struct fb_fix_screeninfo finfo;
+    if (ioctl(fd, FBIOGET_FSCREENINFO, &finfo) < 0) {
+        spdlog::warn("[DRM Backend] Cannot get fscreeninfo from /dev/fb0");
+        close(fd);
+        return false;
+    }
+
+    // Calculate framebuffer size
+    size_t screensize = finfo.smem_len;
+
+    // Map framebuffer to memory
+    void* fbp = mmap(nullptr, screensize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    if (fbp == MAP_FAILED) {
+        spdlog::warn("[DRM Backend] Cannot mmap /dev/fb0 for clearing");
+        close(fd);
+        return false;
+    }
+
+    // Determine bytes per pixel from stride
+    uint32_t bpp = 32;
+    if (vinfo.xres > 0) {
+        bpp = (finfo.line_length * 8) / vinfo.xres;
+    }
+
+    // Fill framebuffer with the specified color
+    if (bpp == 32) {
+        uint32_t* pixels = static_cast<uint32_t*>(fbp);
+        size_t pixel_count = screensize / 4;
+        for (size_t i = 0; i < pixel_count; i++) {
+            pixels[i] = color;
+        }
+    } else if (bpp == 16) {
+        uint16_t r = ((color >> 16) & 0xFF) >> 3;
+        uint16_t g = ((color >> 8) & 0xFF) >> 2;
+        uint16_t b = (color & 0xFF) >> 3;
+        uint16_t rgb565 = (r << 11) | (g << 5) | b;
+
+        uint16_t* pixels = static_cast<uint16_t*>(fbp);
+        size_t pixel_count = screensize / 2;
+        for (size_t i = 0; i < pixel_count; i++) {
+            pixels[i] = rgb565;
+        }
+    } else {
+        memset(fbp, 0, screensize);
+    }
+
+    spdlog::info("[DRM Backend] Cleared framebuffer via /dev/fb0 to 0x{:08X}", color);
+
+    munmap(fbp, screensize);
+    close(fd);
+    return true;
 }
 
 #endif // HELIX_DISPLAY_DRM
