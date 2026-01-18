@@ -95,22 +95,28 @@ void register_object_handlers(std::unordered_map<std::string, MethodHandler>& re
                                           {"homed_axes", "xyz"}};
             }
 
-            // idle_timeout (for motors_enabled state)
+            // stepper_enable (for motors_enabled state - immediate response to M84)
+            if (objects.contains("stepper_enable")) {
+                bool enabled = self->are_motors_enabled();
+                status_obj["stepper_enable"] = {{"steppers",
+                                                 {{"stepper_x", enabled},
+                                                  {"stepper_y", enabled},
+                                                  {"stepper_z", enabled},
+                                                  {"extruder", enabled}}}};
+            }
+
+            // idle_timeout (for printer activity state)
             if (objects.contains("idle_timeout")) {
                 // Derive state from print phase and motor state:
-                // - "Idle" when motors disabled (via M84)
+                // - "Idle" when idle timeout has triggered
                 // - "Printing" when active print in progress
-                // - "Ready" when motors enabled but not printing
+                // - "Ready" when toolhead is not actively moving
                 std::string idle_state;
-                if (!self->are_motors_enabled()) {
-                    idle_state = "Idle";
-                } else {
-                    auto phase = self->get_print_phase();
-                    idle_state = (phase == MoonrakerClientMock::MockPrintPhase::PRINTING ||
-                                  phase == MoonrakerClientMock::MockPrintPhase::PREHEAT)
-                                     ? "Printing"
-                                     : "Ready";
-                }
+                auto phase = self->get_print_phase();
+                idle_state = (phase == MoonrakerClientMock::MockPrintPhase::PRINTING ||
+                              phase == MoonrakerClientMock::MockPrintPhase::PREHEAT)
+                                 ? "Printing"
+                                 : "Ready";
                 status_obj["idle_timeout"] = {{"state", idle_state}};
             }
 
@@ -264,18 +270,24 @@ void register_object_handlers(std::unordered_map<std::string, MethodHandler>& re
                                             {"gcode_position", {0.0, 0.0, 0.0, 0.0}}};
             }
 
-            // idle_timeout
+            // stepper_enable (for motor state)
+            if (objects.contains("stepper_enable")) {
+                bool enabled = self->are_motors_enabled();
+                status_obj["stepper_enable"] = {{"steppers",
+                                                 {{"stepper_x", enabled},
+                                                  {"stepper_y", enabled},
+                                                  {"stepper_z", enabled},
+                                                  {"extruder", enabled}}}};
+            }
+
+            // idle_timeout (for activity state)
             if (objects.contains("idle_timeout")) {
                 std::string idle_state;
-                if (!self->are_motors_enabled()) {
-                    idle_state = "Idle";
-                } else {
-                    auto phase = self->get_print_phase();
-                    idle_state = (phase == MoonrakerClientMock::MockPrintPhase::PRINTING ||
-                                  phase == MoonrakerClientMock::MockPrintPhase::PREHEAT)
-                                     ? "Printing"
-                                     : "Ready";
-                }
+                auto phase = self->get_print_phase();
+                idle_state = (phase == MoonrakerClientMock::MockPrintPhase::PRINTING ||
+                              phase == MoonrakerClientMock::MockPrintPhase::PREHEAT)
+                                 ? "Printing"
+                                 : "Ready";
                 status_obj["idle_timeout"] = {{"state", idle_state}, {"printing_time", 0.0}};
             }
 

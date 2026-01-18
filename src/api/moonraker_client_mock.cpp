@@ -807,13 +807,18 @@ int MoonrakerClientMock::gcode_script(const std::string& gcode) {
         spdlog::info("[MoonrakerClientMock] Set relative positioning mode (G91)");
     }
 
-    // M84 - Disable stepper motors (sets idle_timeout.state to "Idle")
+    // M84 - Disable stepper motors (updates stepper_enable.steppers)
     if (gcode.find("M84") != std::string::npos || gcode.find("M18") != std::string::npos) {
         motors_enabled_.store(false);
         spdlog::info("[MoonrakerClientMock] Motors disabled (M84/M18)");
-        // Dispatch idle_timeout state change
-        json idle_status = {{"idle_timeout", {{"state", "Idle"}}}};
-        dispatch_status_update(idle_status);
+        // Dispatch stepper_enable state change - all steppers disabled
+        json stepper_status = {{"stepper_enable",
+                                {{"steppers",
+                                  {{"stepper_x", false},
+                                   {"stepper_y", false},
+                                   {"stepper_z", false},
+                                   {"extruder", false}}}}}};
+        dispatch_status_update(stepper_status);
     }
 
     // Parse homing command (G28)
@@ -2371,13 +2376,17 @@ void MoonrakerClientMock::temperature_simulation_loop() {
               {"progress", progress},
               {"is_active",
                phase == MockPrintPhase::PRINTING || phase == MockPrintPhase::PREHEAT}}},
-            // idle_timeout tracks motor state: "Printing" = active print, "Ready" = motors enabled,
-            // "Idle" = motors disabled (via M84)
+            // stepper_enable tracks actual motor driver state (immediate response to M84)
+            {"stepper_enable",
+             {{"steppers",
+               {{"stepper_x", motors_enabled_.load()},
+                {"stepper_y", motors_enabled_.load()},
+                {"stepper_z", motors_enabled_.load()},
+                {"extruder", motors_enabled_.load()}}}}},
+            // idle_timeout tracks activity state: "Printing", "Ready", or "Idle" (after timeout)
             {"idle_timeout", {{"state", [&]() -> std::string {
-                                   if (!motors_enabled_.load()) {
-                                       return "Idle";
-                                   } else if (phase == MockPrintPhase::PRINTING ||
-                                              phase == MockPrintPhase::PREHEAT) {
+                                   if (phase == MockPrintPhase::PRINTING ||
+                                       phase == MockPrintPhase::PREHEAT) {
                                        return "Printing";
                                    } else {
                                        return "Ready";

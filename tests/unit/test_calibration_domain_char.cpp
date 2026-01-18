@@ -339,7 +339,7 @@ TEST_CASE("Calibration characterization: manual probe updates from JSON",
 }
 
 // ============================================================================
-// Motor State Update Tests - Verify idle_timeout.state parsing
+// Motor State Update Tests - Verify stepper_enable.steppers parsing
 // ============================================================================
 
 TEST_CASE("Calibration characterization: motor state updates from JSON",
@@ -350,59 +350,96 @@ TEST_CASE("Calibration characterization: motor state updates from JSON",
     state.reset_for_testing();
     state.init_subjects(false);
 
-    SECTION("idle_timeout.state 'Ready' sets motors_enabled to 1") {
-        json status = {{"idle_timeout", {{"state", "Ready"}}}};
+    SECTION("all steppers enabled sets motors_enabled to 1") {
+        json status = {{"stepper_enable",
+                        {{"steppers",
+                          {{"stepper_x", true},
+                           {"stepper_y", true},
+                           {"stepper_z", true},
+                           {"extruder", true}}}}}};
         state.update_from_status(status);
 
         REQUIRE(lv_subject_get_int(state.get_motors_enabled_subject()) == 1);
     }
 
-    SECTION("idle_timeout.state 'Printing' sets motors_enabled to 1") {
-        json status = {{"idle_timeout", {{"state", "Printing"}}}};
+    SECTION("any stepper enabled sets motors_enabled to 1") {
+        // Only X stepper enabled - should still count as motors enabled
+        json status = {{"stepper_enable",
+                        {{"steppers",
+                          {{"stepper_x", true},
+                           {"stepper_y", false},
+                           {"stepper_z", false},
+                           {"extruder", false}}}}}};
         state.update_from_status(status);
 
         REQUIRE(lv_subject_get_int(state.get_motors_enabled_subject()) == 1);
     }
 
-    SECTION("idle_timeout.state 'Idle' sets motors_enabled to 0") {
-        json status = {{"idle_timeout", {{"state", "Idle"}}}};
+    SECTION("all steppers disabled sets motors_enabled to 0") {
+        json status = {{"stepper_enable",
+                        {{"steppers",
+                          {{"stepper_x", false},
+                           {"stepper_y", false},
+                           {"stepper_z", false},
+                           {"extruder", false}}}}}};
         state.update_from_status(status);
 
         REQUIRE(lv_subject_get_int(state.get_motors_enabled_subject()) == 0);
     }
 
-    SECTION("unknown idle_timeout states set motors_enabled to 0") {
-        // Any state other than "Ready" or "Printing" should disable motors
-        json status = {{"idle_timeout", {{"state", "Unknown"}}}};
-        state.update_from_status(status);
-
-        REQUIRE(lv_subject_get_int(state.get_motors_enabled_subject()) == 0);
-    }
-
-    SECTION("transition from Ready to Idle disables motors") {
-        json ready = {{"idle_timeout", {{"state", "Ready"}}}};
-        state.update_from_status(ready);
+    SECTION("transition from enabled to disabled (M84 simulation)") {
+        // Start with motors enabled
+        json enabled = {{"stepper_enable",
+                         {{"steppers",
+                           {{"stepper_x", true},
+                            {"stepper_y", true},
+                            {"stepper_z", true},
+                            {"extruder", true}}}}}};
+        state.update_from_status(enabled);
         REQUIRE(lv_subject_get_int(state.get_motors_enabled_subject()) == 1);
 
-        json idle = {{"idle_timeout", {{"state", "Idle"}}}};
-        state.update_from_status(idle);
+        // M84 disables all steppers
+        json disabled = {{"stepper_enable",
+                          {{"steppers",
+                            {{"stepper_x", false},
+                             {"stepper_y", false},
+                             {"stepper_z", false},
+                             {"extruder", false}}}}}};
+        state.update_from_status(disabled);
         REQUIRE(lv_subject_get_int(state.get_motors_enabled_subject()) == 0);
     }
 
-    SECTION("transition from Idle to Ready enables motors") {
-        json idle = {{"idle_timeout", {{"state", "Idle"}}}};
-        state.update_from_status(idle);
+    SECTION("transition from disabled to enabled (homing simulation)") {
+        // Start with motors disabled
+        json disabled = {{"stepper_enable",
+                          {{"steppers",
+                            {{"stepper_x", false},
+                             {"stepper_y", false},
+                             {"stepper_z", false},
+                             {"extruder", false}}}}}};
+        state.update_from_status(disabled);
         REQUIRE(lv_subject_get_int(state.get_motors_enabled_subject()) == 0);
 
-        json ready = {{"idle_timeout", {{"state", "Ready"}}}};
-        state.update_from_status(ready);
+        // Homing re-enables steppers
+        json enabled = {{"stepper_enable",
+                         {{"steppers",
+                           {{"stepper_x", true},
+                            {"stepper_y", true},
+                            {"stepper_z", true},
+                            {"extruder", true}}}}}};
+        state.update_from_status(enabled);
         REQUIRE(lv_subject_get_int(state.get_motors_enabled_subject()) == 1);
     }
 
-    SECTION("missing idle_timeout key leaves motors_enabled unchanged") {
-        // Set to disabled first
-        json idle = {{"idle_timeout", {{"state", "Idle"}}}};
-        state.update_from_status(idle);
+    SECTION("missing stepper_enable key leaves motors_enabled unchanged") {
+        // Disable motors first
+        json disabled = {{"stepper_enable",
+                          {{"steppers",
+                            {{"stepper_x", false},
+                             {"stepper_y", false},
+                             {"stepper_z", false},
+                             {"extruder", false}}}}}};
+        state.update_from_status(disabled);
         REQUIRE(lv_subject_get_int(state.get_motors_enabled_subject()) == 0);
 
         // Update with unrelated status
@@ -411,6 +448,25 @@ TEST_CASE("Calibration characterization: motor state updates from JSON",
 
         // Should remain disabled
         REQUIRE(lv_subject_get_int(state.get_motors_enabled_subject()) == 0);
+    }
+
+    SECTION("idle_timeout does not affect motors_enabled") {
+        // Verify idle_timeout is independent of motor state
+        // First set motors enabled via stepper_enable
+        json enabled = {{"stepper_enable",
+                         {{"steppers",
+                           {{"stepper_x", true},
+                            {"stepper_y", true},
+                            {"stepper_z", true},
+                            {"extruder", true}}}}}};
+        state.update_from_status(enabled);
+        REQUIRE(lv_subject_get_int(state.get_motors_enabled_subject()) == 1);
+
+        // idle_timeout "Idle" should NOT change motors_enabled
+        // (idle_timeout is for activity state, not motor state)
+        json idle = {{"idle_timeout", {{"state", "Idle"}}}};
+        state.update_from_status(idle);
+        REQUIRE(lv_subject_get_int(state.get_motors_enabled_subject()) == 1);
     }
 }
 
@@ -533,8 +589,13 @@ TEST_CASE("Calibration characterization: observer fires when motors_enabled chan
     REQUIRE(user_data[0] == 1);
     REQUIRE(user_data[1] == 1); // Default is enabled
 
-    // Disable motors
-    json status = {{"idle_timeout", {{"state", "Idle"}}}};
+    // Disable motors (using stepper_enable - all steppers disabled)
+    json status = {{"stepper_enable",
+                    {{"steppers",
+                      {{"stepper_x", false},
+                       {"stepper_y", false},
+                       {"stepper_z", false},
+                       {"extruder", false}}}}}};
     state.update_from_status(status);
 
     REQUIRE(user_data[0] >= 2);
@@ -555,10 +616,15 @@ TEST_CASE("Calibration characterization: subjects survive reset_for_testing cycl
     state.reset_for_testing();
     state.init_subjects(true);
 
-    // Set calibration values
+    // Set calibration values (stepper_enable with all disabled = motors off)
     json status = {{"firmware_retraction", {{"retract_length", 0.8}}},
                    {"manual_probe", {{"is_active", true}, {"z_position", 0.5}}},
-                   {"idle_timeout", {{"state", "Idle"}}}};
+                   {"stepper_enable",
+                    {{"steppers",
+                      {{"stepper_x", false},
+                       {"stepper_y", false},
+                       {"stepper_z", false},
+                       {"extruder", false}}}}}};
     state.update_from_status(status);
 
     // Verify values were set
@@ -654,9 +720,14 @@ TEST_CASE("Calibration characterization: subjects are independent",
     state.init_subjects(true);
 
     SECTION("firmware_retraction update does not affect manual_probe or motors") {
-        // Set known values for all
+        // Set known values for all (stepper_enable with all disabled = motors off)
         json initial = {{"manual_probe", {{"is_active", true}, {"z_position", 0.5}}},
-                        {"idle_timeout", {{"state", "Idle"}}}};
+                        {"stepper_enable",
+                         {{"steppers",
+                           {{"stepper_x", false},
+                            {"stepper_y", false},
+                            {"stepper_z", false},
+                            {"extruder", false}}}}}};
         state.update_from_status(initial);
 
         // Update only firmware_retraction
@@ -674,9 +745,14 @@ TEST_CASE("Calibration characterization: subjects are independent",
     }
 
     SECTION("manual_probe update does not affect firmware_retraction or motors") {
-        // Set known values
+        // Set known values (stepper_enable with all enabled = motors on)
         json initial = {{"firmware_retraction", {{"retract_length", 0.8}}},
-                        {"idle_timeout", {{"state", "Ready"}}}};
+                        {"stepper_enable",
+                         {{"steppers",
+                           {{"stepper_x", true},
+                            {"stepper_y", true},
+                            {"stepper_z", true},
+                            {"extruder", true}}}}}};
         state.update_from_status(initial);
 
         // Update only manual_probe
@@ -692,15 +768,20 @@ TEST_CASE("Calibration characterization: subjects are independent",
         REQUIRE(lv_subject_get_int(state.get_motors_enabled_subject()) == 1);
     }
 
-    SECTION("idle_timeout update does not affect firmware_retraction or manual_probe") {
+    SECTION("stepper_enable update does not affect firmware_retraction or manual_probe") {
         // Set known values
         json initial = {{"firmware_retraction", {{"retract_length", 0.6}}},
                         {"manual_probe", {{"is_active", true}}}};
         state.update_from_status(initial);
 
-        // Update only idle_timeout
-        json idle_only = {{"idle_timeout", {{"state", "Idle"}}}};
-        state.update_from_status(idle_only);
+        // Update only stepper_enable (all disabled = motors off)
+        json stepper_only = {{"stepper_enable",
+                              {{"steppers",
+                                {{"stepper_x", false},
+                                 {"stepper_y", false},
+                                 {"stepper_z", false},
+                                 {"extruder", false}}}}}};
+        state.update_from_status(stepper_only);
 
         // Motors should change
         REQUIRE(lv_subject_get_int(state.get_motors_enabled_subject()) == 0);
@@ -708,5 +789,144 @@ TEST_CASE("Calibration characterization: subjects are independent",
         // Others should be unchanged
         REQUIRE(lv_subject_get_int(get_subject_by_name("retract_length")) == 60);
         REQUIRE(lv_subject_get_int(state.get_manual_probe_active_subject()) == 1);
+    }
+
+    SECTION("idle_timeout does NOT affect motors_enabled (stepper_enable is the source)") {
+        // Motors start enabled by default
+        REQUIRE(lv_subject_get_int(state.get_motors_enabled_subject()) == 1);
+
+        // idle_timeout "Idle" state should NOT disable motors
+        // (idle_timeout is for activity state, not motor driver state)
+        json idle_status = {{"idle_timeout", {{"state", "Idle"}}}};
+        state.update_from_status(idle_status);
+
+        // Motors should still be enabled (not affected by idle_timeout)
+        REQUIRE(lv_subject_get_int(state.get_motors_enabled_subject()) == 1);
+
+        // Now actually disable motors via stepper_enable
+        json stepper_status = {{"stepper_enable",
+                                {{"steppers",
+                                  {{"stepper_x", false},
+                                   {"stepper_y", false},
+                                   {"stepper_z", false},
+                                   {"extruder", false}}}}}};
+        state.update_from_status(stepper_status);
+
+        // NOW motors should be disabled
+        REQUIRE(lv_subject_get_int(state.get_motors_enabled_subject()) == 0);
+    }
+}
+
+// ============================================================================
+// Stepper Enable State Tests - Comprehensive coverage of motor state
+// ============================================================================
+
+TEST_CASE("Calibration characterization: stepper_enable motor state tracking",
+          "[characterization][calibration][stepper_enable]") {
+    lv_init_safe();
+
+    PrinterState& state = get_printer_state();
+    state.reset_for_testing();
+    state.init_subjects(false);
+
+    SECTION("all steppers enabled = motors_enabled is 1") {
+        json status = {{"stepper_enable",
+                        {{"steppers",
+                          {{"stepper_x", true},
+                           {"stepper_y", true},
+                           {"stepper_z", true},
+                           {"extruder", true}}}}}};
+        state.update_from_status(status);
+
+        REQUIRE(lv_subject_get_int(state.get_motors_enabled_subject()) == 1);
+    }
+
+    SECTION("any single stepper enabled = motors_enabled is 1") {
+        // Only extruder enabled (e.g., during filament change)
+        json status = {{"stepper_enable",
+                        {{"steppers",
+                          {{"stepper_x", false},
+                           {"stepper_y", false},
+                           {"stepper_z", false},
+                           {"extruder", true}}}}}};
+        state.update_from_status(status);
+
+        REQUIRE(lv_subject_get_int(state.get_motors_enabled_subject()) == 1);
+    }
+
+    SECTION("all steppers disabled = motors_enabled is 0") {
+        json status = {{"stepper_enable",
+                        {{"steppers",
+                          {{"stepper_x", false},
+                           {"stepper_y", false},
+                           {"stepper_z", false},
+                           {"extruder", false}}}}}};
+        state.update_from_status(status);
+
+        REQUIRE(lv_subject_get_int(state.get_motors_enabled_subject()) == 0);
+    }
+
+    SECTION("M84 simulation: transition from enabled to disabled") {
+        // Start with motors enabled (e.g., after homing)
+        json enabled = {{"stepper_enable",
+                         {{"steppers",
+                           {{"stepper_x", true},
+                            {"stepper_y", true},
+                            {"stepper_z", true},
+                            {"extruder", true}}}}}};
+        state.update_from_status(enabled);
+        REQUIRE(lv_subject_get_int(state.get_motors_enabled_subject()) == 1);
+
+        // User presses "Motors Off" button (sends M84)
+        // Klipper immediately updates stepper_enable
+        json disabled = {{"stepper_enable",
+                          {{"steppers",
+                            {{"stepper_x", false},
+                             {"stepper_y", false},
+                             {"stepper_z", false},
+                             {"extruder", false}}}}}};
+        state.update_from_status(disabled);
+        REQUIRE(lv_subject_get_int(state.get_motors_enabled_subject()) == 0);
+    }
+
+    SECTION("homing simulation: transition from disabled to enabled") {
+        // Start with motors disabled
+        json disabled = {{"stepper_enable",
+                          {{"steppers",
+                            {{"stepper_x", false},
+                             {"stepper_y", false},
+                             {"stepper_z", false},
+                             {"extruder", false}}}}}};
+        state.update_from_status(disabled);
+        REQUIRE(lv_subject_get_int(state.get_motors_enabled_subject()) == 0);
+
+        // User initiates homing (G28), steppers get enabled
+        json enabled = {{"stepper_enable",
+                         {{"steppers",
+                           {{"stepper_x", true},
+                            {"stepper_y", true},
+                            {"stepper_z", true},
+                            {"extruder", true}}}}}};
+        state.update_from_status(enabled);
+        REQUIRE(lv_subject_get_int(state.get_motors_enabled_subject()) == 1);
+    }
+
+    SECTION("missing stepper_enable key leaves motors_enabled unchanged") {
+        // Set known state first
+        json enabled = {{"stepper_enable",
+                         {{"steppers",
+                           {{"stepper_x", true},
+                            {"stepper_y", true},
+                            {"stepper_z", true},
+                            {"extruder", true}}}}}};
+        state.update_from_status(enabled);
+        REQUIRE(lv_subject_get_int(state.get_motors_enabled_subject()) == 1);
+
+        // Update with unrelated status (no stepper_enable)
+        json other_status = {{"print_stats", {{"state", "printing"}}}};
+        state.update_from_status(other_status);
+
+        // Motors should still be enabled (not affected)
+        REQUIRE(lv_subject_get_int(state.get_motors_enabled_subject()) == 1);
     }
 }

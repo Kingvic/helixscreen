@@ -118,21 +118,28 @@ void PrinterCalibrationState::update_from_status(const nlohmann::json& status) {
         }
     }
 
-    // Update motor enabled state from idle_timeout
-    // idle_timeout.state: "Ready" or "Printing" = motors enabled, "Idle" = motors disabled
-    if (status.contains("idle_timeout")) {
-        const auto& it = status["idle_timeout"];
+    // Update motor enabled state from stepper_enable
+    // stepper_enable.steppers: object with boolean values for each stepper
+    // Motors are enabled if ANY stepper is enabled, disabled if ALL are disabled
+    if (status.contains("stepper_enable")) {
+        const auto& se = status["stepper_enable"];
 
-        if (it.contains("state") && it["state"].is_string()) {
-            std::string timeout_state = it["state"].get<std::string>();
-            // Motors are enabled when state is "Ready" or "Printing", disabled when "Idle"
-            int new_enabled = (timeout_state == "Ready" || timeout_state == "Printing") ? 1 : 0;
+        if (se.contains("steppers") && se["steppers"].is_object()) {
+            bool any_enabled = false;
+            for (const auto& [name, enabled] : se["steppers"].items()) {
+                if (enabled.is_boolean() && enabled.get<bool>()) {
+                    any_enabled = true;
+                    break;
+                }
+            }
+
+            int new_enabled = any_enabled ? 1 : 0;
             int old_enabled = lv_subject_get_int(&motors_enabled_);
 
             if (old_enabled != new_enabled) {
                 lv_subject_set_int(&motors_enabled_, new_enabled);
-                spdlog::info("[PrinterCalibrationState] Motors {}: idle_timeout.state='{}'",
-                             new_enabled ? "enabled" : "disabled", timeout_state);
+                spdlog::info("[PrinterCalibrationState] Motors {}: stepper_enable update",
+                             new_enabled ? "enabled" : "disabled");
             }
         }
     }
