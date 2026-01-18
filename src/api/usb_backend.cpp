@@ -26,18 +26,17 @@ std::unique_ptr<UsbBackend> UsbBackend::create(bool force_mock) {
         return backend;
     }
 
-    // Fallback to mock if Linux backend fails
-    spdlog::warn("[UsbBackend] Linux backend failed: {} - falling back to mock",
+    // Native backend failed - no USB support available
+    spdlog::warn("[UsbBackend] Linux backend failed: {} - USB support unavailable",
                  result.technical_msg);
-    return std::make_unique<UsbBackendMock>();
+    return nullptr;
 #elif defined(__APPLE__)
-    // macOS: Use mock backend for development
-    // FSEvents-based backend can be added later for real monitoring
-    spdlog::debug("[UsbBackend] macOS platform detected - using mock backend");
-    return std::make_unique<UsbBackendMock>();
+    // macOS: No native USB backend implemented
+    spdlog::info("[UsbBackend] macOS platform - USB support not available");
+    return nullptr;
 #else
-    // Unsupported platform: return mock
-    spdlog::warn("[UsbBackend] Unknown platform - using mock backend");
-    return std::make_unique<UsbBackendMock>();
+    // Unsupported platform
+    spdlog::warn("[UsbBackend] Unknown platform - USB support not available");
+    return nullptr;
 #endif
 }

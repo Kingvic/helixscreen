@@ -24,10 +24,10 @@ bool UsbManager::start() {
         return true;
     }
 
-    // Create backend
+    // Create backend (returns nullptr if USB not supported on this platform)
     backend_ = UsbBackend::create(force_mock_);
     if (!backend_) {
-        spdlog::error("[UsbManager] Failed to create USB backend");
+        spdlog::info("[UsbManager] USB support not available on this platform");
         return false;
     }
 

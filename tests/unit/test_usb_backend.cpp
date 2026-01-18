@@ -357,9 +357,15 @@ TEST_CASE("UsbBackend factory", "[usb_backend][factory]") {
         REQUIRE(mock != nullptr);
     }
 
-    SECTION("default create returns valid backend") {
+    SECTION("default create returns nullptr on unsupported platforms") {
         auto backend = UsbBackend::create(false);
-        REQUIRE(backend != nullptr);
-        // On macOS/Linux without real implementation, this will also be mock
+        // On macOS and unsupported platforms, returns nullptr (no USB support)
+        // On Linux, returns native backend (may succeed or fail depending on system)
+#if defined(__linux__)
+        // Linux may or may not have USB support - just check it doesn't crash
+        (void)backend;
+#else
+        REQUIRE(backend == nullptr);
+#endif
     }
 }

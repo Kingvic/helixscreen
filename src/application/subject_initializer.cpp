@@ -309,7 +309,7 @@ void SubjectInitializer::init_usb_manager(const RuntimeConfig& runtime_config) {
             m_print_select_panel->set_usb_manager(m_usb_manager.get());
         }
     } else {
-        spdlog::warn("[SubjectInitializer] USB Manager failed to start");
+        spdlog::info("[SubjectInitializer] USB Manager not started (not available on this platform)");
     }
 
     // Set up USB drive event notifications
