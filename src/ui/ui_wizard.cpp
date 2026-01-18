@@ -880,9 +880,9 @@ static void on_next_clicked(lv_event_t* e) {
     if (next_step == 8) {
         auto& fsm = helix::FilamentSensorManager::instance();
         if (fsm.get_sensors().empty()) {
-            MoonrakerClient* client = get_moonraker_client();
-            if (client && client->hardware().has_filament_sensors()) {
-                fsm.discover_sensors(client->hardware().filament_sensor_names());
+            MoonrakerAPI* api = get_moonraker_api();
+            if (api && api->hardware().has_filament_sensors()) {
+                fsm.discover_sensors(api->hardware().filament_sensor_names());
                 spdlog::debug("[Wizard] Populated FilamentSensorManager before skip check");
             }
         }

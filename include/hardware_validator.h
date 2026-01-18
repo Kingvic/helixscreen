@@ -24,10 +24,9 @@ using json = nlohmann::json;
 
 // Forward declarations
 class Config;
-class MoonrakerClient;
 
 namespace helix {
-class PrinterHardwareDiscovery;
+class PrinterDiscovery;
 }
 
 /**
@@ -219,14 +218,13 @@ struct HardwareSnapshot {
  * HardwareValidator validator;
  * auto result = validator.validate(
  *     config,           // helixconfig expectations
- *     client,           // MoonrakerClient with discovered hardware
- *     hardware          // PrinterHardwareDiscovery
+ *     hardware          // PrinterDiscovery with discovered hardware
  * );
  *
  * if (result.has_issues()) {
  *     validator.notify_user(result);
  * }
- * validator.save_session_snapshot(config, client);
+ * validator.save_session_snapshot(config, hardware);
  * @endcode
  */
 class HardwareValidator {
@@ -242,12 +240,10 @@ class HardwareValidator {
      * 3. Previous session vs current session
      *
      * @param config Config instance with hardware settings
-     * @param client MoonrakerClient with discovery results
-     * @param hardware PrinterHardwareDiscovery from discovery
+     * @param hardware PrinterDiscovery with discovered hardware
      * @return Validation result with categorized issues
      */
-    HardwareValidationResult validate(Config* config, const MoonrakerClient* client,
-                                      const helix::PrinterHardwareDiscovery& hardware);
+    HardwareValidationResult validate(Config* config, const helix::PrinterDiscovery& hardware);
 
     /**
      * @brief Show persistent notification with "View Details" action
@@ -266,21 +262,17 @@ class HardwareValidator {
      * Persists to helixconfig.json under "hardware_session/last_snapshot".
      *
      * @param config Config instance to save to
-     * @param client MoonrakerClient with current hardware lists
-     * @param hardware PrinterHardwareDiscovery with filament sensors
+     * @param hardware PrinterDiscovery with discovered hardware
      */
-    void save_session_snapshot(Config* config, const MoonrakerClient* client,
-                               const helix::PrinterHardwareDiscovery& hardware);
+    void save_session_snapshot(Config* config, const helix::PrinterDiscovery& hardware);
 
     /**
-     * @brief Create snapshot from current Moonraker client state
+     * @brief Create snapshot from current hardware discovery state
      *
-     * @param client MoonrakerClient with discovered hardware
-     * @param hardware PrinterHardwareDiscovery with filament sensors
+     * @param hardware PrinterDiscovery with discovered hardware
      * @return Snapshot of current hardware state
      */
-    static HardwareSnapshot create_snapshot(const MoonrakerClient* client,
-                                            const helix::PrinterHardwareDiscovery& hardware);
+    static HardwareSnapshot create_snapshot(const helix::PrinterDiscovery& hardware);
 
     /**
      * @brief Load previous session snapshot from config
@@ -326,21 +318,19 @@ class HardwareValidator {
     /**
      * @brief Validate critical hardware exists (extruder, heater_bed)
      */
-    void validate_critical_hardware(const MoonrakerClient* client,
+    void validate_critical_hardware(const helix::PrinterDiscovery& hardware,
                                     HardwareValidationResult& result);
 
     /**
      * @brief Validate configured hardware in helixconfig exists
      */
-    void validate_configured_hardware(Config* config, const MoonrakerClient* client,
-                                      const helix::PrinterHardwareDiscovery& hardware,
+    void validate_configured_hardware(Config* config, const helix::PrinterDiscovery& hardware,
                                       HardwareValidationResult& result);
 
     /**
      * @brief Find hardware discovered but not in config (suggest adding)
      */
-    void validate_new_hardware(Config* config, const MoonrakerClient* client,
-                               const helix::PrinterHardwareDiscovery& hardware,
+    void validate_new_hardware(Config* config, const helix::PrinterDiscovery& hardware,
                                HardwareValidationResult& result);
 
     /**

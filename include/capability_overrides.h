@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "printer_hardware_discovery.h"
+#include "printer_discovery.h"
 
 #include <map>
 #include <string>
@@ -71,7 +71,7 @@ constexpr const char* CHAMBER = "chamber";
  * }
  * ```
  *
- * @see PrinterHardwareDiscovery for auto-detection logic
+ * @see PrinterDiscovery for auto-detection logic
  */
 class CapabilityOverrides {
   public:
@@ -97,7 +97,7 @@ class CapabilityOverrides {
      *
      * @param hardware Discovered printer hardware
      */
-    void set_hardware(const helix::PrinterHardwareDiscovery& hardware);
+    void set_hardware(const helix::PrinterDiscovery& hardware);
 
     /**
      * @brief Get override state for a capability
@@ -204,6 +204,6 @@ class CapabilityOverrides {
     [[nodiscard]] bool get_auto_value(const std::string& name) const;
 
     std::map<std::string, OverrideState> overrides_;
-    helix::PrinterHardwareDiscovery hardware_;
+    helix::PrinterDiscovery hardware_;
     bool hardware_set_ = false;
 };

@@ -17,7 +17,7 @@
 
 #include "format_utils.h"
 #include "moonraker_api.h"
-#include "printer_hardware_discovery.h"
+#include "printer_discovery.h"
 #include "runtime_config.h"
 
 #include <spdlog/spdlog.h>
@@ -343,7 +343,7 @@ void AmsState::deinit_subjects() {
     spdlog::debug("[AMS State] Subjects deinitialized");
 }
 
-void AmsState::init_backend_from_hardware(const helix::PrinterHardwareDiscovery& hardware,
+void AmsState::init_backend_from_hardware(const helix::PrinterDiscovery& hardware,
                                           MoonrakerAPI* api, MoonrakerClient* client) {
     // Skip if no MMU or tool changer detected
     if (!hardware.has_mmu() && !hardware.has_tool_changer()) {

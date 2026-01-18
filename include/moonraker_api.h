@@ -51,7 +51,7 @@
 #include "moonraker_error.h"
 #include "moonraker_types.h"
 #include "print_history_data.h"
-#include "printer_hardware_discovery.h"
+#include "printer_discovery.h"
 #include "printer_state.h"
 
 #include <atomic>
@@ -957,9 +957,9 @@ class MoonrakerAPI {
      * including heaters, fans, sensors, LEDs, and capability flags.
      * This data is populated during printer discovery via MoonrakerClient.
      *
-     * @return Const reference to PrinterHardwareDiscovery
+     * @return Const reference to PrinterDiscovery
      */
-    [[nodiscard]] const helix::PrinterHardwareDiscovery& hardware() const {
+    [[nodiscard]] const helix::PrinterDiscovery& hardware() const {
         return hardware_;
     }
 
@@ -969,9 +969,9 @@ class MoonrakerAPI {
      * Used internally by discovery callbacks to populate hardware data.
      * Application code should use the const accessor instead.
      *
-     * @return Reference to PrinterHardwareDiscovery
+     * @return Reference to PrinterDiscovery
      */
-    helix::PrinterHardwareDiscovery& hardware() {
+    helix::PrinterDiscovery& hardware() {
         return hardware_;
     }
 
@@ -1254,7 +1254,7 @@ class MoonrakerAPI {
     MoonrakerClient& client_;
 
     /// Discovered printer hardware (heaters, fans, sensors, LEDs, capabilities)
-    helix::PrinterHardwareDiscovery hardware_;
+    helix::PrinterDiscovery hardware_;
 
     SafetyLimits safety_limits_;
     bool limits_explicitly_set_ = false;

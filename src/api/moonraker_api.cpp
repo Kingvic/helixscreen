@@ -21,14 +21,14 @@ MoonrakerAPI::MoonrakerAPI(MoonrakerClient& client, PrinterState& state) : clien
     (void)state;
 
     // Wire up hardware discovery callbacks: Client pushes data to API during discovery
-    client_.set_on_hardware_discovered([this](const helix::PrinterHardwareDiscovery& hw) {
+    client_.set_on_hardware_discovered([this](const helix::PrinterDiscovery& hw) {
         hardware_ = hw;
         spdlog::debug("[MoonrakerAPI] Hardware discovered: {} heaters, {} fans, {} sensors",
                       hardware_.heaters().size(), hardware_.fans().size(),
                       hardware_.sensors().size());
     });
 
-    client_.set_on_discovery_complete([this](const helix::PrinterHardwareDiscovery& hw) {
+    client_.set_on_discovery_complete([this](const helix::PrinterDiscovery& hw) {
         hardware_ = hw;
         spdlog::debug("[MoonrakerAPI] Discovery complete: hostname='{}', kinematics='{}'",
                       hardware_.hostname(), hardware_.kinematics());

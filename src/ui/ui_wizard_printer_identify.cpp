@@ -13,6 +13,7 @@
 #include "app_globals.h"
 #include "config.h"
 #include "lvgl/lvgl.h"
+#include "moonraker_api.h"
 #include "moonraker_client.h"
 #include "printer_detector.h"
 #include "printer_images.h"
@@ -131,29 +132,29 @@ int WizardPrinterIdentifyStep::find_printer_type_index(const std::string& printe
  * Integrates with PrinterDetector to analyze discovered hardware.
  */
 static PrinterDetectionHint detect_printer_type() {
-    MoonrakerClient* client = get_moonraker_client();
-    if (!client) {
-        spdlog::debug("[Wizard Printer] No MoonrakerClient available for auto-detection");
+    MoonrakerAPI* api = get_moonraker_api();
+    if (!api) {
+        spdlog::debug("[Wizard Printer] No MoonrakerAPI available for auto-detection");
         return {PrinterDetector::get_unknown_index(), 0, "No printer connection available"};
     }
 
-    // Build hardware data from MoonrakerClient discovery
+    // Build hardware data from MoonrakerAPI discovery
     PrinterHardwareData hardware;
-    hardware.heaters = client->hardware().heaters();
-    hardware.sensors = client->hardware().sensors();
-    hardware.fans = client->hardware().fans();
-    hardware.leds = client->hardware().leds();
-    hardware.hostname = client->hardware().hostname();
+    hardware.heaters = api->hardware().heaters();
+    hardware.sensors = api->hardware().sensors();
+    hardware.fans = api->hardware().fans();
+    hardware.leds = api->hardware().leds();
+    hardware.hostname = api->hardware().hostname();
 
     // Additional detection data sources (Phase 1 enhancement)
-    hardware.steppers = client->hardware().steppers();
-    hardware.printer_objects = client->hardware().printer_objects();
-    hardware.kinematics = client->hardware().kinematics();
-    hardware.build_volume = client->hardware().build_volume();
+    hardware.steppers = api->hardware().steppers();
+    hardware.printer_objects = api->hardware().printer_objects();
+    hardware.kinematics = api->hardware().kinematics();
+    hardware.build_volume = api->hardware().build_volume();
 
     // MCU detection data (Phase 3.1)
-    hardware.mcu = client->hardware().mcu();
-    hardware.mcu_list = client->hardware().mcu_list();
+    hardware.mcu = api->hardware().mcu();
+    hardware.mcu_list = api->hardware().mcu_list();
 
     spdlog::debug("[Wizard Printer] Detection data: heaters={}, sensors={}, fans={}, leds={}, "
                   "steppers={}, objects={}, kinematics={}, mcu={}, build=[{:.0f},{:.0f}]",
@@ -247,9 +248,9 @@ void WizardPrinterIdentifyStep::init_subjects() {
 
     // Auto-fill printer name from Moonraker hostname if not saved
     if (default_name.empty()) {
-        MoonrakerClient* client = get_moonraker_client();
-        if (client) {
-            std::string hostname = client->hardware().hostname();
+        MoonrakerAPI* api = get_moonraker_api();
+        if (api) {
+            std::string hostname = api->hardware().hostname();
             spdlog::debug("[{}] Moonraker hostname value: '{}' (empty={}, unknown={})", get_name(),
                           hostname, hostname.empty(), hostname == "unknown");
             if (!hostname.empty() && hostname != "unknown") {
@@ -260,7 +261,7 @@ void WizardPrinterIdentifyStep::init_subjects() {
                 spdlog::debug("[{}] Hostname unavailable for auto-fill", get_name());
             }
         } else {
-            spdlog::debug("[{}] No Moonraker client available for hostname auto-fill", get_name());
+            spdlog::debug("[{}] No MoonrakerAPI available for hostname auto-fill", get_name());
         }
     }
 

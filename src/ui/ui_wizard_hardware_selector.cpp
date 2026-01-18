@@ -10,7 +10,7 @@
 #include "app_globals.h"
 #include "config.h"
 #include "device_display_name.h"
-#include "moonraker_client.h"
+#include "moonraker_api.h"
 #include "printer_hardware.h"
 
 #include <spdlog/spdlog.h>
@@ -34,7 +34,7 @@ void wizard_hardware_dropdown_changed_cb(lv_event_t* e) {
 bool wizard_populate_hardware_dropdown(
     lv_obj_t* root, const char* dropdown_name, lv_subject_t* subject,
     std::vector<std::string>& items_out,
-    std::function<const std::vector<std::string>&(MoonrakerClient*)> moonraker_getter,
+    std::function<const std::vector<std::string>&(MoonrakerAPI*)> moonraker_getter,
     const char* prefix_filter, bool allow_none, const char* config_key,
     std::function<std::string(const PrinterHardware&)> guess_fallback, const char* log_prefix,
     std::optional<helix::DeviceType> device_type) {
@@ -43,13 +43,13 @@ bool wizard_populate_hardware_dropdown(
         return false;
     }
 
-    // Get Moonraker client for hardware discovery
-    MoonrakerClient* client = get_moonraker_client();
+    // Get Moonraker API for hardware discovery
+    MoonrakerAPI* api = get_moonraker_api();
 
     // Clear and build items list
     items_out.clear();
-    if (client) {
-        const auto& hardware_list = moonraker_getter(client);
+    if (api) {
+        const auto& hardware_list = moonraker_getter(api);
         for (const auto& item : hardware_list) {
             // Apply prefix filter if specified
             if (prefix_filter && item.find(prefix_filter) == std::string::npos) {
@@ -85,10 +85,10 @@ bool wizard_populate_hardware_dropdown(
     // Create PrinterHardware for guessing fallback
     const PrinterHardware* hw = nullptr;
     std::unique_ptr<PrinterHardware> hw_instance;
-    if (client && guess_fallback) {
-        hw_instance = std::make_unique<PrinterHardware>(
-            client->hardware().heaters(), client->hardware().sensors(), client->hardware().fans(),
-            client->hardware().leds());
+    if (api && guess_fallback) {
+        hw_instance =
+            std::make_unique<PrinterHardware>(api->hardware().heaters(), api->hardware().sensors(),
+                                              api->hardware().fans(), api->hardware().leds());
         hw = hw_instance.get();
     }
 

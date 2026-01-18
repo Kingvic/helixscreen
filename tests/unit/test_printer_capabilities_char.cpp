@@ -25,7 +25,7 @@
  * - printer_bed_moves_ (int, 0=gantry moves, 1=bed moves - from kinematics)
  *
  * Update mechanisms:
- * - set_hardware(PrinterHardwareDiscovery) - updates most capability subjects
+ * - set_hardware(PrinterDiscovery) - updates most capability subjects
  * - set_spoolman_available(bool) - async update via ui_async_call
  * - set_printer_type(string) - updates printer_has_purge_line_ via printer DB
  * - set_kinematics(string) - updates printer_bed_moves_
@@ -35,12 +35,12 @@
 
 #include "../ui_test_utils.h"
 #include "app_globals.h"
-#include "printer_hardware_discovery.h"
+#include "printer_discovery.h"
 #include "printer_state.h"
 
 #include "../catch_amalgamated.hpp"
 
-using helix::PrinterHardwareDiscovery;
+using helix::PrinterDiscovery;
 
 // Helper to get subject by XML name (requires init_subjects(true))
 static lv_subject_t* get_subject_by_name(const char* name) {
@@ -222,7 +222,7 @@ TEST_CASE("Capabilities characterization: set_hardware updates capability subjec
     state.init_subjects(true);
 
     // Create hardware discovery with various capabilities
-    PrinterHardwareDiscovery hardware;
+    PrinterDiscovery hardware;
     nlohmann::json objects = {"quad_gantry_level", "z_tilt",
                               "bed_mesh",          "probe",
                               "heater_bed",        "neopixel led_strip",
@@ -321,7 +321,7 @@ TEST_CASE("Capabilities characterization: set_hardware with empty hardware sets 
     state.init_subjects(true);
 
     // First set some capabilities
-    PrinterHardwareDiscovery hardware_with_caps;
+    PrinterDiscovery hardware_with_caps;
     nlohmann::json objects = {"quad_gantry_level", "probe", "heater_bed"};
     hardware_with_caps.parse_objects(objects);
     state.set_hardware(hardware_with_caps);
@@ -331,7 +331,7 @@ TEST_CASE("Capabilities characterization: set_hardware with empty hardware sets 
     REQUIRE(lv_subject_get_int(get_subject_by_name("printer_has_probe")) == 1);
 
     // Now set empty hardware
-    PrinterHardwareDiscovery empty_hardware;
+    PrinterDiscovery empty_hardware;
     empty_hardware.parse_objects(nlohmann::json::array());
     state.set_hardware(empty_hardware);
     helix::ui::UpdateQueue::instance().drain_queue_for_testing();
@@ -362,7 +362,7 @@ TEST_CASE("Capabilities characterization: nozzle_clean is override-only",
 
     // Nozzle clean macro in hardware won't set the subject directly
     // It requires capability override to be explicitly set
-    PrinterHardwareDiscovery hardware;
+    PrinterDiscovery hardware;
     nlohmann::json objects = {"gcode_macro CLEAN_NOZZLE"};
     hardware.parse_objects(objects);
 
@@ -526,7 +526,7 @@ TEST_CASE("Capabilities characterization: observer fires when capability changes
         REQUIRE(user_data[1] == 0);
 
         // Update via hardware discovery
-        PrinterHardwareDiscovery hardware;
+        PrinterDiscovery hardware;
         nlohmann::json objects = {"probe"};
         hardware.parse_objects(objects);
         state.set_hardware(hardware);
@@ -572,7 +572,7 @@ TEST_CASE("Capabilities characterization: capability subjects are independent",
 
     SECTION("setting one capability does not affect others") {
         // Set only probe
-        PrinterHardwareDiscovery hardware;
+        PrinterDiscovery hardware;
         nlohmann::json objects = {"probe"};
         hardware.parse_objects(objects);
         state.set_hardware(hardware);
@@ -586,7 +586,7 @@ TEST_CASE("Capabilities characterization: capability subjects are independent",
 
     SECTION("kinematics does not affect other capabilities") {
         // Set hardware with probe
-        PrinterHardwareDiscovery hardware;
+        PrinterDiscovery hardware;
         nlohmann::json objects = {"probe", "heater_bed"};
         hardware.parse_objects(objects);
         state.set_hardware(hardware);
@@ -606,7 +606,7 @@ TEST_CASE("Capabilities characterization: capability subjects are independent",
 
     SECTION("spoolman does not affect hardware capabilities") {
         // Set hardware
-        PrinterHardwareDiscovery hardware;
+        PrinterDiscovery hardware;
         nlohmann::json objects = {"probe"};
         hardware.parse_objects(objects);
         state.set_hardware(hardware);
@@ -637,7 +637,7 @@ TEST_CASE("Capabilities characterization: subjects survive reset_for_testing cyc
     state.init_subjects(true);
 
     // Set some capabilities
-    PrinterHardwareDiscovery hardware;
+    PrinterDiscovery hardware;
     nlohmann::json objects = {"probe", "heater_bed", "neopixel led_strip"};
     hardware.parse_objects(objects);
     state.set_hardware(hardware);
@@ -712,7 +712,7 @@ TEST_CASE("Capabilities characterization: has_probe() method",
     }
 
     SECTION("has_probe() returns true after setting probe capability") {
-        PrinterHardwareDiscovery hardware;
+        PrinterDiscovery hardware;
         nlohmann::json objects = {"probe"};
         hardware.parse_objects(objects);
         state.set_hardware(hardware);
@@ -722,7 +722,7 @@ TEST_CASE("Capabilities characterization: has_probe() method",
     }
 
     SECTION("has_probe() returns true for bltouch") {
-        PrinterHardwareDiscovery hardware;
+        PrinterDiscovery hardware;
         nlohmann::json objects = {"bltouch"};
         hardware.parse_objects(objects);
         state.set_hardware(hardware);
@@ -745,7 +745,7 @@ TEST_CASE("Capabilities characterization: various hardware detection patterns",
     state.init_subjects(true);
 
     SECTION("LED detected from neopixel object") {
-        PrinterHardwareDiscovery hardware;
+        PrinterDiscovery hardware;
         nlohmann::json objects = {"neopixel chamber_light"};
         hardware.parse_objects(objects);
         state.set_hardware(hardware);
@@ -755,7 +755,7 @@ TEST_CASE("Capabilities characterization: various hardware detection patterns",
     }
 
     SECTION("LED detected from dotstar object") {
-        PrinterHardwareDiscovery hardware;
+        PrinterDiscovery hardware;
         nlohmann::json objects = {"dotstar status_leds"};
         hardware.parse_objects(objects);
         state.set_hardware(hardware);
@@ -765,7 +765,7 @@ TEST_CASE("Capabilities characterization: various hardware detection patterns",
     }
 
     SECTION("LED NOT detected from output_pin without LED/LIGHT/LAMP in name") {
-        PrinterHardwareDiscovery hardware;
+        PrinterDiscovery hardware;
         nlohmann::json objects = {"output_pin relay"};
         hardware.parse_objects(objects);
         state.set_hardware(hardware);
@@ -776,7 +776,7 @@ TEST_CASE("Capabilities characterization: various hardware detection patterns",
     }
 
     SECTION("LED detected from output_pin with LIGHT in name") {
-        PrinterHardwareDiscovery hardware;
+        PrinterDiscovery hardware;
         nlohmann::json objects = {"output_pin caselight"};
         hardware.parse_objects(objects);
         state.set_hardware(hardware);
@@ -787,7 +787,7 @@ TEST_CASE("Capabilities characterization: various hardware detection patterns",
     }
 
     SECTION("speaker detected from output_pin beeper") {
-        PrinterHardwareDiscovery hardware;
+        PrinterDiscovery hardware;
         nlohmann::json objects = {"output_pin beeper"};
         hardware.parse_objects(objects);
         state.set_hardware(hardware);
@@ -797,7 +797,7 @@ TEST_CASE("Capabilities characterization: various hardware detection patterns",
     }
 
     SECTION("speaker detected from output_pin buzzer") {
-        PrinterHardwareDiscovery hardware;
+        PrinterDiscovery hardware;
         nlohmann::json objects = {"output_pin BUZZER"};
         hardware.parse_objects(objects);
         state.set_hardware(hardware);
@@ -807,7 +807,7 @@ TEST_CASE("Capabilities characterization: various hardware detection patterns",
     }
 
     SECTION("accelerometer detected from resonance_tester") {
-        PrinterHardwareDiscovery hardware;
+        PrinterDiscovery hardware;
         nlohmann::json objects = {"resonance_tester"};
         hardware.parse_objects(objects);
         state.set_hardware(hardware);
@@ -817,7 +817,7 @@ TEST_CASE("Capabilities characterization: various hardware detection patterns",
     }
 
     SECTION("accelerometer detected from adxl345") {
-        PrinterHardwareDiscovery hardware;
+        PrinterDiscovery hardware;
         nlohmann::json objects = {"adxl345"};
         hardware.parse_objects(objects);
         state.set_hardware(hardware);
@@ -827,7 +827,7 @@ TEST_CASE("Capabilities characterization: various hardware detection patterns",
     }
 
     SECTION("probe detected from probe_eddy_current") {
-        PrinterHardwareDiscovery hardware;
+        PrinterDiscovery hardware;
         nlohmann::json objects = {"probe_eddy_current btt_eddy"};
         hardware.parse_objects(objects);
         state.set_hardware(hardware);
@@ -850,7 +850,7 @@ TEST_CASE("Capabilities characterization: typical Voron 2.4 configuration",
     state.init_subjects(true);
 
     // Typical Voron 2.4 objects
-    PrinterHardwareDiscovery hardware;
+    PrinterDiscovery hardware;
     nlohmann::json objects = {"quad_gantry_level",
                               "bed_mesh",
                               "probe",
@@ -895,7 +895,7 @@ TEST_CASE("Capabilities characterization: typical Ender 3 configuration",
     state.init_subjects(true);
 
     // Typical Ender 3 with BLTouch
-    PrinterHardwareDiscovery hardware;
+    PrinterDiscovery hardware;
     nlohmann::json objects = {"bed_mesh", "bltouch", "heater_bed"};
     hardware.parse_objects(objects);
     state.set_hardware(hardware);

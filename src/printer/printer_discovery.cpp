@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "printer_hardware_discovery.h"
+#include "printer_discovery.h"
 
 #include "ams_state.h"
 #include "filament_sensor_manager.h"
@@ -14,7 +14,7 @@
 
 namespace helix {
 
-std::string PrinterHardwareDiscovery::summary() const {
+std::string PrinterDiscovery::summary() const {
     std::ostringstream ss;
     ss << "Capabilities: ";
 
@@ -80,9 +80,9 @@ std::string PrinterHardwareDiscovery::summary() const {
     return ss.str();
 }
 
-void init_subsystems_from_hardware(const PrinterHardwareDiscovery& hardware, ::MoonrakerAPI* api,
+void init_subsystems_from_hardware(const PrinterDiscovery& hardware, ::MoonrakerAPI* api,
                                    ::MoonrakerClient* client) {
-    spdlog::debug("[PrinterHardwareDiscovery] Initializing subsystems from hardware discovery");
+    spdlog::debug("[PrinterDiscovery] Initializing subsystems from hardware discovery");
 
     // Initialize AMS backend (AFC, Happy Hare, ValgACE, Tool Changer)
     AmsState::instance().init_backend_from_hardware(hardware, api, client);
@@ -92,14 +92,14 @@ void init_subsystems_from_hardware(const PrinterHardwareDiscovery& hardware, ::M
         auto& fsm = FilamentSensorManager::instance();
         fsm.discover_sensors(hardware.filament_sensor_names());
         fsm.load_config();
-        spdlog::debug("[PrinterHardwareDiscovery] Discovered {} filament sensors",
+        spdlog::debug("[PrinterDiscovery] Discovered {} filament sensors",
                       hardware.filament_sensor_names().size());
     }
 
     // Initialize standard macros
     StandardMacros::instance().init(hardware);
 
-    spdlog::info("[PrinterHardwareDiscovery] Subsystem initialization complete");
+    spdlog::info("[PrinterDiscovery] Subsystem initialization complete");
 }
 
 } // namespace helix

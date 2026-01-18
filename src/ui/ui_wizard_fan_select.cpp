@@ -13,7 +13,7 @@
 #include "app_globals.h"
 #include "config.h"
 #include "lvgl/lvgl.h"
-#include "moonraker_client.h"
+#include "moonraker_api.h"
 #include "printer_hardware.h"
 #include "static_panel_registry.h"
 #include "wizard_config_paths.h"
@@ -226,13 +226,13 @@ lv_obj_t* WizardFanSelectStep::create(lv_obj_t* parent) {
         return nullptr;
     }
 
-    // Get Moonraker client for hardware discovery
-    MoonrakerClient* client = get_moonraker_client();
+    // Get Moonraker API for hardware discovery
+    MoonrakerAPI* api = get_moonraker_api();
 
     // Build hotend fan options with custom filter (heater_fan OR hotend_fan)
     hotend_fan_items_.clear();
-    if (client) {
-        const auto& fans = client->hardware().fans();
+    if (api) {
+        const auto& fans = api->hardware().fans();
         for (const auto& fan : fans) {
             if (fan.find("heater_fan") != std::string::npos ||
                 fan.find("hotend_fan") != std::string::npos) {
@@ -250,8 +250,8 @@ lv_obj_t* WizardFanSelectStep::create(lv_obj_t* parent) {
 
     // Build part cooling fan options with custom filter (has "fan" but NOT heater/hotend)
     part_fan_items_.clear();
-    if (client) {
-        const auto& fans = client->hardware().fans();
+    if (api) {
+        const auto& fans = api->hardware().fans();
         for (const auto& fan : fans) {
             if (fan.find("fan") != std::string::npos &&
                 fan.find("heater_fan") == std::string::npos &&
@@ -270,10 +270,9 @@ lv_obj_t* WizardFanSelectStep::create(lv_obj_t* parent) {
 
     // Create PrinterHardware for guessing
     std::unique_ptr<PrinterHardware> hw;
-    if (client) {
-        hw = std::make_unique<PrinterHardware>(
-            client->hardware().heaters(), client->hardware().sensors(), client->hardware().fans(),
-            client->hardware().leds());
+    if (api) {
+        hw = std::make_unique<PrinterHardware>(api->hardware().heaters(), api->hardware().sensors(),
+                                               api->hardware().fans(), api->hardware().leds());
     }
 
     // Find and configure hotend fan dropdown
@@ -297,7 +296,7 @@ lv_obj_t* WizardFanSelectStep::create(lv_obj_t* parent) {
     }
 
     // Check if we should show optional fans row (only if > 2 fans discovered)
-    size_t fan_count = client ? client->hardware().fans().size() : 0;
+    size_t fan_count = api ? api->hardware().fans().size() : 0;
     bool show_optional_fans = fan_count > 2;
 
     lv_obj_t* optional_row = lv_obj_find_by_name(screen_root_, "optional_fans_row");
@@ -309,8 +308,8 @@ lv_obj_t* WizardFanSelectStep::create(lv_obj_t* parent) {
     } else {
         // Build chamber fan options - show ALL fans
         chamber_fan_items_.clear();
-        if (client) {
-            const auto& fans = client->hardware().fans();
+        if (api) {
+            const auto& fans = api->hardware().fans();
             for (const auto& fan : fans) {
                 chamber_fan_items_.push_back(fan);
             }
@@ -325,8 +324,8 @@ lv_obj_t* WizardFanSelectStep::create(lv_obj_t* parent) {
 
         // Build exhaust fan options - show ALL fans
         exhaust_fan_items_.clear();
-        if (client) {
-            const auto& fans = client->hardware().fans();
+        if (api) {
+            const auto& fans = api->hardware().fans();
             for (const auto& fan : fans) {
                 exhaust_fan_items_.push_back(fan);
             }

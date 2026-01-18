@@ -674,8 +674,8 @@ PrinterState (coordinator/facade)
 │   └── led_brightness_
 │
 ├── PrinterCapabilitiesState (NOTE: PrinterCapabilities deleted 2026-01-11)
-│   ├── capabilities_{}           → Now in PrinterHardwareDiscovery
-│   ├── capability_overrides_{}   → Now in PrinterHardwareDiscovery
+│   ├── capabilities_{}           → Now in PrinterDiscovery
+│   ├── capability_overrides_{}   → Now in PrinterDiscovery
 │   └── can_show_*, can_perform_* (composite subjects)
 │
 ├── PrinterHardwareState
@@ -720,7 +720,7 @@ PrinterState (coordinator/facade)
 - [ ] Create `PrinterLEDState` class with extracted subjects
 - [ ] Verify all characterization tests still pass
 - [ ] **✅ Code review: PrinterLEDState**
-- [ ] Create `PrinterCapabilitiesState` class with extracted subjects (NOTE: PrinterCapabilities deleted 2026-01-11, capabilities now in PrinterHardwareDiscovery)
+- [ ] Create `PrinterCapabilitiesState` class with extracted subjects (NOTE: PrinterCapabilities deleted 2026-01-11, capabilities now in PrinterDiscovery)
 - [ ] Verify all characterization tests still pass
 - [ ] **✅ Code review: PrinterCapabilitiesState**
 - [ ] Create `PrinterHardwareState` class with extracted subjects
@@ -1943,5 +1943,5 @@ private:
 | 2026-01-08 | Claude | Initial document creation |
 | 2026-01-09 | Claude | Observer factory: Phase 1-3 complete. Factory implemented (466 lines, 12 tests), 3 pilot panels migrated (FilamentPanel, ControlsPanel, ExtrusionPanel). Net -146 lines. 6 files/13 observers remaining. |
 | 2026-01-10 | Claude | SubjectManagedPanel universal adoption complete. 83 files migrated, ~340+ subjects using RAII. Added UI_MANAGED_SUBJECT_* macros (INT, STRING, STRING_N, POINTER, COLOR). Phase 2: Foundation now 100% complete. |
-| 2026-01-11 | Claude | **Hardware Discovery Refactor complete** (separate effort from this plan). Created `PrinterHardwareDiscovery` as single source of truth. Deleted `PrinterCapabilities`. Moved bed mesh to MoonrakerAPI. Clean architecture: MoonrakerClient (transport) -> callbacks -> MoonrakerAPI (domain). See `docs/HARDWARE_DISCOVERY_REFACTOR.md`. |
+| 2026-01-11 | Claude | **Hardware Discovery Refactor complete** (separate effort from this plan). Created `PrinterDiscovery` as single source of truth. Deleted `PrinterCapabilities`. Moved bed mesh to MoonrakerAPI. Clean architecture: MoonrakerClient (transport) -> callbacks -> MoonrakerAPI (domain). See `docs/HARDWARE_DISCOVERY_REFACTOR.md`. |
 | 2026-01-17 | Claude | **Major status update**: PrinterState decomposition COMPLETE (11+ domain classes extracted, facade now 2,002 lines). Quick Wins 100% complete (PrintStatusPanel modals extracted to 4 dedicated files). PrintStatusPanel now IN PROGRESS. Updated all progress tracking tables. Added Recommended Next Priorities section. Overall progress: 61% (was 28%). |

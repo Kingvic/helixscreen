@@ -91,7 +91,7 @@ std::vector<std::string> parse_macro_names(const std::string& content) {
 // MacroManager Implementation
 // ============================================================================
 
-MacroManager::MacroManager(MoonrakerAPI& api, const PrinterHardwareDiscovery& hardware)
+MacroManager::MacroManager(MoonrakerAPI& api, const PrinterDiscovery& hardware)
     : api_(api), hardware_(hardware) {}
 
 bool MacroManager::is_installed() const {

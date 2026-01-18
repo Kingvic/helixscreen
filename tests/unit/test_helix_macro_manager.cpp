@@ -4,7 +4,7 @@
 #include "macro_manager.h"
 #include "moonraker_api.h"
 #include "moonraker_client_mock.h"
-#include "printer_hardware_discovery.h"
+#include "printer_discovery.h"
 #include "printer_state.h"
 
 #include <thread>
@@ -51,7 +51,7 @@ class MacroManagerTestFixture {
     MoonrakerClientMock client_;
     PrinterState state_;
     MoonrakerAPI api_;
-    PrinterHardwareDiscovery hardware_;
+    PrinterDiscovery hardware_;
     MacroManager manager_;
 };
 

@@ -273,12 +273,10 @@ void MoonrakerClientMock::populate_capabilities() {
     // Parse objects into hardware discovery (unified hardware access)
     hardware_.parse_objects(mock_objects);
 
-    // Populate printer_objects_ for get_printer_objects() - used by hardware validator
-    printer_objects_.clear();
+    // Populate printer objects for hardware discovery
     std::vector<std::string> all_objects;
     for (const auto& obj : mock_objects) {
         std::string name = obj.get<std::string>();
-        printer_objects_.push_back(name);
         all_objects.push_back(name);
     }
     hardware_.set_printer_objects(all_objects);
@@ -300,6 +298,7 @@ void MoonrakerClientMock::populate_capabilities() {
 void MoonrakerClientMock::rebuild_hardware() {
     json objects = json::array();
 
+    // Add hardware components
     for (const auto& h : heaters_) {
         objects.push_back(h);
     }
@@ -326,6 +325,48 @@ void MoonrakerClientMock::rebuild_hardware() {
     for (const auto& obj : additional_objects_) {
         objects.push_back(obj);
     }
+
+    // Add capability objects (must be included since parse_objects clears everything)
+    objects.push_back("bed_mesh");
+    objects.push_back("probe");
+    objects.push_back("output_pin beeper");
+    objects.push_back("firmware_retraction");
+    if (mmu_enabled_) {
+        objects.push_back("mmu");
+    }
+    objects.push_back("timelapse");
+
+    // Add printer-specific capability objects
+    switch (printer_type_) {
+    case PrinterType::VORON_24:
+        objects.push_back("quad_gantry_level");
+        objects.push_back("gcode_macro CLEAN_NOZZLE");
+        objects.push_back("gcode_macro PRINT_START");
+        break;
+    case PrinterType::VORON_TRIDENT:
+        objects.push_back("z_tilt");
+        objects.push_back("gcode_macro CLEAN_NOZZLE");
+        objects.push_back("gcode_macro PRINT_START");
+        break;
+    default:
+        break;
+    }
+
+    // Add common macros
+    objects.push_back("gcode_macro START_PRINT");
+    objects.push_back("gcode_macro END_PRINT");
+    objects.push_back("gcode_macro PAUSE");
+    objects.push_back("gcode_macro RESUME");
+    objects.push_back("gcode_macro CANCEL_PRINT");
+    objects.push_back("gcode_macro LOAD_FILAMENT");
+    objects.push_back("gcode_macro UNLOAD_FILAMENT");
+    objects.push_back("gcode_macro BED_MESH_CALIBRATE");
+    objects.push_back("gcode_macro G28");
+    objects.push_back("gcode_macro M600");
+    objects.push_back("gcode_macro _SYSTEM_MACRO");
+
+    // Add default filament sensor
+    objects.push_back("filament_switch_sensor runout_sensor");
 
     hardware_.parse_objects(objects);
 }
@@ -359,9 +400,9 @@ void MoonrakerClientMock::discover_printer(
     // Query server.info to get moonraker_version (uses registered RPC handler)
     send_jsonrpc("server.info", json::object(), [this, on_complete](json response) {
         if (response.contains("result")) {
-            moonraker_version_ = response["result"].value("moonraker_version", "unknown");
-            hardware_.set_moonraker_version(moonraker_version_);
-            spdlog::debug("[MoonrakerClientMock] Moonraker version: {}", moonraker_version_);
+            auto moonraker_version = response["result"].value("moonraker_version", "unknown");
+            hardware_.set_moonraker_version(moonraker_version);
+            spdlog::debug("[MoonrakerClientMock] Moonraker version: {}", moonraker_version);
         }
 
         // Chain to printer.info to get hostname and software_version
@@ -375,13 +416,13 @@ void MoonrakerClientMock::discover_printer(
 
             // Now set the metadata AFTER parse_objects() has run
             if (response.contains("result")) {
-                hostname_ = response["result"].value("hostname", "unknown");
-                software_version_ = response["result"].value("software_version", "unknown");
-                hardware_.set_hostname(hostname_);
-                hardware_.set_software_version(software_version_);
-                spdlog::debug("[MoonrakerClientMock] Printer hostname: {}", hostname_);
+                auto hostname = response["result"].value("hostname", "unknown");
+                auto software_version = response["result"].value("software_version", "unknown");
+                hardware_.set_hostname(hostname);
+                hardware_.set_software_version(software_version);
+                spdlog::debug("[MoonrakerClientMock] Printer hostname: {}", hostname);
                 spdlog::debug("[MoonrakerClientMock] Klipper software version: {}",
-                              software_version_);
+                              software_version);
             }
 
             // Set Spoolman availability during discovery (matches real Moonraker behavior)

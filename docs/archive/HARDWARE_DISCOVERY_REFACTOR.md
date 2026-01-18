@@ -1,10 +1,12 @@
 # Hardware Discovery Architecture Refactor
 
-## Status: COMPLETED (2026-01-11)
+## Status: COMPLETED (2026-01-18)
 
 This document describes the completed refactor that consolidated hardware discovery data into a single, consistent architecture.
 
-> **Summary:** Created `PrinterHardwareDiscovery` as single source of truth for hardware discovery. Deleted `PrinterCapabilities` class. Moved bed mesh storage from `MoonrakerClient` to `MoonrakerAPI`. Clean architecture: MoonrakerClient (transport) -> callbacks -> MoonrakerAPI (domain).
+> **Summary:** Created `PrinterDiscovery` as single source of truth for hardware discovery. Deleted `PrinterCapabilities` class. Moved bed mesh storage from `MoonrakerClient` to `MoonrakerAPI`. Removed all deprecated accessor methods from `MoonrakerClient`. Clean architecture: MoonrakerClient (transport) -> callbacks -> MoonrakerAPI (domain).
+>
+> **Access pattern:** `api->hardware().heaters()`, `api->hardware().hostname()`, etc.
 
 ## Previous State (Problem)
 
@@ -49,7 +51,7 @@ MoonrakerClient
 ### Layer 2: MoonrakerAPI (Domain Layer)
 ```
 MoonrakerAPI
-├── PrinterHardwareDiscovery (single source of truth)
+├── PrinterDiscovery (single source of truth)
 │   ├── heaters: vector<HeaterInfo>
 │   ├── fans: vector<FanInfo>
 │   ├── sensors: vector<SensorInfo>
@@ -78,29 +80,29 @@ AmsState              - Backend selection, lane states, filament info
 PrinterState          - Temperatures, positions, print status
 ```
 
-**Responsibility:** Runtime state and business logic. Initialized FROM PrinterHardwareDiscovery data.
+**Responsibility:** Runtime state and business logic. Initialized FROM PrinterDiscovery data.
 
 ### Deleted Classes
 
-- **PrinterCapabilities** - DELETED. All functionality moved to `PrinterHardwareDiscovery`.
+- **PrinterCapabilities** - DELETED. All functionality moved to `PrinterDiscovery`.
 
 ## Migration Plan (COMPLETED)
 
-### Phase 1: Create PrinterHardwareDiscovery class ✅
-- [x] Create `include/printer_hardware_discovery.h` with new unified structure
-- [x] Create `src/printer/printer_hardware_discovery.cpp` with discovery parsing
-- [x] Add `PrinterHardwareDiscovery` member to MoonrakerAPI (not MoonrakerClient)
+### Phase 1: Create PrinterDiscovery class ✅
+- [x] Create `include/printer_discovery.h` with new unified structure
+- [x] Create `src/printer/printer_discovery.cpp` with discovery parsing
+- [x] Add `PrinterDiscovery` member to MoonrakerAPI (not MoonrakerClient)
 - [x] Populate via callbacks from MoonrakerClient discovery
 
 ### Phase 2: Migrate callers ✅
-- [x] Update wizard steps to use `api->hardware_discovery().heaters()` etc.
-- [x] Update PrinterState to use PrinterHardwareDiscovery
-- [x] Update HardwareValidator to use PrinterHardwareDiscovery
+- [x] Update wizard steps to use `api->hardware().heaters()` etc.
+- [x] Update PrinterState to use PrinterDiscovery
+- [x] Update HardwareValidator to use PrinterDiscovery
 
-### Phase 3: Merge PrinterCapabilities into PrinterHardwareDiscovery ✅
-- [x] Move capability flag logic from PrinterCapabilities to PrinterHardwareDiscovery
-- [x] Move macro detection to PrinterHardwareDiscovery
-- [x] Update all PrinterCapabilities users to use PrinterHardwareDiscovery
+### Phase 3: Merge PrinterCapabilities into PrinterDiscovery ✅
+- [x] Move capability flag logic from PrinterCapabilities to PrinterDiscovery
+- [x] Move macro detection to PrinterDiscovery
+- [x] Update all PrinterCapabilities users to use PrinterDiscovery
 - [x] Delete PrinterCapabilities class
 
 ### Phase 4: Move bed mesh to MoonrakerAPI ✅
@@ -109,16 +111,25 @@ PrinterState          - Temperatures, positions, print status
 - [x] MoonrakerClient dispatches bed mesh data via callbacks
 
 ### Phase 5: Cleanup ✅
-- [x] Remove deprecated methods from MoonrakerClient
+- [x] Remove deprecated methods from MoonrakerClient:
+  - `get_printer_objects()` → use `api->hardware().printer_objects()`
+  - `get_kinematics()` → use `api->hardware().kinematics()`
+  - `get_build_volume()` → use `api->hardware().build_volume()`
+  - `get_mcu()` → use `api->hardware().mcu()`
+  - `get_mcu_list()` → use `api->hardware().mcu_list()`
+  - `get_hostname()` → use `api->hardware().hostname()`
+  - `get_software_version()` → use `api->hardware().software_version()`
+  - `get_moonraker_version()` → use `api->hardware().moonraker_version()`
+- [x] Remove backing member variables from MoonrakerClient
 - [x] Remove old includes and forward declarations
 - [x] Update documentation
 
 ## Data Structures (Implemented)
 
 ```cpp
-// Located in include/printer_hardware_discovery.h
+// Located in include/printer_discovery.h
 
-class PrinterHardwareDiscovery {
+class PrinterDiscovery {
 public:
     // Populate from Moonraker discovery callbacks
     void set_heaters(std::vector<std::string> heaters);
@@ -156,33 +167,34 @@ public:
 
 ## Benefits (Realized)
 
-1. **Single source of truth** - All hardware data in `PrinterHardwareDiscovery`
+1. **Single source of truth** - All hardware data in `PrinterDiscovery`
 2. **Clear separation** - MoonrakerClient (transport) -> callbacks -> MoonrakerAPI (domain)
-3. **Simpler initialization** - State managers init from `PrinterHardwareDiscovery`
-4. **Consistent API** - `api->hardware_discovery().heaters()` everywhere
-5. **Easier testing** - Mock `PrinterHardwareDiscovery` instead of multiple classes
+3. **Simpler initialization** - State managers init from `PrinterDiscovery`
+4. **Consistent API** - `api->hardware().heaters()` everywhere
+5. **Easier testing** - Mock `PrinterDiscovery` instead of multiple classes
 6. **Clean ownership** - Bed mesh data owned by MoonrakerAPI (domain), not MoonrakerClient (transport)
+7. **No deprecated methods** - All deprecated `get_*()` methods removed from MoonrakerClient
 
 ## Files Changed
 
 ### New Files
-- `include/printer_hardware_discovery.h`
-- `src/printer/printer_hardware_discovery.cpp`
+- `include/printer_discovery.h`
+- `src/printer/printer_discovery.cpp`
 
 ### Deleted Files
 - `include/printer_capabilities.h` - DELETED
 - `src/printer/printer_capabilities.cpp` - DELETED
 
 ### Major Changes
-- `include/moonraker_api.h` - Added `PrinterHardwareDiscovery` member, owns bed mesh data
+- `include/moonraker_api.h` - Added `PrinterDiscovery` member, owns bed mesh data
 - `src/api/moonraker_api.cpp` - Receives discovery data via callbacks, stores bed mesh
 - `include/moonraker_client.h` - Removed hardware storage, now pure transport
 - `src/api/moonraker_client.cpp` - Dispatches discovery data to MoonrakerAPI via callbacks
 
 ### Updated Files
-- `src/ui/ui_wizard_*.cpp` - All wizard steps use `hardware_discovery()`
-- `src/printer/printer_state.cpp` - Uses `PrinterHardwareDiscovery`
-- `src/printer/hardware_validator.cpp` - Uses `PrinterHardwareDiscovery`
+- `src/ui/ui_wizard_*.cpp` - All wizard steps use `hardware()`
+- `src/printer/printer_state.cpp` - Uses `PrinterDiscovery`
+- `src/printer/hardware_validator.cpp` - Uses `PrinterDiscovery`
 - `src/application/application.cpp` - Updated initialization
 - Panel files that query heaters/fans/etc.
 

@@ -40,7 +40,7 @@ void CapabilityOverrides::load_from_config() {
     spdlog::debug("[CapabilityOverrides] Loaded: {}", summary());
 }
 
-void CapabilityOverrides::set_hardware(const helix::PrinterHardwareDiscovery& hardware) {
+void CapabilityOverrides::set_hardware(const helix::PrinterDiscovery& hardware) {
     hardware_ = hardware;
     hardware_set_ = true;
 }

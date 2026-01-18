@@ -5,7 +5,7 @@
 
 #include "config.h"
 #include "moonraker_api.h"
-#include "printer_hardware_discovery.h"
+#include "printer_discovery.h"
 
 #include <spdlog/spdlog.h>
 
@@ -248,7 +248,7 @@ bool StandardMacros::execute(StandardMacroSlot slot, MoonrakerAPI* api,
     return true;
 }
 
-void StandardMacros::init(const helix::PrinterHardwareDiscovery& hardware) {
+void StandardMacros::init(const helix::PrinterDiscovery& hardware) {
     spdlog::debug("[StandardMacros] Initializing with hardware discovery");
 
     // Reset detected macros and restore fallbacks from static table
@@ -303,7 +303,7 @@ void StandardMacros::init(const helix::PrinterHardwareDiscovery& hardware) {
                  configured, detected, fallback, empty);
 }
 
-void StandardMacros::auto_detect(const helix::PrinterHardwareDiscovery& hardware) {
+void StandardMacros::auto_detect(const helix::PrinterDiscovery& hardware) {
     spdlog::debug("[StandardMacros] Running auto-detection on {} macros", hardware.macro_count());
 
     for (const auto& pattern_def : DETECTION_PATTERNS) {
@@ -319,7 +319,7 @@ void StandardMacros::auto_detect(const helix::PrinterHardwareDiscovery& hardware
     }
 }
 
-std::string StandardMacros::try_detect(const helix::PrinterHardwareDiscovery& hardware,
+std::string StandardMacros::try_detect(const helix::PrinterDiscovery& hardware,
                                        [[maybe_unused]] StandardMacroSlot slot,
                                        const std::vector<std::string>& patterns) {
     const auto& macros = hardware.macros();

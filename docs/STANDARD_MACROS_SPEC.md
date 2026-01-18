@@ -67,8 +67,8 @@ public:
     static StandardMacros& instance();
 
     // Initialize with printer hardware discovery (call after discovery)
-    // NOTE: PrinterCapabilities was deleted 2026-01-11, use PrinterHardwareDiscovery instead
-    void init(const PrinterHardwareDiscovery& discovery);
+    // NOTE: PrinterCapabilities was deleted 2026-01-11, use PrinterDiscovery instead
+    void init(const PrinterDiscovery& discovery);
 
     // Get info for a slot
     const StandardMacroInfo& get(StandardMacroSlot slot) const;
@@ -90,7 +90,7 @@ public:
 
 private:
     std::vector<StandardMacroInfo> slots_;
-    void auto_detect(const PrinterHardwareDiscovery& discovery);
+    void auto_detect(const PrinterDiscovery& discovery);
 };
 ```
 
@@ -221,8 +221,8 @@ void FilamentPanel::execute_load() {
 ## Related Files
 
 ### Existing Infrastructure
-- `include/printer_hardware_discovery.h` - Macro discovery (`has_macro()`, `macros()`)
-  - NOTE: `PrinterCapabilities` was deleted 2026-01-11, replaced by `PrinterHardwareDiscovery`
+- `include/printer_discovery.h` - Macro discovery (`has_macro()`, `macros()`)
+  - NOTE: `PrinterCapabilities` was deleted 2026-01-11, replaced by `PrinterDiscovery`
   - Access via `MoonrakerAPI::hardware_discovery()`
 - `src/helix_macro_manager.cpp` - HELIX_* macro definitions
 - `include/config.h` - `MacroConfig` struct, `get_macro()` method

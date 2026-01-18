@@ -17,7 +17,7 @@
 #include "../ui_test_utils.h"
 #include "app_globals.h"
 #include "input_shaper_calibrator.h"
-#include "printer_hardware_discovery.h"
+#include "printer_discovery.h"
 #include "printer_state.h"
 
 #include <spdlog/spdlog.h>
@@ -73,7 +73,7 @@ class WizardInputShaperStepTestFixture {
     // Helper to simulate accelerometer discovery via hardware
     void set_has_accelerometer(bool has_accel) {
         // Create hardware discovery with accelerometer objects
-        PrinterHardwareDiscovery hardware;
+        PrinterDiscovery hardware;
         nlohmann::json objects;
         if (has_accel) {
             objects =

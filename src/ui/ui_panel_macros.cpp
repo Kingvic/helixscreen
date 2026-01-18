@@ -205,15 +205,15 @@ void MacrosPanel::populate_macro_list() {
     clear_macro_list();
 
     // Get macros from capabilities
-    MoonrakerClient* client = get_moonraker_client();
-    if (!client) {
-        spdlog::warn("[{}] No MoonrakerClient available", get_name());
+    MoonrakerAPI* api = get_moonraker_api();
+    if (!api) {
+        spdlog::warn("[{}] No MoonrakerAPI available", get_name());
         std::snprintf(status_buf_, sizeof(status_buf_), "Not connected to printer");
         lv_subject_copy_string(&status_subject_, status_buf_);
         return;
     }
 
-    const auto& macros = client->hardware().macros();
+    const auto& macros = api->hardware().macros();
 
     // Sort macros alphabetically for consistent display
     std::vector<std::string> sorted_macros(macros.begin(), macros.end());

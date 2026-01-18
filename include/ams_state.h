@@ -16,7 +16,7 @@ class MoonrakerAPI;
 class MoonrakerClient;
 
 namespace helix {
-class PrinterHardwareDiscovery;
+class PrinterDiscovery;
 }
 
 /**
@@ -117,8 +117,8 @@ class AmsState {
      * @param api MoonrakerAPI instance for making API calls
      * @param client MoonrakerClient instance for WebSocket communication
      */
-    void init_backend_from_hardware(const helix::PrinterHardwareDiscovery& hardware,
-                                    MoonrakerAPI* api, MoonrakerClient* client);
+    void init_backend_from_hardware(const helix::PrinterDiscovery& hardware, MoonrakerAPI* api,
+                                    MoonrakerClient* client);
 
     /**
      * @brief Set the AMS backend

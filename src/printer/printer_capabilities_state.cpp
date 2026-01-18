@@ -108,7 +108,7 @@ void PrinterCapabilitiesState::reset_for_testing() {
     subjects_initialized_ = false;
 }
 
-void PrinterCapabilitiesState::set_hardware(const PrinterHardwareDiscovery& hardware,
+void PrinterCapabilitiesState::set_hardware(const PrinterDiscovery& hardware,
                                             const CapabilityOverrides& overrides) {
     // Update subjects using effective values (auto-detect + user overrides)
     // This allows users to force-enable features that weren't detected

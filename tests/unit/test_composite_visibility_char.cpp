@@ -32,7 +32,7 @@
 
 #include "../ui_test_utils.h"
 #include "app_globals.h"
-#include "printer_hardware_discovery.h"
+#include "printer_discovery.h"
 #include "printer_state.h"
 
 #include "../catch_amalgamated.hpp"
@@ -44,11 +44,10 @@ static lv_subject_t* get_subject_by_name(const char* name) {
 
 // Helper to create hardware with specific capabilities
 // NOTE: purge_line is NOT from hardware discovery - it comes from set_printer_type()
-static helix::PrinterHardwareDiscovery create_hardware_with_capabilities(bool has_bed_mesh,
-                                                                         bool has_qgl,
-                                                                         bool has_z_tilt,
-                                                                         bool has_nozzle_clean) {
-    helix::PrinterHardwareDiscovery hardware;
+static helix::PrinterDiscovery create_hardware_with_capabilities(bool has_bed_mesh, bool has_qgl,
+                                                                 bool has_z_tilt,
+                                                                 bool has_nozzle_clean) {
+    helix::PrinterDiscovery hardware;
 
     // Build JSON array of objects based on requested capabilities
     nlohmann::json objects = nlohmann::json::array();

@@ -2,7 +2,7 @@
 #pragma once
 
 #include "capability_overrides.h"
-#include "printer_hardware_discovery.h"
+#include "printer_discovery.h"
 #include "subject_managed_panel.h"
 
 #include <lvgl.h>
@@ -59,8 +59,7 @@ class PrinterCapabilitiesState {
      * @param hardware Auto-detected hardware capabilities
      * @param overrides Capability override layer with effective values
      */
-    void set_hardware(const PrinterHardwareDiscovery& hardware,
-                      const CapabilityOverrides& overrides);
+    void set_hardware(const PrinterDiscovery& hardware, const CapabilityOverrides& overrides);
 
     /**
      * @brief Set spoolman availability (async update from Moonraker query)

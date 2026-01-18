@@ -444,12 +444,12 @@ void PrinterState::set_print_in_progress(bool in_progress) {
 
 // Note: set_tracked_led() is now delegated to led_state_component_ in the header
 
-void PrinterState::set_hardware(const helix::PrinterHardwareDiscovery& hardware) {
+void PrinterState::set_hardware(const helix::PrinterDiscovery& hardware) {
     // Thread-safe wrapper: defer LVGL subject updates to main thread
     helix::async::call_method_ref(this, &PrinterState::set_hardware_internal, hardware);
 }
 
-void PrinterState::set_hardware_internal(const helix::PrinterHardwareDiscovery& hardware) {
+void PrinterState::set_hardware_internal(const helix::PrinterDiscovery& hardware) {
     // Pass auto-detected hardware to the override layer
     capability_overrides_.set_hardware(hardware);
 

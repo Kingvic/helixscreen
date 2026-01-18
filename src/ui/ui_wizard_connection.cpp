@@ -18,7 +18,7 @@
 #include "lvgl/lvgl.h"
 #include "moonraker_api.h"
 #include "moonraker_client.h"
-#include "printer_hardware_discovery.h"
+#include "printer_discovery.h"
 #include "runtime_config.h"
 #include "static_panel_registry.h"
 #include "wizard_config_paths.h"
@@ -420,19 +420,19 @@ void WizardConnectionStep::on_connection_success() {
 
                                 MoonrakerClient* client = get_moonraker_client();
                                 MoonrakerAPI* api = get_moonraker_api();
-                                if (client) {
-                                    const auto& heaters = client->hardware().heaters();
-                                    const auto& sensors = client->hardware().sensors();
-                                    const auto& fans = client->hardware().fans();
+                                if (api) {
+                                    const auto& heaters = api->hardware().heaters();
+                                    const auto& sensors = api->hardware().sensors();
+                                    const auto& fans = api->hardware().fans();
                                     spdlog::info("[Wizard Connection] Discovered {} heaters, {} "
                                                  "sensors, {} fans",
                                                  heaters.size(), sensors.size(), fans.size());
                                     spdlog::info("[Wizard Connection] Hostname: '{}'",
-                                                 client->hardware().hostname());
+                                                 api->hardware().hostname());
 
                                     // Initialize subsystems (AMS, filament sensors, macros)
                                     // so they're available for later wizard steps
-                                    helix::init_subsystems_from_hardware(client->hardware(), api,
+                                    helix::init_subsystems_from_hardware(api->hardware(), api,
                                                                          client);
                                 }
 
@@ -771,12 +771,12 @@ void WizardConnectionStep::on_auto_probe_success() {
 
                                 MoonrakerClient* client = get_moonraker_client();
                                 MoonrakerAPI* api = get_moonraker_api();
-                                if (client) {
+                                if (api) {
                                     spdlog::info("[Wizard Connection] Hostname: '{}'",
-                                                 client->hardware().hostname());
+                                                 api->hardware().hostname());
 
                                     // Initialize subsystems (AMS, filament sensors, macros)
-                                    helix::init_subsystems_from_hardware(client->hardware(), api,
+                                    helix::init_subsystems_from_hardware(api->hardware(), api,
                                                                          client);
                                 }
 

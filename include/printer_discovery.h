@@ -3,7 +3,7 @@
 #pragma once
 
 /**
- * @file printer_hardware_discovery.h
+ * @file printer_discovery.h
  * @brief Single source of truth for all discovered printer hardware
  *
  * This class consolidates:
@@ -26,9 +26,9 @@
 
 namespace helix {
 
-class PrinterHardwareDiscovery {
+class PrinterDiscovery {
   public:
-    PrinterHardwareDiscovery() = default;
+    PrinterDiscovery() = default;
 
     /**
      * @brief Parse Klipper objects from printer.objects.list response
@@ -797,7 +797,7 @@ namespace helix {
  * @param api MoonrakerAPI instance
  * @param client MoonrakerClient instance
  */
-void init_subsystems_from_hardware(const PrinterHardwareDiscovery& hardware, ::MoonrakerAPI* api,
+void init_subsystems_from_hardware(const PrinterDiscovery& hardware, ::MoonrakerAPI* api,
                                    ::MoonrakerClient* client);
 
 } // namespace helix

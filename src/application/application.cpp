@@ -97,7 +97,7 @@
 #include "moonraker_api.h"
 #include "moonraker_client.h"
 #include "plugin_manager.h"
-#include "printer_hardware_discovery.h"
+#include "printer_discovery.h"
 #include "printer_state.h"
 #include "settings_manager.h"
 #include "splash_screen.h"
@@ -1247,10 +1247,9 @@ bool Application::connect_moonraker() {
     MoonrakerClient* client = m_moonraker->client();
     MoonrakerAPI* api = m_moonraker->api();
 
-    client->set_on_hardware_discovered([api,
-                                        client](const helix::PrinterHardwareDiscovery& hardware) {
+    client->set_on_hardware_discovered([api, client](const helix::PrinterDiscovery& hardware) {
         struct HardwareDiscoveredCtx {
-            helix::PrinterHardwareDiscovery hardware;
+            helix::PrinterDiscovery hardware;
             MoonrakerAPI* api;
             MoonrakerClient* client;
         };
@@ -1265,10 +1264,9 @@ bool Application::connect_moonraker() {
     // manager
     Application* app = this;
 
-    client->set_on_discovery_complete([api, client,
-                                       app](const helix::PrinterHardwareDiscovery& hardware) {
+    client->set_on_discovery_complete([api, client, app](const helix::PrinterDiscovery& hardware) {
         struct DiscoveryCompleteCtx {
-            helix::PrinterHardwareDiscovery hardware;
+            helix::PrinterDiscovery hardware;
             MoonrakerAPI* api;
             MoonrakerClient* client;
             Application* app;
@@ -1293,8 +1291,7 @@ bool Application::connect_moonraker() {
 
             // Hardware validation: check config expectations vs discovered hardware
             HardwareValidator validator;
-            auto validation_result =
-                validator.validate(Config::get_instance(), c->client, c->hardware);
+            auto validation_result = validator.validate(Config::get_instance(), c->hardware);
             get_printer_state().set_hardware_validation_result(validation_result);
 
             if (validation_result.has_issues()) {
@@ -1302,7 +1299,7 @@ bool Application::connect_moonraker() {
             }
 
             // Save session snapshot for next comparison (even if no issues)
-            validator.save_session_snapshot(Config::get_instance(), c->client, c->hardware);
+            validator.save_session_snapshot(Config::get_instance(), c->hardware);
 
             // Detect helix_print plugin during discovery (not UI-initiated)
             // This ensures plugin status is known early for UI gating

@@ -29,7 +29,7 @@ class MoonrakerAPI;
 struct MoonrakerError;
 
 namespace helix {
-class PrinterHardwareDiscovery;
+class PrinterDiscovery;
 }
 
 /**
@@ -166,7 +166,7 @@ class StandardMacros {
      *
      * @param hardware Hardware discovery with discovered macros
      */
-    void init(const helix::PrinterHardwareDiscovery& hardware);
+    void init(const helix::PrinterDiscovery& hardware);
 
     /**
      * @brief Reset to uninitialized state
@@ -292,7 +292,7 @@ class StandardMacros {
      * @brief Run auto-detection for all slots
      * @param hardware Hardware discovery with macro list
      */
-    void auto_detect(const helix::PrinterHardwareDiscovery& hardware);
+    void auto_detect(const helix::PrinterDiscovery& hardware);
 
     /**
      * @brief Try to detect a macro for a slot using patterns
@@ -301,7 +301,7 @@ class StandardMacros {
      * @param patterns Patterns to match (uppercase)
      * @return Detected macro name, or empty if none found
      */
-    std::string try_detect(const helix::PrinterHardwareDiscovery& hardware, StandardMacroSlot slot,
+    std::string try_detect(const helix::PrinterDiscovery& hardware, StandardMacroSlot slot,
                            const std::vector<std::string>& patterns);
 
     std::vector<StandardMacroInfo> slots_;

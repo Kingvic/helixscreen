@@ -690,22 +690,23 @@ void MoonrakerClient::dispatch_status_update(const json& status) {
 
         // Also extract build volume from bed_mesh bounds for printer detection
         const json& mesh = status["bed_mesh"];
+        BuildVolume build_volume;
         if (mesh.contains("mesh_min") && mesh["mesh_min"].is_array() &&
             mesh["mesh_min"].size() >= 2 && mesh["mesh_min"][0].is_number() &&
             mesh["mesh_min"][1].is_number()) {
-            build_volume_.x_min = mesh["mesh_min"][0].get<float>();
-            build_volume_.y_min = mesh["mesh_min"][1].get<float>();
+            build_volume.x_min = mesh["mesh_min"][0].get<float>();
+            build_volume.y_min = mesh["mesh_min"][1].get<float>();
         }
         if (mesh.contains("mesh_max") && mesh["mesh_max"].is_array() &&
             mesh["mesh_max"].size() >= 2 && mesh["mesh_max"][0].is_number() &&
             mesh["mesh_max"][1].is_number()) {
-            build_volume_.x_max = mesh["mesh_max"][0].get<float>();
-            build_volume_.y_max = mesh["mesh_max"][1].get<float>();
-            hardware_.set_build_volume(build_volume_);
+            build_volume.x_max = mesh["mesh_max"][0].get<float>();
+            build_volume.y_max = mesh["mesh_max"][1].get<float>();
+            hardware_.set_build_volume(build_volume);
             spdlog::debug("[Moonraker Client] Build volume from mesh: [{:.0f},{:.0f}] to "
                           "[{:.0f},{:.0f}]",
-                          build_volume_.x_min, build_volume_.y_min, build_volume_.x_max,
-                          build_volume_.y_max);
+                          build_volume.x_min, build_volume.y_min, build_volume.x_max,
+                          build_volume.y_max);
         }
     }
 
@@ -713,9 +714,9 @@ void MoonrakerClient::dispatch_status_update(const json& status) {
     if (status.contains("toolhead") && status["toolhead"].is_object()) {
         const json& toolhead = status["toolhead"];
         if (toolhead.contains("kinematics") && toolhead["kinematics"].is_string()) {
-            kinematics_ = toolhead["kinematics"].get<std::string>();
-            hardware_.set_kinematics(kinematics_);
-            spdlog::debug("[Moonraker Client] Kinematics type: {}", kinematics_);
+            auto kinematics = toolhead["kinematics"].get<std::string>();
+            hardware_.set_kinematics(kinematics);
+            spdlog::debug("[Moonraker Client] Kinematics type: {}", kinematics);
         }
     }
 
@@ -1062,10 +1063,10 @@ void MoonrakerClient::continue_discovery(std::function<void()> on_complete,
                 if (info_response.contains("result")) {
                     const json& result = info_response["result"];
                     std::string klippy_version = result.value("klippy_version", "unknown");
-                    moonraker_version_ = result.value("moonraker_version", "unknown");
-                    hardware_.set_moonraker_version(moonraker_version_);
+                    auto moonraker_version = result.value("moonraker_version", "unknown");
+                    hardware_.set_moonraker_version(moonraker_version);
 
-                    spdlog::debug("[Moonraker Client] Moonraker version: {}", moonraker_version_);
+                    spdlog::debug("[Moonraker Client] Moonraker version: {}", moonraker_version);
                     spdlog::debug("[Moonraker Client] Klippy version: {}", klippy_version);
 
                     if (result.contains("components") && result["components"].is_array()) {
@@ -1109,16 +1110,16 @@ void MoonrakerClient::continue_discovery(std::function<void()> on_complete,
                 send_jsonrpc("printer.info", {}, [this, on_complete](json printer_response) {
                     if (printer_response.contains("result")) {
                         const json& result = printer_response["result"];
-                        hostname_ = result.value("hostname", "unknown");
-                        software_version_ = result.value("software_version", "unknown");
-                        hardware_.set_hostname(hostname_);
-                        hardware_.set_software_version(software_version_);
+                        auto hostname = result.value("hostname", "unknown");
+                        auto software_version = result.value("software_version", "unknown");
+                        hardware_.set_hostname(hostname);
+                        hardware_.set_software_version(software_version);
                         std::string state = result.value("state", "");
                         std::string state_message = result.value("state_message", "");
 
-                        spdlog::debug("[Moonraker Client] Printer hostname: {}", hostname_);
+                        spdlog::debug("[Moonraker Client] Printer hostname: {}", hostname);
                         spdlog::debug("[Moonraker Client] Klipper software version: {}",
-                                      software_version_);
+                                      software_version);
                         if (!state_message.empty()) {
                             spdlog::info("[Moonraker Client] Printer state: {}", state_message);
                         }
@@ -1143,7 +1144,7 @@ void MoonrakerClient::continue_discovery(std::function<void()> on_complete,
                     // Step 4: Query MCU information for printer detection
                     // Find all MCU objects (e.g., "mcu", "mcu EBBCan", "mcu rpi")
                     std::vector<std::string> mcu_objects;
-                    for (const auto& obj : printer_objects_) {
+                    for (const auto& obj : hardware_.printer_objects()) {
                         // Match "mcu" or "mcu <name>" pattern
                         if (obj == "mcu" || obj.rfind("mcu ", 0) == 0) {
                             mcu_objects.push_back(obj);
@@ -1199,9 +1200,9 @@ void MoonrakerClient::continue_discovery(std::function<void()> on_complete,
 
                                 // Check if all queries complete
                                 if (pending_mcu_queries->fetch_sub(1) == 1) {
-                                    // All MCU queries complete - populate mcu_ and mcu_list_
-                                    mcu_list_.clear();
-                                    mcu_.clear();
+                                    // All MCU queries complete - populate mcu and mcu_list
+                                    std::vector<std::string> mcu_list;
+                                    std::string primary_mcu;
 
                                     // Sort results to ensure consistent ordering (primary "mcu"
                                     // first)
@@ -1217,22 +1218,23 @@ void MoonrakerClient::continue_discovery(std::function<void()> on_complete,
                                               });
 
                                     for (const auto& [obj_name, chip] : *mcu_results) {
-                                        mcu_list_.push_back(chip);
-                                        if (obj_name == "mcu" && mcu_.empty()) {
-                                            mcu_ = chip;
+                                        mcu_list.push_back(chip);
+                                        if (obj_name == "mcu" && primary_mcu.empty()) {
+                                            primary_mcu = chip;
                                         }
                                     }
 
                                     // Update hardware discovery with MCU info
-                                    hardware_.set_mcu(mcu_);
-                                    hardware_.set_mcu_list(mcu_list_);
+                                    hardware_.set_mcu(primary_mcu);
+                                    hardware_.set_mcu_list(mcu_list);
 
-                                    if (!mcu_.empty()) {
-                                        spdlog::info("[Moonraker Client] Primary MCU: {}", mcu_);
+                                    if (!primary_mcu.empty()) {
+                                        spdlog::info("[Moonraker Client] Primary MCU: {}",
+                                                     primary_mcu);
                                     }
-                                    if (mcu_list_.size() > 1) {
+                                    if (mcu_list.size() > 1) {
                                         spdlog::info("[Moonraker Client] All MCUs: {}",
-                                                     json(mcu_list_).dump());
+                                                     json(mcu_list).dump());
                                     }
 
                                     // Continue to subscription step
@@ -1391,7 +1393,6 @@ void MoonrakerClient::parse_objects(const json& objects) {
     steppers_.clear();
     afc_objects_.clear();
     filament_sensors_.clear();
-    printer_objects_.clear();
 
     // Collect printer_objects for hardware_ as we iterate
     std::vector<std::string> all_objects;
@@ -1401,7 +1402,6 @@ void MoonrakerClient::parse_objects(const json& objects) {
         std::string name = obj.template get<std::string>();
 
         // Store all objects for detection heuristics (object_exists, macro_match)
-        printer_objects_.push_back(name);
         all_objects.push_back(name);
 
         // Steppers (stepper_x, stepper_y, stepper_z, stepper_z1, etc.)

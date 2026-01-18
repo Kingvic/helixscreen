@@ -1,7 +1,7 @@
 // Copyright (C) 2025-2026 356C LLC
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "printer_hardware_discovery.h"
+#include "printer_discovery.h"
 #include "standard_macros.h"
 
 #include "../catch_amalgamated.hpp"
@@ -166,7 +166,7 @@ TEST_CASE("StandardMacros - auto-detection", "[standard_macros]") {
     macros.reset();
 
     SECTION("Detects standard macro patterns") {
-        helix::PrinterHardwareDiscovery hardware;
+        helix::PrinterDiscovery hardware;
         json objects = {"extruder",
                         "heater_bed",
                         "gcode_macro LOAD_FILAMENT",
@@ -198,7 +198,7 @@ TEST_CASE("StandardMacros - auto-detection", "[standard_macros]") {
     }
 
     SECTION("Detects M-code variants") {
-        helix::PrinterHardwareDiscovery hardware;
+        helix::PrinterDiscovery hardware;
         json objects = {"extruder", "gcode_macro M701", "gcode_macro M702", "gcode_macro M601",
                         "gcode_macro M602"};
         hardware.parse_objects(objects);
@@ -212,7 +212,7 @@ TEST_CASE("StandardMacros - auto-detection", "[standard_macros]") {
     }
 
     SECTION("Detects alternative bed level patterns") {
-        helix::PrinterHardwareDiscovery hardware;
+        helix::PrinterDiscovery hardware;
 
         SECTION("QUAD_GANTRY_LEVEL") {
             json objects = {"gcode_macro QUAD_GANTRY_LEVEL"};
@@ -240,7 +240,7 @@ TEST_CASE("StandardMacros - auto-detection", "[standard_macros]") {
     }
 
     SECTION("Detects nozzle wipe variants") {
-        helix::PrinterHardwareDiscovery hardware;
+        helix::PrinterDiscovery hardware;
 
         SECTION("NOZZLE_WIPE") {
             json objects = {"gcode_macro NOZZLE_WIPE"};
@@ -260,7 +260,7 @@ TEST_CASE("StandardMacros - auto-detection", "[standard_macros]") {
     }
 
     SECTION("Detects purge variants") {
-        helix::PrinterHardwareDiscovery hardware;
+        helix::PrinterDiscovery hardware;
 
         SECTION("PURGE") {
             json objects = {"gcode_macro PURGE"};
@@ -288,7 +288,7 @@ TEST_CASE("StandardMacros - auto-detection", "[standard_macros]") {
     }
 
     SECTION("Detects heat soak variants") {
-        helix::PrinterHardwareDiscovery hardware;
+        helix::PrinterDiscovery hardware;
 
         SECTION("HEAT_SOAK") {
             json objects = {"gcode_macro HEAT_SOAK"};
@@ -324,7 +324,7 @@ TEST_CASE("StandardMacros - HELIX fallbacks", "[standard_macros]") {
     auto& macros = StandardMacros::instance();
     macros.reset();
 
-    helix::PrinterHardwareDiscovery hardware;
+    helix::PrinterDiscovery hardware;
     json objects = {"extruder", "gcode_macro HELIX_BED_LEVEL_IF_NEEDED",
                     "gcode_macro HELIX_CLEAN_NOZZLE"};
     hardware.parse_objects(objects);
@@ -371,7 +371,7 @@ TEST_CASE("StandardMacros - reset clears detection", "[standard_macros]") {
     macros.reset();
 
     // Initialize with some macros
-    helix::PrinterHardwareDiscovery hardware;
+    helix::PrinterDiscovery hardware;
     json objects = {"gcode_macro LOAD_FILAMENT", "gcode_macro PAUSE"};
     hardware.parse_objects(objects);
     macros.init(hardware);

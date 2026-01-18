@@ -429,6 +429,19 @@ class MoonrakerClientMock : public MoonrakerClient {
     }
 
     /**
+     * @brief Set MMU availability for testing
+     *
+     * Controls whether the mock includes "mmu" in its printer objects,
+     * which affects has_mmu() capability detection.
+     *
+     * @param enabled True to include MMU (default: true)
+     */
+    void set_mmu_enabled(bool enabled) {
+        mmu_enabled_ = enabled;
+        rebuild_hardware();
+    }
+
+    /**
      * @brief Set accelerometer availability for testing
      *
      * When false, MEASURE_AXES_NOISE will dispatch an error response
@@ -891,6 +904,7 @@ class MoonrakerClientMock : public MoonrakerClient {
     bool mock_spoolman_enabled_{true};   ///< Controlled by HELIX_MOCK_SPOOLMAN env var
     bool accelerometer_available_{true}; ///< Accelerometer available for input shaper tests
     bool input_shaper_configured_{true}; ///< Input shaper configured for config query tests
+    bool mmu_enabled_{true};             ///< MMU available (default true for existing tests)
 
     // Additional objects for testing (e.g., "mmu", "AFC", "toolchanger")
     std::vector<std::string> additional_objects_;

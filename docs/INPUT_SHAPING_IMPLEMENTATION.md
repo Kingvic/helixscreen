@@ -114,7 +114,7 @@ Following best practices throughout:
 
 | Component | Location | Status |
 |-----------|----------|--------|
-| `PrinterHardwareDiscovery::has_accelerometer()` | `printer_hardware_discovery.h:169-174` | ✅ Exists |
+| `PrinterDiscovery::has_accelerometer()` | `printer_discovery.h:169-174` | ✅ Exists |
 | `MoonrakerAPI::start_resonance_test()` | `moonraker_api.h:1003` | ✅ Exists |
 | `MoonrakerAPI::set_input_shaper()` | `moonraker_api.h:1015` | ✅ Exists |
 | `MoonrakerAPI::save_config()` | `moonraker_api.h` | ✅ Exists |
@@ -708,7 +708,7 @@ Step 10: Summary
 ```
 
 **WizardInputShaperStep** (new file):
-- Checks `has_accelerometer()` capability from `PrinterHardwareDiscovery`
+- Checks `has_accelerometer()` capability from `PrinterDiscovery`
 - `should_skip()` returns true if no accelerometer
 - Shows simplified flow: health check → calibrate both axes → apply
 - Reuses `InputShaperCalibrator` for all operations

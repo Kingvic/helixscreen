@@ -5,7 +5,7 @@
 
 #include "moonraker_api.h"
 #include "moonraker_error.h"
-#include "printer_hardware_discovery.h"
+#include "printer_discovery.h"
 
 #include <functional>
 #include <optional>
@@ -51,7 +51,7 @@
  * }
  * @endcode
  *
- * @see PrinterHardwareDiscovery for macro detection
+ * @see PrinterDiscovery for macro detection
  * @see MoonrakerAPI for file upload operations
  */
 
@@ -100,9 +100,9 @@ class MacroManager {
      * @brief Construct MacroManager with API and hardware discovery references
      *
      * @param api MoonrakerAPI for file operations
-     * @param hardware PrinterHardwareDiscovery for macro detection
+     * @param hardware PrinterDiscovery for macro detection
      */
-    MacroManager(MoonrakerAPI& api, const PrinterHardwareDiscovery& hardware);
+    MacroManager(MoonrakerAPI& api, const PrinterDiscovery& hardware);
 
     // Non-copyable, non-movable (holds references)
     MacroManager(const MacroManager&) = delete;
@@ -217,7 +217,7 @@ class MacroManager {
 
   private:
     MoonrakerAPI& api_;
-    const PrinterHardwareDiscovery& hardware_;
+    const PrinterDiscovery& hardware_;
 
     /**
      * @brief Upload macro file to printer config directory

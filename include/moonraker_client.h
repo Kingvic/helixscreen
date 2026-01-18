@@ -11,7 +11,7 @@
  * - JSON-RPC 2.0 protocol handling (request/response, notifications)
  * - Subscription management for status updates (notify_status_update)
  * - Printer discovery orchestration (objects.list -> server.info -> printer.info)
- * - Hardware data storage via PrinterHardwareDiscovery member
+ * - Hardware data storage via PrinterDiscovery member
  * - Bed mesh data parsing and storage (from WebSocket notifications)
  *
  * ## NOT Responsible For
@@ -31,7 +31,7 @@
  * high-level operations like printing, motion control, and file management.
  *
  * @see MoonrakerAPI for domain-specific operations
- * @see PrinterHardwareDiscovery for hardware capabilities
+ * @see PrinterDiscovery for hardware capabilities
  */
 
 #pragma once
@@ -42,7 +42,7 @@
 #include "moonraker_events.h"
 #include "moonraker_request.h"
 #include "printer_detector.h" // For BuildVolume struct
-#include "printer_hardware_discovery.h"
+#include "printer_discovery.h"
 #include "spdlog/spdlog.h"
 
 #include <atomic>
@@ -345,9 +345,9 @@ class MoonrakerClient : public hv::WebSocketClient {
 
     /**
      * @brief Get discovered hardware data
-     * @return Reference to PrinterHardwareDiscovery containing all discovered hardware
+     * @return Reference to PrinterDiscovery containing all discovered hardware
      */
-    [[nodiscard]] const helix::PrinterHardwareDiscovery& hardware() const {
+    [[nodiscard]] const helix::PrinterDiscovery& hardware() const {
         return hardware_;
     }
 
@@ -371,76 +371,6 @@ class MoonrakerClient : public hv::WebSocketClient {
      */
     void reset_identified() {
         identified_.store(false);
-    }
-
-    /**
-     * @brief Get all printer objects from Klipper
-     * @deprecated Use hardware().printer_objects() instead
-     */
-    [[deprecated("Use hardware().printer_objects() instead")]] const std::vector<std::string>&
-    get_printer_objects() const {
-        return printer_objects_;
-    }
-
-    /**
-     * @brief Get kinematics type (corexy, cartesian, delta, etc.)
-     * @deprecated Use hardware().kinematics() instead
-     */
-    [[deprecated("Use hardware().kinematics() instead")]] const std::string&
-    get_kinematics() const {
-        return kinematics_;
-    }
-
-    /**
-     * @brief Get build volume dimensions
-     * @deprecated Use hardware().build_volume() instead
-     */
-    [[deprecated("Use hardware().build_volume() instead")]] const BuildVolume&
-    get_build_volume() const {
-        return build_volume_;
-    }
-
-    /**
-     * @brief Get primary MCU chip type
-     * @deprecated Use hardware().mcu() instead
-     */
-    [[deprecated("Use hardware().mcu() instead")]] const std::string& get_mcu() const {
-        return mcu_;
-    }
-
-    /**
-     * @brief Get all MCU chip types (primary + secondary)
-     * @deprecated Use hardware().mcu_list() instead
-     */
-    [[deprecated("Use hardware().mcu_list() instead")]] const std::vector<std::string>&
-    get_mcu_list() const {
-        return mcu_list_;
-    }
-
-    /**
-     * @brief Get printer hostname from printer.info
-     * @deprecated Use hardware().hostname() instead
-     */
-    [[deprecated("Use hardware().hostname() instead")]] const std::string& get_hostname() const {
-        return hostname_;
-    }
-
-    /**
-     * @brief Get Klipper software version from printer.info
-     * @deprecated Use hardware().software_version() instead
-     */
-    [[deprecated("Use hardware().software_version() instead")]] const std::string&
-    get_software_version() const {
-        return software_version_;
-    }
-
-    /**
-     * @brief Get Moonraker software version from server.info
-     * @deprecated Use hardware().moonraker_version() instead
-     */
-    [[deprecated("Use hardware().moonraker_version() instead")]] const std::string&
-    get_moonraker_version() const {
-        return moonraker_version_;
     }
 
     /**
@@ -487,8 +417,7 @@ class MoonrakerClient : public hv::WebSocketClient {
      *
      * @param cb Callback invoked with discovered hardware (early)
      */
-    void
-    set_on_hardware_discovered(std::function<void(const helix::PrinterHardwareDiscovery&)> cb) {
+    void set_on_hardware_discovered(std::function<void(const helix::PrinterDiscovery&)> cb) {
         on_hardware_discovered_ = cb;
     }
 
@@ -496,11 +425,11 @@ class MoonrakerClient : public hv::WebSocketClient {
      * @brief Set callback for printer discovery completion
      *
      * Called after discover_printer() successfully completes auto-discovery.
-     * Provides the discovered PrinterHardwareDiscovery for reactive UI updates.
+     * Provides the discovered PrinterDiscovery for reactive UI updates.
      *
      * @param cb Callback invoked with discovered hardware
      */
-    void set_on_discovery_complete(std::function<void(const helix::PrinterHardwareDiscovery&)> cb) {
+    void set_on_discovery_complete(std::function<void(const helix::PrinterDiscovery&)> cb) {
         on_discovery_complete_ = cb;
     }
 
@@ -687,20 +616,12 @@ class MoonrakerClient : public hv::WebSocketClient {
     std::vector<std::string> afc_objects_; // AFC MMU objects (AFC, AFC_stepper, AFC_hub, etc.)
     std::vector<std::string>
         filament_sensors_; // Filament sensors (filament_switch_sensor, filament_motion_sensor)
-    std::vector<std::string> printer_objects_; // All Klipper objects (for detection)
-    std::string hostname_;                     // Printer hostname from printer.info
-    std::string software_version_;             // Klipper software version from printer.info
-    std::string moonraker_version_;            // Moonraker version from server.info
-    std::string kinematics_;                   // Kinematics type (corexy, cartesian, delta)
-    BuildVolume build_volume_;                 // Build dimensions from bed_mesh bounds
-    std::string mcu_;                          // Primary MCU chip (stm32f103xe, stm32h723xx, etc.)
-    std::vector<std::string> mcu_list_;        // All MCU chips (primary + CAN toolheads + host)
-    helix::PrinterHardwareDiscovery hardware_; // Unified hardware discovery
+    helix::PrinterDiscovery hardware_; // Unified hardware discovery
 
     // Discovery callbacks (protected to allow mock to invoke)
-    std::function<void(const helix::PrinterHardwareDiscovery&)>
+    std::function<void(const helix::PrinterDiscovery&)>
         on_hardware_discovered_; // Early phase (after parse_objects)
-    std::function<void(const helix::PrinterHardwareDiscovery&)>
+    std::function<void(const helix::PrinterDiscovery&)>
         on_discovery_complete_; // Late phase (after subscription)
 
     // Bed mesh callback (P7b) - data now owned by MoonrakerAPI

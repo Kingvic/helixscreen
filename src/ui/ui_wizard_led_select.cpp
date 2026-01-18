@@ -11,6 +11,7 @@
 #include "app_globals.h"
 #include "config.h"
 #include "lvgl/lvgl.h"
+#include "moonraker_api.h"
 #include "moonraker_client.h"
 #include "printer_hardware.h"
 #include "static_panel_registry.h"
@@ -125,7 +126,7 @@ lv_obj_t* WizardLedSelectStep::create(lv_obj_t* parent) {
     // Populate LED dropdown (discover + filter + populate + restore)
     wizard_populate_hardware_dropdown(
         screen_root_, "led_main_dropdown", &led_strip_selected_, led_strip_items_,
-        [](MoonrakerClient* c) -> const auto& { return c->hardware().leds(); },
+        [](MoonrakerAPI* a) -> const auto& { return a->hardware().leds(); },
         nullptr, // No filter - include all LEDs
         true,    // Allow "None" option
         helix::wizard::LED_STRIP,
@@ -184,13 +185,13 @@ bool WizardLedSelectStep::is_validated() const {
 // ============================================================================
 
 bool WizardLedSelectStep::should_skip() const {
-    MoonrakerClient* client = get_moonraker_client();
-    if (!client) {
-        spdlog::debug("[{}] No MoonrakerClient, skipping LED step", get_name());
+    MoonrakerAPI* api = get_moonraker_api();
+    if (!api) {
+        spdlog::debug("[{}] No MoonrakerAPI, skipping LED step", get_name());
         return true;
     }
 
-    const auto& leds = client->hardware().leds();
+    const auto& leds = api->hardware().leds();
     bool should_skip = leds.empty();
 
     if (should_skip) {

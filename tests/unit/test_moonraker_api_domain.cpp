@@ -64,11 +64,12 @@ class MoonrakerAPIDomainTestFixture {
         // Connect mock client (required for discovery)
         mock_client.connect("ws://mock/websocket", []() {}, []() {});
 
-        // Run discovery to populate hardware lists
-        mock_client.discover_printer([]() {});
-
-        // Create API with mock client
+        // Create API with mock client BEFORE discovery
+        // (API registers hardware discovered callback in constructor)
         api = std::make_unique<MoonrakerAPI>(mock_client, state);
+
+        // Run discovery to populate hardware lists (triggers API callback)
+        mock_client.discover_printer([]() {});
     }
 
     ~MoonrakerAPIDomainTestFixture() {
@@ -90,8 +91,8 @@ TEST_CASE_METHOD(MoonrakerAPIDomainTestFixture,
                  "PrinterHardware::guess_bed_heater returns correct heater",
                  "[printer][guessing]") {
     // VORON_24 mock should have heater_bed
-    PrinterHardware hw(mock_client.hardware().heaters(), mock_client.hardware().sensors(),
-                       mock_client.hardware().fans(), mock_client.hardware().leds());
+    PrinterHardware hw(api->hardware().heaters(), api->hardware().sensors(), api->hardware().fans(),
+                       api->hardware().leds());
     std::string bed_heater = hw.guess_bed_heater();
     REQUIRE(bed_heater == "heater_bed");
 }
@@ -100,8 +101,8 @@ TEST_CASE_METHOD(MoonrakerAPIDomainTestFixture,
                  "PrinterHardware::guess_hotend_heater returns correct heater",
                  "[printer][guessing]") {
     // VORON_24 mock should have extruder
-    PrinterHardware hw(mock_client.hardware().heaters(), mock_client.hardware().sensors(),
-                       mock_client.hardware().fans(), mock_client.hardware().leds());
+    PrinterHardware hw(api->hardware().heaters(), api->hardware().sensors(), api->hardware().fans(),
+                       api->hardware().leds());
     std::string hotend_heater = hw.guess_hotend_heater();
     REQUIRE(hotend_heater == "extruder");
 }
@@ -110,8 +111,8 @@ TEST_CASE_METHOD(MoonrakerAPIDomainTestFixture,
                  "PrinterHardware::guess_bed_sensor returns correct sensor",
                  "[printer][guessing]") {
     // Bed sensor should return heater_bed (heaters have built-in sensors)
-    PrinterHardware hw(mock_client.hardware().heaters(), mock_client.hardware().sensors(),
-                       mock_client.hardware().fans(), mock_client.hardware().leds());
+    PrinterHardware hw(api->hardware().heaters(), api->hardware().sensors(), api->hardware().fans(),
+                       api->hardware().leds());
     std::string bed_sensor = hw.guess_bed_sensor();
     REQUIRE(bed_sensor == "heater_bed");
 }
@@ -120,8 +121,8 @@ TEST_CASE_METHOD(MoonrakerAPIDomainTestFixture,
                  "PrinterHardware::guess_hotend_sensor returns correct sensor",
                  "[printer][guessing]") {
     // Hotend sensor should return extruder (heaters have built-in sensors)
-    PrinterHardware hw(mock_client.hardware().heaters(), mock_client.hardware().sensors(),
-                       mock_client.hardware().fans(), mock_client.hardware().leds());
+    PrinterHardware hw(api->hardware().heaters(), api->hardware().sensors(), api->hardware().fans(),
+                       api->hardware().leds());
     std::string hotend_sensor = hw.guess_hotend_sensor();
     REQUIRE(hotend_sensor == "extruder");
 }
@@ -130,8 +131,8 @@ TEST_CASE_METHOD(MoonrakerAPIDomainTestFixture,
                  "PrinterHardware::guess_part_cooling_fan returns correct fan",
                  "[printer][guessing]") {
     // VORON_24 should have canonical "fan" for part cooling
-    PrinterHardware hw(mock_client.hardware().heaters(), mock_client.hardware().sensors(),
-                       mock_client.hardware().fans(), mock_client.hardware().leds());
+    PrinterHardware hw(api->hardware().heaters(), api->hardware().sensors(), api->hardware().fans(),
+                       api->hardware().leds());
     std::string fan = hw.guess_part_cooling_fan();
     // The canonical [fan] section should be prioritized if it exists
     REQUIRE_FALSE(fan.empty());
@@ -139,8 +140,8 @@ TEST_CASE_METHOD(MoonrakerAPIDomainTestFixture,
 
 TEST_CASE_METHOD(MoonrakerAPIDomainTestFixture, "PrinterHardware::guess_main_led_strip returns LED",
                  "[printer][guessing]") {
-    PrinterHardware hw(mock_client.hardware().heaters(), mock_client.hardware().sensors(),
-                       mock_client.hardware().fans(), mock_client.hardware().leds());
+    PrinterHardware hw(api->hardware().heaters(), api->hardware().sensors(), api->hardware().fans(),
+                       api->hardware().leds());
     std::string led = hw.guess_main_led_strip();
     // May be empty if no LEDs configured, but shouldn't crash
     // Just verify the call works
@@ -216,6 +217,7 @@ TEST_CASE_METHOD(MoonrakerAPIDomainTestFixture, "MoonrakerAPI::has_bed_mesh retu
     // This tests that the API method delegates correctly
     // API method should return consistent state
     bool has_mesh = api->has_bed_mesh();
+    (void)has_mesh; // Test only verifies method doesn't crash
 }
 
 TEST_CASE_METHOD(MoonrakerAPIDomainTestFixture,

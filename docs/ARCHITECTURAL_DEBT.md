@@ -193,7 +193,7 @@ struct PrinterDisplay {
 **File:** `src/api/moonraker_client.cpp`
 
 **Problem (PARTIALLY RESOLVED):**
-- ~~Mixes JSON-RPC transport with domain logic~~ - **RESOLVED:** Hardware discovery data moved to `PrinterHardwareDiscovery` in MoonrakerAPI
+- ~~Mixes JSON-RPC transport with domain logic~~ - **RESOLVED:** Hardware discovery data moved to `PrinterDiscovery` in MoonrakerAPI
 - ~~Contains: connection management, printer discovery, bed mesh parsing, object list parsing~~ - **RESOLVED:** MoonrakerClient now dispatches via callbacks, MoonrakerAPI owns data
 - ~~Discovery callbacks are domain events in transport layer~~ - **RESOLVED:** Clean callback-based architecture
 
@@ -201,7 +201,7 @@ struct PrinterDisplay {
 - MoonrakerClient is now pure transport layer
 - Hardware data (heaters, fans, sensors, LEDs, macros, hostname) flows via callbacks to MoonrakerAPI
 - Bed mesh data moved from MoonrakerClient to MoonrakerAPI
-- `PrinterHardwareDiscovery` is the single source of truth for hardware capabilities
+- `PrinterDiscovery` is the single source of truth for hardware capabilities
 
 **Remaining:** File size still ~1500 lines, could benefit from further decomposition
 
@@ -259,7 +259,7 @@ MotionPanel& get_global_motion_panel() {
 **Severity:** 🟢 LOW
 
 **Patterns:**
-- ~~Concrete `PrinterCapabilities` struct instead of interface~~ - **RESOLVED:** PrinterCapabilities deleted, replaced by `PrinterHardwareDiscovery` (2026-01-11)
+- ~~Concrete `PrinterCapabilities` struct instead of interface~~ - **RESOLVED:** PrinterCapabilities deleted, replaced by `PrinterDiscovery` (2026-01-11)
 - Concrete `MoonrakerAPI*` parameters instead of interface
 - No `IPanel` or `IPanelFactory` interfaces
 

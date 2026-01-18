@@ -8,9 +8,8 @@
 #include "ui_toast_manager.h"
 
 #include "config.h"
-#include "moonraker_client.h"
+#include "printer_discovery.h"
 #include "printer_hardware.h"
-#include "printer_hardware_discovery.h"
 #include "spdlog/spdlog.h"
 
 #include <algorithm>
@@ -109,31 +108,25 @@ std::vector<std::string> HardwareSnapshot::get_added(const HardwareSnapshot& cur
 // HardwareValidator Implementation
 // =============================================================================
 
-HardwareValidationResult
-HardwareValidator::validate(Config* config, const MoonrakerClient* client,
-                            const helix::PrinterHardwareDiscovery& hardware) {
+HardwareValidationResult HardwareValidator::validate(Config* config,
+                                                     const helix::PrinterDiscovery& hardware) {
     HardwareValidationResult result;
-
-    if (!client) {
-        spdlog::warn("[HardwareValidator] No client provided, skipping validation");
-        return result;
-    }
 
     spdlog::info("[HardwareValidator] Starting hardware validation...");
 
     // Step 1: Check critical hardware exists
-    validate_critical_hardware(client, result);
+    validate_critical_hardware(hardware, result);
 
     // Step 2: Check configured hardware exists
-    validate_configured_hardware(config, client, hardware, result);
+    validate_configured_hardware(config, hardware, result);
 
     // Step 3: Find newly discovered hardware not in config
-    validate_new_hardware(config, client, hardware, result);
+    validate_new_hardware(config, hardware, result);
 
     // Step 4: Compare against previous session
     auto previous_snapshot = load_session_snapshot(config);
     if (previous_snapshot) {
-        auto current_snapshot = create_snapshot(client, hardware);
+        auto current_snapshot = create_snapshot(hardware);
         validate_session_changes(*previous_snapshot, current_snapshot, config, result);
     }
 
@@ -213,14 +206,14 @@ void HardwareValidator::notify_user(const HardwareValidationResult& result) {
                   message);
 }
 
-void HardwareValidator::save_session_snapshot(Config* config, const MoonrakerClient* client,
-                                              const helix::PrinterHardwareDiscovery& hardware) {
-    if (!config || !client) {
+void HardwareValidator::save_session_snapshot(Config* config,
+                                              const helix::PrinterDiscovery& hardware) {
+    if (!config) {
         return;
     }
 
     // Create current snapshot using the hardware discovery
-    auto snapshot = create_snapshot(client, hardware);
+    auto snapshot = create_snapshot(hardware);
 
     // Generate ISO 8601 timestamp
     auto now = std::chrono::system_clock::now();
@@ -241,20 +234,14 @@ void HardwareValidator::save_session_snapshot(Config* config, const MoonrakerCli
     }
 }
 
-HardwareSnapshot
-HardwareValidator::create_snapshot(const MoonrakerClient* client,
-                                   const helix::PrinterHardwareDiscovery& /*hardware*/) {
+HardwareSnapshot HardwareValidator::create_snapshot(const helix::PrinterDiscovery& hardware) {
     HardwareSnapshot snapshot;
 
-    if (!client) {
-        return snapshot;
-    }
-
-    snapshot.heaters = client->hardware().heaters();
-    snapshot.sensors = client->hardware().sensors();
-    snapshot.fans = client->hardware().fans();
-    snapshot.leds = client->hardware().leds();
-    snapshot.filament_sensors = client->hardware().filament_sensor_names();
+    snapshot.heaters = hardware.heaters();
+    snapshot.sensors = hardware.sensors();
+    snapshot.fans = hardware.fans();
+    snapshot.leds = hardware.leds();
+    snapshot.filament_sensors = hardware.filament_sensor_names();
 
     return snapshot;
 }
@@ -375,9 +362,9 @@ void HardwareValidator::add_expected_hardware(Config* config, const std::string&
 // Private Validation Methods
 // =============================================================================
 
-void HardwareValidator::validate_critical_hardware(const MoonrakerClient* client,
+void HardwareValidator::validate_critical_hardware(const helix::PrinterDiscovery& hardware,
                                                    HardwareValidationResult& result) {
-    const auto& heaters = client->hardware().heaters();
+    const auto& heaters = hardware.heaters();
 
     // Check for extruder
     bool has_extruder = false;
@@ -401,17 +388,17 @@ void HardwareValidator::validate_critical_hardware(const MoonrakerClient* client
     }
 }
 
-void HardwareValidator::validate_configured_hardware(
-    Config* config, const MoonrakerClient* client,
-    const helix::PrinterHardwareDiscovery& /*hardware*/, HardwareValidationResult& result) {
+void HardwareValidator::validate_configured_hardware(Config* config,
+                                                     const helix::PrinterDiscovery& hardware,
+                                                     HardwareValidationResult& result) {
     if (!config) {
         return;
     }
 
-    const auto& heaters = client->hardware().heaters();
-    const auto& fans = client->hardware().fans();
-    const auto& leds = client->hardware().leds();
-    const auto& filament_sensors = client->hardware().filament_sensor_names();
+    const auto& heaters = hardware.heaters();
+    const auto& fans = hardware.fans();
+    const auto& leds = hardware.leds();
+    const auto& filament_sensors = hardware.filament_sensor_names();
 
     // Check configured heater (bed)
     try {
@@ -491,12 +478,10 @@ void HardwareValidator::validate_configured_hardware(
     }
 
     // Check expected hardware array (includes AMS and other generic hardware)
-    // Items are added by wizard completion and should exist in printer_objects
+    // Items are added by wizard completion
     try {
         json& expected_list = config->get_json(config->df() + "hardware/expected");
         if (expected_list.is_array()) {
-            const auto& printer_objects = client->hardware().printer_objects();
-
             for (const auto& item : expected_list) {
                 if (!item.is_string())
                     continue;
@@ -505,19 +490,18 @@ void HardwareValidator::validate_configured_hardware(
                 if (hw_name.empty())
                     continue;
 
-                // Check if this is AMS/MMU hardware (needs printer_objects check)
+                // Check if this is AMS/MMU hardware (uses capability flags)
                 bool is_ams_hardware = (hw_name == "AFC" || hw_name == "mmu" ||
                                         hw_name == "toolchanger" || hw_name == "valgace");
 
                 if (is_ams_hardware) {
-                    // Use parsed capability flags instead of searching printer_objects_
                     bool found = false;
 
-                    if (hw_name == "mmu" && client->hardware().has_mmu()) {
+                    if (hw_name == "mmu" && hardware.has_mmu()) {
                         found = true;
-                    } else if (hw_name == "AFC" && client->hardware().mmu_type() == AmsType::AFC) {
+                    } else if (hw_name == "AFC" && hardware.mmu_type() == AmsType::AFC) {
                         found = true;
-                    } else if (hw_name == "toolchanger" && client->hardware().has_tool_changer()) {
+                    } else if (hw_name == "toolchanger" && hardware.has_tool_changer()) {
                         found = true;
                     }
                     // valgace check remains as-is (REST-based detection)
@@ -547,10 +531,10 @@ void HardwareValidator::validate_configured_hardware(
     }
 }
 
-void HardwareValidator::validate_new_hardware(Config* config, const MoonrakerClient* client,
-                                              const helix::PrinterHardwareDiscovery& /*hardware*/,
+void HardwareValidator::validate_new_hardware(Config* config,
+                                              const helix::PrinterDiscovery& hardware,
                                               HardwareValidationResult& result) {
-    const auto& leds = client->hardware().leds();
+    const auto& leds = hardware.leds();
 
     // Check for LEDs not in config
     // Only suggest if user hasn't configured any LED yet
@@ -588,7 +572,7 @@ void HardwareValidator::validate_new_hardware(Config* config, const MoonrakerCli
     }
 
     // Check for filament sensors not in config
-    const auto& discovered_sensors = client->hardware().filament_sensor_names();
+    const auto& discovered_sensors = hardware.filament_sensor_names();
     std::vector<std::string> configured_names;
 
     if (config) {

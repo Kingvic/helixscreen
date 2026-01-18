@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "capability_overrides.h"
-#include "printer_hardware_discovery.h"
+#include "printer_discovery.h"
 
 #include "../catch_amalgamated.hpp"
 
@@ -90,7 +90,7 @@ TEST_CASE("CapabilityOverrides - is_available logic", "[printer][overrides]") {
     CapabilityOverrides overrides;
 
     // Create mock printer hardware
-    helix::PrinterHardwareDiscovery hardware;
+    helix::PrinterDiscovery hardware;
     json objects = {"bed_mesh", "quad_gantry_level", "gcode_macro CLEAN_NOZZLE"};
     hardware.parse_objects(objects);
     overrides.set_hardware(hardware);
@@ -137,7 +137,7 @@ TEST_CASE("CapabilityOverrides - is_available logic", "[printer][overrides]") {
 TEST_CASE("CapabilityOverrides - convenience methods", "[printer][overrides]") {
     CapabilityOverrides overrides;
 
-    helix::PrinterHardwareDiscovery hardware;
+    helix::PrinterDiscovery hardware;
     json objects = {"bed_mesh",
                     "quad_gantry_level",
                     "z_tilt",
@@ -209,7 +209,7 @@ TEST_CASE("CapabilityOverrides - summary", "[printer][overrides]") {
     }
 
     SECTION("Summary shows auto(Y) for detected capabilities") {
-        helix::PrinterHardwareDiscovery hardware;
+        helix::PrinterDiscovery hardware;
         json objects = {"bed_mesh"};
         hardware.parse_objects(objects);
         overrides.set_hardware(hardware);
@@ -238,7 +238,7 @@ TEST_CASE("CapabilityOverrides - copy semantics", "[printer][overrides]") {
     original.set_override(capability::BED_MESH, OverrideState::ENABLE);
     original.set_override(capability::QGL, OverrideState::DISABLE);
 
-    helix::PrinterHardwareDiscovery hardware;
+    helix::PrinterDiscovery hardware;
     json objects = {"bed_mesh"};
     hardware.parse_objects(objects);
     original.set_hardware(hardware);
