@@ -36,19 +36,33 @@
         <!-- Current/Target Temperature Display Card with Icon and Status -->
         <ui_card name="temp_display_card"
                  width="100%" height="content" style_radius="0" flex_flow="column" style_flex_main_place="center"
-                 style_flex_cross_place="center" style_pad_gap="#space_xs" style_pad_all="#space_sm">
-          <!-- Icon + Temp Row -->
-          <icon name="heater_icon" src="heater" size="xl" variant="secondary"/>
-          <lv_obj height="content"
-                  style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false" flex_flow="column"
-                  style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="#space_xxs">
-            <text_small style_border_width="0" text="Current / Target" align="center"/>
-            <temp_display name="nozzle_temp_display"
-                          size="lg" show_target="true" bind_current="extruder_temp" bind_target="extruder_target"/>
+                 style_pad_gap="#space_xs" style_pad_all="#space_sm">
+          <!-- Horizontal centering row with flex spacers -->
+          <lv_obj width="100%"
+                  height="content" flex_flow="row" style_bg_opa="0" style_border_width="0" style_pad_all="0"
+                  scrollable="false">
+            <!-- Left spacer -->
+            <lv_obj height="1"
+                    flex_grow="1" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false"/>
+            <!-- Content column: left-aligned children -->
+            <lv_obj width="content"
+                    height="content" flex_flow="column" style_flex_cross_place="start" style_bg_opa="0"
+                    style_border_width="0" style_pad_all="0" style_pad_gap="#space_xs" scrollable="false">
+              <icon name="heater_icon" src="heater" size="xl" variant="secondary"/>
+              <lv_obj height="content"
+                      style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false" flex_flow="column"
+                      style_flex_main_place="center" style_flex_cross_place="start" style_pad_gap="#space_xxs">
+                <text_small style_border_width="0" text="Current / Target"/>
+                <temp_display name="nozzle_temp_display"
+                              size="lg" show_target="true" bind_current="extruder_temp" bind_target="extruder_target"/>
+              </lv_obj>
+              <!-- Status Message -->
+              <text_small name="status_message" style_border_width="0" bind_text="nozzle_status" style_text_align="left"/>
+            </lv_obj>
+            <!-- Right spacer -->
+            <lv_obj height="1"
+                    flex_grow="1" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false"/>
           </lv_obj>
-          <!-- Status Message -->
-          <text_small name="status_message"
-                      width="100%" style_border_width="0" bind_text="nozzle_status" style_text_align="center"/>
         </ui_card>
         <!-- Spacer to push buttons to bottom -->
         <lv_obj width="1" flex_grow="1" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false"/>
@@ -57,28 +71,28 @@
                 width="100%" height="content" style_bg_opa="0" style_pad_all="0" style_border_width="0"
                 scrollable="false" flex_flow="row_wrap" style_flex_main_place="space_between" style_pad_gap="#space_xs">
           <lv_button name="preset_off"
-                     width="48%" height="#button_height_sm" style_radius="#border_radius_small" style_border_width="0">
+                     width="48%" height="#button_height" style_radius="#border_radius_small" style_border_width="0">
             <text_small text="Off" align="center"/>
             <event_cb trigger="clicked" callback="on_nozzle_preset_off_clicked"/>
           </lv_button>
           <lv_button name="preset_pla"
-                     width="48%" height="#button_height_sm" style_radius="#border_radius_small" style_border_width="0">
+                     width="48%" height="#button_height" style_radius="#border_radius_small" style_border_width="0">
             <text_small text="PLA" align="center"/>
             <event_cb trigger="clicked" callback="on_nozzle_preset_pla_clicked"/>
           </lv_button>
           <lv_button name="preset_petg"
-                     width="48%" height="#button_height_sm" style_radius="#border_radius_small" style_border_width="0">
+                     width="48%" height="#button_height" style_radius="#border_radius_small" style_border_width="0">
             <text_small text="PETG" align="center"/>
             <event_cb trigger="clicked" callback="on_nozzle_preset_petg_clicked"/>
           </lv_button>
           <lv_button name="preset_abs"
-                     width="48%" height="#button_height_sm" style_radius="#border_radius_small" style_border_width="0">
+                     width="48%" height="#button_height" style_radius="#border_radius_small" style_border_width="0">
             <text_small text="ABS" align="center"/>
             <event_cb trigger="clicked" callback="on_nozzle_preset_abs_clicked"/>
           </lv_button>
         </lv_obj>
         <lv_button name="btn_custom"
-                   width="100%" height="#button_height_sm" style_radius="#border_radius_small" style_border_width="0">
+                   width="100%" height="#button_height" style_radius="#border_radius_small" style_border_width="0">
           <text_body text="Custom..." align="center"/>
           <event_cb trigger="clicked" callback="on_nozzle_custom_clicked"/>
         </lv_button>

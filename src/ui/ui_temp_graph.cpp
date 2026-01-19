@@ -463,12 +463,12 @@ static void draw_grid_lines_cb(lv_event_t* e) {
         return; // Chart not laid out yet
     }
 
-    // Setup line style - match LVGL chart division line styling
+    // Setup line style - use explicit theme token for consistent grid appearance
     lv_draw_line_dsc_t line_dsc;
     lv_draw_line_dsc_init(&line_dsc);
-    line_dsc.color = lv_obj_get_style_line_color(chart, LV_PART_MAIN);
-    line_dsc.width = lv_obj_get_style_line_width(chart, LV_PART_MAIN);
-    line_dsc.opa = lv_obj_get_style_line_opa(chart, LV_PART_MAIN);
+    line_dsc.color = ui_theme_get_color("theme_grey"); // Match bed mesh grid
+    line_dsc.width = 1;
+    line_dsc.opa = LV_OPA_30;
 
     // Draw horizontal grid lines (5 lines = 4 divisions)
     constexpr int H_DIVISIONS = 5;
@@ -614,6 +614,7 @@ ui_temp_graph_t* ui_temp_graph_create(lv_obj_t* parent) {
 
     // Style chart background (theme handles colors)
     lv_obj_set_style_bg_opa(graph->chart, LV_OPA_COVER, LV_PART_MAIN);
+    lv_obj_set_style_bg_color(graph->chart, ui_theme_get_color("graph_bg"), LV_PART_MAIN);
     lv_obj_set_style_border_width(graph->chart, 0, LV_PART_MAIN);
     // Use responsive spacing from theme constants
     int32_t space_md = ui_theme_get_spacing("space_md"); // 8/10/12px
