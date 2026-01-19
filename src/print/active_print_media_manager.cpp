@@ -100,9 +100,13 @@ void ActivePrintMediaManager::process_filename(const char* raw_filename) {
     // (especially after cancel→firmware_restart where Klipper reports empty filename)
     // Clearing will happen naturally when a NEW print starts with a different filename
     if (!raw_filename || raw_filename[0] == '\0') {
-        spdlog::debug("[ActivePrintMediaManager] Filename empty - preserving current display");
+        if (!last_was_empty_) {
+            spdlog::debug("[ActivePrintMediaManager] Filename empty - preserving current display");
+            last_was_empty_ = true;
+        }
         return;
     }
+    last_was_empty_ = false;
 
     std::string filename = raw_filename;
 
