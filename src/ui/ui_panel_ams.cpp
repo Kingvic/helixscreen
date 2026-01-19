@@ -3,6 +3,7 @@
 
 #include "ui_panel_ams.h"
 
+#include "ui_ams_dryer_card.h"
 #include "ui_ams_slot.h"
 #include "ui_error_reporting.h"
 #include "ui_event_safety.h"
@@ -111,7 +112,9 @@ static void ensure_ams_widgets_registered() {
     lv_xml_register_event_cb(nullptr, "ams_bypass_clicked_cb", on_bypass_clicked_xml);
     lv_xml_register_event_cb(nullptr, "ams_bypass_toggled_cb", on_bypass_toggled_xml);
 
-    // Dryer card callbacks registered by helix::ui::AmsDryerCard class
+    // Register dryer card callbacks BEFORE XML parsing (callbacks must exist when parser sees them)
+    helix::ui::AmsDryerCard::register_callbacks_static();
+
     // Context menu callbacks registered by helix::ui::AmsContextMenu class
     // Spoolman picker callbacks registered by helix::ui::AmsSpoolmanPicker class
     // Edit modal and color picker callbacks registered by helix::ui::AmsEditModal class

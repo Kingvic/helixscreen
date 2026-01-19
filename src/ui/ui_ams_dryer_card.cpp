@@ -190,7 +190,7 @@ void AmsDryerCard::apply_preset(int temp_c, int duration_min) {
 // Static Callback Registration
 // ============================================================================
 
-void AmsDryerCard::register_callbacks() {
+void AmsDryerCard::register_callbacks_static() {
     if (callbacks_registered_) {
         return;
     }
@@ -200,7 +200,7 @@ void AmsDryerCard::register_callbacks() {
     lv_xml_register_event_cb(nullptr, "dryer_preset_pla_cb", on_preset_pla_cb);
     lv_xml_register_event_cb(nullptr, "dryer_preset_petg_cb", on_preset_petg_cb);
     lv_xml_register_event_cb(nullptr, "dryer_preset_abs_cb", on_preset_abs_cb);
-    lv_xml_register_event_cb(nullptr, "dryer_stop_cb", on_stop_cb);
+    lv_xml_register_event_cb(nullptr, "dryer_stop_clicked_cb", on_stop_cb);
     lv_xml_register_event_cb(nullptr, "dryer_temp_minus_cb", on_temp_minus_cb);
     lv_xml_register_event_cb(nullptr, "dryer_temp_plus_cb", on_temp_plus_cb);
     lv_xml_register_event_cb(nullptr, "dryer_duration_minus_cb", on_duration_minus_cb);
@@ -208,7 +208,12 @@ void AmsDryerCard::register_callbacks() {
     lv_xml_register_event_cb(nullptr, "dryer_power_toggled_cb", on_power_toggled_cb);
 
     callbacks_registered_ = true;
-    spdlog::debug("[AmsDryerCard] Callbacks registered");
+    spdlog::debug("[AmsDryerCard] Static callbacks registered");
+}
+
+void AmsDryerCard::register_callbacks() {
+    // Delegate to static method for backward compatibility
+    register_callbacks_static();
 }
 
 // ============================================================================

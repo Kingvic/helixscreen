@@ -85,6 +85,14 @@ class AmsDryerCard {
      */
     void apply_preset(int temp_c, int duration_min);
 
+    /**
+     * @brief Register XML callbacks statically (before XML parsing)
+     *
+     * Call this before registering ams_dryer_card.xml to ensure
+     * callbacks exist when the XML parser encounters <event_cb> elements.
+     */
+    static void register_callbacks_static();
+
   private:
     // === Widget References ===
     lv_obj_t* dryer_card_ = nullptr;
