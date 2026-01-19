@@ -19,6 +19,7 @@
 #include "observer_factory.h"
 #include "printer_state.h"
 #include "subject_managed_panel.h"
+#include "unit_conversions.h"
 
 #include <spdlog/spdlog.h>
 
@@ -43,10 +44,10 @@ DEFINE_GLOBAL_PANEL(MotionPanel, motion)
 // ============================================================================
 
 MotionPanel::MotionPanel() {
-    // Initialize buffer contents
-    std::strcpy(pos_x_buf_, "X:    --  mm");
-    std::strcpy(pos_y_buf_, "Y:    --  mm");
-    std::strcpy(pos_z_buf_, "Z:    --  mm");
+    // Initialize buffer contents (axis labels are in XML, values only here)
+    std::strcpy(pos_x_buf_, "— mm");
+    std::strcpy(pos_y_buf_, "— mm");
+    std::strcpy(pos_z_buf_, "— mm");
     std::strcpy(z_axis_label_buf_, "Z Axis"); // Default before kinematics detected
 
     spdlog::debug("[MotionPanel] Instance created");
@@ -70,13 +71,10 @@ void MotionPanel::init_subjects() {
     spdlog::debug("[{}] Initializing subjects", get_name());
 
     // Initialize position subjects with default placeholder values
-    // Using UI_MANAGED_SUBJECT_STRING to register with both XML system and SubjectManager
-    UI_MANAGED_SUBJECT_STRING(pos_x_subject_, pos_x_buf_, "X:    --  mm", "motion_pos_x",
-                              subjects_);
-    UI_MANAGED_SUBJECT_STRING(pos_y_subject_, pos_y_buf_, "Y:    --  mm", "motion_pos_y",
-                              subjects_);
-    UI_MANAGED_SUBJECT_STRING(pos_z_subject_, pos_z_buf_, "Z:    --  mm", "motion_pos_z",
-                              subjects_);
+    // Axis labels are in XML, subjects contain values only
+    UI_MANAGED_SUBJECT_STRING(pos_x_subject_, pos_x_buf_, "— mm", "motion_pos_x", subjects_);
+    UI_MANAGED_SUBJECT_STRING(pos_y_subject_, pos_y_buf_, "— mm", "motion_pos_y", subjects_);
+    UI_MANAGED_SUBJECT_STRING(pos_z_subject_, pos_z_buf_, "— mm", "motion_pos_z", subjects_);
 
     // Z-axis label: "Bed" (cartesian) or "Print Head" (corexy/delta)
     UI_MANAGED_SUBJECT_STRING(z_axis_label_subject_, z_axis_label_buf_, "Z Axis",
@@ -266,34 +264,44 @@ void MotionPanel::register_position_observers() {
 
     using helix::ui::observe_int_sync;
 
+    // Use gcode position (commanded) for X/Y display and jog calculations
     position_x_observer_ = observe_int_sync<MotionPanel>(
-        get_printer_state().get_position_x_subject(), this, [](MotionPanel* self, int x_int) {
+        get_printer_state().get_gcode_position_x_subject(), this, [](MotionPanel* self, int centimm) {
             if (!self->subjects_initialized_)
                 return;
-            float x = static_cast<float>(x_int);
+            float x = static_cast<float>(helix::units::from_centimm(centimm));
             self->current_x_ = x;
-            snprintf(self->pos_x_buf_, sizeof(self->pos_x_buf_), "X: %6.1f mm", x);
+            snprintf(self->pos_x_buf_, sizeof(self->pos_x_buf_), "%.2f mm", x);
             lv_subject_copy_string(&self->pos_x_subject_, self->pos_x_buf_);
         });
 
     position_y_observer_ = observe_int_sync<MotionPanel>(
-        get_printer_state().get_position_y_subject(), this, [](MotionPanel* self, int y_int) {
+        get_printer_state().get_gcode_position_y_subject(), this, [](MotionPanel* self, int centimm) {
             if (!self->subjects_initialized_)
                 return;
-            float y = static_cast<float>(y_int);
+            float y = static_cast<float>(helix::units::from_centimm(centimm));
             self->current_y_ = y;
-            snprintf(self->pos_y_buf_, sizeof(self->pos_y_buf_), "Y: %6.1f mm", y);
+            snprintf(self->pos_y_buf_, sizeof(self->pos_y_buf_), "%.2f mm", y);
             lv_subject_copy_string(&self->pos_y_subject_, self->pos_y_buf_);
         });
 
-    position_z_observer_ = observe_int_sync<MotionPanel>(
-        get_printer_state().get_position_z_subject(), this, [](MotionPanel* self, int z_int) {
+    // Z needs both gcode (commanded) and actual (with mesh compensation) positions
+    // Display shows commanded with actual in brackets when they differ
+    gcode_z_observer_ = observe_int_sync<MotionPanel>(
+        get_printer_state().get_gcode_position_z_subject(), this, [](MotionPanel* self, int centimm) {
             if (!self->subjects_initialized_)
                 return;
-            float z = static_cast<float>(z_int);
-            self->current_z_ = z;
-            snprintf(self->pos_z_buf_, sizeof(self->pos_z_buf_), "Z: %6.1f mm", z);
-            lv_subject_copy_string(&self->pos_z_subject_, self->pos_z_buf_);
+            self->gcode_z_centimm_ = centimm;
+            self->current_z_ = static_cast<float>(helix::units::from_centimm(centimm));
+            self->update_z_display();
+        });
+
+    actual_z_observer_ = observe_int_sync<MotionPanel>(
+        get_printer_state().get_position_z_subject(), this, [](MotionPanel* self, int centimm) {
+            if (!self->subjects_initialized_)
+                return;
+            self->actual_z_centimm_ = centimm;
+            self->update_z_display();
         });
 
     // Watch for kinematics changes to update Z-axis label ("Bed" vs "Print Head")
@@ -318,6 +326,20 @@ void MotionPanel::update_z_axis_label(bool bed_moves) {
     z_axis_label_buf_[sizeof(z_axis_label_buf_) - 1] = '\0';
     lv_subject_copy_string(&z_axis_label_subject_, z_axis_label_buf_);
     spdlog::debug("[{}] Z-axis label updated: {} (bed_moves={})", get_name(), label, bed_moves);
+}
+
+void MotionPanel::update_z_display() {
+    float gcode_z = static_cast<float>(helix::units::from_centimm(gcode_z_centimm_));
+    float actual_z = static_cast<float>(helix::units::from_centimm(actual_z_centimm_));
+
+    // Show actual in brackets only when it differs from commanded (e.g., mesh compensation)
+    // Use 1 centimm (0.01mm) threshold to avoid floating point noise
+    if (std::abs(gcode_z_centimm_ - actual_z_centimm_) > 1) {
+        snprintf(pos_z_buf_, sizeof(pos_z_buf_), "%.2f [%.2f] mm", gcode_z, actual_z);
+    } else {
+        snprintf(pos_z_buf_, sizeof(pos_z_buf_), "%.2f mm", gcode_z);
+    }
+    lv_subject_copy_string(&pos_z_subject_, pos_z_buf_);
 }
 
 // ============================================================================
@@ -399,17 +421,21 @@ void MotionPanel::set_position(float x, float y, float z) {
     current_y_ = y;
     current_z_ = z;
 
+    // When set directly via API, gcode and actual are the same
+    int z_centimm = helix::units::to_centimm(static_cast<double>(z));
+    gcode_z_centimm_ = z_centimm;
+    actual_z_centimm_ = z_centimm;
+
     if (!subjects_initialized_)
         return;
 
     // Update subjects (will automatically update bound UI elements)
-    snprintf(pos_x_buf_, sizeof(pos_x_buf_), "X: %6.1f mm", x);
-    snprintf(pos_y_buf_, sizeof(pos_y_buf_), "Y: %6.1f mm", y);
-    snprintf(pos_z_buf_, sizeof(pos_z_buf_), "Z: %6.1f mm", z);
+    snprintf(pos_x_buf_, sizeof(pos_x_buf_), "%.2f mm", x);
+    snprintf(pos_y_buf_, sizeof(pos_y_buf_), "%.2f mm", y);
 
     lv_subject_copy_string(&pos_x_subject_, pos_x_buf_);
     lv_subject_copy_string(&pos_y_subject_, pos_y_buf_);
-    lv_subject_copy_string(&pos_z_subject_, pos_z_buf_);
+    update_z_display(); // Also copies to pos_z_subject_
 }
 
 void MotionPanel::jog(jog_direction_t direction, float distance_mm) {

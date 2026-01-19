@@ -22,8 +22,8 @@ static const float distance_values[] = {0.1f, 1.0f, 10.0f, 100.0f};
 static constexpr float HOME_ZONE_RATIO = 0.25f;
 static constexpr float INNER_ZONE_BOUNDARY_RATIO = 0.60f; // Inner/outer zone boundary
 
-// Responsive font selection based on jog pad radius
-// Threshold values tuned for common screen sizes (480px small, 800px medium, 1024px+ large)
+// Responsive font selection using theme system
+// Returns icon font for home button (radius-based for icon sizing)
 static const lv_font_t* get_icon_font(lv_coord_t radius) {
     if (radius >= 120)
         return &mdi_icons_32;
@@ -32,20 +32,16 @@ static const lv_font_t* get_icon_font(lv_coord_t radius) {
     return &mdi_icons_24; // Minimum readable size
 }
 
-static const lv_font_t* get_label_font(lv_coord_t radius) {
-    if (radius >= 150)
-        return &noto_sans_18;
-    if (radius >= 100)
-        return &noto_sans_16;
-    return &noto_sans_14; // Minimum readable size
+// Axis labels (X+, Y-, etc) - use small font from theme
+static const lv_font_t* get_label_font([[maybe_unused]] lv_coord_t radius) {
+    const lv_font_t* font = ui_theme_get_font("font_small");
+    return font ? font : &noto_sans_14; // Fallback if theme not ready
 }
 
-static const lv_font_t* get_distance_font(lv_coord_t radius) {
-    if (radius >= 150)
-        return &noto_sans_16;
-    if (radius >= 100)
-        return &noto_sans_14;
-    return &noto_sans_12; // Minimum readable size
+// Distance labels (1mm, 10mm) - use extra small font from theme
+static const lv_font_t* get_distance_font([[maybe_unused]] lv_coord_t radius) {
+    const lv_font_t* font = ui_theme_get_font("font_xs");
+    return font ? font : &noto_sans_10; // Fallback if theme not ready
 }
 
 // Widget state (stored in LVGL object user_data)
