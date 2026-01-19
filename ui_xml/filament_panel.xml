@@ -2,6 +2,11 @@
 <!-- Copyright (C) 2025-2026 356C LLC -->
 <!-- SPDX-License-Identifier: GPL-3.0-or-later -->
 <component>
+  <!-- Styles for reactive purge button state binding (L040: no inline bg attrs) -->
+  <styles>
+    <style name="purge_btn_selected" bg_color="#tertiary_color" bg_opa="255"/>
+    <style name="purge_btn_unselected" bg_color="#tertiary_color" bg_opa="40"/>
+  </styles>
   <!-- Filament Management Panel -->
   <!-- Two-column layout: left (temp status + AMS), right (material + operations) -->
   <view name="filament_panel"
@@ -201,18 +206,27 @@
           <text_small text="Length:"/>
           <lv_button name="purge_5mm"
                      height="#button_height_sm" flex_grow="1" style_radius="#border_radius" style_border_width="0">
+            <!-- L040: TWO bind_styles (selected/unselected) with boolean subject -->
+            <bind_style name="purge_btn_selected" subject="filament_purge_5mm_active" ref_value="1"/>
+            <bind_style name="purge_btn_unselected" subject="filament_purge_5mm_active" ref_value="0"/>
             <event_cb trigger="clicked" callback="on_filament_purge_5mm"/>
-            <text_small text="5mm" align="center"/>
+            <text_small text="5mm" align="center" style_text_color="#text_primary"/>
           </lv_button>
           <lv_button name="purge_10mm"
                      height="#button_height_sm" flex_grow="1" style_radius="#border_radius" style_border_width="0">
+            <!-- L040: TWO bind_styles (selected/unselected) with boolean subject -->
+            <bind_style name="purge_btn_selected" subject="filament_purge_10mm_active" ref_value="1"/>
+            <bind_style name="purge_btn_unselected" subject="filament_purge_10mm_active" ref_value="0"/>
             <event_cb trigger="clicked" callback="on_filament_purge_10mm"/>
-            <text_small text="10mm" align="center"/>
+            <text_small text="10mm" align="center" style_text_color="#text_primary"/>
           </lv_button>
           <lv_button name="purge_25mm"
                      height="#button_height_sm" flex_grow="1" style_radius="#border_radius" style_border_width="0">
+            <!-- L040: TWO bind_styles (selected/unselected) with boolean subject -->
+            <bind_style name="purge_btn_selected" subject="filament_purge_25mm_active" ref_value="1"/>
+            <bind_style name="purge_btn_unselected" subject="filament_purge_25mm_active" ref_value="0"/>
             <event_cb trigger="clicked" callback="on_filament_purge_25mm"/>
-            <text_small text="25mm" align="center"/>
+            <text_small text="25mm" align="center" style_text_color="#text_primary"/>
           </lv_button>
         </lv_obj>
         <!-- Action Buttons: Load/Unload side-by-side, Purge below -->

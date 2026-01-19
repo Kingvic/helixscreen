@@ -196,6 +196,12 @@ void FilamentPanel::init_subjects() {
     // Cooldown button visibility (1 when nozzle target > 0)
     UI_MANAGED_SUBJECT_INT(nozzle_heating_subject_, 0, "filament_nozzle_heating", subjects_);
 
+    // Purge amount button active states (boolean: 0=inactive, 1=active)
+    // Using separate subjects because bind_style doesn't work well with multiple ref_values
+    UI_MANAGED_SUBJECT_INT(purge_5mm_active_subject_, 0, "filament_purge_5mm_active", subjects_);
+    UI_MANAGED_SUBJECT_INT(purge_10mm_active_subject_, 1, "filament_purge_10mm_active", subjects_);
+    UI_MANAGED_SUBJECT_INT(purge_25mm_active_subject_, 0, "filament_purge_25mm_active", subjects_);
+
     subjects_initialized_ = true;
     spdlog::debug("[{}] Subjects initialized: temp={}/{}°C, material={}", get_name(),
                   nozzle_current_, nozzle_target_, selected_material_);
@@ -230,15 +236,7 @@ void FilamentPanel::setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
         preset_buttons_[i] = lv_obj_find_by_name(panel_, preset_names[i]);
     }
 
-    // Find purge amount buttons (for visual state updates)
-    purge_5mm_btn_ = lv_obj_find_by_name(panel_, "purge_5mm");
-    purge_10mm_btn_ = lv_obj_find_by_name(panel_, "purge_10mm");
-    purge_25mm_btn_ = lv_obj_find_by_name(panel_, "purge_25mm");
-
-    // Find action buttons (for state management)
-    btn_load_ = lv_obj_find_by_name(panel_, "btn_load");
-    btn_unload_ = lv_obj_find_by_name(panel_, "btn_unload");
-    btn_purge_ = lv_obj_find_by_name(panel_, "btn_purge");
+    // Action buttons (btn_load, btn_unload, btn_purge) - disabled state managed by XML bindings
 
     // Find safety warning card
     safety_warning_ = lv_obj_find_by_name(panel_, "safety_warning");
@@ -292,7 +290,9 @@ void FilamentPanel::setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
     update_status_icon_for_state();
     update_warning_text();
     update_safety_state();
-    update_purge_button_highlight();
+
+    // Trigger initial purge button selection (notifies bind_style observers)
+    handle_purge_amount_select(purge_amount_);
 
     // Setup combined temperature graph if TempControlPanel is available
     if (temp_control_panel_) {
@@ -360,37 +360,9 @@ void FilamentPanel::update_warning_text() {
 void FilamentPanel::update_safety_state() {
     bool allowed = helix::ui::temperature::is_extrusion_safe(nozzle_current_, min_extrude_temp_);
 
-    // Update reactive subjects
+    // Update reactive subjects - XML bindings handle button disabled state and safety warning visibility
     lv_subject_set_int(&extrusion_allowed_subject_, allowed ? 1 : 0);
     lv_subject_set_int(&safety_warning_visible_subject_, allowed ? 0 : 1);
-
-    // Imperative button state management (performance optimization)
-    if (btn_load_) {
-        if (allowed) {
-            lv_obj_remove_state(btn_load_, LV_STATE_DISABLED);
-        } else {
-            lv_obj_add_state(btn_load_, LV_STATE_DISABLED);
-        }
-    }
-
-    if (btn_unload_) {
-        if (allowed) {
-            lv_obj_remove_state(btn_unload_, LV_STATE_DISABLED);
-        } else {
-            lv_obj_add_state(btn_unload_, LV_STATE_DISABLED);
-        }
-    }
-
-    if (btn_purge_) {
-        if (allowed) {
-            lv_obj_remove_state(btn_purge_, LV_STATE_DISABLED);
-        } else {
-            lv_obj_add_state(btn_purge_, LV_STATE_DISABLED);
-        }
-    }
-
-    // Safety warning visibility is handled by XML binding to safety_warning_visible_subject_
-    // (updated at line 177 above)
 
     spdlog::trace("[{}] Safety state updated: allowed={} (temp={}°C)", get_name(), allowed,
                   nozzle_current_);
@@ -575,25 +547,6 @@ void FilamentPanel::update_status_icon_for_state() {
     }
 }
 
-void FilamentPanel::update_purge_button_highlight() {
-    // Highlight selected purge amount button with primary color
-    lv_color_t selected_color = ui_theme_get_color("primary_color");
-    lv_color_t default_color = ui_theme_get_color("card_bg");
-
-    if (purge_5mm_btn_) {
-        lv_obj_set_style_bg_color(
-            purge_5mm_btn_, purge_amount_ == 5 ? selected_color : default_color, LV_PART_MAIN);
-    }
-    if (purge_10mm_btn_) {
-        lv_obj_set_style_bg_color(
-            purge_10mm_btn_, purge_amount_ == 10 ? selected_color : default_color, LV_PART_MAIN);
-    }
-    if (purge_25mm_btn_) {
-        lv_obj_set_style_bg_color(
-            purge_25mm_btn_, purge_amount_ == 25 ? selected_color : default_color, LV_PART_MAIN);
-    }
-}
-
 void FilamentPanel::set_operation_in_progress(bool in_progress) {
     operation_in_progress_ = in_progress;
     lv_subject_set_int(&operation_in_progress_subject_, in_progress ? 1 : 0);
@@ -601,7 +554,10 @@ void FilamentPanel::set_operation_in_progress(bool in_progress) {
 
 void FilamentPanel::handle_purge_amount_select(int amount) {
     purge_amount_ = amount;
-    update_purge_button_highlight();
+    // Update boolean subjects for each button (only one active at a time)
+    lv_subject_set_int(&purge_5mm_active_subject_, amount == 5 ? 1 : 0);
+    lv_subject_set_int(&purge_10mm_active_subject_, amount == 10 ? 1 : 0);
+    lv_subject_set_int(&purge_25mm_active_subject_, amount == 25 ? 1 : 0);
     spdlog::info("[{}] Purge amount set to {}mm", get_name(), amount);
 }
 

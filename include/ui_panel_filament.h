@@ -192,6 +192,12 @@ class FilamentPanel : public PanelBase {
     // Cooldown button visibility (1 when nozzle target > 0, 0 otherwise)
     lv_subject_t nozzle_heating_subject_;
 
+    // Purge amount button active subjects (boolean: 0=inactive, 1=active)
+    // Using separate subjects because bind_style doesn't work with multiple ref_values
+    lv_subject_t purge_5mm_active_subject_;
+    lv_subject_t purge_10mm_active_subject_;
+    lv_subject_t purge_25mm_active_subject_;
+
     // Purge amount state
     int purge_amount_ = 10; // Default 10mm
 
@@ -224,9 +230,7 @@ class FilamentPanel : public PanelBase {
     // Filament macros now resolved via StandardMacros singleton (load, unload, purge)
 
     // Child widgets (for imperative state management)
-    lv_obj_t* btn_load_ = nullptr;
-    lv_obj_t* btn_unload_ = nullptr;
-    lv_obj_t* btn_purge_ = nullptr;
+    // Action buttons (btn_load_, btn_unload_, btn_purge_) - disabled state managed by XML bindings
     lv_obj_t* safety_warning_ = nullptr;
     lv_obj_t* status_icon_ = nullptr;
     lv_obj_t* preset_buttons_[4] = {nullptr};
@@ -234,11 +238,6 @@ class FilamentPanel : public PanelBase {
     // Temperature labels for color updates (4-state heating color)
     lv_obj_t* nozzle_current_label_ = nullptr;
     lv_obj_t* bed_current_label_ = nullptr;
-
-    // Purge amount selector buttons
-    lv_obj_t* purge_5mm_btn_ = nullptr;
-    lv_obj_t* purge_10mm_btn_ = nullptr;
-    lv_obj_t* purge_25mm_btn_ = nullptr;
 
     // Warning dialogs for filament sensor integration
     lv_obj_t* load_warning_dialog_ = nullptr;
@@ -286,7 +285,6 @@ class FilamentPanel : public PanelBase {
     void update_material_temp_display();
     void update_left_card_temps();
     void update_status_icon_for_state();
-    void update_purge_button_highlight();
     void set_operation_in_progress(bool in_progress);
 
     // Filament sensor warning helpers
