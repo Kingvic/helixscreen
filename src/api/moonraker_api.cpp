@@ -20,6 +20,9 @@ MoonrakerAPI::MoonrakerAPI(MoonrakerClient& client, PrinterState& state) : clien
     // state parameter reserved for future use
     (void)state;
 
+    // Initialize build_volume_version subject for change notifications
+    lv_subject_init_int(&build_volume_version_, 0);
+
     // Wire up hardware discovery callbacks: Client pushes data to API during discovery
     client_.set_on_hardware_discovered([this](const helix::PrinterDiscovery& hw) {
         hardware_ = hw;
@@ -141,6 +144,13 @@ void MoonrakerAPI::launch_http_thread(std::function<void()> func) {
         func();
         // Thread auto-removed during next launch or destructor
     });
+}
+
+void MoonrakerAPI::notify_build_volume_changed() {
+    // Increment version counter to notify observers
+    build_volume_version_counter_++;
+    lv_subject_set_int(&build_volume_version_, build_volume_version_counter_);
+    spdlog::debug("[MoonrakerAPI] Build volume changed, version={}", build_volume_version_counter_);
 }
 
 // ============================================================================

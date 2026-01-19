@@ -24,6 +24,8 @@
 
 #include "app_globals.h"
 #include "moonraker_api.h"
+#include "observer_factory.h"
+#include "printer_detector.h"
 #include "settings_manager.h"
 #include "static_panel_registry.h"
 
@@ -250,6 +252,9 @@ lv_obj_t* BedMeshPanel::create(lv_obj_t* parent) {
 
     // Setup Moonraker subscription for mesh updates
     setup_moonraker_subscription();
+
+    // Setup observer for build_volume changes (to refresh bounds when stepper config loads)
+    setup_build_volume_observer();
 
     // Load initial mesh data from MoonrakerAPI
     MoonrakerAPI* api = get_moonraker_api();
@@ -535,6 +540,54 @@ void BedMeshPanel::setup_moonraker_subscription() {
     spdlog::debug("[{}] Registered Moonraker callback for mesh updates", get_name());
 }
 
+void BedMeshPanel::setup_build_volume_observer() {
+    MoonrakerAPI* api = get_moonraker_api();
+    if (!api) {
+        spdlog::warn("[{}] Cannot observe build_volume - API is null", get_name());
+        return;
+    }
+
+    // Observe build_volume_version subject to refresh bounds when stepper config loads
+    build_volume_observer_ = helix::ui::observe_int_sync<BedMeshPanel>(
+        api->get_build_volume_version_subject(), this, [](BedMeshPanel* self, int /*version*/) {
+            spdlog::debug("[{}] build_volume changed, refreshing bed bounds", self->get_name());
+            self->refresh_bed_bounds();
+        });
+}
+
+void BedMeshPanel::refresh_bed_bounds() {
+    if (!canvas_ || !has_cached_mesh_bounds_) {
+        return;
+    }
+
+    MoonrakerAPI* api = get_moonraker_api();
+    const auto& bed = api ? api->hardware().build_volume() : BuildVolume{};
+    double bed_x_min = bed.x_min;
+    double bed_x_max = bed.x_max;
+    double bed_y_min = bed.y_min;
+    double bed_y_max = bed.y_max;
+
+    // Wait for valid build_volume - do NOT use fallback to avoid flash
+    if (bed_x_max <= bed_x_min || bed_y_max <= bed_y_min) {
+        spdlog::debug("[{}] Deferring render until build_volume is available", get_name());
+        return;
+    }
+
+    spdlog::debug("[{}] Using build_volume for bed bounds: X[{:.0f},{:.0f}] Y[{:.0f},{:.0f}]",
+                  get_name(), bed_x_min, bed_x_max, bed_y_min, bed_y_max);
+
+    ui_bed_mesh_set_bounds(canvas_, bed_x_min, bed_x_max, bed_y_min, bed_y_max, cached_mesh_min_x_,
+                           cached_mesh_max_x_, cached_mesh_min_y_, cached_mesh_max_y_);
+
+    // If we have pending mesh data, render it now that bounds are valid
+    if (has_pending_mesh_data_) {
+        spdlog::debug("[{}] Rendering deferred mesh data", get_name());
+        set_mesh_data(pending_mesh_data_);
+        pending_mesh_data_.clear();
+        has_pending_mesh_data_ = false;
+    }
+}
+
 void BedMeshPanel::on_mesh_update_internal(const BedMeshProfile& mesh) {
     spdlog::debug("[{}] on_mesh_update_internal called, probed_matrix.size={}", get_name(),
                   mesh.probed_matrix.size());
@@ -602,14 +655,29 @@ void BedMeshPanel::on_mesh_update_internal(const BedMeshProfile& mesh) {
     std::snprintf(variance_buf_, sizeof(variance_buf_), "%.3f mm", variance);
     lv_subject_copy_string(&bed_mesh_variance_, variance_buf_);
 
-    // Update renderer
-    set_mesh_data(mesh.probed_matrix);
+    // Cache mesh bounds
+    if ((mesh.mesh_max[0] > mesh.mesh_min[0]) && (mesh.mesh_max[1] > mesh.mesh_min[1])) {
+        cached_mesh_min_x_ = mesh.mesh_min[0];
+        cached_mesh_max_x_ = mesh.mesh_max[0];
+        cached_mesh_min_y_ = mesh.mesh_min[1];
+        cached_mesh_max_y_ = mesh.mesh_max[1];
+        has_cached_mesh_bounds_ = true;
+    }
 
-    // Set coordinate bounds
-    if (canvas_ && (mesh.mesh_max[0] > mesh.mesh_min[0]) && (mesh.mesh_max[1] > mesh.mesh_min[1])) {
-        ui_bed_mesh_set_bounds(canvas_, mesh.mesh_min[0], mesh.mesh_max[0], mesh.mesh_min[1],
-                               mesh.mesh_max[1], mesh.mesh_min[0], mesh.mesh_max[0],
-                               mesh.mesh_min[1], mesh.mesh_max[1]);
+    // Check if build_volume is available
+    MoonrakerAPI* api = get_moonraker_api();
+    const auto& bed = api ? api->hardware().build_volume() : BuildVolume{};
+    bool has_valid_build_volume = (bed.x_max > bed.x_min && bed.y_max > bed.y_min);
+
+    if (has_valid_build_volume) {
+        // Build volume available - set bounds and render immediately
+        refresh_bed_bounds();
+        set_mesh_data(mesh.probed_matrix);
+    } else {
+        // Build volume not yet available - defer rendering until it arrives
+        pending_mesh_data_ = mesh.probed_matrix;
+        has_pending_mesh_data_ = true;
+        spdlog::debug("[{}] Deferring mesh render until build_volume is available", get_name());
     }
 
     spdlog::info("[{}] Mesh updated: {} ({}x{}, Z: {:.3f} to {:.3f})", get_name(), mesh.name,

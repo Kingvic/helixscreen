@@ -40,10 +40,6 @@ namespace {
 constexpr double CANVAS_PADDING_FACTOR = 0.85; // Margin for axis labels and tick marks at edges
 constexpr double INITIAL_FOV_SCALE = 150.0;    // Starting point for auto-scale (gets adjusted)
 
-// ========== Geometry & Visibility Constants (Phase 1 refactoring) ==========
-// Wall height factor (Mainsail-style: extends to 2x the mesh Z range above z_min)
-constexpr double WALL_HEIGHT_FACTOR = 2.0;
-
 } // anonymous namespace
 
 // ============================================================================
@@ -61,6 +57,9 @@ static void compute_projected_mesh_bounds(const bed_mesh_renderer_t* renderer, i
 static void compute_centering_offset(int mesh_min_x, int mesh_max_x, int mesh_min_y, int mesh_max_y,
                                      int layer_offset_x, int layer_offset_y, int canvas_width,
                                      int canvas_height, int* out_offset_x, int* out_offset_y);
+static void calibrate_fov_scale(bed_mesh_renderer_t* renderer, int canvas_width, int canvas_height);
+static void compute_initial_centering(bed_mesh_renderer_t* renderer, int canvas_width,
+                                      int canvas_height, int layer_offset_x, int layer_offset_y);
 static void render_quad(lv_layer_t* layer, const bed_mesh_quad_3d_t& quad, bool use_gradient);
 static void prepare_render_frame(bed_mesh_renderer_t* renderer, int canvas_width, int canvas_height,
                                  int layer_offset_x, int layer_offset_y);
@@ -288,9 +287,15 @@ void bed_mesh_renderer_set_bounds(bed_mesh_renderer_t* renderer, double bed_x_mi
                   mesh_y_max, renderer->bed_center_x, renderer->bed_center_y,
                   renderer->coord_scale);
 
-    // Bounds changes invalidate cached projections and quads
+    // Reset FOV scale to trigger auto-calibration on next render
+    // This ensures the view zooms to fit the new bed bounds
+    renderer->view_state.fov_scale = INITIAL_FOV_SCALE;
+
+    // Bounds changes require regenerating quads with new coord_scale and centers
     if (renderer->state == RendererState::READY_TO_RENDER ||
         renderer->state == RendererState::MESH_LOADED) {
+        // Regenerate quads with new coordinate transform
+        helix::mesh::generate_mesh_quads(renderer);
         renderer->state = RendererState::MESH_LOADED;
     }
 }
@@ -427,9 +432,9 @@ bool bed_mesh_renderer_render(bed_mesh_renderer_t* renderer, lv_layer_t* layer, 
     }
 
     // State validation: Cannot render in UNINITIALIZED or ERROR state
+    // Use debug level since UNINITIALIZED is expected when panel opens before mesh loads
     if (renderer->state == RendererState::UNINITIALIZED) {
-        spdlog::warn(
-            "[Bed Mesh Renderer] Cannot render: no mesh data loaded (state: UNINITIALIZED)");
+        spdlog::debug("[Bed Mesh Renderer] No mesh data loaded (state: UNINITIALIZED)");
         return false;
     }
 
@@ -440,7 +445,7 @@ bool bed_mesh_renderer_render(bed_mesh_renderer_t* renderer, lv_layer_t* layer, 
 
     // Redundant check for backwards compatibility
     if (!renderer->has_mesh_data) {
-        spdlog::warn("[Bed Mesh Renderer] No mesh data loaded, cannot render");
+        spdlog::debug("[Bed Mesh Renderer] No mesh data loaded");
         return false;
     }
 
@@ -518,11 +523,11 @@ bool bed_mesh_renderer_render(bed_mesh_renderer_t* renderer, lv_layer_t* layer, 
         auto t_prepare = std::chrono::high_resolution_clock::now();
 
         // Phase 2: Render reference grids FIRST (behind mesh)
-        // These are the axis plane lines that should be obscured by the mesh
+        // Floor and walls use printer bed dimensions, mesh "floats" inside
         helix::mesh::render_reference_grids(layer, renderer, canvas_width, canvas_height);
 
         // Phase 3: Render mesh surface (quads with gradient/solid colors)
-        // Drawn after reference grids so mesh obscures them
+        // Mesh is drawn on top, naturally occluding parts of the reference grids
         render_mesh_surface(layer, renderer);
         auto t_surface = std::chrono::high_resolution_clock::now();
 
@@ -853,6 +858,129 @@ static void compute_centering_offset(int mesh_min_x, int mesh_max_x, int mesh_mi
 }
 
 /**
+ * @brief Calibrate FOV scale to fit mesh and walls within canvas bounds
+ *
+ * Computes a scale factor that ensures the projected mesh and reference walls
+ * fit within the canvas with appropriate padding. Only runs on first render
+ * (when fov_scale equals INITIAL_FOV_SCALE).
+ *
+ * @param renderer Renderer instance with mesh data
+ * @param canvas_width Canvas width in pixels
+ * @param canvas_height Canvas height in pixels
+ */
+static void calibrate_fov_scale(bed_mesh_renderer_t* renderer, int canvas_width,
+                                int canvas_height) {
+    // Project all mesh vertices with initial scale to get actual bounds
+    project_and_cache_vertices(renderer, canvas_width, canvas_height);
+
+    // Compute actual projected bounds using helper function
+    int min_x, max_x, min_y, max_y;
+    compute_projected_mesh_bounds(renderer, &min_x, &max_x, &min_y, &max_y);
+
+    // ALSO include wall corners in bounds calculation
+    // This prevents walls from being clipped when they extend above the mesh
+    // Must match render_reference_grids() - use BED bounds when available, not mesh
+    double bed_half_width, bed_half_height;
+    if (renderer->has_bed_bounds) {
+        bed_half_width = (renderer->bed_max_x - renderer->bed_min_x) / 2.0 * renderer->coord_scale;
+        bed_half_height = (renderer->bed_max_y - renderer->bed_min_y) / 2.0 * renderer->coord_scale;
+    } else {
+        bed_half_width = (renderer->cols - 1) / 2.0 * BED_MESH_SCALE;
+        bed_half_height = (renderer->rows - 1) / 2.0 * BED_MESH_SCALE;
+    }
+    double z_min_world = helix::mesh::mesh_z_to_world_z(
+        renderer->mesh_min_z, renderer->cached_z_center, renderer->view_state.z_scale);
+    double z_max_world = helix::mesh::mesh_z_to_world_z(
+        renderer->mesh_max_z, renderer->cached_z_center, renderer->view_state.z_scale);
+
+    // Calculate wall bounds using centralized function
+    auto bounds =
+        helix::mesh::compute_wall_bounds(z_min_world, z_max_world, bed_half_width, bed_half_height);
+    double wall_z_max = bounds.ceiling_z;
+    double wall_z_floor = bounds.floor_z;
+
+    // Project wall/floor corners and expand bounds
+    // Include grid margin to account for tick label positions
+    double x_min = -bed_half_width - BED_MESH_GRID_MARGIN;
+    double x_max = bed_half_width + BED_MESH_GRID_MARGIN;
+    double y_min = -bed_half_height - BED_MESH_GRID_MARGIN;
+    double y_max = bed_half_height + BED_MESH_GRID_MARGIN;
+
+    // Project all 8 corners (4 at ceiling, 4 at floor) to get full bounds
+    bed_mesh_point_3d_t corners[8] = {
+        // Ceiling corners (top of walls)
+        bed_mesh_projection_project_3d_to_2d(x_min, y_min, wall_z_max, canvas_width, canvas_height,
+                                             &renderer->view_state),
+        bed_mesh_projection_project_3d_to_2d(x_max, y_min, wall_z_max, canvas_width, canvas_height,
+                                             &renderer->view_state),
+        bed_mesh_projection_project_3d_to_2d(x_min, y_max, wall_z_max, canvas_width, canvas_height,
+                                             &renderer->view_state),
+        bed_mesh_projection_project_3d_to_2d(x_max, y_max, wall_z_max, canvas_width, canvas_height,
+                                             &renderer->view_state),
+        // Floor corners (where tick labels are drawn)
+        bed_mesh_projection_project_3d_to_2d(x_min, y_min, wall_z_floor, canvas_width,
+                                             canvas_height, &renderer->view_state),
+        bed_mesh_projection_project_3d_to_2d(x_max, y_min, wall_z_floor, canvas_width,
+                                             canvas_height, &renderer->view_state),
+        bed_mesh_projection_project_3d_to_2d(x_min, y_max, wall_z_floor, canvas_width,
+                                             canvas_height, &renderer->view_state),
+        bed_mesh_projection_project_3d_to_2d(x_max, y_max, wall_z_floor, canvas_width,
+                                             canvas_height, &renderer->view_state),
+    };
+    for (const auto& corner : corners) {
+        min_x = std::min(min_x, corner.screen_x);
+        max_x = std::max(max_x, corner.screen_x);
+        min_y = std::min(min_y, corner.screen_y);
+        max_y = std::max(max_y, corner.screen_y);
+    }
+
+    // Calculate scale needed to fit projected bounds into canvas
+    int projected_width = max_x - min_x;
+    int projected_height = max_y - min_y;
+    double scale_x = (canvas_width * CANVAS_PADDING_FACTOR) / projected_width;
+    double scale_y = (canvas_height * CANVAS_PADDING_FACTOR) / projected_height;
+    double scale_factor = std::min(scale_x, scale_y);
+
+    spdlog::info("[Bed Mesh Renderer] [FOV] Canvas: {}x{}, Projected (incl walls): {}x{}, "
+                 "Padding: {:.2f}, Scale: {:.2f}",
+                 canvas_width, canvas_height, projected_width, projected_height,
+                 CANVAS_PADDING_FACTOR, scale_factor);
+
+    // Apply scale (only once, not every frame)
+    renderer->view_state.fov_scale *= scale_factor;
+    spdlog::info("[Bed Mesh Renderer] [FOV] Final fov_scale: {:.2f} (initial {} * scale {:.2f})",
+                 renderer->view_state.fov_scale, INITIAL_FOV_SCALE, scale_factor);
+}
+
+/**
+ * @brief Compute initial centering offset for mesh in canvas
+ *
+ * Calculates the offset needed to center the projected mesh within the canvas.
+ * Only runs on first render (when center_offset_x/y are both 0).
+ *
+ * @param renderer Renderer instance with mesh data
+ * @param canvas_width Canvas width in pixels
+ * @param canvas_height Canvas height in pixels
+ * @param layer_offset_x Layer's screen position X (from clip area)
+ * @param layer_offset_y Layer's screen position Y (from clip area)
+ */
+static void compute_initial_centering(bed_mesh_renderer_t* renderer, int canvas_width,
+                                      int canvas_height, int layer_offset_x, int layer_offset_y) {
+    // Compute bounds with current projection
+    int inner_min_x, inner_max_x, inner_min_y, inner_max_y;
+    compute_projected_mesh_bounds(renderer, &inner_min_x, &inner_max_x, &inner_min_y, &inner_max_y);
+
+    // Calculate centering offset using helper function
+    compute_centering_offset(inner_min_x, inner_max_x, inner_min_y, inner_max_y, layer_offset_x,
+                             layer_offset_y, canvas_width, canvas_height,
+                             &renderer->view_state.center_offset_x,
+                             &renderer->view_state.center_offset_y);
+
+    spdlog::debug("[Bed Mesh Renderer] [CENTER] Computed centering offset: ({}, {})",
+                  renderer->view_state.center_offset_x, renderer->view_state.center_offset_y);
+}
+
+/**
  * @brief Prepare rendering frame - compute projection parameters and update view state
  *
  * Performs one-time and per-frame preparation:
@@ -901,61 +1029,7 @@ static void prepare_render_frame(bed_mesh_renderer_t* renderer, int canvas_width
     // Compute FOV scale ONCE on first render (when fov_scale is still at default)
     // This prevents grow/shrink effect when rotating - scale stays constant
     if (renderer->view_state.fov_scale == INITIAL_FOV_SCALE) {
-        // Project all mesh vertices with initial scale to get actual bounds
-        project_and_cache_vertices(renderer, canvas_width, canvas_height);
-
-        // Compute actual projected bounds using helper function
-        int min_x, max_x, min_y, max_y;
-        compute_projected_mesh_bounds(renderer, &min_x, &max_x, &min_y, &max_y);
-
-        // ALSO include wall corners in bounds calculation (walls extend WALL_HEIGHT_FACTOR * mesh
-        // height) This prevents walls from being clipped when they extend above the mesh
-        double mesh_half_width = (renderer->cols - 1) / 2.0 * BED_MESH_SCALE;
-        double mesh_half_height = (renderer->rows - 1) / 2.0 * BED_MESH_SCALE;
-        double z_min_world = helix::mesh::mesh_z_to_world_z(
-            renderer->mesh_min_z, renderer->cached_z_center, renderer->view_state.z_scale);
-        double z_max_world = helix::mesh::mesh_z_to_world_z(
-            renderer->mesh_max_z, renderer->cached_z_center, renderer->view_state.z_scale);
-        double wall_z_max = z_min_world + WALL_HEIGHT_FACTOR * (z_max_world - z_min_world);
-
-        // Project wall top corners and expand bounds
-        double x_min = -mesh_half_width, x_max = mesh_half_width;
-        double y_min = -mesh_half_height, y_max = mesh_half_height;
-        bed_mesh_point_3d_t wall_corners[4] = {
-            bed_mesh_projection_project_3d_to_2d(x_min, y_min, wall_z_max, canvas_width,
-                                                 canvas_height, &renderer->view_state),
-            bed_mesh_projection_project_3d_to_2d(x_max, y_min, wall_z_max, canvas_width,
-                                                 canvas_height, &renderer->view_state),
-            bed_mesh_projection_project_3d_to_2d(x_min, y_max, wall_z_max, canvas_width,
-                                                 canvas_height, &renderer->view_state),
-            bed_mesh_projection_project_3d_to_2d(x_max, y_max, wall_z_max, canvas_width,
-                                                 canvas_height, &renderer->view_state),
-        };
-        for (const auto& corner : wall_corners) {
-            min_x = std::min(min_x, corner.screen_x);
-            max_x = std::max(max_x, corner.screen_x);
-            min_y = std::min(min_y, corner.screen_y);
-            max_y = std::max(max_y, corner.screen_y);
-        }
-
-        // Calculate scale needed to fit projected bounds into canvas
-        int projected_width = max_x - min_x;
-        int projected_height = max_y - min_y;
-        double scale_x = (canvas_width * CANVAS_PADDING_FACTOR) / projected_width;
-        double scale_y = (canvas_height * CANVAS_PADDING_FACTOR) / projected_height;
-        double scale_factor = std::min(scale_x, scale_y);
-
-        spdlog::info("[Bed Mesh Renderer] [FOV] Canvas: {}x{}, Projected (incl walls): {}x{}, "
-                     "Padding: {:.2f}, "
-                     "Scale: {:.2f}",
-                     canvas_width, canvas_height, projected_width, projected_height,
-                     CANVAS_PADDING_FACTOR, scale_factor);
-
-        // Apply scale (only once, not every frame)
-        renderer->view_state.fov_scale *= scale_factor;
-        spdlog::info(
-            "[Bed Mesh Renderer] [FOV] Final fov_scale: {:.2f} (initial {} * scale {:.2f})",
-            renderer->view_state.fov_scale, INITIAL_FOV_SCALE, scale_factor);
+        calibrate_fov_scale(renderer, canvas_width, canvas_height);
     }
 
     // Project vertices with current (stable) fov_scale
@@ -964,19 +1038,8 @@ static void prepare_render_frame(bed_mesh_renderer_t* renderer, int canvas_width
     // Center mesh once on first render (offsets start at 0 from initialization)
     // After initial centering, offset remains stable across rotations
     if (renderer->view_state.center_offset_x == 0 && renderer->view_state.center_offset_y == 0) {
-        // Compute bounds with current projection
-        int inner_min_x, inner_max_x, inner_min_y, inner_max_y;
-        compute_projected_mesh_bounds(renderer, &inner_min_x, &inner_max_x, &inner_min_y,
-                                      &inner_max_y);
-
-        // Calculate centering offset using helper function
-        compute_centering_offset(inner_min_x, inner_max_x, inner_min_y, inner_max_y, layer_offset_x,
-                                 layer_offset_y, canvas_width, canvas_height,
-                                 &renderer->view_state.center_offset_x,
-                                 &renderer->view_state.center_offset_y);
-
-        spdlog::debug("[Bed Mesh Renderer] [CENTER] Computed centering offset: ({}, {})",
-                      renderer->view_state.center_offset_x, renderer->view_state.center_offset_y);
+        compute_initial_centering(renderer, canvas_width, canvas_height, layer_offset_x,
+                                  layer_offset_y);
     }
 
     // Apply layer offset for final rendering (updated every frame for animation support)

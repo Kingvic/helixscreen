@@ -975,6 +975,28 @@ class MoonrakerAPI {
         return hardware_;
     }
 
+    /**
+     * @brief Get build volume version subject for change notifications
+     *
+     * This integer subject is incremented whenever build_volume is updated
+     * (e.g., when stepper config loads). Observers can watch this to refresh
+     * UI that depends on build_volume dimensions.
+     *
+     * @return Pointer to the version subject
+     */
+    lv_subject_t* get_build_volume_version_subject() {
+        return &build_volume_version_;
+    }
+
+    /**
+     * @brief Notify that build_volume has changed
+     *
+     * Call this after updating hardware().set_build_volume() to notify
+     * observers that they should refresh any cached build volume data.
+     * Increments the build_volume_version_ subject.
+     */
+    void notify_build_volume_changed();
+
     // ========================================================================
     // Advanced Panel Operations - Bed Leveling
     // ========================================================================
@@ -1255,6 +1277,10 @@ class MoonrakerAPI {
 
     /// Discovered printer hardware (heaters, fans, sensors, LEDs, capabilities)
     helix::PrinterDiscovery hardware_;
+
+    /// Subject for notifying when build_volume changes (version counter)
+    lv_subject_t build_volume_version_;
+    int build_volume_version_counter_ = 0;
 
     SafetyLimits safety_limits_;
     bool limits_explicitly_set_ = false;

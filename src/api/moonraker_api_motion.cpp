@@ -606,6 +606,10 @@ void MoonrakerAPI::update_safety_limits_from_printer(SuccessCallback on_success,
                 }
 
                 // Extract axis limits from stepper configurations
+                // Also populate build_volume from stepper_x/y for accurate bed dimensions
+                BuildVolume build_vol = hardware().build_volume();
+                bool build_volume_updated = false;
+
                 for (const auto& stepper : {"stepper_x", "stepper_y", "stepper_z"}) {
                     if (settings.contains(stepper)) {
                         if (settings[stepper].contains("position_max")) {
@@ -615,6 +619,17 @@ void MoonrakerAPI::update_safety_limits_from_printer(SuccessCallback on_success,
                                 safety_limits_.max_absolute_position_mm = pos_max;
                                 updated = true;
                             }
+                            // Update build_volume for X/Y axes
+                            if (std::string(stepper) == "stepper_x") {
+                                build_vol.x_max = static_cast<float>(pos_max);
+                                build_volume_updated = true;
+                            } else if (std::string(stepper) == "stepper_y") {
+                                build_vol.y_max = static_cast<float>(pos_max);
+                                build_volume_updated = true;
+                            } else if (std::string(stepper) == "stepper_z") {
+                                build_vol.z_max = static_cast<float>(pos_max);
+                                build_volume_updated = true;
+                            }
                         }
                         if (settings[stepper].contains("position_min")) {
                             double pos_min = settings[stepper]["position_min"].get<double>();
@@ -623,8 +638,26 @@ void MoonrakerAPI::update_safety_limits_from_printer(SuccessCallback on_success,
                                 safety_limits_.min_absolute_position_mm = pos_min;
                                 updated = true;
                             }
+                            // Update build_volume for X/Y axes
+                            if (std::string(stepper) == "stepper_x") {
+                                build_vol.x_min = static_cast<float>(pos_min);
+                                build_volume_updated = true;
+                            } else if (std::string(stepper) == "stepper_y") {
+                                build_vol.y_min = static_cast<float>(pos_min);
+                                build_volume_updated = true;
+                            }
                         }
                     }
+                }
+
+                // Update build_volume if we found stepper configs
+                if (build_volume_updated) {
+                    hardware().set_build_volume(build_vol);
+                    notify_build_volume_changed();
+                    spdlog::info("[Moonraker API] Build volume from stepper config: "
+                                 "X[{:.0f},{:.0f}] Y[{:.0f},{:.0f}] Z[0,{:.0f}]",
+                                 build_vol.x_min, build_vol.x_max, build_vol.y_min, build_vol.y_max,
+                                 build_vol.z_max);
                 }
 
                 // Extract temperature limits from heater configurations

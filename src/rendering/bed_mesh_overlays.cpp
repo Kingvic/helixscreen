@@ -28,23 +28,17 @@ constexpr lv_opa_t GRID_LINE_OPACITY = LV_OPA_70; // 70% opacity for grid overla
 // Visibility margin for partially visible geometry
 constexpr int VISIBILITY_MARGIN_PX = 10;
 
-// Grid margin (world units, extends past mesh edges for AA/rounding)
-constexpr double GRID_MARGIN_WORLD = 5.0;
+// Label positioning
+constexpr double Z_LABEL_ABOVE_CEILING = 32.0; // Z label offset above ceiling
 
 // Grid spacing in millimeters for reference grids
 constexpr double GRID_SPACING_MM = 50.0;
-
-// Wall height factor (Mainsail-style: extends to 2x the mesh Z range above z_min)
-constexpr double WALL_HEIGHT_FACTOR = 2.0;
 
 // Number of segments for Z-axis grid divisions
 constexpr int Z_AXIS_SEGMENT_COUNT = 5;
 
 // Axis label offset from edge (world units)
-constexpr double AXIS_LABEL_OFFSET = 40.0;
-
-// Z axis height factor (percentage above mesh max)
-constexpr double Z_AXIS_HEIGHT_FACTOR = 1.1; // 10% above mesh max
+constexpr double AXIS_LABEL_OFFSET = 100.0; // Distance from grid edge to axis letter labels
 
 // Tick label dimensions (pixels)
 constexpr int TICK_LABEL_WIDTH_DECIMAL = 40; // Wider for decimal values (e.g., "-0.25")
@@ -168,82 +162,99 @@ void render_grid_lines(lv_layer_t* layer, const bed_mesh_renderer_t* renderer, i
     }
 }
 
+void render_reference_floor(lv_layer_t* layer, const bed_mesh_renderer_t* renderer,
+                            int canvas_width, int canvas_height) {
+    // Render all reference grids (floor + walls) BEFORE mesh surface
+    // The mesh surface is rendered on top, naturally occluding the floor grid
+    render_reference_grids(layer, renderer, canvas_width, canvas_height);
+}
+
+void render_reference_walls(lv_layer_t* layer, const bed_mesh_renderer_t* renderer,
+                            int canvas_width, int canvas_height) {
+    // Stub - merged into render_reference_grids
+    (void)layer;
+    (void)renderer;
+    (void)canvas_width;
+    (void)canvas_height;
+}
+
 void render_reference_grids(lv_layer_t* layer, const bed_mesh_renderer_t* renderer,
                             int canvas_width, int canvas_height) {
     if (!renderer || !renderer->has_mesh_data) {
         return;
     }
 
-    // Calculate mesh dimensions
-    double mesh_half_width = (renderer->cols - 1) / 2.0 * BED_MESH_SCALE;
-    double mesh_half_height = (renderer->rows - 1) / 2.0 * BED_MESH_SCALE;
+    // Use PRINTER BED bounds for grid extent (not mesh bounds)
+    // This makes the floor/walls larger than the mesh, so the mesh "floats" inside
+    double bed_half_width, bed_half_height;
+    if (renderer->has_bed_bounds) {
+        // Use actual bed dimensions, centered
+        bed_half_width = (renderer->bed_max_x - renderer->bed_min_x) / 2.0 * renderer->coord_scale;
+        bed_half_height = (renderer->bed_max_y - renderer->bed_min_y) / 2.0 * renderer->coord_scale;
+    } else {
+        // Fallback to mesh dimensions if no bed bounds
+        bed_half_width = (renderer->cols - 1) / 2.0 * BED_MESH_SCALE;
+        bed_half_height = (renderer->rows - 1) / 2.0 * BED_MESH_SCALE;
+    }
 
-    // Use cached z_center for world-space Z coordinates
+    // Grid boundaries based on bed size (extend slightly for AA/rounding)
+    double x_min = -bed_half_width - BED_MESH_GRID_MARGIN;
+    double x_max = bed_half_width + BED_MESH_GRID_MARGIN;
+    double y_min = -bed_half_height - BED_MESH_GRID_MARGIN;
+    double y_max = bed_half_height + BED_MESH_GRID_MARGIN;
+
+    // Calculate Z range and wall bounds using centralized function
     double z_min_world = helix::mesh::mesh_z_to_world_z(
         renderer->mesh_min_z, renderer->cached_z_center, renderer->view_state.z_scale);
     double z_max_world = helix::mesh::mesh_z_to_world_z(
         renderer->mesh_max_z, renderer->cached_z_center, renderer->view_state.z_scale);
 
-    // Grid boundaries (extend slightly past mesh edges to account for AA and rounding)
-    double x_min = -mesh_half_width - GRID_MARGIN_WORLD;
-    double x_max = mesh_half_width + GRID_MARGIN_WORLD;
-    double y_min = -mesh_half_height - GRID_MARGIN_WORLD;
-    double y_max = mesh_half_height + GRID_MARGIN_WORLD;
-    // Floor and walls extend from min(z_min_world, 0) to provide consistent reference
-    // This ensures the floor is at or below Z=0 even if all mesh points are positive
-    double z_min = std::min(z_min_world, 0.0);
-    // Mainsail-style: wall extends to WALL_HEIGHT_FACTOR * mesh Z range above mesh minimum
-    double mesh_z_range = z_max_world - z_min_world;
-    double z_max = z_min_world + WALL_HEIGHT_FACTOR * mesh_z_range;
+    auto bounds =
+        helix::mesh::compute_wall_bounds(z_min_world, z_max_world, bed_half_width, bed_half_height);
+    double z_floor = bounds.floor_z;
+    double z_ceiling = bounds.ceiling_z;
 
     // Configure grid line drawing style
     lv_draw_line_dsc_t grid_line_dsc;
     lv_draw_line_dsc_init(&grid_line_dsc);
     grid_line_dsc.color = ui_theme_get_color("theme_grey");
     grid_line_dsc.width = 1;
-    grid_line_dsc.opa = LV_OPA_40; // Light opacity for reference grids
+    grid_line_dsc.opa = LV_OPA_60;
 
-    // ========== 1. BOTTOM GRID (XY plane at Z=z_min) ==========
-    // Horizontal lines (constant Y, varying X)
+    // ========== 1. BOTTOM GRID (XY plane at Z=z_floor) ==========
     for (double y = y_min; y <= y_max; y += GRID_SPACING_MM) {
-        draw_axis_line(layer, &grid_line_dsc, x_min, y, z_min, x_max, y, z_min, canvas_width,
+        draw_axis_line(layer, &grid_line_dsc, x_min, y, z_floor, x_max, y, z_floor, canvas_width,
                        canvas_height, &renderer->view_state);
     }
-    // Vertical lines (constant X, varying Y)
     for (double x = x_min; x <= x_max; x += GRID_SPACING_MM) {
-        draw_axis_line(layer, &grid_line_dsc, x, y_min, z_min, x, y_max, z_min, canvas_width,
+        draw_axis_line(layer, &grid_line_dsc, x, y_min, z_floor, x, y_max, z_floor, canvas_width,
                        canvas_height, &renderer->view_state);
     }
 
     // ========== 2. BACK WALL GRID (XZ plane at Y=y_min) ==========
-    // Note: With camera angle_z=-45°, y_min projects to the back of the view
     // Vertical lines (constant X, varying Z)
     for (double x = x_min; x <= x_max + 0.1; x += GRID_SPACING_MM) {
-        draw_axis_line(layer, &grid_line_dsc, x, y_min, z_min, x, y_min, z_max, canvas_width,
+        draw_axis_line(layer, &grid_line_dsc, x, y_min, z_floor, x, y_min, z_ceiling, canvas_width,
                        canvas_height, &renderer->view_state);
     }
     // Horizontal lines (constant Z, varying X)
-    double wall_z_range = z_max - z_min;
+    double wall_z_range = z_ceiling - z_floor;
     double wall_z_spacing = wall_z_range / Z_AXIS_SEGMENT_COUNT;
-    if (wall_z_spacing < 1.0)
-        wall_z_spacing = wall_z_range / 4.0;
-    for (double z = z_min; z <= z_max + 0.01; z += wall_z_spacing) {
+    if (wall_z_spacing < 0.5)
+        wall_z_spacing = wall_z_range / 3.0;
+    for (double z = z_floor; z <= z_ceiling + 0.01; z += wall_z_spacing) {
         draw_axis_line(layer, &grid_line_dsc, x_min, y_min, z, x_max, y_min, z, canvas_width,
                        canvas_height, &renderer->view_state);
     }
 
     // ========== 3. LEFT WALL GRID (YZ plane at X=x_min) ==========
     // Vertical lines (constant Y, varying Z)
-    double z_range = z_max - z_min;
-    double z_spacing = z_range / Z_AXIS_SEGMENT_COUNT;
-    if (z_spacing < 1.0)
-        z_spacing = z_range / 4.0; // At least 4 divisions for small ranges
     for (double y = y_min; y <= y_max + 0.1; y += GRID_SPACING_MM) {
-        draw_axis_line(layer, &grid_line_dsc, x_min, y, z_min, x_min, y, z_max, canvas_width,
+        draw_axis_line(layer, &grid_line_dsc, x_min, y, z_floor, x_min, y, z_ceiling, canvas_width,
                        canvas_height, &renderer->view_state);
     }
     // Horizontal lines (constant Z, varying Y)
-    for (double z = z_min; z <= z_max + 0.01; z += z_spacing) {
+    for (double z = z_floor; z <= z_ceiling + 0.01; z += wall_z_spacing) {
         draw_axis_line(layer, &grid_line_dsc, x_min, y_min, z, x_min, y_max, z, canvas_width,
                        canvas_height, &renderer->view_state);
     }
@@ -261,14 +272,22 @@ void render_axis_labels(lv_layer_t* layer, const bed_mesh_renderer_t* renderer, 
     double z_max_world = helix::mesh::mesh_z_to_world_z(
         renderer->mesh_max_z, renderer->cached_z_center, renderer->view_state.z_scale);
 
-    // Calculate mesh extent in world coordinates
-    double mesh_half_width = (renderer->cols - 1) / 2.0 * BED_MESH_SCALE;
-    double mesh_half_height = (renderer->rows - 1) / 2.0 * BED_MESH_SCALE;
+    // Use BED dimensions (not mesh) - labels should be on the grid walls, not mesh edges
+    double bed_half_width = (renderer->cols - 1) / 2.0 * BED_MESH_SCALE;
+    double bed_half_height = (renderer->rows - 1) / 2.0 * BED_MESH_SCALE;
+    if (renderer->geometry_computed) {
+        bed_half_width = (renderer->bed_max_x - renderer->bed_min_x) / 2.0 * renderer->coord_scale;
+        bed_half_height = (renderer->bed_max_y - renderer->bed_min_y) / 2.0 * renderer->coord_scale;
+    }
 
-    // Grid bounds for label positioning
-    double x_max = mesh_half_width;
-    double y_min = -mesh_half_height;
-    double y_max = mesh_half_height;
+    // Grid bounds for label positioning (on bed edges, not mesh edges)
+    double x_max = bed_half_width + BED_MESH_GRID_MARGIN;
+    double y_max = bed_half_height + BED_MESH_GRID_MARGIN;
+
+    // Calculate wall bounds using centralized function
+    auto bounds =
+        helix::mesh::compute_wall_bounds(z_min_world, z_max_world, bed_half_width, bed_half_height);
+    double floor_z = bounds.floor_z;
 
     // Configure label drawing style
     lv_draw_label_dsc_t label_dsc;
@@ -278,11 +297,11 @@ void render_axis_labels(lv_layer_t* layer, const bed_mesh_renderer_t* renderer, 
     label_dsc.opa = LV_OPA_90;
     label_dsc.align = LV_TEXT_ALIGN_CENTER;
 
-    // X label: At the MIDDLE of the front edge (where X axis is most visible)
-    // Mainsail places this at the center of the X extent, not at a corner
+    // X label: At the CENTER of the front edge, pushed OUTWARD (away from grid)
+    // Positioned beyond the tick labels in the Y direction
     double x_label_x = 0.0;                       // Center of X axis
-    double x_label_y = y_max + AXIS_LABEL_OFFSET; // Just beyond front edge
-    double x_label_z = z_min_world;               // At grid plane level
+    double x_label_y = y_max + AXIS_LABEL_OFFSET; // Pushed outward from front edge
+    double x_label_z = floor_z;                   // At floor grid level (base of walls)
     bed_mesh_point_3d_t x_pos = bed_mesh_projection_project_3d_to_2d(
         x_label_x, x_label_y, x_label_z, canvas_width, canvas_height, &renderer->view_state);
 
@@ -297,10 +316,11 @@ void render_axis_labels(lv_layer_t* layer, const bed_mesh_renderer_t* renderer, 
         lv_draw_label(layer, &label_dsc, &x_area);
     }
 
-    // Y label: Centered on the RIGHT edge (analogous to X on front edge)
-    double y_label_x = x_max + AXIS_LABEL_OFFSET; // Just beyond right edge
+    // Y label: At the CENTER of the right edge, pushed OUTWARD (away from grid)
+    // Positioned beyond the tick labels in the X direction
+    double y_label_x = x_max + AXIS_LABEL_OFFSET; // Pushed outward from right edge
     double y_label_y = 0.0;                       // Center of Y axis
-    double y_label_z = z_min_world;               // At grid plane level
+    double y_label_z = floor_z;                   // At floor grid level (base of walls)
     bed_mesh_point_3d_t y_pos = bed_mesh_projection_project_3d_to_2d(
         y_label_x, y_label_y, y_label_z, canvas_width, canvas_height, &renderer->view_state);
 
@@ -315,17 +335,20 @@ void render_axis_labels(lv_layer_t* layer, const bed_mesh_renderer_t* renderer, 
         lv_draw_label(layer, &label_dsc, &y_area);
     }
 
-    // Z label: At the top of Z axis, at the back-right corner (x_max, y_min)
-    // This is where the two back walls meet with angle_z=-40°
-    double z_axis_top = z_max_world * Z_AXIS_HEIGHT_FACTOR;
+    // Z label: At the top of Z axis, ABOVE the wall ceiling where tick labels end
+    // Position at front-left to match Moonraker's layout
+    double z_axis_top =
+        bounds.ceiling_z + Z_LABEL_ABOVE_CEILING; // Position above the highest tick label
+    double z_label_x = -bed_half_width - BED_MESH_GRID_MARGIN; // Left edge
+    double z_label_y = bed_half_height + BED_MESH_GRID_MARGIN; // Front edge
     bed_mesh_point_3d_t z_pos = bed_mesh_projection_project_3d_to_2d(
-        x_max, y_min, z_axis_top, canvas_width, canvas_height, &renderer->view_state);
+        z_label_x, z_label_y, z_axis_top, canvas_width, canvas_height, &renderer->view_state);
 
     // Z label - let LVGL handle clipping
     {
         label_dsc.text = "Z";
         lv_area_t z_area;
-        z_area.x1 = z_pos.screen_x + 5; // Offset right of the axis
+        z_area.x1 = z_pos.screen_x - AXIS_LABEL_HALF_SIZE - 5; // Offset left of the axis
         z_area.y1 = z_pos.screen_y - AXIS_LABEL_HALF_SIZE;
         z_area.x2 = z_area.x1 + 2 * AXIS_LABEL_HALF_SIZE;
         z_area.y2 = z_area.y1 + 2 * AXIS_LABEL_HALF_SIZE;
@@ -368,14 +391,14 @@ void render_numeric_axis_ticks(lv_layer_t* layer, const bed_mesh_renderer_t* ren
         return;
     }
 
-    // Get actual printer coordinate range (supports any origin convention)
+    // Get actual BED coordinate range (full bed, not just mesh probe area)
     double x_min_mm, x_max_mm, y_min_mm, y_max_mm;
     if (renderer->geometry_computed) {
-        // Use actual printer coordinates from set_bounds()
-        x_min_mm = renderer->mesh_area_min_x;
-        x_max_mm = renderer->mesh_area_max_x;
-        y_min_mm = renderer->mesh_area_min_y;
-        y_max_mm = renderer->mesh_area_max_y;
+        // Use actual BED coordinates from set_bounds() for tick label range
+        x_min_mm = renderer->bed_min_x;
+        x_max_mm = renderer->bed_max_x;
+        y_min_mm = renderer->bed_min_y;
+        y_max_mm = renderer->bed_max_y;
     } else {
         // Fallback: assume corner-origin 0 to mesh size
         x_min_mm = 0.0;
@@ -384,9 +407,17 @@ void render_numeric_axis_ticks(lv_layer_t* layer, const bed_mesh_renderer_t* ren
         y_max_mm = static_cast<double>(renderer->rows - 1) * BED_MESH_SCALE;
     }
 
-    // Calculate mesh dimensions
+    // Calculate mesh dimensions (fallback)
     double mesh_half_width = (renderer->cols - 1) / 2.0 * BED_MESH_SCALE;
     double mesh_half_height = (renderer->rows - 1) / 2.0 * BED_MESH_SCALE;
+
+    // Use BED dimensions for tick label positioning (on grid walls, not mesh edges)
+    double bed_half_width = mesh_half_width;
+    double bed_half_height = mesh_half_height;
+    if (renderer->geometry_computed) {
+        bed_half_width = (renderer->bed_max_x - renderer->bed_min_x) / 2.0 * renderer->coord_scale;
+        bed_half_height = (renderer->bed_max_y - renderer->bed_min_y) / 2.0 * renderer->coord_scale;
+    }
 
     // Use cached z_center for world-space Z coordinates
     double z_min_world = helix::mesh::mesh_z_to_world_z(
@@ -394,8 +425,10 @@ void render_numeric_axis_ticks(lv_layer_t* layer, const bed_mesh_renderer_t* ren
     double z_max_world = helix::mesh::mesh_z_to_world_z(
         renderer->mesh_max_z, renderer->cached_z_center, renderer->view_state.z_scale);
 
-    // Grid plane Z position (same as reference grids)
-    double grid_z = z_min_world;
+    // Calculate wall bounds using centralized function
+    auto bounds =
+        helix::mesh::compute_wall_bounds(z_min_world, z_max_world, bed_half_width, bed_half_height);
+    double floor_z = bounds.floor_z;
 
     // Configure label drawing style (smaller font than axis letters)
     lv_draw_label_dsc_t label_dsc;
@@ -406,12 +439,8 @@ void render_numeric_axis_ticks(lv_layer_t* layer, const bed_mesh_renderer_t* ren
     label_dsc.align = LV_TEXT_ALIGN_CENTER;
     label_dsc.text_local = 1; // Tell LVGL to copy text (we use stack buffers)
 
-    // Determine appropriate tick spacing (aim for 3-5 ticks per axis)
-    double x_range = x_max_mm - x_min_mm;
-    double tick_spacing = GRID_SPACING_MM; // Default: 50mm intervals
-    if (x_range > 250.0) {
-        tick_spacing = 100.0; // For larger beds
-    }
+    // Use same spacing as grid lines (50mm) for tick labels
+    double tick_spacing = GRID_SPACING_MM;
 
     // X-axis tick label offsets: below the front edge (outside the grid)
     constexpr int X_LABEL_OFFSET_X = -15;
@@ -428,66 +457,81 @@ void render_numeric_axis_ticks(lv_layer_t* layer, const bed_mesh_renderer_t* ren
     double x_tick_start = std::ceil(x_min_mm / tick_spacing) * tick_spacing;
     double y_tick_start = std::ceil(y_min_mm / tick_spacing) * tick_spacing;
 
-    // Draw X-axis tick labels along FRONT edge
-    // Y-world = +mesh_half_height (front edge in world coords)
-    double x_tick_y_world = mesh_half_height;
+    // Draw X-axis tick labels along FRONT edge of the grid (outside the bed)
+    // Only label every other tick (0, 100, 200... not 50, 150, 250) to reduce crowding
+    double x_tick_y_world = bed_half_height + BED_MESH_GRID_MARGIN;
+    int x_tick_index = 0;
     for (double x_mm = x_tick_start; x_mm <= x_max_mm + 0.001; x_mm += tick_spacing) {
-        // Convert printer X coordinate to world X coordinate
-        double x_world;
-        if (renderer->geometry_computed) {
-            x_world = helix::mesh::printer_x_to_world_x(x_mm, renderer->bed_center_x,
-                                                        renderer->coord_scale);
-        } else {
-            // Fallback: linear interpolation from 0-based to centered world coords
-            double t = (x_mm - x_min_mm) / (x_max_mm - x_min_mm);
-            x_world = -mesh_half_width + t * (2.0 * mesh_half_width);
-        }
+        // Only draw label on every other tick (1st, 3rd, 5th...)
+        if (x_tick_index % 2 == 0) {
+            // Convert printer X coordinate to world X coordinate
+            double x_world;
+            if (renderer->geometry_computed) {
+                x_world = helix::mesh::printer_x_to_world_x(x_mm, renderer->bed_center_x,
+                                                            renderer->coord_scale);
+            } else {
+                // Fallback: linear interpolation from 0-based to centered world coords
+                double t = (x_mm - x_min_mm) / (x_max_mm - x_min_mm);
+                x_world = -mesh_half_width + t * (2.0 * mesh_half_width);
+            }
 
-        bed_mesh_point_3d_t tick = bed_mesh_projection_project_3d_to_2d(
-            x_world, x_tick_y_world, grid_z, canvas_width, canvas_height, &renderer->view_state);
-        draw_axis_tick_label(layer, &label_dsc, tick.screen_x, tick.screen_y, X_LABEL_OFFSET_X,
-                             X_LABEL_OFFSET_Y, x_mm, canvas_width, canvas_height);
+            bed_mesh_point_3d_t tick =
+                bed_mesh_projection_project_3d_to_2d(x_world, x_tick_y_world, floor_z, canvas_width,
+                                                     canvas_height, &renderer->view_state);
+            draw_axis_tick_label(layer, &label_dsc, tick.screen_x, tick.screen_y, X_LABEL_OFFSET_X,
+                                 X_LABEL_OFFSET_Y, x_mm, canvas_width, canvas_height);
+        }
+        x_tick_index++;
     }
 
-    // Draw Y-axis tick labels along RIGHT edge
-    // X-world = +mesh_half_width (right edge in world coords)
-    double y_tick_x_world = mesh_half_width;
+    // Draw Y-axis tick labels along RIGHT edge of the grid (outside the bed)
+    // Only label every other tick to reduce crowding
+    double y_tick_x_world = bed_half_width + BED_MESH_GRID_MARGIN;
+    int y_tick_index = 0;
     for (double y_mm = y_tick_start; y_mm <= y_max_mm + 0.001; y_mm += tick_spacing) {
-        // Convert printer Y coordinate to world Y coordinate
-        double y_world;
-        if (renderer->geometry_computed) {
-            y_world = helix::mesh::printer_y_to_world_y(y_mm, renderer->bed_center_y,
-                                                        renderer->coord_scale);
-        } else {
-            // Fallback: linear interpolation (Y inverted in world space)
-            double t = (y_mm - y_min_mm) / (y_max_mm - y_min_mm);
-            y_world = mesh_half_height - t * (2.0 * mesh_half_height);
-        }
+        // Only draw label on every other tick (1st, 3rd, 5th...)
+        if (y_tick_index % 2 == 0) {
+            // Convert printer Y coordinate to world Y coordinate
+            double y_world;
+            if (renderer->geometry_computed) {
+                y_world = helix::mesh::printer_y_to_world_y(y_mm, renderer->bed_center_y,
+                                                            renderer->coord_scale);
+            } else {
+                // Fallback: linear interpolation (Y inverted in world space)
+                double t = (y_mm - y_min_mm) / (y_max_mm - y_min_mm);
+                y_world = mesh_half_height - t * (2.0 * mesh_half_height);
+            }
 
-        bed_mesh_point_3d_t tick = bed_mesh_projection_project_3d_to_2d(
-            y_tick_x_world, y_world, grid_z, canvas_width, canvas_height, &renderer->view_state);
-        draw_axis_tick_label(layer, &label_dsc, tick.screen_x, tick.screen_y, Y_LABEL_OFFSET_X,
-                             Y_LABEL_OFFSET_Y, y_mm, canvas_width, canvas_height);
+            bed_mesh_point_3d_t tick =
+                bed_mesh_projection_project_3d_to_2d(y_tick_x_world, y_world, floor_z, canvas_width,
+                                                     canvas_height, &renderer->view_state);
+            draw_axis_tick_label(layer, &label_dsc, tick.screen_x, tick.screen_y, Y_LABEL_OFFSET_X,
+                                 Y_LABEL_OFFSET_Y, y_mm, canvas_width, canvas_height);
+        }
+        y_tick_index++;
     }
 
-    // Draw Z-axis tick labels (along Z-axis at front-left corner)
-    // Show mesh min/max heights in mm (actual Z values, not world-scaled)
-    double axis_origin_x = -mesh_half_width;
-    double axis_origin_y = mesh_half_height;
+    // Draw Z-axis tick labels on the LEFT WALL (outside the mesh area)
+    // Position at the front-left corner (positive Y), matching Moonraker's layout
+    double axis_origin_x = -bed_half_width - BED_MESH_GRID_MARGIN;
+    double axis_origin_y = bed_half_height + BED_MESH_GRID_MARGIN; // Front edge (positive Y)
 
-    bed_mesh_point_3d_t z_min_tick =
-        bed_mesh_projection_project_3d_to_2d(axis_origin_x, axis_origin_y, z_min_world,
-                                             canvas_width, canvas_height, &renderer->view_state);
-    draw_axis_tick_label(layer, &label_dsc, z_min_tick.screen_x, z_min_tick.screen_y,
-                         Z_LABEL_OFFSET_X, Z_LABEL_OFFSET_Y, renderer->mesh_min_z, canvas_width,
-                         canvas_height, true);
+    // Generate 3 evenly-spaced Z labels along the wall (reduced from 5 to avoid crowding)
+    constexpr int NUM_Z_LABELS = 3;
+    for (int i = 0; i < NUM_Z_LABELS; i++) {
+        double t = static_cast<double>(i) / (NUM_Z_LABELS - 1);
+        double z_world = bounds.floor_z + t * (bounds.ceiling_z - bounds.floor_z);
 
-    bed_mesh_point_3d_t z_max_tick =
-        bed_mesh_projection_project_3d_to_2d(axis_origin_x, axis_origin_y, z_max_world,
-                                             canvas_width, canvas_height, &renderer->view_state);
-    draw_axis_tick_label(layer, &label_dsc, z_max_tick.screen_x, z_max_tick.screen_y,
-                         Z_LABEL_OFFSET_X, Z_LABEL_OFFSET_Y, renderer->mesh_max_z, canvas_width,
-                         canvas_height, true);
+        // Convert world Z back to mesh Z for display
+        double z_mm = helix::mesh::world_z_to_mesh_z(z_world, renderer->cached_z_center,
+                                                     renderer->view_state.z_scale);
+
+        bed_mesh_point_3d_t tick = bed_mesh_projection_project_3d_to_2d(
+            axis_origin_x, axis_origin_y, z_world, canvas_width, canvas_height,
+            &renderer->view_state);
+        draw_axis_tick_label(layer, &label_dsc, tick.screen_x, tick.screen_y, Z_LABEL_OFFSET_X,
+                             Z_LABEL_OFFSET_Y, z_mm, canvas_width, canvas_height, true);
+    }
 }
 
 } // namespace mesh

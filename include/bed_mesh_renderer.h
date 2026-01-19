@@ -79,7 +79,7 @@ extern "C" {
 
 // Rotation limits (pitch angle range)
 #define BED_MESH_ANGLE_X_MIN (-89.0)          // Near top-down (looking almost straight down)
-#define BED_MESH_ANGLE_X_MAX (-10.0)          // Near horizontal (almost edge-on view)
+#define BED_MESH_ANGLE_X_MAX (0.0)            // Edge-on view (horizontal)
 #define BED_MESH_DEFAULT_Z_SCALE 60.0         // Default height amplification factor
 #define BED_MESH_DEFAULT_Z_TARGET_HEIGHT 80.0 // Target projected height range (world units)
 #define BED_MESH_MIN_Z_SCALE 35.0             // Min Z scale (prevents flatness)
@@ -89,6 +89,7 @@ extern "C" {
     0.5 // Canvas Y position for Z=0 plane (0=top, 0.5=center, 1=bottom)
 #define BED_MESH_GRADIENT_SEGMENTS 6       // Max gradient segments per scanline
 #define BED_MESH_GRADIENT_MIN_LINE_WIDTH 3 // Use solid color for lines narrower than this
+#define BED_MESH_GRID_MARGIN 25.0          // Grid margin in world units (extends past mesh edges)
 
 // FPS threshold for auto-degrading to 2D mode
 #define BED_MESH_FPS_THRESHOLD 15.0 // Switch to 2D if FPS drops below this

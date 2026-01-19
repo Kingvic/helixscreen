@@ -68,27 +68,6 @@ static void bed_mesh_draw_cb(lv_event_t* e) {
 
     // Render mesh directly to layer (matches G-code viewer pattern)
     if (!bed_mesh_renderer_render(data->renderer, layer, width, height)) {
-        // Render failed - likely no mesh data loaded
-        // Draw "No mesh loaded" message in center of canvas
-        lv_draw_label_dsc_t label_dsc;
-        lv_draw_label_dsc_init(&label_dsc);
-        label_dsc.color = ui_theme_get_color("text_secondary"); // Gray text
-        label_dsc.text = "No mesh loaded";
-        label_dsc.font = &noto_sans_16;
-        label_dsc.align = LV_TEXT_ALIGN_CENTER;
-
-        // Calculate centered position
-        lv_point_t txt_size;
-        lv_text_get_size(&txt_size, label_dsc.text, label_dsc.font, 0, 0, LV_COORD_MAX,
-                         LV_TEXT_FLAG_NONE);
-
-        lv_area_t label_area;
-        label_area.x1 = (width - txt_size.x) / 2;
-        label_area.y1 = (height - txt_size.y) / 2;
-        label_area.x2 = label_area.x1 + txt_size.x;
-        label_area.y2 = label_area.y1 + txt_size.y;
-
-        lv_draw_label(layer, &label_dsc, &label_area);
         return;
     }
 

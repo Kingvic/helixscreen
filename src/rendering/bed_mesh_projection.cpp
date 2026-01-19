@@ -24,8 +24,17 @@ bed_mesh_point_3d_t bed_mesh_projection_project_3d_to_2d(double x, double y, dou
     double final_y = rotated_y * view->cached_cos_x - rotated_z * view->cached_sin_x;
     double final_z = rotated_y * view->cached_sin_x + rotated_z * view->cached_cos_x;
 
-    // Step 3: Translate camera back (distance computed from mesh size and perspective strength)
-    final_z += view->camera_distance;
+    // Step 3: Transform to camera space (camera looking down -Z axis)
+    // After rotation, negative final_z = farther from camera (back of scene)
+    // We need: farther = larger final_z for correct perspective division
+    // So: final_z = camera_distance - final_z
+    final_z = view->camera_distance - final_z;
+
+    // Safety: Ensure we never divide by zero or negative (object behind camera)
+    constexpr double MIN_CAMERA_Z = 1.0;
+    if (final_z < MIN_CAMERA_Z) {
+        final_z = MIN_CAMERA_Z;
+    }
 
     // Step 4: Perspective projection (similar triangles)
     double perspective_x = (final_x * view->fov_scale) / final_z;

@@ -23,6 +23,7 @@ Arguments:
 
 Environment Variables:
   HELIX_SCREENSHOT_DISPLAY   Display number to open window on (default: 1)
+  HELIX_SCREENSHOT_TIMEOUT   Seconds before auto-quit (default: 3, use 15 for real printer)
   HELIX_SCREENSHOT_OPEN      If set, opens the screenshot in Preview (macOS)
 
 Examples:
@@ -107,10 +108,17 @@ else
     info "Using display $HELIX_SCREENSHOT_DISPLAY from HELIX_SCREENSHOT_DISPLAY env var"
 fi
 
+# Timeout configuration (override with HELIX_SCREENSHOT_TIMEOUT env var)
+SCREENSHOT_TIMEOUT="${HELIX_SCREENSHOT_TIMEOUT:-3}"
+SCREENSHOT_DELAY=$((SCREENSHOT_TIMEOUT - 1))
+if [ "$SCREENSHOT_DELAY" -lt 1 ]; then
+    SCREENSHOT_DELAY=1
+fi
+
 # Add display, screenshot, timeout, and skip-splash arguments to extra args
-# Screenshot after 2 seconds, auto-quit after 3 seconds
+# Screenshot 1 second before timeout, then auto-quit
 # Skip splash screen for faster automation
-EXTRA_ARGS="--display $HELIX_SCREENSHOT_DISPLAY --screenshot 2 --timeout 3 --skip-splash $EXTRA_ARGS"
+EXTRA_ARGS="--display $HELIX_SCREENSHOT_DISPLAY --screenshot $SCREENSHOT_DELAY --timeout $SCREENSHOT_TIMEOUT --skip-splash $EXTRA_ARGS"
 
 # Check dependencies
 info "Checking dependencies..."
@@ -138,10 +146,10 @@ rm -f /tmp/ui-screenshot-*.bmp 2>/dev/null || true
 
 # Prepare run command and args
 if [ -n "$PANEL" ]; then
-    info "Running ${BINARY} with panel: ${PANEL} (auto-quit after 3 seconds)..."
+    info "Running ${BINARY} with panel: ${PANEL} (auto-quit after ${SCREENSHOT_TIMEOUT}s)..."
     PANEL_ARG="-p ${PANEL}"
 else
-    info "Running ${BINARY} (auto-quit after 3 seconds)..."
+    info "Running ${BINARY} (auto-quit after ${SCREENSHOT_TIMEOUT}s)..."
     PANEL_ARG=""
 fi
 

@@ -39,15 +39,15 @@ void render_grid_lines(lv_layer_t* layer, const bed_mesh_renderer_t* renderer, i
                        int canvas_height);
 
 /**
- * @brief Render reference grids (Mainsail-style wall grids)
+ * @brief Render reference grids (floor and walls)
  *
- * Draws three orthogonal grid planes that create a "room" around the mesh:
- * 1. BOTTOM GRID (XY plane at Z=z_min): Gridlines every 50mm in both X and Y directions
- * 2. BACK WALL GRID (XZ plane at Y=y_max): Vertical lines for X positions, horizontal for Z heights
- * 3. SIDE WALL GRID (YZ plane at X=x_min): Vertical lines for Y positions, horizontal for Z heights
+ * Draws a reference frame around the mesh:
+ * - Floor grid (XY plane) below the mesh
+ * - Back wall (XZ plane) and left wall (YZ plane)
  *
- * The mesh data floats inside this reference frame, providing spatial context
- * similar to Mainsail's bed mesh visualization.
+ * Uses PRINTER BED dimensions (not mesh dimensions) so the mesh "floats" inside.
+ * Z range extends 25% above and below mesh to provide visual context.
+ * Should be called BEFORE render_mesh_surface() so mesh correctly occludes it.
  *
  * @param layer LVGL draw layer (from DRAW_POST event callback)
  * @param renderer Renderer instance with valid mesh data
@@ -55,6 +55,12 @@ void render_grid_lines(lv_layer_t* layer, const bed_mesh_renderer_t* renderer, i
  * @param canvas_height Canvas height in pixels
  */
 void render_reference_grids(lv_layer_t* layer, const bed_mesh_renderer_t* renderer,
+                            int canvas_width, int canvas_height);
+
+// Legacy stubs - kept for API compatibility
+void render_reference_floor(lv_layer_t* layer, const bed_mesh_renderer_t* renderer,
+                            int canvas_width, int canvas_height);
+void render_reference_walls(lv_layer_t* layer, const bed_mesh_renderer_t* renderer,
                             int canvas_width, int canvas_height);
 
 /**

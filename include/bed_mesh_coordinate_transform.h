@@ -58,6 +58,15 @@ double mesh_row_to_world_y(int row, int rows, double scale);
 double mesh_z_to_world_z(double z_height, double z_center, double z_scale);
 
 /**
+ * @brief Convert world Z coordinate back to mesh Z value (inverse of mesh_z_to_world_z)
+ * @param world_z The world-space Z coordinate
+ * @param z_center The Z center offset
+ * @param z_scale The Z scaling factor
+ * @return The mesh Z value in mm
+ */
+double world_z_to_mesh_z(double world_z, double z_center, double z_scale);
+
+/**
  * @brief Compute Z-center value for mesh rendering
  *
  * Calculates the midpoint of mesh Z values for centering the mesh around origin.
@@ -125,6 +134,34 @@ double printer_y_to_world_y(double y_mm, double bed_center_y, double scale_facto
  * @return Scale factor (world units per mm)
  */
 double compute_bed_scale_factor(double bed_size_mm, double target_world_size);
+
+// ============================================================================
+// Wall/floor/ceiling bounds for reference grids
+// ============================================================================
+
+/**
+ * @brief Computed wall/floor/ceiling bounds for reference grids
+ */
+struct WallBounds {
+    double floor_z;     ///< Z coordinate of floor plane
+    double ceiling_z;   ///< Z coordinate of ceiling (top of walls)
+    double wall_height; ///< Total height from floor to ceiling
+};
+
+/**
+ * @brief Compute wall bounds from mesh Z extent and bed dimensions
+ *
+ * Calculates floor, ceiling, and wall height for reference grid rendering.
+ * The mesh "floats" inside these bounds with 25% padding below and 100% above.
+ *
+ * @param z_min_world Minimum Z in world coordinates (from mesh_z_to_world_z)
+ * @param z_max_world Maximum Z in world coordinates (from mesh_z_to_world_z)
+ * @param bed_half_width Half-width of bed in world units
+ * @param bed_half_height Half-height of bed in world units
+ * @return WallBounds with floor_z, ceiling_z, and wall_height
+ */
+WallBounds compute_wall_bounds(double z_min_world, double z_max_world, double bed_half_width,
+                               double bed_half_height);
 
 } // namespace mesh
 } // namespace helix

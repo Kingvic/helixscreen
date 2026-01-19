@@ -687,27 +687,9 @@ void MoonrakerClient::dispatch_status_update(const json& status) {
     // not just on subsequent notify_status_update messages
     if (status.contains("bed_mesh") && status["bed_mesh"].is_object()) {
         parse_bed_mesh(status["bed_mesh"]);
-
-        // Also extract build volume from bed_mesh bounds for printer detection
-        const json& mesh = status["bed_mesh"];
-        BuildVolume build_volume;
-        if (mesh.contains("mesh_min") && mesh["mesh_min"].is_array() &&
-            mesh["mesh_min"].size() >= 2 && mesh["mesh_min"][0].is_number() &&
-            mesh["mesh_min"][1].is_number()) {
-            build_volume.x_min = mesh["mesh_min"][0].get<float>();
-            build_volume.y_min = mesh["mesh_min"][1].get<float>();
-        }
-        if (mesh.contains("mesh_max") && mesh["mesh_max"].is_array() &&
-            mesh["mesh_max"].size() >= 2 && mesh["mesh_max"][0].is_number() &&
-            mesh["mesh_max"][1].is_number()) {
-            build_volume.x_max = mesh["mesh_max"][0].get<float>();
-            build_volume.y_max = mesh["mesh_max"][1].get<float>();
-            hardware_.set_build_volume(build_volume);
-            spdlog::debug("[Moonraker Client] Build volume from mesh: [{:.0f},{:.0f}] to "
-                          "[{:.0f},{:.0f}]",
-                          build_volume.x_min, build_volume.y_min, build_volume.x_max,
-                          build_volume.y_max);
-        }
+        // NOTE: Do NOT set build_volume from mesh bounds here!
+        // Mesh bounds represent the probe area, not bed dimensions.
+        // Actual bed dimensions come from stepper config in moonraker_api_motion.cpp.
     }
 
     // Extract kinematics type from toolhead data (for printer detection)

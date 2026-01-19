@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "ui_observer_guard.h"
 #include "ui_subscription_guard.h"
 
 #include "moonraker_domain_service.h" // For BedMeshProfile
@@ -170,12 +171,28 @@ class BedMeshPanel : public OverlayBase {
     // RAII subscription guard - auto-unsubscribes from Moonraker on destruction
     SubscriptionGuard subscription_;
 
+    // Observer for build_volume changes to refresh bed bounds
+    ObserverGuard build_volume_observer_;
+
+    // Cached mesh bounds for refreshing when build_volume changes
+    double cached_mesh_min_x_ = 0.0;
+    double cached_mesh_max_x_ = 0.0;
+    double cached_mesh_min_y_ = 0.0;
+    double cached_mesh_max_y_ = 0.0;
+    bool has_cached_mesh_bounds_ = false;
+
+    // Pending mesh data - stored until build_volume is available
+    std::vector<std::vector<float>> pending_mesh_data_;
+    bool has_pending_mesh_data_ = false;
+
     lv_obj_t* parent_screen_ = nullptr;
     bool callbacks_registered_ = false;
 
     // ========== Private Methods ==========
     void setup_profile_dropdown();
     void setup_moonraker_subscription();
+    void setup_build_volume_observer();
+    void refresh_bed_bounds();
     void on_mesh_update_internal(const BedMeshProfile& mesh);
     void update_profile_list_subjects();
     void update_info_subjects(const std::vector<std::vector<float>>& mesh_data, int cols, int rows);
