@@ -268,3 +268,53 @@ TEST_CASE_METHOD(NavbarIconTestFixture, "Navbar: State transitions work correctl
         REQUIRE(is_hidden("nav_icon_controls_active"));
     }
 }
+
+// ============================================================================
+// Overlay Instance Registration Tests
+// ============================================================================
+
+#include "ui_nav_manager.h"
+
+#include "panel_lifecycle.h"
+
+/**
+ * @brief Mock implementation of IPanelLifecycle for testing overlay registration
+ *
+ * Tests that NavigationManager::register_overlay_instance accepts any
+ * IPanelLifecycle implementation, not just OverlayBase.
+ */
+class MockPanelLifecycle : public IPanelLifecycle {
+  public:
+    void on_activate() override {
+        activate_count_++;
+    }
+    void on_deactivate() override {
+        deactivate_count_++;
+    }
+    const char* get_name() const override {
+        return "MockPanel";
+    }
+
+    int activate_count_ = 0;
+    int deactivate_count_ = 0;
+};
+
+TEST_CASE_METHOD(NavbarIconTestFixture, "Overlay registration accepts IPanelLifecycle",
+                 "[navigation][overlay]") {
+    MockPanelLifecycle mock_panel;
+
+    // Create a test widget to serve as overlay root
+    lv_obj_t* test_overlay = lv_obj_create(test_screen());
+    REQUIRE(test_overlay != nullptr);
+
+    SECTION("Can register IPanelLifecycle implementation") {
+        // Should not throw - IPanelLifecycle is accepted, not just OverlayBase
+        NavigationManager::instance().register_overlay_instance(test_overlay, &mock_panel);
+
+        // Verify it was registered by checking we can unregister without error
+        NavigationManager::instance().unregister_overlay_instance(test_overlay);
+    }
+
+    // Cleanup
+    lv_obj_delete(test_overlay);
+}

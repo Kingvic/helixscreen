@@ -1370,12 +1370,15 @@ AmsPanel& get_global_ams_panel() {
         // Ensure widgets and XML are registered
         ensure_ams_widgets_registered();
 
+        // Initialize AmsState subjects BEFORE XML creation so bindings work
+        AmsState::instance().init_subjects(true);
+
         // Create the panel on the active screen
         lv_obj_t* screen = lv_scr_act();
         s_ams_panel_obj = static_cast<lv_obj_t*>(lv_xml_create(screen, "ams_panel", nullptr));
 
         if (s_ams_panel_obj) {
-            // Initialize subjects if needed
+            // Initialize panel observers (AmsState already initialized above)
             if (!g_ams_panel->are_subjects_initialized()) {
                 g_ams_panel->init_subjects();
             }
@@ -1383,6 +1386,10 @@ AmsPanel& get_global_ams_panel() {
             // Setup the panel
             g_ams_panel->setup(s_ams_panel_obj, screen);
             lv_obj_add_flag(s_ams_panel_obj, LV_OBJ_FLAG_HIDDEN); // Hidden by default
+
+            // Register overlay instance for lifecycle management
+            NavigationManager::instance().register_overlay_instance(s_ams_panel_obj,
+                                                                    g_ams_panel.get());
 
             // Register close callback to destroy UI when overlay is closed
             NavigationManager::instance().register_overlay_close_callback(

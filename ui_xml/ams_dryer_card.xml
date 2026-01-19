@@ -10,7 +10,7 @@
         extends="lv_obj" width="100%" height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0"
         scrollable="false" flex_flow="column" style_pad_gap="#space_sm">
     <!-- Hidden when dryer not supported -->
-    <bind_flag_if_eq subject="dryer_supported" flag="hidden" ref_value="0"/>
+    <lv_obj-bind_flag_if_eq subject="dryer_supported" flag="hidden" ref_value="0"/>
     <!-- Inactive state: button with heat wave icon that opens modal -->
     <lv_button name="btn_dryer_start"
                width="100%" height="#button_height" style_radius="#border_radius" style_border_width="0"
