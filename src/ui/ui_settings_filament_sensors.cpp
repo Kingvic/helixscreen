@@ -13,6 +13,7 @@
 
 #include "filament_sensor_manager.h"
 #include "filament_sensor_types.h"
+#include "printer_hardware.h"
 #include "static_panel_registry.h"
 
 #include <spdlog/spdlog.h>
@@ -113,14 +114,28 @@ void FilamentSensorSettingsOverlay::show(lv_obj_t* parent_screen) {
 // INTERNAL METHODS
 // ============================================================================
 
+std::vector<helix::FilamentSensorConfig> FilamentSensorSettingsOverlay::get_standalone_sensors() const {
+    auto& mgr = helix::FilamentSensorManager::instance();
+    auto all_sensors = mgr.get_sensors();
+
+    std::vector<helix::FilamentSensorConfig> standalone;
+    for (const auto& sensor : all_sensors) {
+        if (!PrinterHardware::is_ams_sensor(sensor.sensor_name)) {
+            standalone.push_back(sensor);
+        } else {
+            spdlog::debug("[{}] Filtered out AMS sensor: {}", get_name(), sensor.sensor_name);
+        }
+    }
+    return standalone;
+}
+
 void FilamentSensorSettingsOverlay::update_sensor_count_label() {
     if (!overlay_)
         return;
 
     lv_obj_t* count_label = lv_obj_find_by_name(overlay_, "sensor_count_label");
     if (count_label) {
-        auto& mgr = helix::FilamentSensorManager::instance();
-        lv_label_set_text_fmt(count_label, "(%zu)", mgr.sensor_count());
+        lv_label_set_text_fmt(count_label, "(%zu)", get_standalone_sensors().size());
     }
 }
 
@@ -145,11 +160,10 @@ void FilamentSensorSettingsOverlay::populate_sensor_list() {
         }
     }
 
-    // Get discovered sensors
-    auto& mgr = helix::FilamentSensorManager::instance();
-    auto sensors = mgr.get_sensors();
+    // Get standalone sensors (excludes AMS/multi-material types)
+    auto sensors = get_standalone_sensors();
 
-    spdlog::debug("[{}] Populating sensor list with {} sensors", get_name(), sensors.size());
+    spdlog::debug("[{}] Populating sensor list with {} standalone sensors", get_name(), sensors.size());
 
     // Create a row for each sensor
     for (const auto& sensor : sensors) {

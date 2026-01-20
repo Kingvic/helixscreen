@@ -24,6 +24,8 @@
 
 #include "lvgl/lvgl.h"
 
+#include "filament_sensor_types.h"
+
 #include <string>
 #include <vector>
 
@@ -167,6 +169,12 @@ class FilamentSensorSettingsOverlay {
      * @brief Update sensor count label
      */
     void update_sensor_count_label();
+
+    /**
+     * @brief Get sensors excluding AMS/multi-material types
+     * @return Vector of standalone sensors only
+     */
+    [[nodiscard]] std::vector<helix::FilamentSensorConfig> get_standalone_sensors() const;
 
     //
     // === State ===
