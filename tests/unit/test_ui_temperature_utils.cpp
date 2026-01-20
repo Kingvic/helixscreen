@@ -430,7 +430,7 @@ TEST_CASE("Temperature Utils: format_temperature_pair - basic formatting", "[tem
 
     SECTION("Heater off (target = 0)") {
         format_temperature_pair(180, 0, buf, sizeof(buf));
-        REQUIRE(std::string(buf) == "180 / --°C");
+        REQUIRE(std::string(buf) == "180 / —°C"); // em-dash for unknown
     }
 
     SECTION("Cold with target") {
@@ -482,7 +482,7 @@ TEST_CASE("Temperature Utils: format_temperature_pair_f - float pair formatting"
 
     SECTION("Target zero (heater off)") {
         format_temperature_pair_f(180.5f, 0.0f, buf, sizeof(buf));
-        REQUIRE(std::string(buf) == "180.5 / --°C");
+        REQUIRE(std::string(buf) == "180.5 / —°C"); // em-dash for unknown
     }
 
     SECTION("At target") {

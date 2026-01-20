@@ -538,7 +538,7 @@ TEST_CASE("LED characterization: LED update does not affect non-LED subjects",
     json initial = {{"toolhead", {{"position", {100.0, 200.0, 30.0}}}}};
     state.update_from_status(initial);
 
-    REQUIRE(lv_subject_get_int(state.get_position_x_subject()) == 100);
+    REQUIRE(lv_subject_get_int(state.get_position_x_subject()) == 10000); // centimm
 
     // Now update LED
     json led_update = {{"neopixel led_strip", {{"color_data", {{1.0, 0.5, 0.25, 0.0}}}}}};
@@ -549,8 +549,8 @@ TEST_CASE("LED characterization: LED update does not affect non-LED subjects",
     REQUIRE(lv_subject_get_int(state.get_led_g_subject()) == 128);
     REQUIRE(lv_subject_get_int(state.get_led_b_subject()) == 64);
 
-    // Position should be unchanged
-    REQUIRE(lv_subject_get_int(state.get_position_x_subject()) == 100);
+    // Position should be unchanged (in centimm)
+    REQUIRE(lv_subject_get_int(state.get_position_x_subject()) == 10000);
 }
 
 TEST_CASE("LED characterization: non-LED update does not affect LED subjects",

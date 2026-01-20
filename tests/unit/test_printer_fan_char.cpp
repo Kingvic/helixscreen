@@ -676,7 +676,7 @@ TEST_CASE("Fan characterization: fan update does not affect non-fan subjects",
     json initial = {{"toolhead", {{"position", {100.0, 200.0, 30.0}}}}};
     state.update_from_status(initial);
 
-    REQUIRE(lv_subject_get_int(state.get_position_x_subject()) == 100);
+    REQUIRE(lv_subject_get_int(state.get_position_x_subject()) == 10000); // centimm
 
     // Now update fan
     json fan_update = {{"fan", {{"speed", 0.75}}}};
@@ -685,8 +685,8 @@ TEST_CASE("Fan characterization: fan update does not affect non-fan subjects",
     // Fan value should be updated
     REQUIRE(lv_subject_get_int(state.get_fan_speed_subject()) == 75);
 
-    // Position should be unchanged
-    REQUIRE(lv_subject_get_int(state.get_position_x_subject()) == 100);
+    // Position should be unchanged (in centimm)
+    REQUIRE(lv_subject_get_int(state.get_position_x_subject()) == 10000);
 }
 
 TEST_CASE("Fan characterization: non-fan update does not affect fan subjects",

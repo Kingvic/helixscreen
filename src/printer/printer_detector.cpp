@@ -527,7 +527,7 @@ PrinterDetectionResult execute_printer_heuristics(const json& printer,
     spdlog::debug("[PrinterDetector] {} scored {}% (base {} + bonus {} from {} matches)",
                   printer_name, combined, base_confidence, bonus, matches.size());
 
-    return {printer_name, combined, reason, static_cast<int>(matches.size())};
+    return {printer_name, combined, reason, static_cast<int>(matches.size()), base_confidence};
 }
 } // namespace
 
@@ -565,14 +565,19 @@ PrinterDetectionResult PrinterDetector::detect(const PrinterHardwareData& hardwa
 
             // Log all matches for debugging (not just best)
             if (result.confidence > 0) {
-                spdlog::info("[PrinterDetector] Candidate: '{}' scored {}% ({} matches) via: {}",
+                spdlog::info("[PrinterDetector] Candidate: '{}' scored {}% ({} matches, best={}%) "
+                             "via: {}",
                              result.type_name, result.confidence, result.match_count,
-                             result.reason);
+                             result.best_single_confidence, result.reason);
             }
 
-            // Use match_count as tiebreaker when confidence is equal
+            // Tiebreakers: best_single_confidence first (more specific match wins),
+            // then match_count (more supporting evidence)
             if (result.confidence > best_match.confidence ||
                 (result.confidence == best_match.confidence &&
+                 result.best_single_confidence > best_match.best_single_confidence) ||
+                (result.confidence == best_match.confidence &&
+                 result.best_single_confidence == best_match.best_single_confidence &&
                  result.match_count > best_match.match_count)) {
                 best_match = result;
             }

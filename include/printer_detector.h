@@ -15,6 +15,7 @@ struct PrinterDetectionResult {
     int confidence;        ///< Confidence score 0-100 (≥70 = high confidence, <70 = low confidence)
     std::string reason;    ///< Human-readable detection reasoning
     int match_count = 1;   ///< Number of matching heuristics (for combined scoring)
+    int best_single_confidence = 0; ///< Highest individual heuristic confidence (tiebreaker)
 
     /**
      * @brief Check if detection succeeded
