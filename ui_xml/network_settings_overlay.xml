@@ -52,9 +52,7 @@
             </lv_switch>
           </lv_obj>
           <!-- Divider line -->
-          <lv_obj width="100%"
-                  height="1" style_bg_color="#text_secondary" style_bg_opa="80" style_border_width="0"
-                  scrollable="false" style_margin_top="#space_xs" style_margin_bottom="#space_xs"/>
+          <divider_horizontal opacity="80" style_margin_top="#space_xs" style_margin_bottom="#space_xs"/>
           <!-- Hardware Unavailable State (shown when wifi_hardware_available == 0) -->
           <lv_obj name="wifi_unavailable_state"
                   width="100%" height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0"
@@ -120,9 +118,7 @@
             <text_body text="Ethernet" style_text_color="#text_secondary"/>
           </lv_obj>
           <!-- Divider line -->
-          <lv_obj width="100%"
-                  height="1" style_bg_color="#text_secondary" style_bg_opa="80" style_border_width="0"
-                  scrollable="false" style_margin_top="#space_xs" style_margin_bottom="#space_xs"/>
+          <divider_horizontal opacity="80" style_margin_top="#space_xs" style_margin_bottom="#space_xs"/>
           <!-- Connected State (shown when eth_connected == 1) -->
           <lv_obj name="eth_connected_state"
                   width="100%" height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0"
@@ -181,9 +177,7 @@
         </lv_button>
       </lv_obj>
       <!-- Vertical Divider -->
-      <lv_obj width="1"
-              height="100%" style_bg_color="#text_secondary" style_bg_opa="100" style_border_width="0"
-              scrollable="false"/>
+      <divider_vertical opacity="100"/>
       <!-- ================================================================== -->
       <!-- RIGHT COLUMN (60%) - Available networks list -->
       <!-- ================================================================== -->

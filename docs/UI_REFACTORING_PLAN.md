@@ -206,22 +206,23 @@ some_observer_ = observe_int_sync<PanelName>(
 ---
 
 ### HP-4: Create XML Divider Components
-- **Status**: `[~]` Components created, awaiting file updates
-- **Impact**: 33+ files simplified
+- **Status**: `[x]` Complete (2026-01-20)
+- **Impact**: 34 files updated, 72 inline dividers replaced
 - **Files**:
   - Created: `ui_xml/divider_horizontal.xml`
   - Created: `ui_xml/divider_vertical.xml`
   - Registered in `src/xml_registration.cpp`
 
-**New components**:
+**Components** (with `color` prop added for flexibility):
 
 `ui_xml/divider_horizontal.xml`:
 ```xml
 <component>
   <api>
     <prop name="opacity" type="string" default="64"/>
+    <prop name="color" type="string" default="#text_secondary"/>
   </api>
-  <view extends="lv_obj" width="100%" height="1" style_bg_color="#text_secondary"
+  <view extends="lv_obj" width="100%" height="1" style_bg_color="$color"
         style_bg_opa="$opacity" style_border_width="0" style_pad_all="0" scrollable="false"/>
 </component>
 ```
@@ -232,8 +233,9 @@ some_observer_ = observe_int_sync<PanelName>(
   <api>
     <prop name="height" type="string" default="100%"/>
     <prop name="opacity" type="string" default="64"/>
+    <prop name="color" type="string" default="#text_secondary"/>
   </api>
-  <view extends="lv_obj" width="1" height="$height" style_bg_color="#text_secondary"
+  <view extends="lv_obj" width="1" height="$height" style_bg_color="$color"
         style_bg_opa="$opacity" style_border_width="0" style_pad_all="0" scrollable="false"/>
 </component>
 ```
@@ -242,8 +244,8 @@ some_observer_ = observe_int_sync<PanelName>(
 - [x] Create `ui_xml/divider_horizontal.xml`
 - [x] Create `ui_xml/divider_vertical.xml`
 - [x] Register components in XML system
-- [ ] Update files using horizontal divider pattern (23+ files)
-- [ ] Update files using vertical divider pattern (10+ files)
+- [x] Update files using horizontal divider pattern (34 files, 47 instances)
+- [x] Update files using vertical divider pattern (17 files, 25 instances)
 
 ---
 
@@ -700,7 +702,7 @@ inline void ui_toggle_list_empty_state(lv_obj_t* list, lv_obj_t* empty_state, bo
 | 2026-01-20 | HP-5: Domain-specific observer helpers | Added `observe_connection_state` and `observe_print_state` to observer_factory.h |
 | 2026-01-20 | HP-2: Global panel singleton macro | Created macro, refactored 4 panels (console, spoolman, macros, bed_mesh) |
 | 2026-01-20 | HP-3: Modal button row component | Created component, registered in xml_registration.cpp |
-| 2026-01-20 | HP-4: Divider components | Created horizontal and vertical dividers, registered in xml_registration.cpp |
+| 2026-01-20 | HP-4: Divider components (complete) | Updated 34 XML files to use divider components, added color prop for flexibility, 72 inline dividers eliminated |
 | 2026-01-20 | MP-C1: Subject init/deinit guards | Added to PanelBase and OverlayBase, refactored 5 panels |
 | 2026-01-20 | MP-C2: Overlay creation helper | Added `create_overlay_from_xml()` to OverlayBase, refactored 3 overlay panels |
 | 2026-01-20 | MP-C4: Modal button wiring | Consolidated with private `wire_button()` helper |
