@@ -23,6 +23,7 @@
 #include <cmath>
 #include <ctime>
 #include <map>
+#include <sstream>
 
 // ============================================================================
 // Global Instance
@@ -654,8 +655,33 @@ void HistoryDashboardPanel::update_filament_chart(const std::vector<PrintHistory
     std::map<std::string, double> filament_by_type;
 
     for (const auto& job : jobs) {
-        std::string type = job.filament_type.empty() ? "Unknown" : job.filament_type;
-        filament_by_type[type] += job.filament_used;
+        if (job.filament_type.empty()) {
+            filament_by_type["Unknown"] += job.filament_used;
+            continue;
+        }
+
+        // Split semicolon-separated filament types (OrcaSlicer multi-extruder format)
+        std::vector<std::string> types;
+        std::stringstream ss(job.filament_type);
+        std::string item;
+        while (std::getline(ss, item, ';')) {
+            // Trim whitespace
+            size_t start = item.find_first_not_of(" \t");
+            size_t end = item.find_last_not_of(" \t");
+            if (start != std::string::npos) {
+                types.push_back(item.substr(start, end - start + 1));
+            }
+        }
+
+        if (types.empty()) {
+            filament_by_type["Unknown"] += job.filament_used;
+        } else {
+            // Distribute filament proportionally among all extruders
+            double per_extruder = job.filament_used / static_cast<double>(types.size());
+            for (const auto& type : types) {
+                filament_by_type[type.empty() ? "Unknown" : type] += per_extruder;
+            }
+        }
     }
 
     if (filament_by_type.empty()) {
