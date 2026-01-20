@@ -3,13 +3,13 @@
 
 #include "ui_status_bar_manager.h"
 
-#include "observer_factory.h"
 #include "ui_nav.h"
 #include "ui_panel_notification_history.h"
 #include "ui_theme.h"
 
 #include "app_globals.h"
 #include "moonraker_client.h"
+#include "observer_factory.h"
 #include "printer_state.h"
 #include "settings_manager.h"
 
@@ -191,8 +191,8 @@ void StatusBarManager::init() {
     lv_subject_t* klippy_subject = printer_state.get_klippy_state_subject();
     spdlog::trace("[StatusBarManager] Registering observer on klippy_state_subject at {}",
                   (void*)klippy_subject);
-    klippy_observer_ =
-        observe_int_sync<StatusBarManager>(klippy_subject, this, [](StatusBarManager* self, int val) {
+    klippy_observer_ = observe_int_sync<StatusBarManager>(
+        klippy_subject, this, [](StatusBarManager* self, int val) {
             self->cached_klippy_state_ = val;
             spdlog::trace("[StatusBarManager] Klippy state changed to: {}",
                           self->cached_klippy_state_);

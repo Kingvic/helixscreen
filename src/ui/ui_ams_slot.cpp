@@ -582,8 +582,9 @@ static void setup_slot_observers(AmsSlotData* data) {
     }
     if (current_slot_subject) {
         data->current_slot_observer = observe_int_sync<AmsSlotData>(
-            current_slot_subject, data,
-            [](AmsSlotData* d, int current_slot) { apply_current_slot_highlight(d, current_slot); });
+            current_slot_subject, data, [](AmsSlotData* d, int current_slot) {
+                apply_current_slot_highlight(d, current_slot);
+            });
     }
     if (filament_loaded_subject) {
         // When filament_loaded changes, re-evaluate highlight using current_slot value

@@ -3,13 +3,13 @@
 
 #include "ui_panel_calibration_zoffset.h"
 
-#include "observer_factory.h"
 #include "ui_event_safety.h"
 #include "ui_nav.h"
 #include "ui_nav_manager.h"
 
 #include "app_globals.h"
 #include "moonraker_client.h"
+#include "observer_factory.h"
 #include "printer_state.h"
 #include "static_panel_registry.h"
 
@@ -155,7 +155,8 @@ void ZOffsetCalibrationPanel::setup_widgets() {
     PrinterState& ps = get_printer_state();
 
     manual_probe_active_observer_ = observe_int_sync<ZOffsetCalibrationPanel>(
-        ps.get_manual_probe_active_subject(), this, [](ZOffsetCalibrationPanel* self, int is_active) {
+        ps.get_manual_probe_active_subject(), this,
+        [](ZOffsetCalibrationPanel* self, int is_active) {
             spdlog::debug("[ZOffsetCal] manual_probe_active changed: {}", is_active);
 
             if (is_active && self->state_ == State::PROBING) {

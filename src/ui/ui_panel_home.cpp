@@ -3,7 +3,6 @@
 
 #include "ui_panel_home.h"
 
-#include "observer_factory.h"
 #include "ui_error_reporting.h"
 #include "ui_event_safety.h"
 #include "ui_icon.h"
@@ -27,6 +26,7 @@
 #include "filament_sensor_manager.h"
 #include "injection_point_manager.h"
 #include "moonraker_api.h"
+#include "observer_factory.h"
 #include "prerendered_images.h"
 #include "printer_detector.h"
 #include "printer_state.h"

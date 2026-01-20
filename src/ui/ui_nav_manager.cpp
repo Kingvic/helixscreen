@@ -3,7 +3,6 @@
 
 #include "ui_nav_manager.h"
 
-#include "observer_factory.h"
 #include "ui_emergency_stop.h"
 #include "ui_event_safety.h"
 #include "ui_fonts.h"
@@ -14,6 +13,7 @@
 
 #include "app_globals.h"
 #include "moonraker_client.h" // For ConnectionState enum
+#include "observer_factory.h"
 #include "overlay_base.h"
 #include "printer_state.h" // For KlippyState enum
 #include "settings_manager.h"
@@ -534,9 +534,8 @@ void NavigationManager::init() {
     UI_MANAGED_SUBJECT_INT(active_panel_subject_, UI_PANEL_HOME, "active_panel", subjects_);
 
     active_panel_observer_ = observe_int_sync<NavigationManager>(
-        &active_panel_subject_, this, [](NavigationManager* mgr, int value) {
-            mgr->handle_active_panel_change(value);
-        });
+        &active_panel_subject_, this,
+        [](NavigationManager* mgr, int value) { mgr->handle_active_panel_change(value); });
 
     subjects_initialized_ = true;
     spdlog::debug("[NavigationManager] Navigation subjects initialized successfully");

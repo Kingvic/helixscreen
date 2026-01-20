@@ -3,7 +3,6 @@
 
 #include "ui_panel_temp_control.h"
 
-#include "observer_factory.h"
 #include "ui_component_keypad.h"
 #include "ui_error_reporting.h"
 #include "ui_nav.h"
@@ -17,6 +16,7 @@
 #include "app_constants.h"
 #include "app_globals.h"
 #include "moonraker_api.h"
+#include "observer_factory.h"
 #include "printer_state.h"
 #include "temperature_history_manager.h"
 

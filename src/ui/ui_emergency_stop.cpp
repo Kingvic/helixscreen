@@ -3,12 +3,12 @@
 
 #include "ui_emergency_stop.h"
 
-#include "observer_factory.h"
 #include "ui_notification.h"
 #include "ui_toast.h"
 #include "ui_update_queue.h"
 
 #include "abort_manager.h"
+#include "observer_factory.h"
 
 #include <spdlog/spdlog.h>
 

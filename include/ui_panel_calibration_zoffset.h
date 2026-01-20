@@ -3,10 +3,11 @@
 
 #pragma once
 
+#include "ui_observer_guard.h"
+
 #include "lvgl/lvgl.h"
 #include "overlay_base.h"
 #include "subject_managed_panel.h"
-#include "ui_observer_guard.h"
 
 #include <string>
 

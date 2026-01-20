@@ -3,7 +3,6 @@
 
 #include "ui_panel_print_status.h"
 
-#include "observer_factory.h"
 #include "ui_ams_current_tool.h"
 #include "ui_component_header_bar.h"
 #include "ui_error_reporting.h"
@@ -28,6 +27,7 @@
 #include "injection_point_manager.h"
 #include "memory_utils.h"
 #include "moonraker_api.h"
+#include "observer_factory.h"
 #include "printer_state.h"
 #include "runtime_config.h"
 #include "settings_manager.h"
@@ -89,11 +89,11 @@ PrintStatusPanel::PrintStatusPanel(PrinterState& printer_state, MoonrakerAPI* ap
     print_state_observer_ = observe_print_state<PrintStatusPanel>(
         printer_state_.get_print_state_enum_subject(), this,
         [](PrintStatusPanel* self, PrintJobState state) { self->on_print_state_changed(state); });
-    print_filename_observer_ = observe_string<PrintStatusPanel>(
-        printer_state_.get_print_filename_subject(), this,
-        [](PrintStatusPanel* self, const char* filename) {
-            self->on_print_filename_changed(filename);
-        });
+    print_filename_observer_ =
+        observe_string<PrintStatusPanel>(printer_state_.get_print_filename_subject(), this,
+                                         [](PrintStatusPanel* self, const char* filename) {
+                                             self->on_print_filename_changed(filename);
+                                         });
 
     // Subscribe to speed/flow factors
     speed_factor_observer_ = observe_int_sync<PrintStatusPanel>(
@@ -123,14 +123,16 @@ PrintStatusPanel::PrintStatusPanel(PrinterState& printer_state, MoonrakerAPI* ap
     print_start_phase_observer_ = observe_int_sync<PrintStatusPanel>(
         printer_state_.get_print_start_phase_subject(), this,
         [](PrintStatusPanel* self, int phase) { self->on_print_start_phase_changed(phase); });
-    print_start_message_observer_ = observe_string<PrintStatusPanel>(
-        printer_state_.get_print_start_message_subject(), this,
-        [](PrintStatusPanel* self, const char* message) {
-            self->on_print_start_message_changed(message);
-        });
-    print_start_progress_observer_ = observe_int_sync<PrintStatusPanel>(
-        printer_state_.get_print_start_progress_subject(), this,
-        [](PrintStatusPanel* self, int progress) { self->on_print_start_progress_changed(progress); });
+    print_start_message_observer_ =
+        observe_string<PrintStatusPanel>(printer_state_.get_print_start_message_subject(), this,
+                                         [](PrintStatusPanel* self, const char* message) {
+                                             self->on_print_start_message_changed(message);
+                                         });
+    print_start_progress_observer_ =
+        observe_int_sync<PrintStatusPanel>(printer_state_.get_print_start_progress_subject(), this,
+                                           [](PrintStatusPanel* self, int progress) {
+                                               self->on_print_start_progress_changed(progress);
+                                           });
 
     spdlog::debug("[{}] Subscribed to PrinterState subjects", get_name());
 
