@@ -207,11 +207,6 @@ class MachineLimitsOverlay {
      */
     void handle_reset();
 
-    /**
-     * @brief Handle apply button - sends SET_VELOCITY_LIMIT
-     */
-    void handle_apply();
-
   private:
     //
     // === Internal Methods ===
@@ -226,6 +221,14 @@ class MachineLimitsOverlay {
      * @brief Update slider positions from current_limits_
      */
     void update_sliders();
+
+    /**
+     * @brief Apply current limits to printer immediately
+     *
+     * Called on slider release to send SET_VELOCITY_LIMIT command.
+     * Does not show success toast (only errors).
+     */
+    void apply_limits();
 
     /**
      * @brief Query API for limits and show overlay
@@ -280,7 +283,6 @@ class MachineLimitsOverlay {
     static void on_a2d_changed(lv_event_t* e);
     static void on_scv_changed(lv_event_t* e);
     static void on_reset(lv_event_t* e);
-    static void on_apply(lv_event_t* e);
 };
 
 /**

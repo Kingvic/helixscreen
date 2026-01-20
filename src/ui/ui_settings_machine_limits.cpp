@@ -68,16 +68,17 @@ void MachineLimitsOverlay::init_subjects() {
     }
 
     // Initialize display subjects for XML binding
-    UI_MANAGED_SUBJECT_STRING(max_velocity_display_subject_, velocity_buf_, "-- mm/s",
+    // Use em-dash (—) for unknown values instead of double-hyphen (--)
+    UI_MANAGED_SUBJECT_STRING(max_velocity_display_subject_, velocity_buf_, "— mm/s",
                               "max_velocity_display", subjects_);
 
-    UI_MANAGED_SUBJECT_STRING(max_accel_display_subject_, accel_buf_, "-- mm/s²",
+    UI_MANAGED_SUBJECT_STRING(max_accel_display_subject_, accel_buf_, "— mm/s²",
                               "max_accel_display", subjects_);
 
-    UI_MANAGED_SUBJECT_STRING(accel_to_decel_display_subject_, a2d_buf_, "-- mm/s²",
+    UI_MANAGED_SUBJECT_STRING(accel_to_decel_display_subject_, a2d_buf_, "— mm/s²",
                               "accel_to_decel_display", subjects_);
 
-    UI_MANAGED_SUBJECT_STRING(square_corner_velocity_display_subject_, scv_buf_, "-- mm/s",
+    UI_MANAGED_SUBJECT_STRING(square_corner_velocity_display_subject_, scv_buf_, "— mm/s",
                               "square_corner_velocity_display", subjects_);
 
     subjects_initialized_ = true;
@@ -91,9 +92,8 @@ void MachineLimitsOverlay::register_callbacks() {
     lv_xml_register_event_cb(nullptr, "on_accel_to_decel_changed", on_a2d_changed);
     lv_xml_register_event_cb(nullptr, "on_square_corner_velocity_changed", on_scv_changed);
 
-    // Register button callbacks
+    // Register button callbacks (Reset only - Apply removed for immediate mode)
     lv_xml_register_event_cb(nullptr, "on_limits_reset", on_reset);
-    lv_xml_register_event_cb(nullptr, "on_limits_apply", on_apply);
 
     spdlog::debug("[{}] Callbacks registered", get_name());
 }
@@ -276,24 +276,28 @@ void MachineLimitsOverlay::handle_velocity_changed(int value) {
     current_limits_.max_velocity = static_cast<double>(value);
     snprintf(velocity_buf_, sizeof(velocity_buf_), "%d mm/s", value);
     lv_subject_copy_string(&max_velocity_display_subject_, velocity_buf_);
+    apply_limits();
 }
 
 void MachineLimitsOverlay::handle_accel_changed(int value) {
     current_limits_.max_accel = static_cast<double>(value);
     snprintf(accel_buf_, sizeof(accel_buf_), "%d mm/s²", value);
     lv_subject_copy_string(&max_accel_display_subject_, accel_buf_);
+    apply_limits();
 }
 
 void MachineLimitsOverlay::handle_a2d_changed(int value) {
     current_limits_.max_accel_to_decel = static_cast<double>(value);
     snprintf(a2d_buf_, sizeof(a2d_buf_), "%d mm/s²", value);
     lv_subject_copy_string(&accel_to_decel_display_subject_, a2d_buf_);
+    apply_limits();
 }
 
 void MachineLimitsOverlay::handle_scv_changed(int value) {
     current_limits_.square_corner_velocity = static_cast<double>(value);
     snprintf(scv_buf_, sizeof(scv_buf_), "%d mm/s", value);
     lv_subject_copy_string(&square_corner_velocity_display_subject_, scv_buf_);
+    apply_limits();
 }
 
 void MachineLimitsOverlay::handle_reset() {
@@ -301,15 +305,16 @@ void MachineLimitsOverlay::handle_reset() {
     current_limits_ = original_limits_;
     update_display();
     update_sliders();
+    apply_limits(); // Send original values back to printer
 }
 
-void MachineLimitsOverlay::handle_apply() {
-    spdlog::info("[{}] Applying machine limits: vel={}, accel={}, a2d={}, scv={}", get_name(),
-                 current_limits_.max_velocity, current_limits_.max_accel,
-                 current_limits_.max_accel_to_decel, current_limits_.square_corner_velocity);
+void MachineLimitsOverlay::apply_limits() {
+    spdlog::debug("[{}] Applying machine limits: vel={}, accel={}, a2d={}, scv={}", get_name(),
+                  current_limits_.max_velocity, current_limits_.max_accel,
+                  current_limits_.max_accel_to_decel, current_limits_.square_corner_velocity);
 
     if (!api_) {
-        ui_toast_show(ToastSeverity::ERROR, "No printer connection", 2000);
+        spdlog::warn("[{}] No API available - cannot apply limits", get_name());
         return;
     }
 
@@ -318,10 +323,7 @@ void MachineLimitsOverlay::handle_apply() {
         [this]() {
             // Defer to main thread for LVGL calls
             ui_queue_update([this]() {
-                spdlog::info("[{}] Machine limits applied successfully", get_name());
-                ui_toast_show(ToastSeverity::SUCCESS, "Limits applied", 2000);
-                // Update original to prevent reset from reverting
-                original_limits_ = current_limits_;
+                spdlog::debug("[{}] Machine limits applied successfully", get_name());
             });
         },
         [this](const MoonrakerError& err) {
@@ -372,12 +374,6 @@ void MachineLimitsOverlay::on_scv_changed(lv_event_t* e) {
 void MachineLimitsOverlay::on_reset(lv_event_t* /*e*/) {
     LVGL_SAFE_EVENT_CB_BEGIN("[MachineLimitsOverlay] on_reset");
     get_machine_limits_overlay().handle_reset();
-    LVGL_SAFE_EVENT_CB_END();
-}
-
-void MachineLimitsOverlay::on_apply(lv_event_t* /*e*/) {
-    LVGL_SAFE_EVENT_CB_BEGIN("[MachineLimitsOverlay] on_apply");
-    get_machine_limits_overlay().handle_apply();
     LVGL_SAFE_EVENT_CB_END();
 }
 
