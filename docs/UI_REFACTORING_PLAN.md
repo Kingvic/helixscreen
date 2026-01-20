@@ -1,0 +1,814 @@
+# UI Refactoring Plan
+
+> **Purpose**: Track DRY violations and refactoring progress across the UI codebase.
+> **Generated**: 2026-01-20 from comprehensive DRY code review
+> **Status Legend**: `[ ]` = pending, `[x]` = complete, `[~]` = in progress, `[-]` = skipped
+
+---
+
+## Summary
+
+| Category | Total Tasks | Completed | Remaining |
+|----------|-------------|-----------|-----------|
+| High Priority | 5 | 5 | 0 |
+| Medium Priority - C++ | 8 | 0 | 8 |
+| Medium Priority - XML | 6 | 0 | 6 |
+| Low Priority | 5 | 0 | 5 |
+| **Total** | **24** | **5** | **19** |
+
+---
+
+## High Priority Tasks
+
+### HP-1: Migrate Manual Observer Callbacks to Factory Pattern
+- **Status**: `[x]` Complete (2026-01-20)
+- **Impact**: ~50 static callback functions eliminated across 9 files (-317 lines)
+- **Files**:
+  - `src/ui/ui_panel_home.cpp` (lines 893-920, 1025-1105)
+  - `src/ui/ui_panel_print_status.cpp` (lines 1004-1131)
+  - `src/ui/ui_panel_temp_control.cpp` (lines 97-129)
+  - `src/ui/ui_emergency_stop.cpp` (lines 350, 358)
+  - `src/ui/ui_panel_calibration_zoffset.cpp` (lines 522, 544)
+  - `src/ui/ui_panel_ams.cpp` (lines 982, 996, 1030)
+  - `src/ui/ui_ams_slot.cpp` (lines 279, 327)
+  - `src/ui/ui_nav_manager.cpp`
+  - `src/ui/ui_status_bar_manager.cpp` (lines 60-80)
+
+**Pattern to replace**:
+```cpp
+// BEFORE: Manual static callback
+void PanelName::some_observer_cb(lv_observer_t* observer, lv_subject_t* subject) {
+    auto* self = static_cast<PanelName*>(lv_observer_get_user_data(observer));
+    if (self) {
+        self->on_something_changed(lv_subject_get_int(subject));
+    }
+}
+some_observer_ = ObserverGuard(subject_ptr, some_observer_cb, this);
+
+// AFTER: Factory pattern
+some_observer_ = observe_int_sync<PanelName>(
+    subject_ptr, this,
+    [](PanelName* self, int value) { self->on_something_changed(value); });
+```
+
+**Checklist**:
+- [x] `ui_panel_home.cpp` - 12 callbacks migrated
+- [x] `ui_panel_print_status.cpp` - 17 callbacks migrated
+- [x] `ui_panel_temp_control.cpp` - 4 callbacks migrated
+- [x] `ui_emergency_stop.cpp` - 2 callbacks migrated
+- [x] `ui_panel_calibration_zoffset.cpp` - 2 callbacks migrated
+- [-] `ui_panel_ams.cpp` - skipped (already uses factory pattern)
+- [x] `ui_ams_slot.cpp` - 2 callbacks migrated
+- [x] `ui_nav_manager.cpp` - 3 callbacks migrated
+- [x] `ui_status_bar_manager.cpp` - 3 callbacks migrated
+
+---
+
+### HP-2: Create Global Panel Singleton Macro
+- **Status**: `[x]` Complete (2026-01-20)
+- **Impact**: ~30 lines saved per panel, 4 panels refactored
+- **Files modified**:
+  - Created: `include/ui_global_panel_helper.h`
+  - Updated: `src/ui/ui_panel_console.cpp`
+  - Updated: `src/ui/ui_panel_spoolman.cpp`
+  - Updated: `src/ui/ui_panel_macros.cpp`
+  - Updated: `src/ui/ui_panel_bed_mesh.cpp`
+  - Skipped: `src/ui/ui_panel_filament.cpp` (requires PrinterState constructor arg)
+  - Skipped: `src/ui/ui_panel_advanced.cpp` (uses init function pattern)
+
+**New helper** (`include/ui/ui_global_panel_helper.h`):
+```cpp
+#pragma once
+#include "ui_static_panel_registry.h"
+#include <memory>
+
+#define DEFINE_GLOBAL_PANEL(PanelType, global_var, getter_func) \
+    static std::unique_ptr<PanelType> global_var; \
+    PanelType& getter_func() { \
+        if (!global_var) { \
+            global_var = std::make_unique<PanelType>(); \
+            StaticPanelRegistry::instance().register_destroy( \
+                #PanelType, []() { global_var.reset(); }); \
+        } \
+        return *global_var; \
+    }
+```
+
+**Checklist**:
+- [ ] Create `include/ui/ui_global_panel_helper.h`
+- [ ] Refactor `ui_panel_console.cpp` to use macro
+- [ ] Refactor `ui_panel_spoolman.cpp` to use macro
+- [ ] Refactor `ui_panel_macros.cpp` to use macro
+- [ ] Refactor `ui_panel_filament.cpp` to use macro
+- [ ] Refactor `ui_panel_bed_mesh.cpp` to use macro
+- [ ] Refactor `ui_panel_advanced.cpp` to use macro
+
+---
+
+### HP-3: Create XML Modal Button Row Component
+- **Status**: `[~]` Component created, awaiting modal updates
+- **Impact**: 12+ modal files simplified
+- **Files**:
+  - Created: `ui_xml/modal_button_row.xml`
+  - Registered in `src/xml_registration.cpp`
+  - Update: `ui_xml/wifi_password_modal.xml`
+  - Update: `ui_xml/hidden_network_modal.xml`
+  - Update: `ui_xml/bed_mesh_rename_modal.xml`
+  - Update: `ui_xml/factory_reset_modal.xml`
+  - Update: `ui_xml/theme_restart_modal.xml`
+  - Update: `ui_xml/save_z_offset_modal.xml`
+  - Update: `ui_xml/estop_confirmation_dialog.xml`
+  - Update: `ui_xml/print_cancel_confirm_modal.xml`
+  - Update: `ui_xml/filament_preset_edit_modal.xml`
+  - Update: `ui_xml/modal_dialog.xml`
+  - Update: `ui_xml/bed_mesh_save_config_modal.xml`
+  - Update: `ui_xml/exclude_object_modal.xml`
+
+**New component** (`ui_xml/modal_button_row.xml`):
+```xml
+<component>
+  <api>
+    <prop name="primary_text" type="string" default="OK"/>
+    <prop name="secondary_text" type="string" default="Cancel"/>
+    <prop name="primary_callback" type="string"/>
+    <prop name="secondary_callback" type="string"/>
+    <prop name="primary_bg_color" type="string" default=""/>
+    <prop name="show_secondary" type="string" default="true"/>
+  </api>
+  <view extends="lv_obj" width="100%" height="content" style_bg_opa="0"
+        style_border_width="0" style_pad_all="0" flex_flow="column">
+    <!-- Horizontal divider -->
+    <lv_obj width="100%" height="1" style_bg_color="#text_secondary"
+            style_bg_opa="64" style_border_width="0" style_pad_all="0"/>
+    <!-- Button row -->
+    <lv_obj width="100%" height="#button_height" style_bg_opa="0"
+            style_border_width="0" style_pad_all="0" flex_flow="row">
+      <!-- Secondary button (conditional) -->
+      <lv_button name="btn_secondary" height="100%" flex_grow="1"
+                 style_radius="#border_radius" style_border_width="0"
+                 style_shadow_width="0" clickable="true">
+        <event_cb trigger="clicked" callback="$secondary_callback"/>
+        <text_body text="$secondary_text" align="center"/>
+      </lv_button>
+      <!-- Vertical divider -->
+      <lv_obj width="1" height="100%" style_bg_color="#text_secondary"
+              style_bg_opa="64" style_border_width="0" style_pad_all="0"/>
+      <!-- Primary button -->
+      <lv_button name="btn_primary" height="100%" flex_grow="1"
+                 style_radius="#border_radius" style_border_width="0"
+                 style_shadow_width="0" clickable="true">
+        <event_cb trigger="clicked" callback="$primary_callback"/>
+        <text_body text="$primary_text" align="center"/>
+      </lv_button>
+    </lv_obj>
+  </view>
+</component>
+```
+
+**Checklist**:
+- [x] Create `ui_xml/modal_button_row.xml` component
+- [x] Register component in XML system
+- [ ] Update `wifi_password_modal.xml`
+- [ ] Update `hidden_network_modal.xml`
+- [ ] Update `bed_mesh_rename_modal.xml`
+- [ ] Update `factory_reset_modal.xml`
+- [ ] Update `theme_restart_modal.xml`
+- [ ] Update `save_z_offset_modal.xml`
+- [ ] Update `estop_confirmation_dialog.xml`
+- [ ] Update `print_cancel_confirm_modal.xml`
+- [ ] Update `filament_preset_edit_modal.xml`
+- [ ] Update `modal_dialog.xml`
+- [ ] Update `bed_mesh_save_config_modal.xml`
+- [ ] Update `exclude_object_modal.xml`
+
+---
+
+### HP-4: Create XML Divider Components
+- **Status**: `[~]` Components created, awaiting file updates
+- **Impact**: 33+ files simplified
+- **Files**:
+  - Created: `ui_xml/divider_horizontal.xml`
+  - Created: `ui_xml/divider_vertical.xml`
+  - Registered in `src/xml_registration.cpp`
+
+**New components**:
+
+`ui_xml/divider_horizontal.xml`:
+```xml
+<component>
+  <api>
+    <prop name="opacity" type="string" default="64"/>
+  </api>
+  <view extends="lv_obj" width="100%" height="1" style_bg_color="#text_secondary"
+        style_bg_opa="$opacity" style_border_width="0" style_pad_all="0" scrollable="false"/>
+</component>
+```
+
+`ui_xml/divider_vertical.xml`:
+```xml
+<component>
+  <api>
+    <prop name="height" type="string" default="100%"/>
+    <prop name="opacity" type="string" default="64"/>
+  </api>
+  <view extends="lv_obj" width="1" height="$height" style_bg_color="#text_secondary"
+        style_bg_opa="$opacity" style_border_width="0" style_pad_all="0" scrollable="false"/>
+</component>
+```
+
+**Checklist**:
+- [x] Create `ui_xml/divider_horizontal.xml`
+- [x] Create `ui_xml/divider_vertical.xml`
+- [x] Register components in XML system
+- [ ] Update files using horizontal divider pattern (23+ files)
+- [ ] Update files using vertical divider pattern (10+ files)
+
+---
+
+### HP-5: Add Domain-Specific Observer Helpers
+- **Status**: `[x]` Complete (2026-01-20)
+- **Impact**: Simplified observer setup across 12+ files
+- **Files**:
+  - Updated: `include/observer_factory.h`
+
+**New helpers to add**:
+```cpp
+// Connection state observer - used in 6+ files
+template<typename Panel, typename OnConnected>
+ObserverGuard observe_connection_state(lv_subject_t* subject, Panel* panel,
+                                        OnConnected&& on_connected) {
+    return observe_int_sync<Panel>(subject, panel,
+        [on_connected = std::forward<OnConnected>(on_connected)](Panel* p, int state) {
+            if (state == static_cast<int>(ConnectionState::CONNECTED)) {
+                on_connected(p);
+            }
+        });
+}
+
+// Print state observer - used in 4+ files
+template<typename Panel, typename Handler>
+ObserverGuard observe_print_state(lv_subject_t* subject, Panel* panel, Handler&& handler) {
+    return observe_int_sync<Panel>(subject, panel,
+        [handler = std::forward<Handler>(handler)](Panel* p, int state_int) {
+            handler(p, static_cast<PrintJobState>(state_int));
+        });
+}
+```
+
+**Checklist**:
+- [x] Add `observe_connection_state` to `observer_factory.h`
+- [x] Add `observe_print_state` to `observer_factory.h`
+- [ ] Update files using connection state pattern
+- [ ] Update files using print state pattern
+
+---
+
+## Medium Priority Tasks - C++
+
+### MP-C1: Extract Subject Init/Deinit Guards to Base Class
+- **Status**: `[ ]` Pending
+- **Impact**: ~20 lines saved per panel, 6+ panels
+- **Files**:
+  - Update: `include/ui/ui_panel_base.h` or `include/ui/ui_overlay_base.h`
+  - Update: `src/ui/ui_panel_filament.cpp`
+  - Update: `src/ui/ui_panel_bed_mesh.cpp`
+  - Update: `src/ui/ui_panel_temp_control.cpp`
+  - Update: `src/ui/ui_panel_console.cpp`
+  - Update: `src/ui/ui_panel_spoolman.cpp`
+  - Update: `src/ui/ui_panel_macros.cpp`
+
+**Add to base class**:
+```cpp
+protected:
+    template<typename Func>
+    bool init_subjects_guarded(Func&& init_func) {
+        if (subjects_initialized_) {
+            spdlog::warn("[{}] init_subjects() called twice - ignoring", get_name());
+            return false;
+        }
+        init_func();
+        subjects_initialized_ = true;
+        spdlog::debug("[{}] Subjects initialized", get_name());
+        return true;
+    }
+
+    void deinit_subjects_base() {
+        if (!subjects_initialized_) return;
+        subjects_.deinit_all();
+        subjects_initialized_ = false;
+        spdlog::debug("[{}] Subjects deinitialized", get_name());
+    }
+```
+
+**Checklist**:
+- [ ] Add guarded init/deinit methods to base class
+- [ ] Refactor `ui_panel_filament.cpp`
+- [ ] Refactor `ui_panel_bed_mesh.cpp`
+- [ ] Refactor `ui_panel_temp_control.cpp`
+- [ ] Refactor `ui_panel_console.cpp`
+- [ ] Refactor `ui_panel_spoolman.cpp`
+- [ ] Refactor `ui_panel_macros.cpp`
+
+---
+
+### MP-C2: Create Overlay Creation Helper in OverlayBase
+- **Status**: `[ ]` Pending
+- **Impact**: ~30 lines saved per overlay, 4+ overlays
+- **Files**:
+  - Update: `include/ui/ui_overlay_base.h`
+  - Update: `src/ui/ui_overlay_base.cpp`
+  - Update: `src/ui/ui_panel_console.cpp`
+  - Update: `src/ui/ui_panel_spoolman.cpp`
+  - Update: `src/ui/ui_panel_macros.cpp`
+  - Update: `src/ui/ui_panel_bed_mesh.cpp`
+
+**Add to OverlayBase**:
+```cpp
+protected:
+    lv_obj_t* create_overlay_from_xml(lv_obj_t* parent, const char* component_name) {
+        if (!parent) {
+            spdlog::error("[{}] Cannot create: null parent", get_name());
+            return nullptr;
+        }
+        spdlog::debug("[{}] Creating overlay from XML", get_name());
+        parent_screen_ = parent;
+        cleanup_called_ = false;
+
+        overlay_root_ = static_cast<lv_obj_t*>(lv_xml_create(parent, component_name, nullptr));
+        if (!overlay_root_) {
+            spdlog::error("[{}] Failed to create from XML", get_name());
+            return nullptr;
+        }
+
+        ui_overlay_panel_setup_standard(overlay_root_, parent_screen_,
+                                        "overlay_header", "overlay_content");
+        lv_obj_add_flag(overlay_root_, LV_OBJ_FLAG_HIDDEN);
+        return overlay_root_;
+    }
+```
+
+**Checklist**:
+- [ ] Add `create_overlay_from_xml` to `OverlayBase`
+- [ ] Refactor `ui_panel_console.cpp`
+- [ ] Refactor `ui_panel_spoolman.cpp`
+- [ ] Refactor `ui_panel_macros.cpp`
+- [ ] Refactor `ui_panel_bed_mesh.cpp`
+
+---
+
+### MP-C3: Create Lazy Panel Navigation Template
+- **Status**: `[ ]` Pending
+- **Impact**: ~80 lines saved in AdvancedPanel
+- **Files**:
+  - Create: `include/ui/ui_lazy_panel_helper.h`
+  - Update: `src/ui/ui_panel_advanced.cpp`
+
+**New helper**:
+```cpp
+template<typename PanelType>
+lv_obj_t* lazy_create_and_push_overlay(
+    PanelType& (*getter)(),
+    lv_obj_t*& cached_panel,
+    lv_obj_t* parent_screen,
+    const char* panel_name
+) {
+    if (!cached_panel && parent_screen) {
+        auto& panel = getter();
+        if (!panel.are_subjects_initialized()) {
+            panel.init_subjects();
+        }
+        panel.register_callbacks();
+        cached_panel = panel.create(parent_screen);
+        if (!cached_panel) {
+            spdlog::error("[AdvancedPanel] Failed to create {} panel", panel_name);
+            ui_toast_show(ToastSeverity::ERROR,
+                fmt::format("Failed to open {}", panel_name).c_str(), 2000);
+            return nullptr;
+        }
+        NavigationManager::instance().register_overlay_instance(cached_panel, &panel);
+    }
+    if (cached_panel) {
+        ui_nav_push_overlay(cached_panel);
+    }
+    return cached_panel;
+}
+```
+
+**Checklist**:
+- [ ] Create `include/ui/ui_lazy_panel_helper.h`
+- [ ] Refactor `handle_spoolman_clicked()` in `ui_panel_advanced.cpp`
+- [ ] Refactor `handle_macros_clicked()` in `ui_panel_advanced.cpp`
+- [ ] Refactor `handle_console_clicked()` in `ui_panel_advanced.cpp`
+- [ ] Refactor `handle_history_clicked()` in `ui_panel_advanced.cpp`
+
+---
+
+### MP-C4: Consolidate Modal Button Wiring
+- **Status**: `[ ]` Pending
+- **Impact**: ~50 lines saved in Modal class
+- **Files**:
+  - Update: `include/ui/ui_modal.h`
+  - Update: `src/ui/ui_modal.cpp`
+
+**Refactor**:
+```cpp
+// Add private helper
+void Modal::wire_button(const char* name, const char* role_name) {
+    lv_obj_t* btn = find_widget(name);
+    if (btn) {
+        lv_obj_set_user_data(btn, this);
+        spdlog::trace("[{}] Wired {} button '{}'", get_name(), role_name, name);
+    } else {
+        spdlog::warn("[{}] {} button '{}' not found", get_name(), role_name, name);
+    }
+}
+
+// Simplify public methods to one-liners
+void Modal::wire_ok_button(const char* name) { wire_button(name, "OK"); }
+void Modal::wire_cancel_button(const char* name) { wire_button(name, "Cancel"); }
+// ... etc
+```
+
+**Checklist**:
+- [ ] Add `wire_button` private helper to Modal
+- [ ] Refactor all `wire_*_button` methods to use helper
+
+---
+
+### MP-C5: Consolidate Modal Button Callbacks
+- **Status**: `[ ]` Pending
+- **Impact**: ~60 lines saved in Modal class
+- **Files**:
+  - Update: `src/ui/ui_modal.cpp`
+
+**Checklist**:
+- [ ] Create generic button callback template/macro
+- [ ] Refactor 6 nearly-identical button callbacks
+
+---
+
+### MP-C6: Create Temperature Observer Bundle
+- **Status**: `[ ]` Pending
+- **Impact**: ~15 lines saved per panel, 6 panels
+- **Files**:
+  - Create: `include/ui/temperature_observer_bundle.h`
+  - Update: `src/ui/ui_panel_home.cpp`
+  - Update: `src/ui/ui_panel_print_status.cpp`
+  - Update: `src/ui/ui_panel_temp_control.cpp`
+  - Update: `src/ui/ui_panel_filament.cpp`
+  - Update: `src/ui/ui_panel_controls.cpp`
+
+**Checklist**:
+- [ ] Create `TemperatureObserverBundle` class
+- [ ] Refactor temperature observer setup in 5+ panels
+
+---
+
+### MP-C7: Create Fullscreen Backdrop Helper
+- **Status**: `[ ]` Pending
+- **Impact**: ~20 lines saved
+- **Files**:
+  - Update: `include/ui/ui_utils.h` or new file
+  - Update: `src/ui/ui_modal.cpp`
+  - Update: `src/ui/ui_busy_overlay.cpp`
+
+**New helper**:
+```cpp
+lv_obj_t* ui_create_fullscreen_backdrop(lv_obj_t* parent, lv_opa_t opacity = 180);
+```
+
+**Checklist**:
+- [ ] Add `ui_create_fullscreen_backdrop` utility
+- [ ] Refactor `Modal::show()` and `Modal::create_and_show()`
+- [ ] Refactor `BusyOverlay::create_overlay_internal()`
+
+---
+
+### MP-C8: Create Visibility Toggle Utility
+- **Status**: `[ ]` Pending
+- **Impact**: ~10 lines saved per panel, 3+ panels
+- **Files**:
+  - Update: `include/ui/ui_utils.h`
+  - Update: `src/ui/ui_panel_console.cpp`
+  - Update: `src/ui/ui_panel_macros.cpp`
+  - Update: `src/ui/ui_panel_spoolman.cpp`
+
+**New utility**:
+```cpp
+inline void ui_toggle_list_empty_state(lv_obj_t* list, lv_obj_t* empty_state, bool has_items) {
+    if (list) lv_obj_set_flag_value(list, LV_OBJ_FLAG_HIDDEN, !has_items);
+    if (empty_state) lv_obj_set_flag_value(empty_state, LV_OBJ_FLAG_HIDDEN, has_items);
+}
+```
+
+**Checklist**:
+- [ ] Add `ui_toggle_list_empty_state` to `ui_utils.h`
+- [ ] Refactor visibility logic in 3+ panels
+
+---
+
+## Medium Priority Tasks - XML
+
+### MP-X1: Create Modal Header Component
+- **Status**: `[ ]` Pending
+- **Impact**: 5+ modal files simplified
+- **Files**:
+  - Create: `ui_xml/modal_header.xml`
+  - Update: `ui_xml/factory_reset_modal.xml`
+  - Update: `ui_xml/theme_restart_modal.xml`
+  - Update: `ui_xml/modal_dialog.xml`
+  - Update: `ui_xml/action_prompt_modal.xml`
+
+**Checklist**:
+- [ ] Create `ui_xml/modal_header.xml` with icon + title
+- [ ] Register component
+- [ ] Update modal files to use component
+
+---
+
+### MP-X2: Create Connecting State Component
+- **Status**: `[ ]` Pending
+- **Impact**: 2+ files, potential for more
+- **Files**:
+  - Create: `ui_xml/connecting_state.xml`
+  - Update: `ui_xml/wifi_password_modal.xml`
+  - Update: `ui_xml/hidden_network_modal.xml`
+
+**Checklist**:
+- [ ] Create `ui_xml/connecting_state.xml`
+- [ ] Register component
+- [ ] Update WiFi modals to use component
+
+---
+
+### MP-X3: Create Info Note Component
+- **Status**: `[ ]` Pending
+- **Impact**: 3+ files
+- **Files**:
+  - Create: `ui_xml/info_note.xml`
+  - Update: `ui_xml/settings_plugins_overlay.xml`
+  - Update: `ui_xml/display_settings_overlay.xml`
+  - Update: `ui_xml/network_settings_overlay.xml`
+
+**Checklist**:
+- [ ] Create `ui_xml/info_note.xml`
+- [ ] Register component
+- [ ] Update overlay files to use component
+
+---
+
+### MP-X4: Create Empty State Component
+- **Status**: `[ ]` Pending
+- **Impact**: 3+ files
+- **Files**:
+  - Create: `ui_xml/empty_state.xml`
+  - Update: `ui_xml/network_settings_overlay.xml`
+  - Update: `ui_xml/settings_plugins_overlay.xml`
+  - Update: `ui_xml/spoolman_picker_modal.xml`
+
+**Checklist**:
+- [ ] Create `ui_xml/empty_state.xml` with icon + text props
+- [ ] Register component
+- [ ] Update files with empty placeholder pattern
+
+---
+
+### MP-X5: Create Centered Column Component
+- **Status**: `[ ]` Pending
+- **Impact**: 27 occurrences across 14 files
+- **Files**:
+  - Create: `ui_xml/centered_column.xml`
+
+**Component**:
+```xml
+<component>
+  <view extends="lv_obj" width="100%" height="100%" style_bg_opa="0"
+        style_border_width="0" flex_flow="column" style_flex_main_place="center"
+        style_flex_cross_place="center" style_flex_track_place="center" scrollable="false"/>
+</component>
+```
+
+**Checklist**:
+- [ ] Create `ui_xml/centered_column.xml`
+- [ ] Register component
+- [ ] Update files using centered flex pattern
+
+---
+
+### MP-X6: Create Form Field Component
+- **Status**: `[ ]` Pending
+- **Impact**: 4+ files
+- **Files**:
+  - Create: `ui_xml/form_field.xml`
+  - Update: `ui_xml/hidden_network_modal.xml`
+  - Update: `ui_xml/filament_preset_edit_modal.xml`
+  - Update: `ui_xml/wizard_connection.xml`
+
+**Checklist**:
+- [ ] Create `ui_xml/form_field.xml` with label + input wrapper
+- [ ] Register component
+- [ ] Update form-based modals
+
+---
+
+## Low Priority Tasks
+
+### LP-1: Create ModalGuard RAII Wrapper
+- **Status**: `[ ]` Pending
+- **Files**: `include/ui/ui_modal_guard.h`, panel destructors
+
+**Checklist**:
+- [ ] Create `ModalGuard` class for modal cleanup
+- [ ] Refactor modal cleanup in panel destructors
+
+---
+
+### LP-2: Create Position Observer Bundle
+- **Status**: `[ ]` Pending
+- **Files**: `include/ui/position_observer_bundle.h`, `ui_panel_controls.cpp`, `ui_panel_motion.cpp`
+
+**Checklist**:
+- [ ] Create `PositionObserverBundle` class
+- [ ] Refactor X/Y/Z observer setup
+
+---
+
+### LP-3: Consolidate Static Callback Trampolines
+- **Status**: `[ ]` Pending
+- **Files**: Various overlay files
+
+**Checklist**:
+- [ ] Create macro for static callback trampolines
+- [ ] Refactor repetitive static callbacks
+
+---
+
+### LP-4: Create Overlay Global Instance Template
+- **Status**: `[ ]` Pending
+- **Files**: `include/ui/ui_singleton_holder.h`, overlay files
+
+**Checklist**:
+- [ ] Create `SingletonHolder<T>` template class
+- [ ] Refactor overlay global instance patterns
+
+---
+
+### LP-5: Standardize XML Widget Registration
+- **Status**: `[ ]` Pending
+- **Files**: `ui_card.cpp`, `ui_dialog.cpp`, `ui_severity_card.cpp`, `ui_spinner.cpp`, `ui_icon.cpp`, `ui_switch.cpp`
+
+**Checklist**:
+- [ ] Create helper macros for XML widget registration boilerplate
+- [ ] Refactor 6+ widget registration files
+
+---
+
+## Completion Log
+
+| Date | Task | Notes |
+|------|------|-------|
+| 2026-01-20 | HP-5: Domain-specific observer helpers | Added `observe_connection_state` and `observe_print_state` to observer_factory.h |
+| 2026-01-20 | HP-2: Global panel singleton macro | Created macro, refactored 4 panels (console, spoolman, macros, bed_mesh) |
+| 2026-01-20 | HP-3: Modal button row component | Created component, registered in xml_registration.cpp |
+| 2026-01-20 | HP-4: Divider components | Created horizontal and vertical dividers, registered in xml_registration.cpp |
+
+---
+
+## Notes for Parallel Execution
+
+Tasks are designed to be independent. Safe parallel groupings:
+
+**Group A** (C++ Observer Patterns):
+- HP-1: Migrate manual observer callbacks
+- HP-5: Add domain-specific observer helpers ✅
+- MP-C6: Temperature observer bundle
+
+**Group B** (C++ Base Class Improvements):
+- HP-2: Global panel singleton macro ✅
+- MP-C1: Subject init/deinit guards
+- MP-C2: Overlay creation helper
+
+**Group C** (XML Components):
+- HP-3: Modal button row ✅ (component created)
+- HP-4: Dividers ✅ (components created)
+- MP-X1 through MP-X6
+
+**Group D** (Utilities):
+- MP-C3: Lazy panel navigation
+- MP-C4/C5: Modal button consolidation
+- MP-C7/C8: Backdrop and visibility helpers
+
+---
+
+## Session Notes & Handoff Information
+
+### Worktree Setup
+
+This refactoring work is being done in a dedicated git worktree to isolate changes from the main development branch.
+
+**Worktree location**: `/Users/pbrown/code/helixscreen-ui-refactor`
+**Branch**: `ui-refactor`
+**Base**: `origin/main`
+
+**Setup commands used**:
+```bash
+# Create worktree with new branch
+git worktree add ../helixscreen-ui-refactor -b ui-refactor origin/main
+
+# Initialize submodules (CRITICAL - per [L027])
+./scripts/init-worktree.sh ../helixscreen-ui-refactor
+
+# Build verification
+cd ../helixscreen-ui-refactor && make -j
+```
+
+**Important**: Always run `./scripts/init-worktree.sh` after creating a worktree. LVGL submodule is required for builds.
+
+### Delegation Approach
+
+**Lesson learned**: Background agents cannot receive interactive tool permissions. When delegating to agents with `run_in_background=true`, they will hit "Permission auto-denied" errors for Write/Edit operations.
+
+**Recommended approach**:
+1. **Use synchronous agents** for file modifications (no `run_in_background`)
+2. **Use Explore agents** for codebase investigation (safe in background)
+3. **Direct implementation** when delegation fails or for simple single-file changes
+
+**Agent selection**:
+| Task Type | Agent | Notes |
+|-----------|-------|-------|
+| Find patterns/code | `Explore` | Fast, can run in background |
+| Multi-file implementation | `general-purpose` | Synchronous, gets permissions |
+| Code review | `general-purpose` with Sonnet | Detailed feedback |
+| Single file, <10 lines | Direct | No delegation needed |
+
+### Review Process
+
+Before committing, run code review using the `/claude-recall:review` skill:
+
+```
+Review the changes in [list files]. Check for:
+
+**Correctness**
+- Logic errors and edge cases
+- Off-by-one errors
+- Null/undefined handling
+- Race conditions (if async)
+
+**Security**
+- Injection vulnerabilities
+- Sensitive data exposure
+- Input validation at boundaries
+
+**Tests**
+- Coverage gaps
+- Missing edge cases
+
+**Style**
+- Consistency with existing patterns
+- Naming clarity
+```
+
+**Session 1 review findings** (2026-01-20):
+- Copyright header was missing from `ui_global_panel_helper.h` (fixed)
+- Pre-existing async observer memory safety concerns identified (not new code)
+- Include path in `observer_factory.h` was correct (review false positive)
+
+### Build Verification
+
+Always verify the build passes before committing:
+```bash
+cd /Users/pbrown/code/helixscreen-ui-refactor
+make -j
+```
+
+### Current Git Status (as of 2026-01-20)
+
+**Modified files** (ready to commit):
+- `include/observer_factory.h` - HP-5: domain-specific observer helpers
+- `include/ui_global_panel_helper.h` - HP-2: new macro file
+- `src/ui/ui_panel_console.cpp` - HP-2: uses macro
+- `src/ui/ui_panel_spoolman.cpp` - HP-2: uses macro
+- `src/ui/ui_panel_macros.cpp` - HP-2: uses macro
+- `src/ui/ui_panel_bed_mesh.cpp` - HP-2: uses macro
+- `src/xml_registration.cpp` - HP-3/4: component registrations
+- `ui_xml/modal_button_row.xml` - HP-3: new component
+- `ui_xml/divider_horizontal.xml` - HP-4: new component
+- `ui_xml/divider_vertical.xml` - HP-4: new component
+- `docs/UI_REFACTORING_PLAN.md` - tracking document
+
+### Next Steps for Next Session
+
+1. **Commit completed work** - HP-2, HP-3, HP-4, HP-5 are ready
+2. **HP-1 is the largest remaining task** - 9 files, ~50 static callbacks to migrate
+3. **HP-3/HP-4 remaining** - Update modals to use new divider and button row components
+4. **Medium priority** - Can be parallelized across Groups A-D
+
+### Lessons Learned
+
+| ID | Category | Lesson |
+|----|----------|--------|
+| [L014] | XML | XML components must be registered in `xml_registration.cpp` or they silently fail |
+| [L027] | Worktree | Must run `init-worktree.sh` after creating worktree for submodules |
+| [S003] | Git | Never modify WIP files in main repo - use worktree for clean slate |
+| New | Agents | Background agents cannot get interactive permissions - use synchronous |
+| New | Observer | Forward declarations not sufficient for enum types - need actual includes |
