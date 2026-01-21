@@ -217,9 +217,8 @@ if [[ -d "$REPO_ROOT/ui_xml" ]]; then
 fi
 # Python scripts (moonraker-plugin/, scripts/, but NOT .venv or lib/)
 PY_FILES=$(find "$REPO_ROOT" -name "*.py" -type f 2>/dev/null | grep -Ev "/(${EXCLUDE_DIRS}|\.venv|__pycache__)/")
-PY_COUNT=$(echo "$PY_FILES" | grep -c . 2>/dev/null || echo 0)
-PY_LOC=0
 if [[ -n "$PY_FILES" ]]; then
+    PY_COUNT=$(echo "$PY_FILES" | grep -c .)
     PY_LOC=$(echo "$PY_FILES" | xargs cat 2>/dev/null | wc -l | tr -d ' ')
 fi
 # Shell scripts (scripts/, but NOT lib/)
@@ -229,9 +228,8 @@ if [[ -d "$REPO_ROOT/scripts" ]]; then
 fi
 # Makefiles and .mk files (project build config)
 MK_FILES=$(find "$REPO_ROOT" -maxdepth 2 \( -name "Makefile" -o -name "*.mk" \) -type f 2>/dev/null | grep -Ev "/(${EXCLUDE_DIRS})/")
-MK_COUNT=$(echo "$MK_FILES" | grep -c . 2>/dev/null || echo 0)
-MK_LOC=0
 if [[ -n "$MK_FILES" ]]; then
+    MK_COUNT=$(echo "$MK_FILES" | grep -c .)
     MK_LOC=$(echo "$MK_FILES" | xargs cat 2>/dev/null | wc -l | tr -d ' ')
 fi
 # Test files (tests/ directory)
