@@ -8,6 +8,7 @@
 
 #include "ui_ams_settings_overlay.h"
 
+#include "ui_ams_behavior_overlay.h"
 #include "ui_ams_tool_mapping_overlay.h"
 #include "ui_event_safety.h"
 #include "ui_nav_manager.h"
@@ -90,6 +91,7 @@ void AmsSettingsOverlay::register_callbacks() {
                              on_endless_spool_clicked);
     lv_xml_register_event_cb(nullptr, "on_ams_settings_maintenance_clicked",
                              on_maintenance_clicked);
+    lv_xml_register_event_cb(nullptr, "on_ams_settings_behavior_clicked", on_behavior_clicked);
     lv_xml_register_event_cb(nullptr, "on_ams_settings_calibration_clicked",
                              on_calibration_clicked);
     lv_xml_register_event_cb(nullptr, "on_ams_settings_speed_clicked", on_speed_settings_clicked);
@@ -243,6 +245,20 @@ void AmsSettingsOverlay::on_maintenance_clicked(lv_event_t* e) {
     LV_UNUSED(e);
     spdlog::info("[AmsSettingsOverlay] Maintenance clicked (not yet implemented)");
     // TODO: Push maintenance sub-panel
+    LVGL_SAFE_EVENT_CB_END();
+}
+
+void AmsSettingsOverlay::on_behavior_clicked(lv_event_t* e) {
+    LVGL_SAFE_EVENT_CB_BEGIN("[AmsSettingsOverlay] on_behavior_clicked");
+    LV_UNUSED(e);
+
+    auto& overlay = get_ams_behavior_overlay();
+    if (!overlay.are_subjects_initialized()) {
+        overlay.init_subjects();
+        overlay.register_callbacks();
+    }
+    overlay.show(get_ams_settings_overlay().get_parent_screen());
+
     LVGL_SAFE_EVENT_CB_END();
 }
 

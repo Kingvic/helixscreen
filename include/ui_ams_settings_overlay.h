@@ -139,6 +139,7 @@ class AmsSettingsOverlay : public OverlayBase {
     static void on_tool_mapping_clicked(lv_event_t* e);
     static void on_endless_spool_clicked(lv_event_t* e);
     static void on_maintenance_clicked(lv_event_t* e);
+    static void on_behavior_clicked(lv_event_t* e);
     static void on_calibration_clicked(lv_event_t* e);
     static void on_speed_settings_clicked(lv_event_t* e);
     static void on_spoolman_clicked(lv_event_t* e);
