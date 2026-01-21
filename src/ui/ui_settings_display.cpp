@@ -231,16 +231,16 @@ void DisplaySettingsOverlay::init_theme_preset_dropdown(lv_obj_t* root) {
     lv_obj_t* theme_preset_dropdown =
         theme_preset_row ? lv_obj_find_by_name(theme_preset_row, "dropdown") : nullptr;
     if (theme_preset_dropdown) {
-        // Set dropdown options
-        lv_dropdown_set_options(theme_preset_dropdown, SettingsManager::get_theme_preset_options());
+        // Set dropdown options from discovered theme files
+        std::string options = SettingsManager::instance().get_theme_options();
+        lv_dropdown_set_options(theme_preset_dropdown, options.c_str());
 
-        // Set initial selection based on current setting
-        auto current_preset = SettingsManager::instance().get_theme_preset();
-        lv_dropdown_set_selected(theme_preset_dropdown, static_cast<uint32_t>(current_preset));
+        // Set initial selection based on current theme
+        int current_index = SettingsManager::instance().get_theme_index();
+        lv_dropdown_set_selected(theme_preset_dropdown, static_cast<uint32_t>(current_index));
 
-        spdlog::debug("[{}] Theme preset dropdown initialized to {} ({})", get_name(),
-                      static_cast<int>(current_preset),
-                      SettingsManager::get_theme_preset_name(static_cast<int>(current_preset)));
+        spdlog::debug("[{}] Theme dropdown initialized to index {} ({})", get_name(), current_index,
+                      SettingsManager::instance().get_theme_name());
     }
 }
 
@@ -278,12 +278,10 @@ void DisplaySettingsOverlay::handle_brightness_changed(int value) {
 }
 
 void DisplaySettingsOverlay::handle_theme_preset_changed(int index) {
-    SettingsManager::instance().set_theme_preset(static_cast<ThemePreset>(index));
+    SettingsManager::instance().set_theme_by_index(index);
 
-    int preset = static_cast<int>(SettingsManager::instance().get_theme_preset());
-
-    spdlog::info("[{}] Theme preset changed to {} ({})", get_name(), preset,
-                 SettingsManager::get_theme_preset_name(preset));
+    spdlog::info("[{}] Theme changed to index {} ({})", get_name(), index,
+                 SettingsManager::instance().get_theme_name());
 }
 
 void DisplaySettingsOverlay::handle_theme_preview_clicked() {
