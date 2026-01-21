@@ -197,7 +197,9 @@ void AmsSpoolmanOverlay::load_from_database() {
                           err.message);
             // Use default value
             lv_subject_set_int(&sync_enabled_subject_, DEFAULT_SYNC_ENABLED ? 1 : 0);
-        });
+        },
+        0,     // timeout_ms = default
+        true); // silent = true (key may not exist on first run)
 
     // Load refresh interval setting
     nlohmann::json params_interval = {{"namespace", DB_NAMESPACE},
@@ -218,7 +220,9 @@ void AmsSpoolmanOverlay::load_from_database() {
                           err.message);
             // Use default value
             lv_subject_set_int(&refresh_interval_subject_, DEFAULT_REFRESH_INTERVAL_SECONDS);
-        });
+        },
+        0,     // timeout_ms = default
+        true); // silent = true (key may not exist on first run)
 }
 
 void AmsSpoolmanOverlay::save_sync_enabled(bool enabled) {
