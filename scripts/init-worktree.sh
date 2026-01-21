@@ -106,6 +106,18 @@ else
     echo "  ⚠ Warning: python3 not found - some scripts may not work"
 fi
 
+# Step 7: Generate compile_commands.json for LSP/clangd support
+echo "→ Generating compile_commands.json for LSP support..."
+if [ -f ".venv/bin/compiledb" ]; then
+    .venv/bin/compiledb make -n -B all test-build 2>/dev/null
+    echo "  ✓ compile_commands.json generated (LSP ready)"
+elif command -v compiledb >/dev/null 2>&1; then
+    compiledb make -n -B all test-build 2>/dev/null
+    echo "  ✓ compile_commands.json generated (LSP ready)"
+else
+    echo "  ⚠ Warning: compiledb not found. Run 'make compile_commands' manually for LSP support."
+fi
+
 echo ""
 echo "✓ Worktree initialized!"
 echo ""
