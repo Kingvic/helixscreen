@@ -110,4 +110,24 @@ bool save_theme_to_file(const ThemeData& theme, const std::string& filepath);
  */
 ThemeData get_default_nord_theme();
 
+/**
+ * @brief Discover all theme files in directory
+ * @param themes_dir Path to themes directory
+ * @return List of theme info (filename, display_name)
+ */
+std::vector<ThemeInfo> discover_themes(const std::string& themes_dir);
+
+/**
+ * @brief Ensure themes directory exists with default theme
+ * @param themes_dir Path to themes directory
+ * @return true if directory is ready, false on error
+ */
+bool ensure_themes_directory(const std::string& themes_dir);
+
+/**
+ * @brief Get themes directory path
+ * @return Full path to config/themes/
+ */
+std::string get_themes_directory();
+
 } // namespace helix

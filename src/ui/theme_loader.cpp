@@ -5,9 +5,12 @@
 
 #include <spdlog/spdlog.h>
 
+#include <algorithm>
+#include <dirent.h>
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
+#include <sys/stat.h>
 
 #include "hv/json.hpp"
 
@@ -204,6 +207,81 @@ bool save_theme_to_file(const ThemeData& theme, const std::string& filepath) {
 
     file << json.dump(2);
     return true;
+}
+
+std::string get_themes_directory() {
+    return "config/themes";
+}
+
+bool ensure_themes_directory(const std::string& themes_dir) {
+    // Create directory if it doesn't exist
+    struct stat st;
+    if (stat(themes_dir.c_str(), &st) != 0) {
+        // Directory doesn't exist, create it
+        if (mkdir(themes_dir.c_str(), 0755) != 0) {
+            spdlog::error("[ThemeLoader] Failed to create themes directory: {}", themes_dir);
+            return false;
+        }
+        spdlog::info("[ThemeLoader] Created themes directory: {}", themes_dir);
+    }
+
+    // Check if nord.json exists, create if missing
+    std::string nord_path = themes_dir + "/nord.json";
+    if (stat(nord_path.c_str(), &st) != 0) {
+        auto nord = get_default_nord_theme();
+        if (!save_theme_to_file(nord, nord_path)) {
+            spdlog::error("[ThemeLoader] Failed to create default nord.json");
+            return false;
+        }
+        spdlog::info("[ThemeLoader] Created default theme: {}", nord_path);
+    }
+
+    return true;
+}
+
+std::vector<ThemeInfo> discover_themes(const std::string& themes_dir) {
+    std::vector<ThemeInfo> themes;
+
+    DIR* dir = opendir(themes_dir.c_str());
+    if (!dir) {
+        spdlog::warn("[ThemeLoader] Could not open themes directory: {}", themes_dir);
+        return themes;
+    }
+
+    struct dirent* entry;
+    while ((entry = readdir(dir)) != nullptr) {
+        std::string filename = entry->d_name;
+
+        // Skip non-json files
+        if (filename.size() <= 5 || filename.substr(filename.size() - 5) != ".json") {
+            continue;
+        }
+
+        // Skip hidden files
+        if (filename[0] == '.') {
+            continue;
+        }
+
+        std::string filepath = themes_dir + "/" + filename;
+        auto theme = load_theme_from_file(filepath);
+
+        if (theme.is_valid()) {
+            ThemeInfo info;
+            info.filename = filename.substr(0, filename.size() - 5); // Remove .json
+            info.display_name = theme.name;
+            themes.push_back(info);
+        }
+    }
+
+    closedir(dir);
+
+    // Sort alphabetically by display name
+    std::sort(themes.begin(), themes.end(), [](const ThemeInfo& a, const ThemeInfo& b) {
+        return a.display_name < b.display_name;
+    });
+
+    spdlog::debug("[ThemeLoader] Discovered {} themes in {}", themes.size(), themes_dir);
+    return themes;
 }
 
 } // namespace helix
