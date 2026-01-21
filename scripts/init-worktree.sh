@@ -56,6 +56,12 @@ for sub in $SUBMODULES; do
     git submodule update --init --force "$sub"
 done
 
+# Step 2b: Apply required patches
+echo "→ Applying required patches..."
+make apply-patches 2>/dev/null || {
+    echo "  ⚠ Warning: Could not apply patches. Run 'make apply-patches' manually."
+}
+
 # Step 3: Copy generated libhv headers (they're created during build, not in git)
 echo "→ Copying libhv generated headers from main repo..."
 if [ -d "$MAIN_REPO/lib/libhv/include/hv" ]; then
@@ -66,12 +72,12 @@ else
     echo "  ⚠ Warning: Main repo libhv headers not found. Run 'make' in main repo first."
 fi
 
-# Step 4: Copy pre-built libhv.a if it exists (saves build time)
-if [ -f "$MAIN_REPO/build/lib/libhv.a" ]; then
-    echo "→ Copying pre-built libhv.a..."
+# Step 4: Copy pre-built static libraries (saves significant build time)
+if ls "$MAIN_REPO/build/lib/"*.a 1>/dev/null 2>&1; then
+    echo "→ Copying pre-built static libraries..."
     mkdir -p build/lib
-    cp "$MAIN_REPO/build/lib/libhv.a" build/lib/
-    echo "  ✓ Copied libhv.a"
+    cp "$MAIN_REPO/build/lib/"*.a build/lib/
+    echo "  ✓ Copied $(ls build/lib/*.a 2>/dev/null | wc -l | tr -d ' ') libraries"
 fi
 
 # Step 5: Run npm install for font tools (if npm available)
