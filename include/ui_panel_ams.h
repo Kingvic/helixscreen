@@ -143,6 +143,10 @@ class AmsPanel : public PanelBase {
 
     lv_obj_t* path_canvas_ = nullptr; ///< Filament path visualization widget
 
+    // === Endless Spool Arrows Canvas ===
+
+    lv_obj_t* endless_arrows_ = nullptr; ///< Endless spool backup chain visualization
+
     // === Setup Helpers ===
 
     void setup_system_header();
@@ -151,6 +155,8 @@ class AmsPanel : public PanelBase {
     void setup_status_display();
     void setup_path_canvas();
     void update_path_canvas_from_backend();
+    void setup_endless_arrows();
+    void update_endless_arrows_from_backend();
 
     /**
      * @brief Create slot widgets dynamically based on slot count

@@ -6,6 +6,7 @@
 #include "ui_ams_dryer_card.h"
 #include "ui_ams_settings_overlay.h"
 #include "ui_ams_slot.h"
+#include "ui_endless_spool_arrows.h"
 #include "ui_error_reporting.h"
 #include "ui_event_safety.h"
 #include "ui_filament_path_canvas.h"
@@ -43,6 +44,9 @@
 
 // Global instance pointer for XML callback access (atomic for safety during destruction)
 static std::atomic<AmsPanel*> g_ams_panel_instance{nullptr};
+
+// Default slot width for endless arrows canvas (when layout not yet computed)
+static constexpr int32_t DEFAULT_SLOT_WIDTH = 80;
 
 // Logo path mapping moved to AmsState::get_logo_path()
 
@@ -109,6 +113,7 @@ static void ensure_ams_widgets_registered() {
     ui_spool_canvas_register();
     ui_ams_slot_register();
     ui_filament_path_canvas_register();
+    ui_endless_spool_arrows_register();
 
     // Register XML event callbacks BEFORE registering XML components
     // (callbacks must exist when XML parser encounters <event_cb> elements)
@@ -320,6 +325,9 @@ void AmsPanel::setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
     setup_status_display();
     setup_path_canvas();
 
+    // Setup endless spool arrows (before dryer card as it's in slot area)
+    setup_endless_arrows();
+
     // Setup dryer card (extracted module)
     if (!dryer_card_) {
         dryer_card_ = std::make_unique<helix::ui::AmsDryerCard>();
@@ -416,6 +424,7 @@ void AmsPanel::clear_panel_reference() {
     slot_grid_ = nullptr;
     labels_layer_ = nullptr;
     path_canvas_ = nullptr;
+    endless_arrows_ = nullptr;
     current_slot_count_ = 0;
 
     for (int i = 0; i < MAX_VISIBLE_SLOTS; ++i) {
@@ -772,6 +781,108 @@ void AmsPanel::update_path_canvas_from_backend() {
                   static_cast<int>(segment));
 }
 
+void AmsPanel::setup_endless_arrows() {
+    endless_arrows_ = lv_obj_find_by_name(panel_, "endless_arrows");
+    if (!endless_arrows_) {
+        spdlog::warn("[{}] endless_arrows not found in XML - skipping", get_name());
+        return;
+    }
+
+    spdlog::info("[{}] Found endless_arrows widget", get_name());
+
+    // Initial configuration from backend
+    update_endless_arrows_from_backend();
+
+    spdlog::info("[{}] Endless spool arrows setup complete", get_name());
+}
+
+void AmsPanel::update_endless_arrows_from_backend() {
+    if (!endless_arrows_) {
+        return;
+    }
+
+    AmsBackend* backend = AmsState::instance().get_backend();
+    if (!backend) {
+        ui_endless_spool_arrows_clear(endless_arrows_);
+        lv_obj_add_flag(endless_arrows_, LV_OBJ_FLAG_HIDDEN);
+        return;
+    }
+
+    // Check if endless spool is supported
+    auto capabilities = backend->get_endless_spool_capabilities();
+    if (!capabilities.supported) {
+        ui_endless_spool_arrows_clear(endless_arrows_);
+        lv_obj_add_flag(endless_arrows_, LV_OBJ_FLAG_HIDDEN);
+        return;
+    }
+
+    // Get the endless spool configuration
+    auto configs = backend->get_endless_spool_config();
+    if (configs.empty()) {
+        ui_endless_spool_arrows_clear(endless_arrows_);
+        lv_obj_add_flag(endless_arrows_, LV_OBJ_FLAG_HIDDEN);
+        return;
+    }
+
+    // Check if any backup is configured
+    bool has_any_backup = false;
+    for (const auto& config : configs) {
+        if (config.backup_slot >= 0) {
+            has_any_backup = true;
+            break;
+        }
+    }
+
+    if (!has_any_backup) {
+        spdlog::info("[{}] No endless spool backups configured - hiding arrows", get_name());
+        ui_endless_spool_arrows_clear(endless_arrows_);
+        lv_obj_add_flag(endless_arrows_, LV_OBJ_FLAG_HIDDEN);
+        return;
+    }
+
+    spdlog::info("[{}] Endless spool has {} configs with backups", get_name(), configs.size());
+
+    // Build backup slots array
+    int backup_slots[16] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
+    int slot_count = 0;
+    for (const auto& config : configs) {
+        if (config.slot_index >= 0 && config.slot_index < 16) {
+            backup_slots[config.slot_index] = config.backup_slot;
+            slot_count = std::max(slot_count, config.slot_index + 1);
+        }
+    }
+
+    // Get slot width and overlap from current layout
+    int32_t slot_width = DEFAULT_SLOT_WIDTH;
+    int32_t overlap = 0;
+    if (slot_grid_) {
+        lv_obj_t* slot_area = lv_obj_get_parent(slot_grid_);
+        if (slot_area) {
+            lv_obj_update_layout(slot_area);
+            int32_t available_width = lv_obj_get_content_width(slot_area);
+            if (slot_count > 4) {
+                float overlap_ratio = 0.5f;
+                slot_width = static_cast<int32_t>(
+                    available_width / (slot_count * (1.0f - overlap_ratio) + overlap_ratio));
+                overlap = static_cast<int32_t>(slot_width * overlap_ratio);
+            } else if (slot_count > 0) {
+                slot_width = available_width / slot_count;
+            }
+        }
+    }
+
+    // Update canvas
+    ui_endless_spool_arrows_set_slot_count(endless_arrows_, slot_count);
+    ui_endless_spool_arrows_set_slot_width(endless_arrows_, slot_width);
+    ui_endless_spool_arrows_set_slot_overlap(endless_arrows_, overlap);
+    ui_endless_spool_arrows_set_config(endless_arrows_, backup_slots, slot_count);
+
+    // Show the canvas
+    lv_obj_remove_flag(endless_arrows_, LV_OBJ_FLAG_HIDDEN);
+
+    spdlog::debug("[{}] Endless arrows updated with {} slots", get_name(), slot_count);
+}
+
 // ============================================================================
 // Public API
 // ============================================================================
@@ -786,6 +897,9 @@ void AmsPanel::refresh_slots() {
     // Update current slot highlight
     int current_slot = lv_subject_get_int(AmsState::instance().get_current_slot_subject());
     update_current_slot_highlight(current_slot);
+
+    // Update endless spool arrows (config may have changed)
+    update_endless_arrows_from_backend();
 }
 
 // ============================================================================
