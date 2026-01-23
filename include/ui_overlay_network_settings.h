@@ -207,6 +207,10 @@ class NetworkSettingsOverlay : public OverlayBase {
     lv_subject_t test_gateway_status_;
     lv_subject_t test_internet_status_;
 
+    // Password modal subjects
+    lv_subject_t wifi_connecting_;          // 0=idle, 1=connecting (toggles modal form)
+    lv_subject_t wifi_password_modal_ssid_; // SSID displayed in password modal
+
     // String buffers (subjects need stable char* pointers)
     char ssid_buffer_[64];
     char ip_buffer_[32];
@@ -214,6 +218,7 @@ class NetworkSettingsOverlay : public OverlayBase {
     char count_buffer_[16];
     char eth_ip_buffer_[32];
     char eth_mac_buffer_[32];
+    char password_modal_ssid_buffer_[64];
 
     // Integration
     std::shared_ptr<WiFiManager> wifi_manager_;
@@ -231,6 +236,9 @@ class NetworkSettingsOverlay : public OverlayBase {
 
     // Hidden network modal (visibility controlled by Modal system)
     lv_obj_t* hidden_network_modal_ = nullptr;
+
+    // Password modal for secured networks
+    lv_obj_t* password_modal_ = nullptr;
 
     // Current network selection for password modal
     char current_ssid_[64];
@@ -274,6 +282,16 @@ class NetworkSettingsOverlay : public OverlayBase {
     void handle_hidden_cancel_clicked();
     void handle_hidden_connect_clicked();
     void handle_security_changed(lv_event_t* e);
+
+    // Password modal methods
+    void show_password_modal(const char* ssid);
+    void hide_password_modal();
+
+    // Password modal callbacks
+    static void on_wifi_password_cancel(lv_event_t* e);
+    static void on_wifi_password_connect(lv_event_t* e);
+    void handle_password_cancel_clicked();
+    void handle_password_connect_clicked();
 };
 
 // ============================================================================

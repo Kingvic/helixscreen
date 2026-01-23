@@ -85,6 +85,7 @@ NetworkSettingsOverlay::NetworkSettingsOverlay() {
     std::memset(eth_ip_buffer_, 0, sizeof(eth_ip_buffer_));
     std::memset(eth_mac_buffer_, 0, sizeof(eth_mac_buffer_));
     std::memset(current_ssid_, 0, sizeof(current_ssid_));
+    std::memset(password_modal_ssid_buffer_, 0, sizeof(password_modal_ssid_buffer_));
 
     spdlog::debug("[NetworkSettingsOverlay] Instance created");
 }
@@ -105,6 +106,10 @@ NetworkSettingsOverlay::~NetworkSettingsOverlay() {
             ui_modal_hide(test_modal_);
             test_modal_ = nullptr;
             step_widget_ = nullptr;
+        }
+        if (password_modal_) {
+            ui_modal_hide(password_modal_);
+            password_modal_ = nullptr;
         }
     }
 
@@ -161,6 +166,11 @@ void NetworkSettingsOverlay::init_subjects() {
     // Network test modal subject (controls close button enabled state)
     UI_MANAGED_SUBJECT_INT(test_complete_, 0, "test_complete", subjects_);
 
+    // Password modal subjects
+    UI_MANAGED_SUBJECT_INT(wifi_connecting_, 0, "wifi_connecting", subjects_);
+    UI_MANAGED_SUBJECT_STRING(wifi_password_modal_ssid_, password_modal_ssid_buffer_, "",
+                              "wifi_password_modal_ssid", subjects_);
+
     subjects_initialized_ = true;
     spdlog::debug("[NetworkSettingsOverlay] Subjects initialized");
 }
@@ -190,6 +200,10 @@ void NetworkSettingsOverlay::register_callbacks() {
     lv_xml_register_event_cb(nullptr, "on_hidden_cancel_clicked", on_hidden_cancel_clicked);
     lv_xml_register_event_cb(nullptr, "on_hidden_connect_clicked", on_hidden_connect_clicked);
     lv_xml_register_event_cb(nullptr, "on_security_changed", on_security_changed);
+
+    // Password modal callbacks
+    lv_xml_register_event_cb(nullptr, "on_wifi_password_cancel", on_wifi_password_cancel);
+    lv_xml_register_event_cb(nullptr, "on_wifi_password_connect", on_wifi_password_connect);
 
     callbacks_registered_ = true;
     spdlog::debug("[NetworkSettingsOverlay] Event callbacks registered");
@@ -437,7 +451,7 @@ void NetworkSettingsOverlay::update_wifi_status() {
     if (connected) {
         std::string ssid = wifi_manager_->get_connected_ssid();
         std::string ip = wifi_manager_->get_ip_address();
-        std::string mac = helix::ui::wifi::wifi_get_device_mac();
+        std::string mac = wifi_manager_->get_mac_address();
 
         strncpy(ssid_buffer_, ssid.c_str(), sizeof(ssid_buffer_) - 1);
         ssid_buffer_[sizeof(ssid_buffer_) - 1] = '\0';
@@ -1051,8 +1065,8 @@ void NetworkSettingsOverlay::handle_network_item_clicked(lv_event_t* e) {
     current_network_is_secured_ = item_data->is_secured;
 
     if (item_data->is_secured) {
-        // TODO: Show password modal
-        spdlog::warn("[NetworkSettingsOverlay] Password modal not yet implemented");
+        // Show password modal for secured networks
+        show_password_modal(item_data->ssid.c_str());
     } else {
         // Connect to open network
         if (!wifi_manager_) {
@@ -1130,4 +1144,151 @@ void NetworkSettingsOverlay::on_hidden_connect_clicked(lv_event_t* e) {
 void NetworkSettingsOverlay::on_security_changed(lv_event_t* e) {
     auto& self = get_network_settings_overlay();
     self.handle_security_changed(e);
+}
+
+// ============================================================================
+// Password Modal Implementation
+// ============================================================================
+
+void NetworkSettingsOverlay::show_password_modal(const char* ssid) {
+    spdlog::debug("[NetworkSettingsOverlay] Showing password modal for: {}", ssid);
+
+    // Update SSID subject for modal display
+    strncpy(password_modal_ssid_buffer_, ssid, sizeof(password_modal_ssid_buffer_) - 1);
+    password_modal_ssid_buffer_[sizeof(password_modal_ssid_buffer_) - 1] = '\0';
+    lv_subject_notify(&wifi_password_modal_ssid_);
+
+    // Reset connecting state
+    lv_subject_set_int(&wifi_connecting_, 0);
+
+    // Show modal
+    password_modal_ = ui_modal_show("wifi_password_modal");
+    if (!password_modal_) {
+        spdlog::error("[NetworkSettingsOverlay] Failed to show password modal");
+        return;
+    }
+
+    // Clear password input and register keyboard
+    lv_obj_t* password_input = lv_obj_find_by_name(password_modal_, "password_input");
+    if (password_input) {
+        lv_textarea_set_text(password_input, "");
+        ui_modal_register_keyboard(password_modal_, password_input);
+
+        // Focus the input
+        lv_group_t* group = lv_group_get_default();
+        if (group) {
+            lv_group_focus_obj(password_input);
+        }
+    }
+
+    // Hide any previous error message
+    lv_obj_t* modal_status = lv_obj_find_by_name(password_modal_, "modal_status");
+    if (modal_status) {
+        lv_obj_add_flag(modal_status, LV_OBJ_FLAG_HIDDEN);
+    }
+
+    spdlog::debug("[NetworkSettingsOverlay] Password modal shown");
+}
+
+void NetworkSettingsOverlay::hide_password_modal() {
+    if (password_modal_) {
+        ui_modal_hide(password_modal_);
+        password_modal_ = nullptr;
+    }
+    lv_subject_set_int(&wifi_connecting_, 0);
+}
+
+void NetworkSettingsOverlay::handle_password_cancel_clicked() {
+    spdlog::debug("[NetworkSettingsOverlay] Password cancel clicked");
+    hide_password_modal();
+}
+
+void NetworkSettingsOverlay::handle_password_connect_clicked() {
+    spdlog::debug("[NetworkSettingsOverlay] Password connect clicked");
+
+    if (!password_modal_) {
+        spdlog::error("[NetworkSettingsOverlay] No password modal");
+        return;
+    }
+
+    // Get password from input
+    lv_obj_t* password_input = lv_obj_find_by_name(password_modal_, "password_input");
+    if (!password_input) {
+        spdlog::error("[NetworkSettingsOverlay] Password input not found");
+        return;
+    }
+
+    const char* password = lv_textarea_get_text(password_input);
+    if (!password || strlen(password) == 0) {
+        // Show error in modal
+        lv_obj_t* modal_status = lv_obj_find_by_name(password_modal_, "modal_status");
+        if (modal_status) {
+            lv_label_set_text(modal_status, "Password cannot be empty");
+            lv_obj_remove_flag(modal_status, LV_OBJ_FLAG_HIDDEN);
+        }
+        return;
+    }
+
+    if (!wifi_manager_) {
+        spdlog::error("[NetworkSettingsOverlay] WiFiManager not initialized");
+        return;
+    }
+
+    // Show connecting state (hides form, shows spinner)
+    lv_subject_set_int(&wifi_connecting_, 1);
+
+    spdlog::info("[NetworkSettingsOverlay] Connecting to secured network: {}", current_ssid_);
+
+    // Capture password for lambda
+    std::string pwd(password);
+    std::string ssid(current_ssid_);
+    NetworkSettingsOverlay* self = this;
+
+    wifi_manager_->connect(ssid, pwd, [self, ssid](bool success, const std::string& error) {
+        if (self->cleanup_called()) {
+            return;
+        }
+
+        // Reset connecting state
+        lv_subject_set_int(&self->wifi_connecting_, 0);
+
+        if (success) {
+            spdlog::info("[NetworkSettingsOverlay] Connected to {}", ssid);
+            self->hide_password_modal();
+            self->update_wifi_status();
+            self->update_any_network_connected();
+
+            // Refresh network list to show checkmark on connected network
+            if (self->wifi_manager_) {
+                self->wifi_manager_->start_scan([self](const std::vector<WiFiNetwork>& networks) {
+                    if (!self->cleanup_called()) {
+                        self->populate_network_list(networks);
+                    }
+                });
+            }
+        } else {
+            spdlog::error("[NetworkSettingsOverlay] Connection failed: {}", error);
+
+            // Show error in modal
+            if (self->password_modal_) {
+                lv_obj_t* modal_status = lv_obj_find_by_name(self->password_modal_, "modal_status");
+                if (modal_status) {
+                    lv_label_set_text(modal_status, "Connection failed. Check password.");
+                    lv_obj_remove_flag(modal_status, LV_OBJ_FLAG_HIDDEN);
+                }
+            }
+        }
+    });
+}
+
+void NetworkSettingsOverlay::on_wifi_password_cancel(lv_event_t* e) {
+    (void)e;
+    auto& self = get_network_settings_overlay();
+    self.handle_password_cancel_clicked();
+}
+
+void NetworkSettingsOverlay::on_wifi_password_connect(lv_event_t* e) {
+    (void)e;
+    auto& self = get_network_settings_overlay();
+    self.handle_password_connect_clicked();
 }

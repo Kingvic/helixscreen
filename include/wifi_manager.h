@@ -121,6 +121,13 @@ class WiFiManager {
     std::string get_ip_address();
 
     /**
+     * @brief Get WiFi adapter MAC address
+     *
+     * @return MAC address string (e.g., "aa:bb:cc:dd:ee:ff"), or empty if unavailable
+     */
+    std::string get_mac_address();
+
+    /**
      * @brief Get signal strength of connected network
      *
      * @return Signal strength 0-100%, or 0 if not connected

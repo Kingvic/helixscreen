@@ -308,10 +308,11 @@ WifiBackend::ConnectionStatus WifiBackendMock::get_status() {
     status.ssid = connected_ssid_;
     status.ip_address = connected_ip_;
     status.signal_strength = connected_signal_;
+    status.mac_address = "de:ad:be:ef:ca:fe"; // Mock device WiFi adapter MAC
 
-    // Generate mock BSSID
+    // Generate mock BSSID (access point MAC)
     if (connected_) {
-        status.bssid = "aa:bb:cc:dd:ee:ff"; // Mock MAC address
+        status.bssid = "aa:bb:cc:dd:ee:ff";
     }
 
     return status;

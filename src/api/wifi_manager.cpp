@@ -252,6 +252,14 @@ std::string WiFiManager::get_ip_address() {
     return status.ip_address;
 }
 
+std::string WiFiManager::get_mac_address() {
+    if (!backend_)
+        return "";
+
+    WifiBackend::ConnectionStatus status = backend_->get_status();
+    return status.mac_address;
+}
+
 int WiFiManager::get_signal_strength() {
     if (!backend_)
         return 0;

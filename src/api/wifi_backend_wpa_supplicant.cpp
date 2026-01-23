@@ -887,6 +887,8 @@ WifiBackend::ConnectionStatus WifiBackendWpaSupplicant::get_status() {
             status.ssid = value;
         } else if (key == "bssid") {
             status.bssid = value;
+        } else if (key == "address") {
+            status.mac_address = value;
         } else if (key == "ip_address") {
             status.ip_address = value;
         } else if (key == "freq") {
