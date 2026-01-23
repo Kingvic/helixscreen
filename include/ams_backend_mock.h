@@ -111,6 +111,22 @@ class AmsBackendMock : public AmsBackend {
     void simulate_error(AmsResult error);
 
     /**
+     * @brief Simulate a paused state (user intervention required)
+     *
+     * Sets the action to PAUSED, which can be resumed with resume().
+     * Used to test UI handling of pause scenarios.
+     */
+    void simulate_pause();
+
+    /**
+     * @brief Resume from PAUSED state
+     * @return Success, or error if not in PAUSED state
+     *
+     * Returns to IDLE state. No-op if already IDLE.
+     */
+    AmsError resume();
+
+    /**
      * @brief Set operation delay for simulated timing
      * @param delay_ms Delay in milliseconds (0 for instant)
      */
@@ -312,6 +328,19 @@ class AmsBackendMock : public AmsBackend {
      * @brief Finalize state after successful unload
      */
     void finalize_unload_state();
+
+    /**
+     * @brief Execute tool change operation with SELECTING phase
+     * @param target_slot Target slot for tool change
+     * @param interruptible_sleep Sleep function that respects shutdown
+     */
+    void execute_tool_change_operation(int target_slot, InterruptibleSleep interruptible_sleep);
+
+    /**
+     * @brief Schedule recovery sequence (ERROR → CHECKING → IDLE)
+     * Runs asynchronously in background thread
+     */
+    void schedule_recovery_sequence();
 
     mutable std::mutex mutex_;         ///< Protects state access
     std::atomic<bool> running_{false}; ///< Backend running state

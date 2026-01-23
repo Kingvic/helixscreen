@@ -43,18 +43,6 @@ class FastTimingScope {
     double original_speedup_ = 1.0;
 };
 
-// Helper to set up fast timing for realistic mode tests
-static void setup_fast_timing() {
-    auto* config = get_runtime_config();
-    config->sim_speedup = 1000.0; // 1000x speedup for fast tests
-}
-
-// Helper to restore timing after tests
-static void restore_timing() {
-    auto* config = get_runtime_config();
-    config->sim_speedup = 1.0;
-}
-
 TEST_CASE("AmsBackendMock realistic mode defaults", "[ams][mock][realistic]") {
     AmsBackendMock backend(4);
 
@@ -306,6 +294,168 @@ TEST_CASE("AmsBackendMock realistic mode can be cancelled",
 
         auto action = backend.get_current_action();
         REQUIRE(action == AmsAction::IDLE);
+    }
+
+    backend.stop();
+}
+
+// ============================================================================
+// Phase 5: Mock Loading State Machine - SELECTING, PAUSED, Recovery
+// ============================================================================
+
+TEST_CASE("AmsBackendMock tool change shows SELECTING phase",
+          "[ams][mock][realistic][selecting][slow]") {
+    FastTimingScope timing_guard; // RAII: 1000x speedup, auto-restored
+
+    AmsBackendMock backend(4);
+    backend.set_operation_delay(10);
+    backend.set_realistic_mode(true);
+    REQUIRE(backend.start());
+
+    // Track action state changes
+    std::vector<AmsAction> observed_actions;
+    backend.set_event_callback([&](const std::string& event, const std::string&) {
+        if (event == AmsBackend::EVENT_STATE_CHANGED) {
+            auto action = backend.get_current_action();
+            if (observed_actions.empty() || observed_actions.back() != action) {
+                observed_actions.push_back(action);
+            }
+        }
+    });
+
+    SECTION("tool change includes SELECTING between unload and load") {
+        // Perform a tool change from T0 to T1
+        auto result = backend.change_tool(1);
+        REQUIRE(result);
+
+        // Wait for operation to complete
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
+        // Verify SELECTING phase appears between UNLOADING and LOADING phases
+        bool found_unloading = false;
+        bool found_selecting_after_unload = false;
+        bool found_loading_after_selecting = false;
+
+        for (size_t i = 0; i < observed_actions.size(); ++i) {
+            if (observed_actions[i] == AmsAction::UNLOADING) {
+                found_unloading = true;
+            }
+            if (found_unloading && observed_actions[i] == AmsAction::SELECTING) {
+                found_selecting_after_unload = true;
+            }
+            if (found_selecting_after_unload && observed_actions[i] == AmsAction::LOADING) {
+                found_loading_after_selecting = true;
+            }
+        }
+
+        CHECK(found_unloading);
+        CHECK(found_selecting_after_unload);
+        CHECK(found_loading_after_selecting);
+    }
+
+    backend.stop();
+}
+
+TEST_CASE("AmsBackendMock PAUSED state handling", "[ams][mock][realistic][paused][slow]") {
+    FastTimingScope timing_guard; // RAII: 1000x speedup, auto-restored
+
+    AmsBackendMock backend(4);
+    backend.set_operation_delay(10);
+    backend.set_realistic_mode(true);
+    REQUIRE(backend.start());
+
+    SECTION("simulate_pause sets PAUSED state") {
+        // Simulate a pause condition (e.g., user intervention required)
+        backend.simulate_pause();
+
+        auto action = backend.get_current_action();
+        REQUIRE(action == AmsAction::PAUSED);
+    }
+
+    SECTION("resume from PAUSED returns to IDLE") {
+        backend.simulate_pause();
+        REQUIRE(backend.get_current_action() == AmsAction::PAUSED);
+
+        // Resume should return to IDLE
+        auto result = backend.resume();
+        REQUIRE(result);
+
+        auto action = backend.get_current_action();
+        REQUIRE(action == AmsAction::IDLE);
+    }
+
+    SECTION("resume when not paused returns success") {
+        // Should be a no-op when not paused
+        REQUIRE(backend.get_current_action() == AmsAction::IDLE);
+
+        auto result = backend.resume();
+        REQUIRE(result);
+        REQUIRE(backend.get_current_action() == AmsAction::IDLE);
+    }
+
+    backend.stop();
+}
+
+TEST_CASE("AmsBackendMock error recovery sequence", "[ams][mock][realistic][recovery][slow]") {
+    FastTimingScope timing_guard; // RAII: 1000x speedup, auto-restored
+
+    AmsBackendMock backend(4);
+    backend.set_operation_delay(10);
+    backend.set_realistic_mode(true);
+    REQUIRE(backend.start());
+
+    // Track action state changes
+    std::vector<AmsAction> observed_actions;
+    backend.set_event_callback([&](const std::string& event, const std::string&) {
+        if (event == AmsBackend::EVENT_STATE_CHANGED) {
+            auto action = backend.get_current_action();
+            if (observed_actions.empty() || observed_actions.back() != action) {
+                observed_actions.push_back(action);
+            }
+        }
+    });
+
+    SECTION("recover from ERROR goes through CHECKING to IDLE") {
+        // Put system in error state
+        backend.simulate_error(AmsResult::FILAMENT_JAM);
+        REQUIRE(backend.get_current_action() == AmsAction::ERROR);
+        observed_actions.clear();
+
+        // Trigger recovery
+        auto result = backend.recover();
+        REQUIRE(result);
+
+        // Wait for recovery sequence to complete
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+        // Verify recovery sequence: ERROR → CHECKING → IDLE
+        bool found_checking = false;
+        bool found_idle_after_checking = false;
+
+        for (size_t i = 0; i < observed_actions.size(); ++i) {
+            if (observed_actions[i] == AmsAction::CHECKING) {
+                found_checking = true;
+            }
+            if (found_checking && observed_actions[i] == AmsAction::IDLE) {
+                found_idle_after_checking = true;
+            }
+        }
+
+        CHECK(found_checking);
+        CHECK(found_idle_after_checking);
+
+        // Final state should be IDLE
+        REQUIRE(backend.get_current_action() == AmsAction::IDLE);
+    }
+
+    SECTION("recover clears error segment") {
+        backend.simulate_error(AmsResult::FILAMENT_JAM);
+        REQUIRE(backend.infer_error_segment() != PathSegment::NONE);
+
+        backend.recover();
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+        REQUIRE(backend.infer_error_segment() == PathSegment::NONE);
     }
 
     backend.stop();

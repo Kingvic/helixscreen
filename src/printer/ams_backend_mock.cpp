@@ -40,13 +40,15 @@ constexpr int NUM_SAMPLE_FILAMENTS = sizeof(SAMPLE_FILAMENTS) / sizeof(SAMPLE_FI
 constexpr int HEATING_BASE_MS = 3000;           // 3 seconds to heat nozzle
 constexpr int FORMING_TIP_BASE_MS = 4000;       // 4 seconds for tip forming
 constexpr int CHECKING_BASE_MS = 1500;          // 1.5 seconds for sensor check
+constexpr int SELECTING_BASE_MS = 1000;         // 1 second for slot/tool selection
 constexpr int SEGMENT_ANIMATION_BASE_MS = 5000; // 5 seconds for full segment animation
 
 // Variance factors (±percentage) for natural timing variation
-constexpr float HEATING_VARIANCE = 0.3f;  // ±30%
-constexpr float TIP_VARIANCE = 0.2f;      // ±20%
-constexpr float LOADING_VARIANCE = 0.2f;  // ±20%
-constexpr float CHECKING_VARIANCE = 0.2f; // ±20%
+constexpr float HEATING_VARIANCE = 0.3f;    // ±30%
+constexpr float TIP_VARIANCE = 0.2f;        // ±20%
+constexpr float LOADING_VARIANCE = 0.2f;    // ±20%
+constexpr float CHECKING_VARIANCE = 0.2f;   // ±20%
+constexpr float SELECTING_VARIANCE = 0.15f; // ±15%
 } // namespace
 
 AmsBackendMock::AmsBackendMock(int slot_count) {
@@ -516,6 +518,7 @@ AmsError AmsBackendMock::change_tool(int tool_number) {
 }
 
 AmsError AmsBackendMock::recover() {
+    bool use_realistic;
     {
         std::lock_guard<std::mutex> lock(mutex_);
 
@@ -523,14 +526,29 @@ AmsError AmsBackendMock::recover() {
             return AmsErrorHelper::not_connected("Mock backend not started");
         }
 
-        // Reset to idle state
-        system_info_.action = AmsAction::IDLE;
-        system_info_.operation_detail.clear();
-        error_segment_ = PathSegment::NONE; // Clear error location
-        spdlog::info("[AmsBackendMock] Recovery complete");
+        use_realistic = realistic_mode_;
+
+        if (!use_realistic) {
+            // Simple mode: immediate recovery to IDLE
+            system_info_.action = AmsAction::IDLE;
+            system_info_.operation_detail.clear();
+            error_segment_ = PathSegment::NONE;
+            spdlog::info("[AmsBackendMock] Recovery complete (simple mode)");
+        } else {
+            // Realistic mode: schedule recovery sequence (ERROR → CHECKING → IDLE)
+            spdlog::info("[AmsBackendMock] Starting recovery sequence (realistic mode)");
+        }
     }
 
+    if (!use_realistic) {
+        emit_event(EVENT_STATE_CHANGED);
+        return AmsErrorHelper::success();
+    }
+
+    // Realistic mode: run recovery sequence in background
     emit_event(EVENT_STATE_CHANGED);
+    schedule_recovery_sequence();
+
     return AmsErrorHelper::success();
 }
 
@@ -720,6 +738,48 @@ void AmsBackendMock::simulate_error(AmsResult error) {
 
     emit_event(EVENT_ERROR, ams_result_to_string(error));
     emit_event(EVENT_STATE_CHANGED);
+}
+
+void AmsBackendMock::simulate_pause() {
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        system_info_.action = AmsAction::PAUSED;
+        system_info_.operation_detail = "User intervention required";
+        spdlog::info("[AmsBackendMock] Simulated pause state");
+    }
+
+    emit_event(EVENT_STATE_CHANGED);
+}
+
+AmsError AmsBackendMock::resume() {
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+
+        if (!running_) {
+            return AmsErrorHelper::not_connected("Mock backend not started");
+        }
+
+        // Already idle - no-op success
+        if (system_info_.action == AmsAction::IDLE) {
+            return AmsErrorHelper::success();
+        }
+
+        // Can only resume from PAUSED state
+        if (system_info_.action != AmsAction::PAUSED) {
+            return AmsError(AmsResult::WRONG_STATE,
+                            "Cannot resume - not in PAUSED state",
+                            "System is " + std::string(ams_action_to_string(system_info_.action)),
+                            "Wait for current operation to complete or use cancel");
+        }
+
+        // Resume to IDLE
+        system_info_.action = AmsAction::IDLE;
+        system_info_.operation_detail.clear();
+        spdlog::info("[AmsBackendMock] Resumed from pause");
+    }
+
+    emit_event(EVENT_STATE_CHANGED);
+    return AmsErrorHelper::success();
 }
 
 void AmsBackendMock::set_operation_delay(int delay_ms) {
@@ -1172,6 +1232,70 @@ void AmsBackendMock::execute_unload_operation(InterruptibleSleep interruptible_s
     finalize_unload_state();
 }
 
+void AmsBackendMock::execute_tool_change_operation(int target_slot,
+                                                    InterruptibleSleep interruptible_sleep) {
+    // Phase 1: Unload current filament
+    execute_unload_operation(interruptible_sleep);
+    if (shutdown_requested_ || cancel_requested_)
+        return;
+
+    // Phase 2: SELECTING (only in realistic mode)
+    if (realistic_mode_) {
+        spdlog::debug("[AmsBackendMock] Tool change phase: SELECTING slot {}", target_slot);
+        set_action(AmsAction::SELECTING, "Selecting slot " + std::to_string(target_slot));
+        emit_event(EVENT_STATE_CHANGED);
+        if (!interruptible_sleep(get_effective_delay_ms(SELECTING_BASE_MS, SELECTING_VARIANCE)))
+            return;
+        if (shutdown_requested_ || cancel_requested_)
+            return;
+    }
+
+    // Phase 3: Load new filament
+    execute_load_operation(target_slot, interruptible_sleep);
+}
+
+void AmsBackendMock::schedule_recovery_sequence() {
+    // Wait for any previous operation to complete first
+    wait_for_operation_thread();
+
+    // Reset flags for new operation
+    shutdown_requested_ = false;
+    cancel_requested_ = false;
+
+    // Mark thread as running BEFORE creating it (for safe shutdown)
+    operation_thread_running_ = true;
+
+    // Run recovery sequence in background thread
+    operation_thread_ = std::thread([this]() {
+        // Helper lambda for interruptible sleep
+        InterruptibleSleep interruptible_sleep = [this](int ms) -> bool {
+            std::unique_lock<std::mutex> lock(shutdown_mutex_);
+            return !shutdown_cv_.wait_for(lock, std::chrono::milliseconds(ms), [this] {
+                return shutdown_requested_.load() || cancel_requested_.load();
+            });
+        };
+
+        // Phase 1: CHECKING (verify system state after error)
+        spdlog::debug("[AmsBackendMock] Recovery phase: CHECKING");
+        set_action(AmsAction::CHECKING, "Checking system state");
+        emit_event(EVENT_STATE_CHANGED);
+        if (!interruptible_sleep(get_effective_delay_ms(CHECKING_BASE_MS, CHECKING_VARIANCE)))
+            return;
+        if (shutdown_requested_ || cancel_requested_)
+            return;
+
+        // Phase 2: Return to IDLE
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            system_info_.action = AmsAction::IDLE;
+            system_info_.operation_detail.clear();
+            error_segment_ = PathSegment::NONE; // Clear error location
+        }
+        emit_event(EVENT_STATE_CHANGED);
+        spdlog::info("[AmsBackendMock] Recovery complete (realistic mode)");
+    });
+}
+
 void AmsBackendMock::emit_event(const std::string& event, const std::string& data) {
     EventCallback cb;
     {
@@ -1196,8 +1320,11 @@ void AmsBackendMock::schedule_completion(AmsAction action, const std::string& co
     // Mark thread as running BEFORE creating it (for safe shutdown)
     operation_thread_running_ = true;
 
+    // Check if this is a tool change (complete_event signals intent)
+    bool is_tool_change = (complete_event == EVENT_TOOL_CHANGED);
+
     // Simulate operation delay in background thread with path segment progression
-    operation_thread_ = std::thread([this, action, complete_event, slot_index]() {
+    operation_thread_ = std::thread([this, action, complete_event, slot_index, is_tool_change]() {
         // Helper lambda for interruptible sleep (returns false if cancelled/shutdown)
         InterruptibleSleep interruptible_sleep = [this](int ms) -> bool {
             std::unique_lock<std::mutex> lock(shutdown_mutex_);
@@ -1206,7 +1333,10 @@ void AmsBackendMock::schedule_completion(AmsAction action, const std::string& co
             });
         };
 
-        if (action == AmsAction::LOADING) {
+        if (is_tool_change) {
+            // Tool change uses special operation with SELECTING phase
+            execute_tool_change_operation(slot_index, interruptible_sleep);
+        } else if (action == AmsAction::LOADING) {
             // Use phase executor (handles both realistic and simple modes)
             execute_load_operation(slot_index, interruptible_sleep);
         } else if (action == AmsAction::UNLOADING) {
