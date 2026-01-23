@@ -133,6 +133,9 @@ void ThemeEditorOverlay::register_callbacks() {
     // Theme preset dropdown callback
     lv_xml_register_event_cb(nullptr, "on_theme_preset_changed", on_theme_preset_changed);
 
+    // Preview button callback (shows editing theme, not saved theme)
+    lv_xml_register_event_cb(nullptr, "on_theme_preview_clicked", on_theme_preview_clicked);
+
     spdlog::debug("[{}] Callbacks registered", get_name());
 }
 
@@ -888,6 +891,25 @@ void ThemeEditorOverlay::handle_theme_preset_changed(int index) {
     load_theme(theme_name);
 
     spdlog::info("[{}] Theme preset changed to index {} ({})", get_name(), index, theme_name);
+}
+
+// ============================================================================
+// PREVIEW BUTTON
+// ============================================================================
+
+void ThemeEditorOverlay::on_theme_preview_clicked(lv_event_t* e) {
+    LVGL_SAFE_EVENT_CB_BEGIN("[ThemeEditorOverlay] on_theme_preview_clicked");
+    static_cast<void>(lv_event_get_current_target(e));
+    get_theme_editor_overlay().handle_preview_clicked();
+    LVGL_SAFE_EVENT_CB_END();
+}
+
+void ThemeEditorOverlay::handle_preview_clicked() {
+    // Apply the editing theme (selected from dropdown) for preview
+    ui_theme_preview(editing_theme_);
+
+    spdlog::debug("[{}] Preview clicked - applied editing theme '{}'", get_name(),
+                  editing_theme_.name);
 }
 
 // ============================================================================
