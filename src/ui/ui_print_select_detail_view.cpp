@@ -438,7 +438,7 @@ void PrintSelectDetailView::update_color_swatches(const std::vector<std::string>
             lv_obj_set_style_bg_opa(swatch, LV_OPA_COVER, 0);
         } else {
             // Empty color - show gray placeholder
-            lv_obj_set_style_bg_color(swatch, lv_color_hex(0x808080), 0);
+            lv_obj_set_style_bg_color(swatch, theme_manager_get_color("text_muted"), 0);
             lv_obj_set_style_bg_opa(swatch, LV_OPA_COVER, 0);
         }
 

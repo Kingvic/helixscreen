@@ -571,7 +571,7 @@ static void create_slot_children(lv_obj_t* container, AmsSlotData* data) {
     const char* font_xs_name = lv_xml_get_const(NULL, "font_xs");
     const lv_font_t* font_xs = font_xs_name ? lv_xml_get_font(NULL, font_xs_name) : &noto_sans_12;
     lv_obj_set_style_text_font(slot_label, font_xs, LV_PART_MAIN);
-    lv_obj_set_style_text_color(slot_label, lv_color_white(), LV_PART_MAIN);
+    lv_obj_set_style_text_color(slot_label, theme_manager_get_color("text"), LV_PART_MAIN);
     lv_obj_center(slot_label);
     lv_obj_add_flag(slot_label, LV_OBJ_FLAG_EVENT_BUBBLE); // Propagate clicks to slot
     data->slot_badge = slot_label;
@@ -603,7 +603,7 @@ static void create_slot_children(lv_obj_t* container, AmsSlotData* data) {
     // Tool label inside badge (T0, T1, etc.)
     lv_obj_t* tool_label = lv_label_create(tool_badge);
     lv_obj_set_style_text_font(tool_label, font_xs, LV_PART_MAIN);
-    lv_obj_set_style_text_color(tool_label, lv_color_white(), LV_PART_MAIN);
+    lv_obj_set_style_text_color(tool_label, theme_manager_get_color("text"), LV_PART_MAIN);
     lv_obj_center(tool_label);
     lv_obj_add_flag(tool_label, LV_OBJ_FLAG_EVENT_BUBBLE);
     data->tool_badge = tool_label;

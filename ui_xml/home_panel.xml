@@ -63,7 +63,7 @@
           <bind_flag_if_eq subject="printer_info_visible" flag="hidden" ref_value="0"/>
           <text_small width="100%"
                       height="content" bind_text="printer_type_text" style_text_color="#text_primary"
-                      style_text_align="center" stroke_width="1" stroke_color="#000000" stroke_opa="180"/>
+                      style_text_align="center" stroke_width="1" stroke_color="#app_bg" stroke_opa="180"/>
         </lv_obj>
       </lv_obj>
 

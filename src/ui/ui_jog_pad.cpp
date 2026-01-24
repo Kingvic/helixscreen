@@ -102,13 +102,16 @@ static void load_colors(jog_pad_state_t* state, const char* component_scope_name
             theme_manager_get_color(use_dark_mode ? "jog_home_bg_dark" : "jog_home_bg_light");
         state->jog_color_home_border = theme_manager_get_color(
             use_dark_mode ? "jog_home_border_dark" : "jog_home_border_light");
-        state->jog_color_home_text = lv_color_white();
+        state->jog_color_home_text =
+            theme_manager_get_color(use_dark_mode ? "jog_home_text_dark" : "jog_home_text_light");
         state->jog_color_boundary_lines = theme_manager_get_color(
             use_dark_mode ? "jog_boundary_lines_dark" : "jog_boundary_lines_light");
         state->jog_color_distance_labels = theme_manager_get_color(
             use_dark_mode ? "jog_distance_labels_dark" : "jog_distance_labels_light");
-        state->jog_color_axis_labels = lv_color_white();
-        state->jog_color_highlight = lv_color_white();
+        state->jog_color_axis_labels = theme_manager_get_color(
+            use_dark_mode ? "jog_axis_labels_dark" : "jog_axis_labels_light");
+        state->jog_color_highlight =
+            theme_manager_get_color(use_dark_mode ? "jog_highlight_dark" : "jog_highlight_light");
         return;
     }
 

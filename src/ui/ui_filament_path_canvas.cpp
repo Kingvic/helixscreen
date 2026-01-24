@@ -578,7 +578,7 @@ static void draw_parallel_topology(lv_event_t* e, FilamentPathData* data) {
         if (data->label_font) {
             lv_draw_label_dsc_t label_dsc;
             lv_draw_label_dsc_init(&label_dsc);
-            label_dsc.color = is_mounted ? lv_color_hex(0x00FF00) : data->color_text;
+            label_dsc.color = is_mounted ? theme_manager_get_color("success") : data->color_text;
             label_dsc.font = data->label_font;
             label_dsc.align = LV_TEXT_ALIGN_CENTER;
 

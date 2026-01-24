@@ -94,7 +94,7 @@ void create_overlay_internal() {
 
     // Create progress label
     g_label = lv_label_create(container);
-    lv_obj_set_style_text_color(g_label, lv_color_white(), LV_PART_MAIN);
+    lv_obj_set_style_text_color(g_label, theme_manager_get_color("text"), LV_PART_MAIN);
     lv_obj_set_style_text_font(g_label, theme_manager_get_font("font_small"), LV_PART_MAIN);
     lv_label_set_text(g_label, g_pending_text.c_str());
 

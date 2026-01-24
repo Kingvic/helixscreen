@@ -495,7 +495,7 @@ void ScrewsTiltPanel::create_screw_indicator(size_t index, const ScrewTiltResult
     lv_obj_set_size(indicator, INDICATOR_SIZE, INDICATOR_SIZE);
     lv_obj_set_style_radius(indicator, LV_RADIUS_CIRCLE, 0); // Fully round
     lv_obj_set_style_border_width(indicator, is_worst ? 3 : 2, 0);
-    lv_obj_set_style_border_color(indicator, lv_color_white(), 0);
+    lv_obj_set_style_border_color(indicator, theme_manager_get_color("text"), 0);
 
     // Color based on adjustment severity (worst screw gets highlighted)
     lv_color_t bg_color = get_adjustment_color(screw, is_worst);
@@ -508,7 +508,7 @@ void ScrewsTiltPanel::create_screw_indicator(size_t index, const ScrewTiltResult
 
     // Create centered icon/text label
     lv_obj_t* label = lv_label_create(indicator);
-    lv_obj_set_style_text_color(label, lv_color_white(), 0);
+    lv_obj_set_style_text_color(label, theme_manager_get_color("text"), 0);
     lv_obj_center(label);
 
     if (screw.is_reference) {

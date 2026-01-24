@@ -24,7 +24,7 @@
           <lv_obj width="0"
                   height="content" flex_grow="1" flex_flow="row" style_pad_all="#space_xs" style_pad_gap="#space_xs"
                   style_bg_color="#card_bg" style_bg_opa="255" style_radius="#border_radius_small"
-                  style_border_width="1" style_border_color="#surface_control" style_border_opa="40"
+                  style_border_width="1" style_border_color="#border" style_border_opa="40"
                   style_flex_cross_place="center" scrollable="false">
             <lv_obj name="swatch_0"
                     width="#theme_swatch_size" height="#theme_swatch_size" style_radius="#border_radius_small"
@@ -41,7 +41,7 @@
           <lv_obj width="0"
                   height="content" flex_grow="1" flex_flow="row" style_pad_all="#space_xs" style_pad_gap="#space_xs"
                   style_bg_color="#card_bg" style_bg_opa="255" style_radius="#border_radius_small"
-                  style_border_width="1" style_border_color="#surface_control" style_border_opa="40"
+                  style_border_width="1" style_border_color="#border" style_border_opa="40"
                   style_flex_cross_place="center" scrollable="false">
             <lv_obj name="swatch_1"
                     width="#theme_swatch_size" height="#theme_swatch_size" style_radius="#border_radius_small"
@@ -62,7 +62,7 @@
           <lv_obj width="0"
                   height="content" flex_grow="1" flex_flow="row" style_pad_all="#space_xs" style_pad_gap="#space_xs"
                   style_bg_color="#card_bg" style_bg_opa="255" style_radius="#border_radius_small"
-                  style_border_width="1" style_border_color="#surface_control" style_border_opa="40"
+                  style_border_width="1" style_border_color="#border" style_border_opa="40"
                   style_flex_cross_place="center" scrollable="false">
             <lv_obj name="swatch_2"
                     width="#theme_swatch_size" height="#theme_swatch_size" style_radius="#border_radius_small"
@@ -79,7 +79,7 @@
           <lv_obj width="0"
                   height="content" flex_grow="1" flex_flow="row" style_pad_all="#space_xs" style_pad_gap="#space_xs"
                   style_bg_color="#card_bg" style_bg_opa="255" style_radius="#border_radius_small"
-                  style_border_width="1" style_border_color="#surface_control" style_border_opa="40"
+                  style_border_width="1" style_border_color="#border" style_border_opa="40"
                   style_flex_cross_place="center" scrollable="false">
             <lv_obj name="swatch_3"
                     width="#theme_swatch_size" height="#theme_swatch_size" style_radius="#border_radius_small"
@@ -100,7 +100,7 @@
           <lv_obj width="0"
                   height="content" flex_grow="1" flex_flow="row" style_pad_all="#space_xs" style_pad_gap="#space_xs"
                   style_bg_color="#card_bg" style_bg_opa="255" style_radius="#border_radius_small"
-                  style_border_width="1" style_border_color="#surface_control" style_border_opa="40"
+                  style_border_width="1" style_border_color="#border" style_border_opa="40"
                   style_flex_cross_place="center" scrollable="false">
             <lv_obj name="swatch_4"
                     width="#theme_swatch_size" height="#theme_swatch_size" style_radius="#border_radius_small"
@@ -117,7 +117,7 @@
           <lv_obj width="0"
                   height="content" flex_grow="1" flex_flow="row" style_pad_all="#space_xs" style_pad_gap="#space_xs"
                   style_bg_color="#card_bg" style_bg_opa="255" style_radius="#border_radius_small"
-                  style_border_width="1" style_border_color="#surface_control" style_border_opa="40"
+                  style_border_width="1" style_border_color="#border" style_border_opa="40"
                   style_flex_cross_place="center" scrollable="false">
             <lv_obj name="swatch_5"
                     width="#theme_swatch_size" height="#theme_swatch_size" style_radius="#border_radius_small"
@@ -138,7 +138,7 @@
           <lv_obj width="0"
                   height="content" flex_grow="1" flex_flow="row" style_pad_all="#space_xs" style_pad_gap="#space_xs"
                   style_bg_color="#card_bg" style_bg_opa="255" style_radius="#border_radius_small"
-                  style_border_width="1" style_border_color="#surface_control" style_border_opa="40"
+                  style_border_width="1" style_border_color="#border" style_border_opa="40"
                   style_flex_cross_place="center" scrollable="false">
             <lv_obj name="swatch_6"
                     width="#theme_swatch_size" height="#theme_swatch_size" style_radius="#border_radius_small"
@@ -155,7 +155,7 @@
           <lv_obj width="0"
                   height="content" flex_grow="1" flex_flow="row" style_pad_all="#space_xs" style_pad_gap="#space_xs"
                   style_bg_color="#card_bg" style_bg_opa="255" style_radius="#border_radius_small"
-                  style_border_width="1" style_border_color="#surface_control" style_border_opa="40"
+                  style_border_width="1" style_border_color="#border" style_border_opa="40"
                   style_flex_cross_place="center" scrollable="false">
             <lv_obj name="swatch_7"
                     width="#theme_swatch_size" height="#theme_swatch_size" style_radius="#border_radius_small"
@@ -176,7 +176,7 @@
           <lv_obj width="0"
                   height="content" flex_grow="1" flex_flow="row" style_pad_all="#space_xs" style_pad_gap="#space_xs"
                   style_bg_color="#card_bg" style_bg_opa="255" style_radius="#border_radius_small"
-                  style_border_width="1" style_border_color="#surface_control" style_border_opa="40"
+                  style_border_width="1" style_border_color="#border" style_border_opa="40"
                   style_flex_cross_place="center" scrollable="false">
             <lv_obj name="swatch_8"
                     width="#theme_swatch_size" height="#theme_swatch_size" style_radius="#border_radius_small"
@@ -193,7 +193,7 @@
           <lv_obj width="0"
                   height="content" flex_grow="1" flex_flow="row" style_pad_all="#space_xs" style_pad_gap="#space_xs"
                   style_bg_color="#card_bg" style_bg_opa="255" style_radius="#border_radius_small"
-                  style_border_width="1" style_border_color="#surface_control" style_border_opa="40"
+                  style_border_width="1" style_border_color="#border" style_border_opa="40"
                   style_flex_cross_place="center" scrollable="false">
             <lv_obj name="swatch_9"
                     width="#theme_swatch_size" height="#theme_swatch_size" style_radius="#border_radius_small"
@@ -214,7 +214,7 @@
           <lv_obj width="0"
                   height="content" flex_grow="1" flex_flow="row" style_pad_all="#space_xs" style_pad_gap="#space_xs"
                   style_bg_color="#card_bg" style_bg_opa="255" style_radius="#border_radius_small"
-                  style_border_width="1" style_border_color="#surface_control" style_border_opa="40"
+                  style_border_width="1" style_border_color="#border" style_border_opa="40"
                   style_flex_cross_place="center" scrollable="false">
             <lv_obj name="swatch_10"
                     width="#theme_swatch_size" height="#theme_swatch_size" style_radius="#border_radius_small"
@@ -231,7 +231,7 @@
           <lv_obj width="0"
                   height="content" flex_grow="1" flex_flow="row" style_pad_all="#space_xs" style_pad_gap="#space_xs"
                   style_bg_color="#card_bg" style_bg_opa="255" style_radius="#border_radius_small"
-                  style_border_width="1" style_border_color="#surface_control" style_border_opa="40"
+                  style_border_width="1" style_border_color="#border" style_border_opa="40"
                   style_flex_cross_place="center" scrollable="false">
             <lv_obj name="swatch_11"
                     width="#theme_swatch_size" height="#theme_swatch_size" style_radius="#border_radius_small"
@@ -252,7 +252,7 @@
           <lv_obj width="0"
                   height="content" flex_grow="1" flex_flow="row" style_pad_all="#space_xs" style_pad_gap="#space_xs"
                   style_bg_color="#card_bg" style_bg_opa="255" style_radius="#border_radius_small"
-                  style_border_width="1" style_border_color="#surface_control" style_border_opa="40"
+                  style_border_width="1" style_border_color="#border" style_border_opa="40"
                   style_flex_cross_place="center" scrollable="false">
             <lv_obj name="swatch_12"
                     width="#theme_swatch_size" height="#theme_swatch_size" style_radius="#border_radius_small"
@@ -269,7 +269,7 @@
           <lv_obj width="0"
                   height="content" flex_grow="1" flex_flow="row" style_pad_all="#space_xs" style_pad_gap="#space_xs"
                   style_bg_color="#card_bg" style_bg_opa="255" style_radius="#border_radius_small"
-                  style_border_width="1" style_border_color="#surface_control" style_border_opa="40"
+                  style_border_width="1" style_border_color="#border" style_border_opa="40"
                   style_flex_cross_place="center" scrollable="false">
             <lv_obj name="swatch_13"
                     width="#theme_swatch_size" height="#theme_swatch_size" style_radius="#border_radius_small"
@@ -290,7 +290,7 @@
           <lv_obj width="0"
                   height="content" flex_grow="1" flex_flow="row" style_pad_all="#space_xs" style_pad_gap="#space_xs"
                   style_bg_color="#card_bg" style_bg_opa="255" style_radius="#border_radius_small"
-                  style_border_width="1" style_border_color="#surface_control" style_border_opa="40"
+                  style_border_width="1" style_border_color="#border" style_border_opa="40"
                   style_flex_cross_place="center" scrollable="false">
             <lv_obj name="swatch_14"
                     width="#theme_swatch_size" height="#theme_swatch_size" style_radius="#border_radius_small"
@@ -307,7 +307,7 @@
           <lv_obj width="0"
                   height="content" flex_grow="1" flex_flow="row" style_pad_all="#space_xs" style_pad_gap="#space_xs"
                   style_bg_color="#card_bg" style_bg_opa="255" style_radius="#border_radius_small"
-                  style_border_width="1" style_border_color="#surface_control" style_border_opa="40"
+                  style_border_width="1" style_border_color="#border" style_border_opa="40"
                   style_flex_cross_place="center" scrollable="false">
             <lv_obj name="swatch_15"
                     width="#theme_swatch_size" height="#theme_swatch_size" style_radius="#border_radius_small"
@@ -371,7 +371,7 @@
         </lv_button>
 
         <lv_button name="btn_save"
-                   height="#button_height" flex_grow="1" style_radius="#border_radius" style_bg_color="#accent_primary"
+                   height="#button_height" flex_grow="1" style_radius="#border_radius" style_bg_color="#primary"
                    style_bg_opa="255" style_border_width="0" style_shadow_width="0" scroll_on_focus="false"
                    state="disabled" style_bg_opa:disabled="100" style_text_opa:disabled="100">
           <event_cb trigger="clicked" callback="on_theme_save_clicked"/>

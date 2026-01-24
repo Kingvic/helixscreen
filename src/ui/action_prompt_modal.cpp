@@ -209,7 +209,7 @@ void ActionPromptModal::create_button(const PromptButton& btn, lv_obj_t* contain
     lv_label_set_text(label, btn.label.c_str());
     lv_obj_center(label);
     lv_obj_set_style_text_font(label, theme_manager_get_font("font_body"), LV_PART_MAIN);
-    lv_obj_set_style_text_color(label, lv_color_white(), LV_PART_MAIN);
+    lv_obj_set_style_text_color(label, theme_manager_get_color("text"), LV_PART_MAIN);
 
     // Store the gcode in user_data for callback
     // We store a pointer to the string in prompt_data_.buttons, so it remains valid

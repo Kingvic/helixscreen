@@ -70,11 +70,11 @@ static void init_step_progress_colors(const char* scope_name) {
         color_pending = theme_manager_get_color("step_pending");
         color_active = theme_manager_get_color("step_active");
         color_completed = theme_manager_get_color("step_completed");
-        color_number_pending =
-            use_dark_mode ? theme_manager_get_color("ams_hub_dark") : lv_color_white();
-        color_number_active = lv_color_white();
-        color_label_active =
-            use_dark_mode ? lv_color_white() : theme_manager_get_color("ams_hub_dark");
+        color_number_pending = use_dark_mode ? theme_manager_get_color("ams_hub_dark")
+                                             : theme_manager_get_color("text");
+        color_number_active = theme_manager_get_color("text");
+        color_label_active = use_dark_mode ? theme_manager_get_color("text")
+                                           : theme_manager_get_color("ams_hub_dark");
         color_label_inactive = theme_manager_get_color(use_dark_mode ? "step_label_inactive_dark"
                                                                      : "step_label_inactive_light");
 

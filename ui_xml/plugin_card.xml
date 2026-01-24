@@ -68,7 +68,7 @@
                  width="content" height="32" style_bg_color="#error_color" style_bg_opa="255"
                  style_radius="#border_radius_small" style_pad_left="#space_md" style_pad_right="#space_md"
                  style_pad_top="#space_xs" style_pad_bottom="#space_xs">
-        <text_small text="Disable" style_text_color="#ffffff" align="center"/>
+        <text_small text="Disable" style_text_color="#text" align="center"/>
         <event_cb trigger="clicked" callback="on_plugin_card_disable_clicked"/>
       </lv_button>
     </lv_obj>
