@@ -77,10 +77,16 @@ void DisplaySettingsOverlay::init_subjects() {
 void DisplaySettingsOverlay::register_callbacks() {
     // Brightness slider callback
     lv_xml_register_event_cb(nullptr, "on_brightness_changed", on_brightness_changed);
+
+    // Theme explorer callbacks (primary panel)
     lv_xml_register_event_cb(nullptr, "on_theme_preset_changed", on_theme_preset_changed);
-    lv_xml_register_event_cb(nullptr, "on_theme_preview_clicked", on_theme_preview_clicked);
     lv_xml_register_event_cb(nullptr, "on_theme_settings_clicked", on_theme_settings_clicked);
     lv_xml_register_event_cb(nullptr, "on_preview_dark_mode_toggled", on_preview_dark_mode_toggled);
+    lv_xml_register_event_cb(nullptr, "on_edit_colors_clicked", on_edit_colors_clicked);
+
+    // Apply button uses header_bar's action_button mechanism
+    // The overlay_panel passes action_button_callback through, so we need to register it
+    lv_xml_register_event_cb(nullptr, "on_apply_theme_clicked", on_apply_theme_clicked);
 
     spdlog::debug("[{}] Callbacks registered", get_name());
 }
@@ -236,9 +242,16 @@ void DisplaySettingsOverlay::init_theme_preset_dropdown(lv_obj_t* root) {
     if (!root)
         return;
 
-    lv_obj_t* theme_preset_row = lv_obj_find_by_name(root, "row_theme_preset");
-    lv_obj_t* theme_preset_dropdown =
-        theme_preset_row ? lv_obj_find_by_name(theme_preset_row, "dropdown") : nullptr;
+    // Try direct lookup first (Theme Explorer uses this name)
+    lv_obj_t* theme_preset_dropdown = lv_obj_find_by_name(root, "theme_preset_dropdown");
+
+    // Fall back to nested row lookup (Theme Editor used this pattern)
+    if (!theme_preset_dropdown) {
+        lv_obj_t* theme_preset_row = lv_obj_find_by_name(root, "row_theme_preset");
+        theme_preset_dropdown =
+            theme_preset_row ? lv_obj_find_by_name(theme_preset_row, "dropdown") : nullptr;
+    }
+
     if (theme_preset_dropdown) {
         // Set dropdown options from discovered theme files
         std::string options = SettingsManager::instance().get_theme_options();
@@ -284,36 +297,140 @@ void DisplaySettingsOverlay::handle_brightness_changed(int value) {
 }
 
 void DisplaySettingsOverlay::handle_theme_preset_changed(int index) {
+    // If called from Theme Explorer, preview the theme locally
+    if (theme_explorer_overlay_ && lv_obj_is_visible(theme_explorer_overlay_)) {
+        handle_explorer_theme_changed(index);
+        return;
+    }
+
+    // Otherwise fall back to global theme change (legacy behavior)
     SettingsManager::instance().set_theme_by_index(index);
 
     spdlog::info("[{}] Theme changed to index {} ({})", get_name(), index,
                  SettingsManager::instance().get_theme_name());
 }
 
-void DisplaySettingsOverlay::handle_theme_preview_clicked() {
-    if (!parent_screen_) {
-        spdlog::warn("[{}] Theme preview clicked without parent screen", get_name());
+void DisplaySettingsOverlay::handle_explorer_theme_changed(int index) {
+    // Preview selected theme without saving globally
+    std::string themes_dir = helix::get_themes_directory();
+    auto themes = helix::discover_themes(themes_dir);
+
+    if (index < 0 || index >= static_cast<int>(themes.size())) {
+        spdlog::error("[{}] Invalid theme index {}", get_name(), index);
         return;
     }
 
-    if (!theme_preview_overlay_) {
-        spdlog::debug("[{}] Creating theme preview overlay...", get_name());
-        theme_preview_overlay_ =
-            static_cast<lv_obj_t*>(lv_xml_create(parent_screen_, "theme_preview_overlay", nullptr));
-        if (!theme_preview_overlay_) {
-            spdlog::error("[{}] Failed to create theme preview overlay", get_name());
-            return;
-        }
+    std::string theme_name = themes[index].filename;
+    std::string filepath = themes_dir + "/" + theme_name + ".json";
+    helix::ThemeData theme = helix::load_theme_from_file(filepath);
 
-        lv_obj_add_flag(theme_preview_overlay_, LV_OBJ_FLAG_HIDDEN);
-        NavigationManager::instance().register_overlay_close_callback(
-            theme_preview_overlay_, [this]() { lv_obj_safe_delete(theme_preview_overlay_); });
+    if (!theme.is_valid()) {
+        spdlog::error("[{}] Failed to load theme '{}' for preview", get_name(), theme_name);
+        return;
     }
 
-    ui_nav_push_overlay(theme_preview_overlay_);
+    // Preview the theme with current dark mode setting
+    theme_manager_preview(theme);
+
+    // Update Apply button state - enable if different from original
+    if (theme_explorer_overlay_) {
+        lv_obj_t* header = lv_obj_find_by_name(theme_explorer_overlay_, "overlay_header");
+        lv_obj_t* action_btn = header ? lv_obj_find_by_name(header, "action_button") : nullptr;
+        if (action_btn) {
+            if (index != original_theme_index_) {
+                lv_obj_remove_state(action_btn, LV_STATE_DISABLED);
+            } else {
+                lv_obj_add_state(action_btn, LV_STATE_DISABLED);
+            }
+        }
+    }
+
+    spdlog::debug("[{}] Explorer preview: theme '{}' (index {})", get_name(), theme_name, index);
 }
 
 void DisplaySettingsOverlay::handle_theme_settings_clicked() {
+    // Primary entry point: Opens Theme Explorer first (not editor)
+    if (!parent_screen_) {
+        spdlog::warn("[{}] Theme settings clicked without parent screen", get_name());
+        return;
+    }
+
+    if (!theme_explorer_overlay_) {
+        spdlog::debug("[{}] Creating theme explorer overlay...", get_name());
+        theme_explorer_overlay_ =
+            static_cast<lv_obj_t*>(lv_xml_create(parent_screen_, "theme_preview_overlay", nullptr));
+        if (!theme_explorer_overlay_) {
+            spdlog::error("[{}] Failed to create theme explorer overlay", get_name());
+            return;
+        }
+
+        lv_obj_add_flag(theme_explorer_overlay_, LV_OBJ_FLAG_HIDDEN);
+        NavigationManager::instance().register_overlay_close_callback(
+            theme_explorer_overlay_, [this]() {
+                // Revert preview to current theme on close
+                theme_manager_revert_preview();
+                lv_obj_safe_delete(theme_explorer_overlay_);
+            });
+    }
+
+    // Initialize theme preset dropdown
+    init_theme_preset_dropdown(theme_explorer_overlay_);
+
+    // Remember original theme for Apply button state
+    original_theme_index_ = SettingsManager::instance().get_theme_index();
+
+    // Initialize dark mode toggle to current global state
+    preview_is_dark_ = theme_manager_is_dark_mode();
+    lv_obj_t* dark_toggle =
+        lv_obj_find_by_name(theme_explorer_overlay_, "preview_dark_mode_toggle");
+    if (dark_toggle) {
+        if (preview_is_dark_) {
+            lv_obj_add_state(dark_toggle, LV_STATE_CHECKED);
+        } else {
+            lv_obj_remove_state(dark_toggle, LV_STATE_CHECKED);
+        }
+    }
+
+    // Initially disable Apply button (no changes yet)
+    lv_obj_t* header = lv_obj_find_by_name(theme_explorer_overlay_, "overlay_header");
+    lv_obj_t* action_btn = header ? lv_obj_find_by_name(header, "action_button") : nullptr;
+    if (action_btn) {
+        lv_obj_add_state(action_btn, LV_STATE_DISABLED);
+    }
+
+    ui_nav_push_overlay(theme_explorer_overlay_);
+}
+
+void DisplaySettingsOverlay::handle_apply_theme_clicked() {
+    // Apply the currently selected (previewed) theme globally
+    lv_obj_t* dropdown = theme_explorer_overlay_
+                             ? lv_obj_find_by_name(theme_explorer_overlay_, "theme_preset_dropdown")
+                             : nullptr;
+    if (!dropdown) {
+        spdlog::warn("[{}] Apply clicked but dropdown not found", get_name());
+        return;
+    }
+
+    int selected_index = lv_dropdown_get_selected(dropdown);
+    SettingsManager::instance().set_theme_by_index(selected_index);
+
+    // Update original index since theme is now applied
+    original_theme_index_ = selected_index;
+
+    // Disable Apply button since changes are now saved
+    lv_obj_t* header = lv_obj_find_by_name(theme_explorer_overlay_, "overlay_header");
+    lv_obj_t* action_btn = header ? lv_obj_find_by_name(header, "action_button") : nullptr;
+    if (action_btn) {
+        lv_obj_add_state(action_btn, LV_STATE_DISABLED);
+    }
+
+    // Show restart notice using info note toast (non-blocking)
+    spdlog::info("[{}] Theme applied - index {}. Restart required for full effect.", get_name(),
+                 selected_index);
+}
+
+void DisplaySettingsOverlay::handle_edit_colors_clicked() {
+    // Open Theme Colors Editor (secondary panel)
     if (!parent_screen_) {
         spdlog::warn("[{}] Theme settings clicked without parent screen", get_name());
         return;
@@ -369,17 +486,24 @@ void DisplaySettingsOverlay::on_theme_preset_changed(lv_event_t* e) {
     LVGL_SAFE_EVENT_CB_END();
 }
 
-void DisplaySettingsOverlay::on_theme_preview_clicked(lv_event_t* e) {
-    LVGL_SAFE_EVENT_CB_BEGIN("[DisplaySettingsOverlay] on_theme_preview_clicked");
-    static_cast<void>(lv_event_get_current_target(e));
-    get_display_settings_overlay().handle_theme_preview_clicked();
-    LVGL_SAFE_EVENT_CB_END();
-}
-
 void DisplaySettingsOverlay::on_theme_settings_clicked(lv_event_t* e) {
     LVGL_SAFE_EVENT_CB_BEGIN("[DisplaySettingsOverlay] on_theme_settings_clicked");
     static_cast<void>(lv_event_get_current_target(e));
     get_display_settings_overlay().handle_theme_settings_clicked();
+    LVGL_SAFE_EVENT_CB_END();
+}
+
+void DisplaySettingsOverlay::on_apply_theme_clicked(lv_event_t* e) {
+    LVGL_SAFE_EVENT_CB_BEGIN("[DisplaySettingsOverlay] on_apply_theme_clicked");
+    static_cast<void>(lv_event_get_current_target(e));
+    get_display_settings_overlay().handle_apply_theme_clicked();
+    LVGL_SAFE_EVENT_CB_END();
+}
+
+void DisplaySettingsOverlay::on_edit_colors_clicked(lv_event_t* e) {
+    LVGL_SAFE_EVENT_CB_BEGIN("[DisplaySettingsOverlay] on_edit_colors_clicked");
+    static_cast<void>(lv_event_get_current_target(e));
+    get_display_settings_overlay().handle_edit_colors_clicked();
     LVGL_SAFE_EVENT_CB_END();
 }
 
@@ -388,21 +512,131 @@ void DisplaySettingsOverlay::on_preview_dark_mode_toggled(lv_event_t* e) {
     auto* target = static_cast<lv_obj_t*>(lv_event_get_current_target(e));
     bool is_dark = lv_obj_has_state(target, LV_STATE_CHECKED);
 
-    // Get the current editing theme and preview it with toggled dark mode
-    auto& editor = get_theme_editor_overlay();
-    const auto& theme = editor.get_editing_theme();
-
-    // Re-preview with the new dark mode setting
-    const char* colors[16];
-    for (size_t i = 0; i < 16; ++i) {
-        colors[i] = theme.colors.at(i).c_str();
-    }
-    theme_core_preview_colors(is_dark, colors, theme.properties.border_radius);
-    theme_manager_refresh_widget_tree(lv_screen_active());
-
-    spdlog::debug("[DisplaySettingsOverlay] Preview dark mode toggled to {}",
-                  is_dark ? "dark" : "light");
+    get_display_settings_overlay().handle_preview_dark_mode_toggled(is_dark);
     LVGL_SAFE_EVENT_CB_END();
+}
+
+// Helper to recursively update text colors within an object tree
+static void update_text_colors_recursive(lv_obj_t* obj, lv_color_t text_primary) {
+    if (!obj)
+        return;
+
+    // Check if this object has text (labels, buttons with text, etc.)
+    if (lv_obj_check_type(obj, &lv_label_class)) {
+        lv_obj_set_style_text_color(obj, text_primary, LV_PART_MAIN);
+    }
+
+    // Recurse into children
+    uint32_t child_count = lv_obj_get_child_count(obj);
+    for (uint32_t i = 0; i < child_count; i++) {
+        lv_obj_t* child = lv_obj_get_child(obj, i);
+        update_text_colors_recursive(child, text_primary);
+    }
+}
+
+void DisplaySettingsOverlay::handle_preview_dark_mode_toggled(bool is_dark) {
+    // Update local state
+    preview_is_dark_ = is_dark;
+
+    // Get currently previewed theme (from dropdown selection)
+    if (!theme_explorer_overlay_) {
+        return;
+    }
+
+    lv_obj_t* dropdown = lv_obj_find_by_name(theme_explorer_overlay_, "theme_preset_dropdown");
+    if (!dropdown) {
+        return;
+    }
+
+    int selected_index = lv_dropdown_get_selected(dropdown);
+
+    // Load theme colors
+    std::string themes_dir = helix::get_themes_directory();
+    auto themes = helix::discover_themes(themes_dir);
+
+    if (selected_index < 0 || selected_index >= static_cast<int>(themes.size())) {
+        return;
+    }
+
+    std::string filepath = themes_dir + "/" + themes[selected_index].filename + ".json";
+    helix::ThemeData theme = helix::load_theme_from_file(filepath);
+
+    if (!theme.is_valid()) {
+        return;
+    }
+
+    // Apply colors to preview cards only (not global theme)
+    // Theme color indices: 0=bg_darkest, 1=bg_dark, 4=text_light, 5=bg_light, 6=bg_lightest
+    lv_color_t card_bg =
+        is_dark ? theme_manager_parse_hex_color(theme.colors.at(1).c_str())  // bg_dark
+                : theme_manager_parse_hex_color(theme.colors.at(5).c_str()); // bg_light
+    lv_color_t app_bg =
+        is_dark ? theme_manager_parse_hex_color(theme.colors.at(0).c_str())  // bg_darkest
+                : theme_manager_parse_hex_color(theme.colors.at(6).c_str()); // bg_lightest
+    lv_color_t text_primary =
+        is_dark ? theme_manager_parse_hex_color(theme.colors.at(4).c_str())  // text_light
+                : theme_manager_parse_hex_color(theme.colors.at(0).c_str()); // bg_darkest
+    // Update overlay background color
+    lv_obj_set_style_bg_color(theme_explorer_overlay_, app_bg, LV_PART_MAIN);
+
+    // Update preview card backgrounds
+    lv_obj_t* typography_card =
+        lv_obj_find_by_name(theme_explorer_overlay_, "preview_typography_card");
+    lv_obj_t* actions_card = lv_obj_find_by_name(theme_explorer_overlay_, "preview_actions_card");
+    lv_obj_t* background_card = lv_obj_find_by_name(theme_explorer_overlay_, "preview_background");
+
+    if (typography_card) {
+        lv_obj_set_style_bg_color(typography_card, card_bg, LV_PART_MAIN);
+        update_text_colors_recursive(typography_card, text_primary);
+    }
+    if (actions_card) {
+        lv_obj_set_style_bg_color(actions_card, card_bg, LV_PART_MAIN);
+        update_text_colors_recursive(actions_card, text_primary);
+    }
+    if (background_card) {
+        lv_obj_set_style_bg_color(background_card, app_bg, LV_PART_MAIN);
+        update_text_colors_recursive(background_card, text_primary);
+    }
+
+    // Update Edit Colors button text
+    lv_obj_t* edit_colors_btn = lv_obj_find_by_name(theme_explorer_overlay_, "edit_colors_btn");
+    if (edit_colors_btn) {
+        update_text_colors_recursive(edit_colors_btn, text_primary);
+    }
+
+    // Also update the content area text
+    lv_obj_t* overlay_content = lv_obj_find_by_name(theme_explorer_overlay_, "overlay_content");
+    if (overlay_content) {
+        update_text_colors_recursive(overlay_content, text_primary);
+    }
+
+    // Update header bar for complete preview
+    lv_obj_t* header = lv_obj_find_by_name(theme_explorer_overlay_, "overlay_header");
+    if (header) {
+        // Header background
+        lv_obj_set_style_bg_color(header, card_bg, LV_PART_MAIN);
+
+        // Back button icon
+        lv_obj_t* back_btn = lv_obj_find_by_name(header, "back_button");
+        if (back_btn) {
+            lv_obj_set_style_text_color(back_btn, text_primary, LV_PART_MAIN);
+        }
+
+        // Header title
+        lv_obj_t* title = lv_obj_find_by_name(header, "header_title");
+        if (title) {
+            lv_obj_set_style_text_color(title, text_primary, LV_PART_MAIN);
+        }
+
+        // Action button (Apply) - update text color
+        lv_obj_t* action_btn = lv_obj_find_by_name(header, "action_button");
+        if (action_btn && !lv_obj_has_flag(action_btn, LV_OBJ_FLAG_HIDDEN)) {
+            update_text_colors_recursive(action_btn, text_primary);
+        }
+    }
+
+    spdlog::debug("[DisplaySettingsOverlay] Preview dark mode toggled to {} (local only)",
+                  is_dark ? "dark" : "light");
 }
 
 } // namespace helix::settings

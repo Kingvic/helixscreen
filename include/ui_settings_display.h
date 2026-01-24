@@ -148,14 +148,39 @@ class DisplaySettingsOverlay : public OverlayBase {
     void handle_theme_preset_changed(int index);
 
     /**
-     * @brief Handle theme preview action click
-     */
-    void handle_theme_preview_clicked();
-
-    /**
-     * @brief Handle theme settings action click
+     * @brief Handle theme explorer opening (now primary entry point)
+     *
+     * Opens Theme Explorer panel where users can browse themes before editing.
      */
     void handle_theme_settings_clicked();
+
+    /**
+     * @brief Handle Apply button click in Theme Explorer
+     *
+     * Applies selected theme globally and shows restart notice.
+     */
+    void handle_apply_theme_clicked();
+
+    /**
+     * @brief Handle Edit Colors button click in Theme Explorer
+     *
+     * Opens Theme Colors Editor for detailed editing.
+     */
+    void handle_edit_colors_clicked();
+
+    /**
+     * @brief Handle theme preset dropdown change in Theme Explorer
+     * @param index Selected preset index
+     */
+    void handle_explorer_theme_changed(int index);
+
+    /**
+     * @brief Handle preview dark mode toggle in Theme Explorer
+     * @param is_dark Whether dark mode is selected
+     *
+     * Updates preview colors locally without modifying global theme.
+     */
+    void handle_preview_dark_mode_toggled(bool is_dark);
 
   private:
     //
@@ -196,8 +221,15 @@ class DisplaySettingsOverlay : public OverlayBase {
     // === State ===
     //
 
+    /// Theme Editor overlay (secondary - for detailed color editing)
     lv_obj_t* theme_settings_overlay_{nullptr};
-    lv_obj_t* theme_preview_overlay_{nullptr};
+    /// Theme Explorer overlay (primary - for browsing and selecting themes)
+    lv_obj_t* theme_explorer_overlay_{nullptr};
+
+    /// Tracks original theme index for Apply button state
+    int original_theme_index_{-1};
+    /// Current preview dark mode state
+    bool preview_is_dark_{true};
 
     /// Subject for brightness value label binding
     lv_subject_t brightness_value_subject_;
@@ -209,8 +241,9 @@ class DisplaySettingsOverlay : public OverlayBase {
 
     static void on_brightness_changed(lv_event_t* e);
     static void on_theme_preset_changed(lv_event_t* e);
-    static void on_theme_preview_clicked(lv_event_t* e);
     static void on_theme_settings_clicked(lv_event_t* e);
+    static void on_apply_theme_clicked(lv_event_t* e);
+    static void on_edit_colors_clicked(lv_event_t* e);
     static void on_preview_dark_mode_toggled(lv_event_t* e);
 };
 
