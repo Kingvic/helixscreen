@@ -203,18 +203,18 @@ static void ui_switch_xml_apply(lv_xml_parser_state_t* state, const char** attrs
     lv_color_t track_color = lv_obj_get_style_bg_color(obj, LV_PART_MAIN);
     bool is_dark = theme_manager_is_dark_mode();
 
-    const char* elevated_str = lv_xml_get_const(NULL, "card_bg");
-    const char* dim_str = lv_xml_get_const(NULL, "card_alt");
+    const char* card_bg_str = lv_xml_get_const(NULL, "card_bg");
+    const char* card_alt_str = lv_xml_get_const(NULL, "card_alt");
 
     lv_color_t knob_color;
-    if (is_dark && elevated_str) {
-        // Dark mode: use elevated surface color for visible knob
-        lv_color_t elevated = theme_manager_parse_hex_color(elevated_str);
-        knob_color = lv_color_mix(elevated, track_color, LV_OPA_60);
-    } else if (!is_dark && dim_str) {
-        // Light mode: use dim surface color for contrast against light bg
-        lv_color_t dim = theme_manager_parse_hex_color(dim_str);
-        knob_color = lv_color_mix(dim, track_color, LV_OPA_50);
+    if (is_dark && card_bg_str) {
+        // Dark mode: use card_bg for visible knob
+        lv_color_t card_bg_color = theme_manager_parse_hex_color(card_bg_str);
+        knob_color = lv_color_mix(card_bg_color, track_color, LV_OPA_60);
+    } else if (!is_dark && card_alt_str) {
+        // Light mode: use card_alt for contrast against light bg
+        lv_color_t card_alt_color = theme_manager_parse_hex_color(card_alt_str);
+        knob_color = lv_color_mix(card_alt_color, track_color, LV_OPA_50);
     } else {
         // Fallback
         knob_color = lv_color_mix(lv_color_white(), track_color, LV_OPA_50);
