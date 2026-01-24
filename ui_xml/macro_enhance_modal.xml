@@ -145,7 +145,7 @@
       <lv_button name="btn_skip"
                  height="100%" flex_grow="1" style_radius="0" style_border_width="0" style_shadow_width="0">
         <event_cb trigger="clicked" callback="on_macro_enhance_skip"/>
-        <text_body text="Keep Required" align="center"/>
+        <text_button text="Keep Required"/>
       </lv_button>
       <!-- Vertical divider -->
       <divider_vertical/>
@@ -154,7 +154,7 @@
                  height="100%" flex_grow="1" style_radius="0" style_border_width="0" style_shadow_width="0"
                  style_bg_color="#secondary_color">
         <event_cb trigger="clicked" callback="on_macro_enhance_approve"/>
-        <text_body text="Make Optional" align="center" style_text_color="#text_primary"/>
+        <text_button text="Make Optional"/>
       </lv_button>
     </lv_obj>
     <!-- ============================================================ -->
@@ -169,7 +169,7 @@
       <lv_button name="btn_cancel"
                  height="100%" flex_grow="1" style_radius="0" style_border_width="0" style_shadow_width="0">
         <event_cb trigger="clicked" callback="on_macro_enhance_cancel"/>
-        <text_body text="Cancel" align="center"/>
+        <text_button text="Cancel"/>
       </lv_button>
       <!-- Vertical divider -->
       <divider_vertical/>
@@ -178,7 +178,7 @@
                  height="100%" flex_grow="1" style_radius="0" style_border_width="0" style_shadow_width="0"
                  style_bg_color="#success_color">
         <event_cb trigger="clicked" callback="on_macro_enhance_apply"/>
-        <text_body text="Apply Changes" align="center" style_text_color="#text_primary"/>
+        <text_button text="Apply Changes"/>
       </lv_button>
     </lv_obj>
     <!-- ============================================================ -->
@@ -193,7 +193,7 @@
       <lv_button height="100%"
                  flex_grow="1" clickable="false" style_radius="0" style_border_width="0" style_shadow_width="0"
                  style_bg_opa="128">
-        <text_body text="Applying..." align="center" style_text_opa="128"/>
+        <text_button text="Applying..." style_text_opa="128"/>
       </lv_button>
     </lv_obj>
     <!-- ============================================================ -->
@@ -209,7 +209,7 @@
       <lv_button name="btn_close"
                  height="100%" flex_grow="1" style_radius="0" style_border_width="0" style_shadow_width="0">
         <event_cb trigger="clicked" callback="on_macro_enhance_close"/>
-        <text_body text="Close" align="center"/>
+        <text_button text="Close"/>
       </lv_button>
     </lv_obj>
   </view>

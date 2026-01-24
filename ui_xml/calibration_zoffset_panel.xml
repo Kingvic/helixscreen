@@ -46,7 +46,7 @@
         <!-- Start Button -->
         <lv_button name="btn_start"
                    width="200" height="56" style_radius="#border_radius" style_bg_color="#primary_color">
-          <text_body text="Start Calibration" align="center"/>
+          <text_button text="Start Calibration"/>
           <event_cb trigger="clicked" callback="on_zoffset_start_clicked"/>
         </lv_button>
       </lv_obj>
@@ -64,7 +64,7 @@
         <!-- Abort Button -->
         <lv_button name="btn_abort_probing"
                    width="120" height="48" style_radius="#border_radius" style_bg_color="#error_color">
-          <text_body text="Abort" align="center"/>
+          <text_button text="Abort"/>
           <event_cb trigger="clicked" callback="on_zoffset_abort_clicked"/>
         </lv_button>
       </lv_obj>
@@ -95,19 +95,19 @@
                   height="56" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row"
                   style_flex_main_place="center" style_pad_gap="#space_md" scrollable="false">
             <lv_button name="btn_z_down_1" width="100" height="56" style_radius="#border_radius">
-              <text_body text="-1mm" align="center"/>
+              <text_button text="-1mm"/>
               <event_cb trigger="clicked" callback="on_zoffset_z_down_1"/>
             </lv_button>
             <lv_button name="btn_z_down_01" width="100" height="56" style_radius="#border_radius">
-              <text_body text="-0.1mm" align="center"/>
+              <text_button text="-0.1mm"/>
               <event_cb trigger="clicked" callback="on_zoffset_z_down_01"/>
             </lv_button>
             <lv_button name="btn_z_up_01" width="100" height="56" style_radius="#border_radius">
-              <text_body text="+0.1mm" align="center"/>
+              <text_button text="+0.1mm"/>
               <event_cb trigger="clicked" callback="on_zoffset_z_up_01"/>
             </lv_button>
             <lv_button name="btn_z_up_1" width="100" height="56" style_radius="#border_radius">
-              <text_body text="+1mm" align="center"/>
+              <text_button text="+1mm"/>
               <event_cb trigger="clicked" callback="on_zoffset_z_up_1"/>
             </lv_button>
           </lv_obj>
@@ -141,12 +141,12 @@
                 style_flex_main_place="center" style_pad_gap="#space_md" scrollable="false">
           <lv_button name="btn_abort"
                      width="140" height="56" style_radius="#border_radius" style_bg_color="#error_color">
-            <text_body text="Abort" align="center"/>
+            <text_button text="Abort"/>
             <event_cb trigger="clicked" callback="on_zoffset_abort_clicked"/>
           </lv_button>
           <lv_button name="btn_accept"
                      width="200" height="56" style_radius="#border_radius" style_bg_color="#success_color">
-            <text_body text="Accept" align="center"/>
+            <text_button text="Accept"/>
             <event_cb trigger="clicked" callback="on_zoffset_accept_clicked"/>
           </lv_button>
         </lv_obj>
@@ -177,7 +177,7 @@
         <text_heading text="Calibration Complete!" style_text_align="center"/>
         <text_body name="final_offset_label" text="New Z-Offset: 0.000" style_text_color="#text_secondary"/>
         <lv_button name="btn_done" width="140" height="56" style_radius="#border_radius">
-          <text_body text="Done" align="center"/>
+          <text_button text="Done"/>
           <event_cb trigger="clicked" callback="on_zoffset_done_clicked"/>
         </lv_button>
       </lv_obj>
@@ -198,12 +198,12 @@
                 height="56" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row"
                 style_flex_main_place="center" style_pad_gap="#space_md" scrollable="false">
           <lv_button name="btn_close_error" width="140" height="56" style_radius="#border_radius">
-            <text_body text="Close" align="center"/>
+            <text_button text="Close"/>
             <event_cb trigger="clicked" callback="on_zoffset_done_clicked"/>
           </lv_button>
           <lv_button name="btn_retry"
                      width="140" height="56" style_radius="#border_radius" style_bg_color="#primary_color">
-            <text_body text="Retry" align="center"/>
+            <text_button text="Retry"/>
             <event_cb trigger="clicked" callback="on_zoffset_retry_clicked"/>
           </lv_button>
         </lv_obj>

@@ -17,6 +17,9 @@
   <api>
     <prop name="title" type="string" default="Overlay"/>
     <prop name="action_button_text" type="string" default=""/>
+    <prop name="action_button_callback" type="string" default=""/>
+    <prop name="action_button_height" type="string" default="content"/>
+    <prop name="action_button_pad" type="string" default="#space_sm"/>
     <prop name="hide_action_button" type="string" default="true"/>
     <prop name="width" type="string" default="#overlay_panel_width"/>
     <prop name="bg_color" type="string" default="#card_bg"/>
@@ -27,7 +30,9 @@
         style_bg_color="$bg_color" scrollable="false" flex_flow="column">
     <!-- Header Bar -->
     <header_bar name="overlay_header"
-                title="$title" action_button_text="$action_button_text" hide_action_button="$hide_action_button"/>
+                title="$title" action_button_text="$action_button_text" hide_action_button="$hide_action_button"
+                action_button_callback="$action_button_callback"
+                action_button_height="$action_button_height" action_button_pad="$action_button_pad"/>
     <!-- Panel-specific overlay_content and children go here -->
   </view>
 </component>

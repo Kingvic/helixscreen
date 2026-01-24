@@ -102,7 +102,7 @@
                  height="100%" flex_grow="1" style_radius="0" style_border_width="0" style_shadow_width="0"
                  clickable="true">
         <event_cb trigger="clicked" callback="on_bed_mesh_calibrate_cancel"/>
-        <text_body text="Cancel" align="center"/>
+        <text_button text="Cancel"/>
       </lv_button>
     </lv_obj>
     <!-- ============================================================ -->
@@ -117,7 +117,7 @@
                  height="100%" flex_grow="1" style_radius="0" style_border_width="0" style_shadow_width="0"
                  clickable="true">
         <event_cb trigger="clicked" callback="on_bed_mesh_calibrate_cancel"/>
-        <text_body text="Don't Save" align="center" style_text_color="#text_secondary"/>
+        <text_button text="Don't Save" style_text_color="#text_secondary"/>
       </lv_button>
       <!-- Vertical divider -->
       <divider_vertical/>
@@ -126,7 +126,7 @@
                  height="100%" flex_grow="1" style_radius="0" style_border_width="0" style_shadow_width="0"
                  clickable="true">
         <event_cb trigger="clicked" callback="on_bed_mesh_save_profile"/>
-        <text_body text="Save" align="center"/>
+        <text_button text="Save"/>
       </lv_button>
     </lv_obj>
     <!-- ============================================================ -->
@@ -141,7 +141,7 @@
                  height="100%" flex_grow="1" style_radius="0" style_border_width="0" style_shadow_width="0"
                  clickable="true">
         <event_cb trigger="clicked" callback="on_bed_mesh_calibrate_cancel"/>
-        <text_body text="Close" align="center"/>
+        <text_button text="Close"/>
       </lv_button>
     </lv_obj>
   </view>

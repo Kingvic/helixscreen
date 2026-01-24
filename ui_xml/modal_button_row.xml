@@ -20,7 +20,7 @@
                  height="100%" flex_grow="1" style_radius="#border_radius" style_border_width="0" style_shadow_width="0"
                  clickable="true">
         <event_cb trigger="clicked" callback="$secondary_callback"/>
-        <text_body text="$secondary_text" align="center"/>
+        <text_button text="$secondary_text"/>
       </lv_button>
       <!-- Vertical divider -->
       <divider_vertical/>
@@ -29,7 +29,7 @@
                  height="100%" flex_grow="1" style_radius="#border_radius" style_border_width="0" style_shadow_width="0"
                  clickable="true">
         <event_cb trigger="clicked" callback="$primary_callback"/>
-        <text_body text="$primary_text" align="center"/>
+        <text_button text="$primary_text"/>
       </lv_button>
     </lv_obj>
   </view>

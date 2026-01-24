@@ -53,21 +53,21 @@
         <lv_button name="btn_start" width="200" height="#button_height">
           <event_cb trigger="clicked" callback="on_touch_cal_start_clicked"/>
           <bind_flag_if_not_eq subject="touch_cal_state" flag="hidden" ref_value="0"/>
-          <text_body text="Start Calibration" align="center"/>
+          <text_button text="Start Calibration"/>
         </lv_button>
 
         <!-- Accept button - visible only in VERIFY (state=4) -->
         <lv_button name="btn_accept" width="150" height="#button_height">
           <event_cb trigger="clicked" callback="on_touch_cal_accept_clicked"/>
           <bind_flag_if_not_eq subject="touch_cal_state" flag="hidden" ref_value="4"/>
-          <text_body text="Accept" align="center"/>
+          <text_button text="Accept"/>
         </lv_button>
 
         <!-- Retry button - visible only in VERIFY (state=4) -->
         <lv_button name="btn_retry" width="150" height="#button_height" style_bg_color="#card_bg">
           <event_cb trigger="clicked" callback="on_touch_cal_retry_clicked"/>
           <bind_flag_if_not_eq subject="touch_cal_state" flag="hidden" ref_value="4"/>
-          <text_body text="Retry" align="center"/>
+          <text_button text="Retry"/>
         </lv_button>
 
         <!-- Note: Skip button removed - only relevant for wizard (wizard_touch_calibration.xml) -->

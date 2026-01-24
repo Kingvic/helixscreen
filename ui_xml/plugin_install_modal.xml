@@ -91,7 +91,7 @@
                  height="100%" flex_grow="1" style_radius="0" style_border_width="0" style_shadow_width="0"
                  clickable="true">
         <event_cb trigger="clicked" callback="on_plugin_install_cancel"/>
-        <text_body text="Not Now" align="center"/>
+        <text_button text="Not Now"/>
       </lv_button>
       <!-- Vertical divider -->
       <divider_vertical/>
@@ -100,7 +100,7 @@
                  height="100%" flex_grow="1" style_radius="0" style_border_width="0" style_shadow_width="0"
                  style_bg_color="#secondary_color" clickable="true">
         <event_cb trigger="clicked" callback="on_plugin_install_clicked"/>
-        <text_body text="Install Plugin" align="center" style_text_color="#text_primary"/>
+        <text_button text="Install Plugin"/>
       </lv_button>
     </lv_obj>
     <!-- ============================================================ -->
@@ -114,7 +114,7 @@
                  height="100%" flex_grow="1" style_radius="0" style_border_width="0" style_shadow_width="0"
                  clickable="true">
         <event_cb trigger="clicked" callback="on_plugin_install_cancel"/>
-        <text_body text="Done" align="center"/>
+        <text_button text="Done"/>
       </lv_button>
       <!-- Vertical divider -->
       <divider_vertical/>
@@ -123,7 +123,7 @@
                  height="100%" flex_grow="1" style_radius="0" style_border_width="0" style_shadow_width="0"
                  style_bg_color="#secondary_color" clickable="true">
         <event_cb trigger="clicked" callback="on_plugin_copy_clicked"/>
-        <text_body text="Copy Command" align="center" style_text_color="#text_primary"/>
+        <text_button text="Copy Command"/>
       </lv_button>
     </lv_obj>
     <!-- ============================================================ -->
@@ -136,7 +136,7 @@
                  height="100%" flex_grow="1" style_radius="0" style_border_width="0" style_shadow_width="0"
                  clickable="true">
         <event_cb trigger="clicked" callback="on_plugin_install_ok"/>
-        <text_body text="OK" align="center"/>
+        <text_button text="OK"/>
       </lv_button>
     </lv_obj>
   </view>

@@ -80,7 +80,7 @@
                  height="100%" flex_grow="1" style_radius="#border_radius" style_border_width="0" style_shadow_width="0"
                  clickable="true">
         <event_cb trigger="clicked" callback="on_hidden_cancel_clicked"/>
-        <text_body text="Cancel" align="center"/>
+        <text_button text="Cancel"/>
       </lv_button>
       <!-- Vertical divider between buttons (hidden when connecting) -->
       <divider_vertical name="btn_divider">
@@ -94,7 +94,7 @@
         <!-- Hide button while connecting (hidden_connecting == 1) -->
         <bind_flag_if_eq subject="hidden_connecting" flag="hidden" ref_value="1"/>
         <event_cb trigger="clicked" callback="on_hidden_connect_clicked"/>
-        <text_body text="Connect" align="center"/>
+        <text_button text="Connect"/>
       </lv_button>
     </lv_obj>
   </view>

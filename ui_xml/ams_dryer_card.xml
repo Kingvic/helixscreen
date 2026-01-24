@@ -18,7 +18,7 @@
       <!-- Hidden when drying IS active -->
       <bind_flag_if_eq subject="dryer_active" flag="hidden" ref_value="1"/>
       <icon src="heat_wave" size="sm" align="left_mid" style_translate_x="#space_sm"/>
-      <text_body text="Dryer" align="center"/>
+      <text_button text="Dryer"/>
       <event_cb trigger="clicked" callback="dryer_open_modal_cb"/>
     </lv_button>
     <!-- Active state: temp + progress + stop (shown when drying) -->
@@ -56,7 +56,7 @@
       <lv_button name="btn_stop_drying"
                  width="100%" height="content" style_radius="#border_radius" style_border_width="0"
                  style_shadow_width="0" style_bg_color="#error_color">
-        <text_body text="Stop Drying" align="center"/>
+        <text_button text="Stop Drying"/>
         <event_cb trigger="clicked" callback="dryer_stop_clicked_cb"/>
       </lv_button>
     </ui_card>

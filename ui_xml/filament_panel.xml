@@ -114,7 +114,7 @@
                      width="content" height="#button_height" style_radius="#border_radius" style_border_width="0"
                      style_pad_left="#space_md" style_pad_right="#space_md">
             <event_cb trigger="clicked" callback="filament_manage_slots_cb"/>
-            <text_body text="Manage" align="center"/>
+            <text_button text="Manage"/>
           </lv_button>
         </lv_obj>
       </ui_card>

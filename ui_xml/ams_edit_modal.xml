@@ -178,7 +178,7 @@
       <lv_button name="btn_reset"
                  height="100%" flex_grow="1" style_radius="#border_radius" style_border_width="0" style_shadow_width="0"
                  clickable="true">
-        <text_body text="Reset" align="center" style_text_color="#text_secondary"/>
+        <text_button text="Reset" style_text_color="#text_secondary"/>
         <event_cb trigger="clicked" callback="ams_edit_reset_cb"/>
       </lv_button>
       <!-- Vertical divider -->
@@ -187,7 +187,7 @@
       <lv_button name="btn_save"
                  height="100%" flex_grow="1" style_radius="#border_radius" style_border_width="0" style_shadow_width="0"
                  clickable="true">
-        <text_body name="btn_save_label" text="Close" align="center" style_text_color="#text_primary"/>
+        <text_button name="btn_save_label" text="Close"/>
         <event_cb trigger="clicked" callback="ams_edit_save_cb"/>
       </lv_button>
     </lv_obj>

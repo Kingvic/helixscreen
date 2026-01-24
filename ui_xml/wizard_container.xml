@@ -33,7 +33,7 @@
 
       <!-- BACK BUTTON (hidden on step 0 via conditional binding) -->
       <lv_button name="btn_back" width="#wizard_button_width" height="#button_height">
-        <text_body text="Back" align="center"/>
+        <text_button text="Back"/>
         <event_cb trigger="clicked" callback="on_back_clicked"/>
         <!-- Hide when wizard_back_visible == 0 (at first visible step) -->
         <bind_flag_if_eq subject="wizard_back_visible" flag="hidden" ref_value="0"/>
@@ -45,9 +45,7 @@
 
       <!-- NEXT/FINISH BUTTON (text bound to subject, clickable only when connection_test_passed == 1) -->
       <lv_button name="btn_next" width="#wizard_button_width" height="#button_height" style_bg_color="#primary_color">
-        <text_body name="btn_next_label"
-                   bind_text="wizard_next_button_text" align="center" style_text_color="#text_primary"
-                   style_border_width="0"/>
+        <text_button name="btn_next_label" bind_text="wizard_next_button_text"/>
         <event_cb trigger="clicked" callback="on_next_clicked"/>
         <!-- Button is enabled when connection_test_passed == 1 (disabled otherwise) -->
         <bind_state_if_not_eq subject="connection_test_passed" state="disabled" ref_value="1"/>

@@ -228,12 +228,12 @@
           <!-- Delete button -->
           <lv_button name="delete_button" height="#button_height_lg" flex_grow="1">
             <event_cb trigger="clicked" callback="on_print_select_delete_button"/>
-            <text_body text="Delete" align="center"/>
+            <text_button text="Delete"/>
           </lv_button>
           <!-- Print button - primary action styling (disabled when print in progress) -->
           <lv_button name="print_button" height="#button_height_lg" flex_grow="1" style_bg_color="#primary_color">
             <event_cb trigger="clicked" callback="on_print_select_print_button"/>
-            <text_body text="Print" align="center" style_text_color="#FFFFFF"/>
+            <text_button text="Print" style_text_color="#FFFFFF"/>
             <bind_state_if_eq subject="print_select_can_print" state="disabled" ref_value="0"/>
           </lv_button>
         </lv_obj>

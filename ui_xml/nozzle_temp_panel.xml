@@ -93,7 +93,7 @@
         </lv_obj>
         <lv_button name="btn_custom"
                    width="100%" height="#button_height" style_radius="#border_radius_small" style_border_width="0">
-          <text_body text="Custom..." align="center"/>
+          <text_button text="Custom..."/>
           <event_cb trigger="clicked" callback="on_nozzle_custom_clicked"/>
         </lv_button>
       </lv_obj>

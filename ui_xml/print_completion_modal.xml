@@ -57,7 +57,7 @@
                  height="100%" flex_grow="1" style_radius="0" style_border_width="0" style_shadow_width="0"
                  clickable="true">
         <event_cb trigger="clicked" callback="on_print_complete_ok"/>
-        <text_body text="OK" align="center"/>
+        <text_button text="OK"/>
       </lv_button>
     </lv_obj>
   </view>

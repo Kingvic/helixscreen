@@ -42,7 +42,7 @@
                  style_pad_gap="#space_xs">
         <event_cb trigger="clicked" callback="on_runout_load_filament"/>
         <icon src="arrow_down" size="sm" variant="primary"/>
-        <text_body text="Load"/>
+        <text_button text="Load"/>
       </lv_button>
       <!-- Unload button -->
       <lv_button name="btn_unload_filament"
@@ -52,7 +52,7 @@
                  style_pad_gap="#space_xs">
         <event_cb trigger="clicked" callback="on_runout_unload_filament"/>
         <icon src="arrow_up" size="sm" variant="primary"/>
-        <text_body text="Unload"/>
+        <text_button text="Unload"/>
       </lv_button>
       <!-- Purge button -->
       <lv_button name="btn_purge"
@@ -62,7 +62,7 @@
                  style_pad_gap="#space_xs">
         <event_cb trigger="clicked" callback="on_runout_purge"/>
         <icon src="filament" size="sm" variant="primary"/>
-        <text_body text="Purge"/>
+        <text_button text="Purge"/>
       </lv_button>
     </lv_obj>
     <!-- Horizontal divider above dismiss buttons -->
@@ -76,7 +76,7 @@
                  height="100%" flex_grow="1" style_radius="0" style_border_width="0" style_shadow_width="0"
                  clickable="true">
         <event_cb trigger="clicked" callback="on_runout_ok"/>
-        <text_body text="Close" align="center"/>
+        <text_button text="Close"/>
       </lv_button>
     </lv_obj>
     <!-- PAUSED BUTTONS ROW (only when paused - hidden when print_state_enum != 2) -->
@@ -89,7 +89,7 @@
                  height="100%" flex_grow="1" style_radius="0" style_border_width="0" style_shadow_width="0"
                  style_bg_color="#error_color" clickable="true">
         <event_cb trigger="clicked" callback="on_runout_cancel_print"/>
-        <text_body text="Cancel Print" align="center" style_text_color="#text_primary"/>
+        <text_button text="Cancel Print"/>
       </lv_button>
       <!-- Vertical divider -->
       <divider_vertical/>
@@ -98,7 +98,7 @@
                  height="100%" flex_grow="1" style_radius="0" style_border_width="0" style_shadow_width="0"
                  clickable="true">
         <event_cb trigger="clicked" callback="on_runout_resume"/>
-        <text_body text="Resume Print" align="center"/>
+        <text_button text="Resume Print"/>
       </lv_button>
     </lv_obj>
   </view>

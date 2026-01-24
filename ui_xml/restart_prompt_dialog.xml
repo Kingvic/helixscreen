@@ -37,14 +37,14 @@
                    width="160" height="#button_height" style_radius="#border_radius_small" style_border_width="0"
                    clickable="true">
           <event_cb trigger="clicked" callback="on_restart_later_clicked"/>
-          <text_body text="Later" align="center"/>
+          <text_button text="Later"/>
         </lv_button>
         <!-- Restart Now button (primary action) -->
         <lv_button name="dialog_restart_btn"
                    width="160" height="#button_height" style_radius="#border_radius_small" style_border_width="0"
                    clickable="true" style_bg_color="#primary_color">
           <event_cb trigger="clicked" callback="on_restart_now_clicked"/>
-          <text_body text="Restart Now" align="center"/>
+          <text_button text="Restart Now"/>
         </lv_button>
       </lv_obj>
     </lv_obj>

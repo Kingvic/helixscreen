@@ -50,7 +50,7 @@
       <lv_button name="btn_cancel"
                  height="100%" flex_grow="1" style_radius="#border_radius" style_border_width="0" style_shadow_width="0"
                  clickable="true">
-        <text_body text="Close" align="center" style_text_color="#text_secondary"/>
+        <text_button text="Close" style_text_color="#text_secondary"/>
         <event_cb trigger="clicked" callback="ams_loading_error_cancel_cb"/>
       </lv_button>
       <!-- Vertical divider -->
@@ -59,7 +59,7 @@
       <lv_button name="btn_retry"
                  height="100%" flex_grow="1" style_radius="#border_radius" style_border_width="0" style_shadow_width="0"
                  clickable="true">
-        <text_body text="Retry" align="center" style_text_color="#primary_color"/>
+        <text_button text="Retry" style_text_color="#primary_color"/>
         <event_cb trigger="clicked" callback="ams_loading_error_retry_cb"/>
       </lv_button>
     </lv_obj>

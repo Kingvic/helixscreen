@@ -220,7 +220,7 @@
       <lv_button name="btn_reset"
                  width="150" height="100%" style_radius="6" style_bg_color="#card_bg" style_border_width="1"
                  style_border_color="#theme_grey" style_shadow_width="0" clickable="true">
-        <text_body text="Reset" align="center" style_text_color="#text_secondary"/>
+        <text_button text="Reset" style_text_color="#text_secondary"/>
         <event_cb trigger="clicked" callback="on_limits_reset"/>
       </lv_button>
     </lv_obj>

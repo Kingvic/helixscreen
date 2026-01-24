@@ -188,7 +188,7 @@
           <lv_button name="view_timelapse_btn"
                      width="100%" height="#button_height_sm" style_radius="#border_radius"
                      style_bg_color="#app_bg_color">
-            <text_body text="View Timelapse" align="center"/>
+            <text_button text="View Timelapse"/>
             <event_cb trigger="clicked" callback="history_detail_view_timelapse"/>
           </lv_button>
         </lv_obj>
@@ -202,13 +202,13 @@
           <lv_button name="delete_button"
                      height="#button_height" flex_grow="1" style_radius="#border_radius"
                      style_bg_color="#secondary_color">
-            <text_body text="Delete" align="center"/>
+            <text_button text="Delete"/>
             <event_cb trigger="clicked" callback="history_detail_delete"/>
           </lv_button>
           <!-- Reprint button (primary, disabled if file doesn't exist) -->
           <lv_button name="reprint_button"
                      height="#button_height" flex_grow="1" style_radius="#border_radius" style_bg_color="#primary_color">
-            <text_body text="Reprint" align="center"/>
+            <text_button text="Reprint"/>
             <event_cb trigger="clicked" callback="history_detail_reprint"/>
             <bind_state_if_eq subject="history_detail_can_reprint" state="disabled" ref_value="0"/>
           </lv_button>

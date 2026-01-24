@@ -1,10 +1,11 @@
 <?xml version="1.0"?>
 <!-- Copyright (C) 2025-2026 356C LLC -->
 <!-- SPDX-License-Identifier: GPL-3.0-or-later -->
-<!-- Theme Settings Overlay -->
+<!-- Theme Colors Editor Overlay - Secondary panel for detailed color editing -->
+<!-- Navigation: Settings → Display → Theme → Edit Colors → (this) -->
 <component>
   <view name="theme_settings_overlay"
-        extends="overlay_panel" width="#overlay_panel_width_full" title="Theme Colors" bg_color="#app_bg_color">
+        extends="overlay_panel" width="#overlay_panel_width_full" title="Edit Theme Colors" bg_color="#app_bg_color">
     <!-- Content Area - no padding, rows handle their own -->
     <lv_obj name="overlay_content"
             width="100%" flex_grow="1" style_bg_opa="0" style_pad_all="0" scrollable="true" scroll_dir="ver"
@@ -12,12 +13,7 @@
       <!-- ================================================================== -->
       <!-- THEME COLORS -->
       <!-- ================================================================== -->
-      <setting_section_header title="THEME COLORS"
-                              icon="tune" hide_action_button="false" hide_action_button_icon="true"
-                              action_button_text="Preview" action_button_callback="on_theme_preview_clicked"/>
-      <setting_dropdown_row name="row_theme_preset"
-                            label="Theme Preset" icon="tune" description="Select the palette used for accents"
-                            callback="on_theme_preset_changed"/>
+      <setting_section_header title="THEME COLORS" icon="tune"/>
       <lv_obj name="theme_swatch_list"
               width="100%" height="content" style_bg_opa="0" style_border_width="0" scrollable="false"
               style_pad_left="#space_md" style_pad_right="#space_md" style_pad_top="#space_xs"
@@ -379,7 +375,7 @@
                    style_bg_opa="255" style_border_width="1" style_border_color="#text_secondary" style_border_opa="80"
                    style_shadow_width="0" scroll_on_focus="false">
           <event_cb trigger="clicked" callback="on_theme_revert_clicked"/>
-          <text_body text="Revert" align="center" style_text_color="#text_primary"/>
+          <text_button text="Revert"/>
         </lv_button>
 
         <lv_button name="btn_save_as"
@@ -387,14 +383,14 @@
                    style_bg_opa="255" style_border_width="1" style_border_color="#text_secondary" style_border_opa="80"
                    style_shadow_width="0" scroll_on_focus="false">
           <event_cb trigger="clicked" callback="on_theme_save_as_clicked"/>
-          <text_body text="Save As New" align="center" style_text_color="#text_primary"/>
+          <text_button text="Save As New"/>
         </lv_button>
 
         <lv_button name="btn_save"
                    height="#button_height" flex_grow="1" style_radius="#border_radius" style_bg_color="#accent_primary"
                    style_bg_opa="255" style_border_width="0" style_shadow_width="0" scroll_on_focus="false">
           <event_cb trigger="clicked" callback="on_theme_save_clicked"/>
-          <text_body text="Save" align="center" style_text_color="#text_primary"/>
+          <text_button text="Save"/>
         </lv_button>
       </lv_obj>
 

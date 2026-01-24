@@ -33,7 +33,7 @@
         </lv_obj>
         <!-- Right side: Action button -->
         <lv_button name="home_button" width="80" height="36" style_radius="#border_radius">
-          <text_body text="Home" align="center" style_text_color="#text_primary"/>
+          <text_button text="Home"/>
           <event_cb trigger="clicked" callback="on_ams_home_clicked"/>
         </lv_button>
       </ui_card>
@@ -57,7 +57,7 @@
         </lv_obj>
         <!-- Right side: Action button -->
         <lv_button name="recover_button" width="80" height="36" style_radius="#border_radius">
-          <text_body text="Recover" align="center" style_text_color="#text_primary"/>
+          <text_button text="Recover"/>
           <event_cb trigger="clicked" callback="on_ams_recover_clicked"/>
         </lv_button>
       </ui_card>
@@ -81,7 +81,7 @@
         </lv_obj>
         <!-- Right side: Action button -->
         <lv_button name="abort_button" width="80" height="36" style_radius="#border_radius">
-          <text_body text="Abort" align="center" style_text_color="#text_primary"/>
+          <text_button text="Abort"/>
           <event_cb trigger="clicked" callback="on_ams_abort_clicked"/>
         </lv_button>
       </ui_card>

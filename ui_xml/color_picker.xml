@@ -26,9 +26,9 @@
         <!-- Close button -->
         <lv_button name="btn_close"
                    width="40" height="40" style_radius="#border_radius" style_bg_opa="0" style_border_width="0"
-                   style_shadow_width="0" clickable="true">
+                   style_shadow_width="0" style_outline_width="0" clickable="true">
           <event_cb trigger="clicked" callback="color_picker_close_cb"/>
-          <icon src="close" size="sm" variant="secondary" align="center"/>
+          <icon src="close" size="sm" variant="secondary" align="center" clickable="false"/>
         </lv_button>
       </lv_obj>
       <!-- Horizontal divider -->
@@ -42,40 +42,34 @@
                 height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="column"
                 style_flex_main_place="start" style_flex_cross_place="start" style_pad_gap="#space_md"
                 scrollable="false">
-          <!-- Selected color preview + hex display row -->
-          <lv_obj width="190"
-                  height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row"
-                  style_flex_main_place="start" style_flex_cross_place="center" style_pad_gap="#space_sm"
-                  scrollable="false">
-            <!-- Color preview swatch -->
-            <lv_obj name="selected_color_preview"
-                    width="#color_preview_size" height="#color_preview_size" style_radius="#border_radius"
-                    style_bg_color="0x808080" style_bg_opa="255" style_border_width="2"
-                    style_border_color="#text_secondary" style_border_opa="80" scrollable="false"/>
-            <!-- Hex value and name (fixed size to prevent dialog jumping) -->
-            <!-- Height via token accommodates hex + 2-line color name (52/60/68px) -->
-            <lv_obj width="130"
-                    height="#color_text_height" style_bg_opa="0" style_border_width="0" style_pad_all="0"
-                    flex_flow="column" style_pad_gap="#space_xxs" style_flex_main_place="center" scrollable="false">
-              <text_input name="hex_input" width="130" height="content" max_length="9"
-                          text="#808080" placeholder_text="#RRGGBB">
-                <event_cb trigger="value_changed" callback="hex_input_changed_cb"/>
-                <event_cb trigger="defocused" callback="hex_input_defocused_cb"/>
-              </text_input>
-              <lv_label name="selected_name_label"
-                        width="130" text="Gray" style_text_color="#text_secondary" long_mode="wrap"/>
-            </lv_obj>
-          </lv_obj>
+          <!-- Selected color preview swatch -->
+          <lv_obj name="selected_color_preview"
+                  width="#color_preview_size" height="#color_preview_size" style_radius="#border_radius"
+                  style_bg_color="0x808080" style_bg_opa="255" style_border_width="2"
+                  style_border_color="#text_secondary" style_border_opa="80" scrollable="false"/>
           <!-- HSV picker: SV square + horizontal hue bar below -->
           <ui_hsv_picker name="hsv_picker" sv_size="180" hue_height="20" gap="#space_sm"/>
         </lv_obj>
-        <!-- RIGHT COLUMN: Preset colors grid -->
-        <!-- Height matches left column: 48 (preview) + 12 (gap) + 206 (HSV picker) = 266px -->
-        <!-- Top padding aligns "Presets" label with color name (~24px down) -->
+        <!-- RIGHT COLUMN: Hex input + name + Presets -->
         <lv_obj width="content"
-                height="266" style_bg_opa="0" style_border_width="0" style_pad_top="#space_2xl" style_pad_left="0"
-                style_pad_right="0" style_pad_bottom="0" flex_flow="column" style_flex_main_place="space_between"
-                style_flex_cross_place="start" style_pad_gap="#space_sm" scrollable="false">
+                height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="column"
+                style_flex_main_place="start" style_flex_cross_place="start" style_pad_gap="#space_md"
+                scrollable="false">
+          <!-- Hex input + color name row -->
+          <lv_obj width="content"
+                  height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" flex_flow="row"
+                  style_flex_main_place="start" style_flex_cross_place="center" style_pad_gap="#space_sm"
+                  scrollable="false">
+            <text_input name="hex_input" width="90" height="content" max_length="9"
+                        text="#808080" placeholder_text="#RRGGBB"
+                        style_border_width="0" style_outline_width="0">
+              <event_cb trigger="value_changed" callback="hex_input_changed_cb"/>
+              <event_cb trigger="defocused" callback="hex_input_defocused_cb"/>
+            </text_input>
+            <lv_label name="selected_name_label"
+                      width="content" text="Gray" style_text_color="#text_secondary"/>
+          </lv_obj>
+          <!-- Presets label -->
           <text_small text="Presets" style_text_color="#text_secondary"/>
           <!-- Preset grid: 6 columns x 4 rows -->
           <lv_obj width="content"
@@ -271,18 +265,18 @@
               scrollable="false">
         <!-- Cancel button -->
         <lv_button name="btn_cancel"
-                   height="100%" flex_grow="1" style_radius="#border_radius" style_border_width="0"
-                   style_shadow_width="0" clickable="true">
-          <text_body text="Cancel" align="center" style_text_color="#text_secondary"/>
+                   height="100%" flex_grow="1" style_radius="0" style_border_width="0"
+                   style_shadow_width="0" style_outline_width="0" style_bg_opa="0" clickable="true">
+          <text_button text="Cancel" style_text_color="#text_secondary" clickable="false"/>
           <event_cb trigger="clicked" callback="color_picker_cancel_cb"/>
         </lv_button>
         <!-- Vertical divider -->
         <divider_vertical/>
         <!-- Select button -->
         <lv_button name="btn_select"
-                   height="100%" flex_grow="1" style_radius="#border_radius" style_border_width="0"
-                   style_shadow_width="0" clickable="true">
-          <text_body text="Select" align="center" style_text_color="#text_primary"/>
+                   height="100%" flex_grow="1" style_radius="0" style_border_width="0"
+                   style_shadow_width="0" style_outline_width="0" style_bg_opa="0" clickable="true">
+          <text_button text="Select" clickable="false"/>
           <event_cb trigger="clicked" callback="color_picker_select_cb"/>
         </lv_button>
       </lv_obj>

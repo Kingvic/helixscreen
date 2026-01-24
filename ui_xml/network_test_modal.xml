@@ -53,7 +53,7 @@
                  clickable="true">
         <!-- Disabled while test is running (test_complete=0) -->
         <bind_state_if_eq subject="test_complete" state="disabled" ref_value="0"/>
-        <text_body text="Close" align="center"/>
+        <text_button text="Close"/>
         <event_cb trigger="clicked" callback="on_network_test_close"/>
       </lv_button>
     </lv_obj>
