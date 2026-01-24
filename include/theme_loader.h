@@ -18,7 +18,50 @@
 namespace helix {
 
 /**
- * @brief 16-color palette with semantic names
+ * @brief Mode support for themes
+ */
+enum class ThemeModeSupport {
+    DUAL_MODE, // Theme has both dark and light palettes
+    DARK_ONLY, // Theme only has dark palette
+    LIGHT_ONLY // Theme only has light palette
+};
+
+/**
+ * @brief 16-color mode-specific palette with semantic names
+ *
+ * New format using semantic color names that map directly to UI purpose.
+ */
+struct ModePalette {
+    std::string app_bg;      // 0: Main app background
+    std::string panel_bg;    // 1: Sidebar/panel background
+    std::string card_bg;     // 2: Card surfaces
+    std::string card_alt;    // 3: Elevated/alternate surfaces
+    std::string border;      // 4: Borders and dividers
+    std::string text;        // 5: Primary text
+    std::string text_muted;  // 6: Secondary text
+    std::string text_subtle; // 7: Hint/tertiary text
+    std::string primary;     // 8: Primary accent
+    std::string secondary;   // 9: Secondary accent
+    std::string tertiary;    // 10: Tertiary accent
+    std::string info;        // 11: Info states
+    std::string success;     // 12: Success states
+    std::string warning;     // 13: Warning states
+    std::string danger;      // 14: Error/danger states
+    std::string focus;       // 15: Focus ring color
+
+    /** @brief Access color by index (0-15) */
+    const std::string& at(size_t index) const;
+    std::string& at(size_t index);
+
+    /** @brief Get array of all color names for iteration */
+    static const std::array<const char*, 16>& color_names();
+
+    /** @brief Check if all colors are valid (non-empty, start with #) */
+    bool is_valid() const;
+};
+
+/**
+ * @brief 16-color palette with semantic names (LEGACY - kept for backward compatibility)
  *
  * Indices map to palette slots defined in design doc:
  * 0-3: Dark backgrounds, 4-6: Light backgrounds,
@@ -66,11 +109,27 @@ struct ThemeProperties {
 struct ThemeData {
     std::string name;     // Display name (shown in UI)
     std::string filename; // Source filename (without .json)
+
+    // NEW: Dual palette system
+    ModePalette dark;  // Dark mode colors
+    ModePalette light; // Light mode colors
+
+    // LEGACY: Keep for backward compatibility during migration
     ThemePalette colors;
+
     ThemeProperties properties;
 
-    /** @brief Check if theme has all required colors */
+    /** @brief Check if theme is valid (has name and at least one valid palette) */
     bool is_valid() const;
+
+    /** @brief Check if dark mode is supported */
+    bool supports_dark() const;
+
+    /** @brief Check if light mode is supported */
+    bool supports_light() const;
+
+    /** @brief Get mode support type */
+    ThemeModeSupport get_mode_support() const;
 };
 
 /**

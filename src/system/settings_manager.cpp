@@ -55,6 +55,11 @@ void SettingsManager::init_subjects() {
     bool dark_mode = config->get<bool>("/dark_mode", true);
     UI_MANAGED_SUBJECT_INT(dark_mode_subject_, dark_mode ? 1 : 0, "settings_dark_mode", subjects_);
 
+    // Dark mode availability (depends on theme - updated in on_theme_changed())
+    // Start with 1 (available) - will be corrected when theme is fully loaded
+    UI_MANAGED_SUBJECT_INT(dark_mode_available_subject_, 1, "settings_dark_mode_available",
+                           subjects_);
+
     // Theme index (derived from current theme name)
     int theme_index = get_theme_index();
     UI_MANAGED_SUBJECT_INT(theme_preset_subject_, theme_index, "settings_theme_preset", subjects_);
@@ -181,6 +186,16 @@ bool SettingsManager::get_dark_mode() const {
 void SettingsManager::set_dark_mode(bool enabled) {
     spdlog::info("[SettingsManager] set_dark_mode({})", enabled);
 
+    // Guard: Check if requested mode is supported
+    if (enabled && !theme_manager_supports_dark_mode()) {
+        spdlog::warn("[SettingsManager] Cannot enable dark mode - theme doesn't support it");
+        return;
+    }
+    if (!enabled && !theme_manager_supports_light_mode()) {
+        spdlog::warn("[SettingsManager] Cannot enable light mode - theme doesn't support it");
+        return;
+    }
+
     // 1. Update subject (UI reacts immediately via binding)
     lv_subject_set_int(&dark_mode_subject_, enabled ? 1 : 0);
 
@@ -191,6 +206,44 @@ void SettingsManager::set_dark_mode(bool enabled) {
 
     spdlog::debug("[SettingsManager] Dark mode {} saved (restart required)",
                   enabled ? "enabled" : "disabled");
+}
+
+bool SettingsManager::is_dark_mode_available() const {
+    return lv_subject_get_int(const_cast<lv_subject_t*>(&dark_mode_available_subject_)) != 0;
+}
+
+void SettingsManager::on_theme_changed() {
+    // Check what modes the current theme supports
+    bool supports_dark = theme_manager_supports_dark_mode();
+    bool supports_light = theme_manager_supports_light_mode();
+
+    if (supports_dark && supports_light) {
+        // Dual-mode theme - enable toggle
+        lv_subject_set_int(&dark_mode_available_subject_, 1);
+        spdlog::debug("[SettingsManager] Theme supports both modes, toggle enabled");
+    } else if (supports_dark) {
+        // Dark-only theme - disable toggle, force dark mode
+        lv_subject_set_int(&dark_mode_available_subject_, 0);
+        if (!get_dark_mode()) {
+            spdlog::info("[SettingsManager] Theme is dark-only, switching to dark mode");
+            // Update subject without persisting (theme controls this)
+            lv_subject_set_int(&dark_mode_subject_, 1);
+        }
+        spdlog::debug("[SettingsManager] Theme is dark-only, toggle disabled");
+    } else if (supports_light) {
+        // Light-only theme - disable toggle, force light mode
+        lv_subject_set_int(&dark_mode_available_subject_, 0);
+        if (get_dark_mode()) {
+            spdlog::info("[SettingsManager] Theme is light-only, switching to light mode");
+            // Update subject without persisting (theme controls this)
+            lv_subject_set_int(&dark_mode_subject_, 0);
+        }
+        spdlog::debug("[SettingsManager] Theme is light-only, toggle disabled");
+    } else {
+        // Invalid theme (no palettes) - shouldn't happen, but handle gracefully
+        spdlog::warn("[SettingsManager] Theme has no valid palettes");
+        lv_subject_set_int(&dark_mode_available_subject_, 0);
+    }
 }
 
 std::string SettingsManager::get_theme_name() const {

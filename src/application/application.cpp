@@ -246,6 +246,9 @@ int Application::run(int argc, char** argv) {
         return 1;
     }
 
+    // Update SettingsManager with theme mode support (must be after both theme and settings init)
+    SettingsManager::instance().on_theme_changed();
+
     // Phase 10: Create UI and wire panels
     if (!init_ui()) {
         shutdown();

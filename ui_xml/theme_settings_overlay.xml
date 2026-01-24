@@ -28,15 +28,14 @@
                   style_flex_cross_place="center" scrollable="false">
             <lv_obj name="swatch_0"
                     width="#theme_swatch_size" height="#theme_swatch_size" style_radius="#border_radius_small"
-                    style_bg_color="#bg_darkest" style_bg_opa="255" style_border_width="1"
-                    style_border_color="#surface_control" style_border_opa="80" scrollable="false" clickable="true">
+                    style_bg_color="#app_bg" style_bg_opa="255" style_border_width="1"
+                    style_border_color="#card_alt" style_border_opa="80" scrollable="false" clickable="true">
               <event_cb trigger="clicked" callback="on_theme_swatch_clicked"/>
             </lv_obj>
             <lv_obj width="0"
                     height="content" flex_grow="1" flex_flow="column" style_pad_all="0" style_pad_gap="#space_xs"
                     style_bg_opa="0" style_border_width="0" scrollable="false">
-              <text_body text="Dark Background" style_text_color="#text_primary"/>
-              <text_small text="#swatch_0_desc" style_text_color="#text_secondary"/>
+              <text_small bind_text="swatch_0_desc" style_text_color="#text_secondary"/>
             </lv_obj>
           </lv_obj>
           <lv_obj width="0"
@@ -46,15 +45,14 @@
                   style_flex_cross_place="center" scrollable="false">
             <lv_obj name="swatch_1"
                     width="#theme_swatch_size" height="#theme_swatch_size" style_radius="#border_radius_small"
-                    style_bg_color="#bg_dark" style_bg_opa="255" style_border_width="1" style_border_color="#surface_control"
+                    style_bg_color="#panel_bg" style_bg_opa="255" style_border_width="1" style_border_color="#card_alt"
                     style_border_opa="80" scrollable="false" clickable="true">
               <event_cb trigger="clicked" callback="on_theme_swatch_clicked"/>
             </lv_obj>
             <lv_obj width="0"
                     height="content" flex_grow="1" flex_flow="column" style_pad_all="0" style_pad_gap="#space_xs"
                     style_bg_opa="0" style_border_width="0" scrollable="false">
-              <text_body text="Card Surface" style_text_color="#text_primary"/>
-              <text_small text="#swatch_1_desc" style_text_color="#text_secondary"/>
+              <text_small bind_text="swatch_1_desc" style_text_color="#text_secondary"/>
             </lv_obj>
           </lv_obj>
         </lv_obj>
@@ -68,15 +66,14 @@
                   style_flex_cross_place="center" scrollable="false">
             <lv_obj name="swatch_2"
                     width="#theme_swatch_size" height="#theme_swatch_size" style_radius="#border_radius_small"
-                    style_bg_color="#bg_dark_highlight" style_bg_opa="255" style_border_width="1"
-                    style_border_color="#surface_control" style_border_opa="80" scrollable="false" clickable="true">
+                    style_bg_color="#card_bg" style_bg_opa="255" style_border_width="1"
+                    style_border_color="#card_alt" style_border_opa="80" scrollable="false" clickable="true">
               <event_cb trigger="clicked" callback="on_theme_swatch_clicked"/>
             </lv_obj>
             <lv_obj width="0"
                     height="content" flex_grow="1" flex_flow="column" style_pad_all="0" style_pad_gap="#space_xs"
                     style_bg_opa="0" style_border_width="0" scrollable="false">
-              <text_body text="Selection Highlight" style_text_color="#text_primary"/>
-              <text_small text="#swatch_2_desc" style_text_color="#text_secondary"/>
+              <text_small bind_text="swatch_2_desc" style_text_color="#text_secondary"/>
             </lv_obj>
           </lv_obj>
           <lv_obj width="0"
@@ -86,15 +83,14 @@
                   style_flex_cross_place="center" scrollable="false">
             <lv_obj name="swatch_3"
                     width="#theme_swatch_size" height="#theme_swatch_size" style_radius="#border_radius_small"
-                    style_bg_color="#border_muted" style_bg_opa="255" style_border_width="1"
-                    style_border_color="#surface_control" style_border_opa="80" scrollable="false" clickable="true">
+                    style_bg_color="#card_alt" style_bg_opa="255" style_border_width="1"
+                    style_border_color="#card_alt" style_border_opa="80" scrollable="false" clickable="true">
               <event_cb trigger="clicked" callback="on_theme_swatch_clicked"/>
             </lv_obj>
             <lv_obj width="0"
                     height="content" flex_grow="1" flex_flow="column" style_pad_all="0" style_pad_gap="#space_xs"
                     style_bg_opa="0" style_border_width="0" scrollable="false">
-              <text_body text="Borders &amp; Muted" style_text_color="#text_primary"/>
-              <text_small text="#swatch_3_desc" style_text_color="#text_secondary"/>
+              <text_small bind_text="swatch_3_desc" style_text_color="#text_secondary"/>
             </lv_obj>
           </lv_obj>
         </lv_obj>
@@ -108,15 +104,14 @@
                   style_flex_cross_place="center" scrollable="false">
             <lv_obj name="swatch_4"
                     width="#theme_swatch_size" height="#theme_swatch_size" style_radius="#border_radius_small"
-                    style_bg_color="#text_light" style_bg_opa="255" style_border_width="1"
-                    style_border_color="#surface_control" style_border_opa="80" scrollable="false" clickable="true">
+                    style_bg_color="#border" style_bg_opa="255" style_border_width="1"
+                    style_border_color="#card_alt" style_border_opa="80" scrollable="false" clickable="true">
               <event_cb trigger="clicked" callback="on_theme_swatch_clicked"/>
             </lv_obj>
             <lv_obj width="0"
                     height="content" flex_grow="1" flex_flow="column" style_pad_all="0" style_pad_gap="#space_xs"
                     style_bg_opa="0" style_border_width="0" scrollable="false">
-              <text_body text="Light Text" style_text_color="#text_primary"/>
-              <text_small text="#swatch_4_desc" style_text_color="#text_secondary"/>
+              <text_small bind_text="swatch_4_desc" style_text_color="#text_secondary"/>
             </lv_obj>
           </lv_obj>
           <lv_obj width="0"
@@ -126,15 +121,14 @@
                   style_flex_cross_place="center" scrollable="false">
             <lv_obj name="swatch_5"
                     width="#theme_swatch_size" height="#theme_swatch_size" style_radius="#border_radius_small"
-                    style_bg_color="#bg_light" style_bg_opa="255" style_border_width="1"
-                    style_border_color="#surface_control" style_border_opa="80" scrollable="false" clickable="true">
+                    style_bg_color="#text" style_bg_opa="255" style_border_width="1"
+                    style_border_color="#card_alt" style_border_opa="80" scrollable="false" clickable="true">
               <event_cb trigger="clicked" callback="on_theme_swatch_clicked"/>
             </lv_obj>
             <lv_obj width="0"
                     height="content" flex_grow="1" flex_flow="column" style_pad_all="0" style_pad_gap="#space_xs"
                     style_bg_opa="0" style_border_width="0" scrollable="false">
-              <text_body text="Light Surface" style_text_color="#text_primary"/>
-              <text_small text="Light mode cards and panels" style_text_color="#text_secondary"/>
+              <text_small bind_text="swatch_5_desc" style_text_color="#text_secondary"/>
             </lv_obj>
           </lv_obj>
         </lv_obj>
@@ -148,15 +142,14 @@
                   style_flex_cross_place="center" scrollable="false">
             <lv_obj name="swatch_6"
                     width="#theme_swatch_size" height="#theme_swatch_size" style_radius="#border_radius_small"
-                    style_bg_color="#bg_lightest" style_bg_opa="255" style_border_width="1"
-                    style_border_color="#surface_control" style_border_opa="80" scrollable="false" clickable="true">
+                    style_bg_color="#text_muted" style_bg_opa="255" style_border_width="1"
+                    style_border_color="#card_alt" style_border_opa="80" scrollable="false" clickable="true">
               <event_cb trigger="clicked" callback="on_theme_swatch_clicked"/>
             </lv_obj>
             <lv_obj width="0"
                     height="content" flex_grow="1" flex_flow="column" style_pad_all="0" style_pad_gap="#space_xs"
                     style_bg_opa="0" style_border_width="0" scrollable="false">
-              <text_body text="Light Background" style_text_color="#text_primary"/>
-              <text_small text="Light mode app background" style_text_color="#text_secondary"/>
+              <text_small bind_text="swatch_6_desc" style_text_color="#text_secondary"/>
             </lv_obj>
           </lv_obj>
           <lv_obj width="0"
@@ -166,15 +159,14 @@
                   style_flex_cross_place="center" scrollable="false">
             <lv_obj name="swatch_7"
                     width="#theme_swatch_size" height="#theme_swatch_size" style_radius="#border_radius_small"
-                    style_bg_color="#accent_highlight" style_bg_opa="255" style_border_width="1"
-                    style_border_color="#surface_control" style_border_opa="80" scrollable="false" clickable="true">
+                    style_bg_color="#text_subtle" style_bg_opa="255" style_border_width="1"
+                    style_border_color="#card_alt" style_border_opa="80" scrollable="false" clickable="true">
               <event_cb trigger="clicked" callback="on_theme_swatch_clicked"/>
             </lv_obj>
             <lv_obj width="0"
                     height="content" flex_grow="1" flex_flow="column" style_pad_all="0" style_pad_gap="#space_xs"
                     style_bg_opa="0" style_border_width="0" scrollable="false">
-              <text_body text="Soft Accent" style_text_color="#text_primary"/>
-              <text_small text="Subtle accents and highlights" style_text_color="#text_secondary"/>
+              <text_small bind_text="swatch_7_desc" style_text_color="#text_secondary"/>
             </lv_obj>
           </lv_obj>
         </lv_obj>
@@ -188,15 +180,14 @@
                   style_flex_cross_place="center" scrollable="false">
             <lv_obj name="swatch_8"
                     width="#theme_swatch_size" height="#theme_swatch_size" style_radius="#border_radius_small"
-                    style_bg_color="#accent_primary" style_bg_opa="255" style_border_width="1"
-                    style_border_color="#surface_control" style_border_opa="80" scrollable="false" clickable="true">
+                    style_bg_color="#primary" style_bg_opa="255" style_border_width="1"
+                    style_border_color="#card_alt" style_border_opa="80" scrollable="false" clickable="true">
               <event_cb trigger="clicked" callback="on_theme_swatch_clicked"/>
             </lv_obj>
             <lv_obj width="0"
                     height="content" flex_grow="1" flex_flow="column" style_pad_all="0" style_pad_gap="#space_xs"
                     style_bg_opa="0" style_border_width="0" scrollable="false">
-              <text_body text="Primary Accent" style_text_color="#text_primary"/>
-              <text_small text="Primary accents and links" style_text_color="#text_secondary"/>
+              <text_small bind_text="swatch_8_desc" style_text_color="#text_secondary"/>
             </lv_obj>
           </lv_obj>
           <lv_obj width="0"
@@ -206,15 +197,14 @@
                   style_flex_cross_place="center" scrollable="false">
             <lv_obj name="swatch_9"
                     width="#theme_swatch_size" height="#theme_swatch_size" style_radius="#border_radius_small"
-                    style_bg_color="#accent_secondary" style_bg_opa="255" style_border_width="1"
-                    style_border_color="#surface_control" style_border_opa="80" scrollable="false" clickable="true">
+                    style_bg_color="#secondary" style_bg_opa="255" style_border_width="1"
+                    style_border_color="#card_alt" style_border_opa="80" scrollable="false" clickable="true">
               <event_cb trigger="clicked" callback="on_theme_swatch_clicked"/>
             </lv_obj>
             <lv_obj width="0"
                     height="content" flex_grow="1" flex_flow="column" style_pad_all="0" style_pad_gap="#space_xs"
                     style_bg_opa="0" style_border_width="0" scrollable="false">
-              <text_body text="Secondary Accent" style_text_color="#text_primary"/>
-              <text_small text="Secondary accents" style_text_color="#text_secondary"/>
+              <text_small bind_text="swatch_9_desc" style_text_color="#text_secondary"/>
             </lv_obj>
           </lv_obj>
         </lv_obj>
@@ -228,15 +218,14 @@
                   style_flex_cross_place="center" scrollable="false">
             <lv_obj name="swatch_10"
                     width="#theme_swatch_size" height="#theme_swatch_size" style_radius="#border_radius_small"
-                    style_bg_color="#accent_tertiary" style_bg_opa="255" style_border_width="1"
-                    style_border_color="#surface_control" style_border_opa="80" scrollable="false" clickable="true">
+                    style_bg_color="#tertiary" style_bg_opa="255" style_border_width="1"
+                    style_border_color="#card_alt" style_border_opa="80" scrollable="false" clickable="true">
               <event_cb trigger="clicked" callback="on_theme_swatch_clicked"/>
             </lv_obj>
             <lv_obj width="0"
                     height="content" flex_grow="1" flex_flow="column" style_pad_all="0" style_pad_gap="#space_xs"
                     style_bg_opa="0" style_border_width="0" scrollable="false">
-              <text_body text="Tertiary Accent" style_text_color="#text_primary"/>
-              <text_small text="Tertiary accents and icons" style_text_color="#text_secondary"/>
+              <text_small bind_text="swatch_10_desc" style_text_color="#text_secondary"/>
             </lv_obj>
           </lv_obj>
           <lv_obj width="0"
@@ -246,15 +235,14 @@
                   style_flex_cross_place="center" scrollable="false">
             <lv_obj name="swatch_11"
                     width="#theme_swatch_size" height="#theme_swatch_size" style_radius="#border_radius_small"
-                    style_bg_color="#status_error" style_bg_opa="255" style_border_width="1"
-                    style_border_color="#surface_control" style_border_opa="80" scrollable="false" clickable="true">
+                    style_bg_color="#info" style_bg_opa="255" style_border_width="1"
+                    style_border_color="#card_alt" style_border_opa="80" scrollable="false" clickable="true">
               <event_cb trigger="clicked" callback="on_theme_swatch_clicked"/>
             </lv_obj>
             <lv_obj width="0"
                     height="content" flex_grow="1" flex_flow="column" style_pad_all="0" style_pad_gap="#space_xs"
                     style_bg_opa="0" style_border_width="0" scrollable="false">
-              <text_body text="Error Accent" style_text_color="#text_primary"/>
-              <text_small text="Error states and critical alerts" style_text_color="#text_secondary"/>
+              <text_small bind_text="swatch_11_desc" style_text_color="#text_secondary"/>
             </lv_obj>
           </lv_obj>
         </lv_obj>
@@ -268,15 +256,14 @@
                   style_flex_cross_place="center" scrollable="false">
             <lv_obj name="swatch_12"
                     width="#theme_swatch_size" height="#theme_swatch_size" style_radius="#border_radius_small"
-                    style_bg_color="#status_danger" style_bg_opa="255" style_border_width="1"
-                    style_border_color="#surface_control" style_border_opa="80" scrollable="false" clickable="true">
+                    style_bg_color="#success" style_bg_opa="255" style_border_width="1"
+                    style_border_color="#card_alt" style_border_opa="80" scrollable="false" clickable="true">
               <event_cb trigger="clicked" callback="on_theme_swatch_clicked"/>
             </lv_obj>
             <lv_obj width="0"
                     height="content" flex_grow="1" flex_flow="column" style_pad_all="0" style_pad_gap="#space_xs"
                     style_bg_opa="0" style_border_width="0" scrollable="false">
-              <text_body text="Warning Accent" style_text_color="#text_primary"/>
-              <text_small text="Warning banners and caution cues" style_text_color="#text_secondary"/>
+              <text_small bind_text="swatch_12_desc" style_text_color="#text_secondary"/>
             </lv_obj>
           </lv_obj>
           <lv_obj width="0"
@@ -286,15 +273,14 @@
                   style_flex_cross_place="center" scrollable="false">
             <lv_obj name="swatch_13"
                     width="#theme_swatch_size" height="#theme_swatch_size" style_radius="#border_radius_small"
-                    style_bg_color="#status_warning" style_bg_opa="255" style_border_width="1"
-                    style_border_color="#surface_control" style_border_opa="80" scrollable="false" clickable="true">
+                    style_bg_color="#warning" style_bg_opa="255" style_border_width="1"
+                    style_border_color="#card_alt" style_border_opa="80" scrollable="false" clickable="true">
               <event_cb trigger="clicked" callback="on_theme_swatch_clicked"/>
             </lv_obj>
             <lv_obj width="0"
                     height="content" flex_grow="1" flex_flow="column" style_pad_all="0" style_pad_gap="#space_xs"
                     style_bg_opa="0" style_border_width="0" scrollable="false">
-              <text_body text="Attention Accent" style_text_color="#text_primary"/>
-              <text_small text="Attention highlights and prompts" style_text_color="#text_secondary"/>
+              <text_small bind_text="swatch_13_desc" style_text_color="#text_secondary"/>
             </lv_obj>
           </lv_obj>
         </lv_obj>
@@ -308,15 +294,14 @@
                   style_flex_cross_place="center" scrollable="false">
             <lv_obj name="swatch_14"
                     width="#theme_swatch_size" height="#theme_swatch_size" style_radius="#border_radius_small"
-                    style_bg_color="#status_success" style_bg_opa="255" style_border_width="1"
-                    style_border_color="#surface_control" style_border_opa="80" scrollable="false" clickable="true">
+                    style_bg_color="#danger" style_bg_opa="255" style_border_width="1"
+                    style_border_color="#card_alt" style_border_opa="80" scrollable="false" clickable="true">
               <event_cb trigger="clicked" callback="on_theme_swatch_clicked"/>
             </lv_obj>
             <lv_obj width="0"
                     height="content" flex_grow="1" flex_flow="column" style_pad_all="0" style_pad_gap="#space_xs"
                     style_bg_opa="0" style_border_width="0" scrollable="false">
-              <text_body text="Success Accent" style_text_color="#text_primary"/>
-              <text_small text="Success confirmations and positive states" style_text_color="#text_secondary"/>
+              <text_small bind_text="swatch_14_desc" style_text_color="#text_secondary"/>
             </lv_obj>
           </lv_obj>
           <lv_obj width="0"
@@ -326,15 +311,14 @@
                   style_flex_cross_place="center" scrollable="false">
             <lv_obj name="swatch_15"
                     width="#theme_swatch_size" height="#theme_swatch_size" style_radius="#border_radius_small"
-                    style_bg_color="#status_special" style_bg_opa="255" style_border_width="1"
-                    style_border_color="#surface_control" style_border_opa="80" scrollable="false" clickable="true">
+                    style_bg_color="#focus" style_bg_opa="255" style_border_width="1"
+                    style_border_color="#card_alt" style_border_opa="80" scrollable="false" clickable="true">
               <event_cb trigger="clicked" callback="on_theme_swatch_clicked"/>
             </lv_obj>
             <lv_obj width="0"
                     height="content" flex_grow="1" flex_flow="column" style_pad_all="0" style_pad_gap="#space_xs"
                     style_bg_opa="0" style_border_width="0" scrollable="false">
-              <text_body text="Special Accent" style_text_color="#text_primary"/>
-              <text_small text="Special accents and highlights" style_text_color="#text_secondary"/>
+              <text_small bind_text="swatch_15_desc" style_text_color="#text_secondary"/>
             </lv_obj>
           </lv_obj>
         </lv_obj>

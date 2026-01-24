@@ -7,7 +7,8 @@
  *
  * @pattern Singleton with breakpoint suffixes (_small/_medium/_large) and light/dark variants
  * @threading Main thread only
- * @gotchas theme_manager_get_color() looks up tokens; theme_manager_parse_color() parses hex literals only
+ * @gotchas theme_manager_get_color() looks up tokens; theme_manager_parse_color() parses hex
+ * literals only
  */
 
 #pragma once
@@ -19,7 +20,8 @@
 // Forward declare
 namespace helix {
 struct ThemeData;
-}
+enum class ThemeModeSupport;
+} // namespace helix
 
 // Theme colors: Use theme_manager_get_color() to retrieve from globals.xml
 // Available tokens: primary_color, text_primary, text_secondary, success_color, etc.
@@ -148,6 +150,24 @@ bool theme_manager_is_dark_mode();
 const helix::ThemeData& theme_manager_get_active_theme();
 
 /**
+ * @brief Get mode support for currently loaded theme
+ * @return ThemeModeSupport enum value (DUAL_MODE, DARK_ONLY, or LIGHT_ONLY)
+ */
+helix::ThemeModeSupport theme_manager_get_mode_support();
+
+/**
+ * @brief Check if current theme supports dark mode
+ * @return true if dark palette is available
+ */
+bool theme_manager_supports_dark_mode();
+
+/**
+ * @brief Check if current theme supports light mode
+ * @return true if light palette is available
+ */
+bool theme_manager_supports_light_mode();
+
+/**
  * @brief Preview theme colors without restart
  *
  * Applies theme colors for live preview. Call theme_manager_revert_preview()
@@ -195,7 +215,8 @@ lv_color_t theme_manager_get_color(const char* base_name);
  * @param base_name Base color name (without _light/_dark suffix)
  * @param part Widget part to style (default: LV_PART_MAIN)
  */
-void theme_manager_apply_bg_color(lv_obj_t* obj, const char* base_name, lv_part_t part = LV_PART_MAIN);
+void theme_manager_apply_bg_color(lv_obj_t* obj, const char* base_name,
+                                  lv_part_t part = LV_PART_MAIN);
 
 /**
  * @brief Get font height in pixels
@@ -302,9 +323,9 @@ const char* theme_manager_size_to_font_token(const char* size, const char* defau
  * @param suffix Suffix to match ("_small", "_medium", "_large", "_light", "_dark")
  * @param token_values Output map: base_name → value (last-wins if duplicate)
  */
-void theme_manager_parse_xml_file_for_suffix(const char* filepath, const char* element_type,
-                                        const char* suffix,
-                                        std::unordered_map<std::string, std::string>& token_values);
+void theme_manager_parse_xml_file_for_suffix(
+    const char* filepath, const char* element_type, const char* suffix,
+    std::unordered_map<std::string, std::string>& token_values);
 
 /**
  * @brief Find all XML files in a directory
@@ -334,7 +355,7 @@ std::vector<std::string> theme_manager_find_xml_files(const char* directory);
  */
 std::unordered_map<std::string, std::string>
 theme_manager_parse_all_xml_for_suffix(const char* directory, const char* element_type,
-                                  const char* suffix);
+                                       const char* suffix);
 
 /**
  * @brief Parse all XML files in a directory for ALL elements of a given type

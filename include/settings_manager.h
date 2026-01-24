@@ -135,6 +135,25 @@ class SettingsManager {
      */
     void set_dark_mode(bool enabled);
 
+    /**
+     * @brief Check if current theme supports dark mode toggle
+     * @return true if theme supports both dark and light modes
+     */
+    bool is_dark_mode_available() const;
+
+    /**
+     * @brief Called when theme changes to update mode availability
+     *
+     * If theme is single-mode:
+     * - Sets dark_mode_available subject to 0 (toggle disabled)
+     * - Auto-switches to supported mode
+     * - Updates dark_mode subject to match
+     *
+     * If theme is dual-mode:
+     * - Sets dark_mode_available subject to 1 (toggle enabled)
+     */
+    void on_theme_changed();
+
     /** @brief Get current theme filename (without .json) */
     std::string get_theme_name() const;
 
@@ -410,6 +429,12 @@ class SettingsManager {
         return &dark_mode_subject_;
     }
 
+    /** @brief Dark mode available subject (integer: 0=theme doesn't support toggle, 1=theme
+     * supports both modes) */
+    lv_subject_t* subject_dark_mode_available() {
+        return &dark_mode_available_subject_;
+    }
+
     /** @brief Theme preset subject (integer: preset index) */
     lv_subject_t* subject_theme_preset() {
         return &theme_preset_subject_;
@@ -521,6 +546,7 @@ class SettingsManager {
 
     // LVGL subjects
     lv_subject_t dark_mode_subject_;
+    lv_subject_t dark_mode_available_subject_;
     lv_subject_t theme_preset_subject_;
     lv_subject_t display_sleep_subject_;
     lv_subject_t brightness_subject_;

@@ -324,11 +324,14 @@ void theme_manager_register_responsive_fonts(lv_display_t* display) {
 }
 
 /**
- * @brief Register theme palette colors as LVGL constants
+ * @brief Register LEGACY theme palette colors as LVGL constants
  *
- * Registers all 16 palette colors from the active theme.
+ * Registers all 16 palette colors from the legacy ThemePalette.
+ * These are kept for backward compatibility with existing themes.
  * Must be called BEFORE theme_manager_register_static_constants() so
  * palette colors are available for semantic mapping.
+ *
+ * Note: The new semantic colors are registered in theme_manager_register_semantic_colors()
  */
 static void theme_manager_register_palette_colors(lv_xml_component_scope_t* scope,
                                                   const helix::ThemeData& theme) {
@@ -336,91 +339,154 @@ static void theme_manager_register_palette_colors(lv_xml_component_scope_t* scop
     for (size_t i = 0; i < 16; ++i) {
         lv_xml_register_const(scope, names[i], theme.colors.at(i).c_str());
     }
-    spdlog::debug("[Theme] Registered 16 palette colors from theme '{}'", theme.name);
+    spdlog::debug("[Theme] Registered 16 legacy palette colors from theme '{}'", theme.name);
 }
 
 /**
- * @brief Register semantic colors derived from palette
+ * @brief Register semantic colors from dual-palette system
  *
- * Maps palette colors to semantic colors (app_bg_color, text_primary, etc.)
- * with _light and _dark variants for theme mode switching.
- * Also registers the base name with the appropriate value for the current mode.
+ * Uses the new ModePalette from theme.dark and theme.light to register
+ * all 16 semantic color names with _light/_dark variants.
+ *
+ * For themes with only one mode (dark-only or light-only), only the available
+ * variant is registered. For dual-mode themes, both variants are registered.
+ *
+ * Also registers legacy aliases for backward compatibility with existing XML.
  *
  * @param scope LVGL XML scope to register constants in
- * @param theme Theme data with palette colors
+ * @param theme Theme data with dual palettes
  * @param dark_mode Whether to use dark mode values for base names
  */
 static void theme_manager_register_semantic_colors(lv_xml_component_scope_t* scope,
                                                    const helix::ThemeData& theme, bool dark_mode) {
-    const auto& c = theme.colors;
+    // Check which palettes are available
+    bool has_dark = theme.supports_dark();
+    bool has_light = theme.supports_light();
 
-    // Helper to register a themed color pair and its base name
-    auto register_themed = [&](const char* base_name, const char* dark_value,
-                               const char* light_value) {
-        char dark_name[128];
-        char light_name[128];
-        snprintf(dark_name, sizeof(dark_name), "%s_dark", base_name);
-        snprintf(light_name, sizeof(light_name), "%s_light", base_name);
+    // Determine which palette to use for base name registration
+    // For dark-only themes in light mode, still use dark palette
+    // For light-only themes in dark mode, still use light palette
+    const helix::ModePalette* current_palette = nullptr;
+    if (dark_mode && has_dark) {
+        current_palette = &theme.dark;
+    } else if (!dark_mode && has_light) {
+        current_palette = &theme.light;
+    } else if (has_dark) {
+        current_palette = &theme.dark;
+    } else if (has_light) {
+        current_palette = &theme.light;
+    }
 
-        lv_xml_register_const(scope, dark_name, dark_value);
-        lv_xml_register_const(scope, light_name, light_value);
-        lv_xml_register_const(scope, base_name, dark_mode ? dark_value : light_value);
+    if (!current_palette) {
+        spdlog::error("[Theme] No valid palette available in theme");
+        return;
+    }
+
+    // Register helper - registers base, _dark, and _light variants (if available)
+    auto register_color = [&](const char* name, size_t index) {
+        const std::string& current_val = current_palette->at(index);
+
+        char dark_name[128], light_name[128];
+        snprintf(dark_name, sizeof(dark_name), "%s_dark", name);
+        snprintf(light_name, sizeof(light_name), "%s_light", name);
+
+        // Register base name with current mode's value
+        if (!current_val.empty()) {
+            lv_xml_register_const(scope, name, current_val.c_str());
+        }
+
+        // Register _dark variant if dark palette is available
+        if (has_dark) {
+            const std::string& dark_val = theme.dark.at(index);
+            if (!dark_val.empty()) {
+                lv_xml_register_const(scope, dark_name, dark_val.c_str());
+            }
+        }
+
+        // Register _light variant if light palette is available
+        if (has_light) {
+            const std::string& light_val = theme.light.at(index);
+            if (!light_val.empty()) {
+                lv_xml_register_const(scope, light_name, light_val.c_str());
+            }
+        }
     };
 
-    // Background colors (mode-dependent)
-    register_themed("app_bg_color", c.bg_darkest.c_str(), c.bg_lightest.c_str());
-    register_themed("card_bg", c.bg_dark.c_str(), c.bg_light.c_str());
-    register_themed("selection_highlight", c.surface_elevated.c_str(), c.text_light.c_str());
+    // Register all 16 semantic colors from ModePalette
+    auto& names = helix::ModePalette::color_names();
+    for (size_t i = 0; i < 16; ++i) {
+        register_color(names[i], i);
+    }
 
-    // Text colors (mode-dependent)
-    register_themed("text_primary", c.bg_lightest.c_str(), c.bg_darkest.c_str());
-    register_themed("text_secondary", c.text_light.c_str(), c.surface_dim.c_str());
-    register_themed("header_text", c.bg_light.c_str(), c.bg_dark.c_str());
+    // Register legacy aliases for backward compatibility with existing XML
+    // Use silent lookup to avoid LVGL warnings for missing light/dark variants
+    auto register_alias = [&](const char* legacy_name, const char* new_name) {
+        const char* value = lv_xml_get_const(scope, new_name);
+        if (value) {
+            lv_xml_register_const(scope, legacy_name, value);
+            // Also register _dark/_light variants for the legacy name (if available)
+            char dark_name[128], light_name[128];
+            char new_dark[128], new_light[128];
+            snprintf(dark_name, sizeof(dark_name), "%s_dark", legacy_name);
+            snprintf(light_name, sizeof(light_name), "%s_light", legacy_name);
+            snprintf(new_dark, sizeof(new_dark), "%s_dark", new_name);
+            snprintf(new_light, sizeof(new_light), "%s_light", new_name);
 
-    // Control surface (mode-dependent) - used for buttons, inputs
-    register_themed("surface_control", c.surface_dim.c_str(), c.surface_elevated.c_str());
-    // Alias for backward compatibility with existing XML
-    register_themed("surface_control", c.surface_dim.c_str(), c.surface_elevated.c_str());
+            // Only look up variants that exist based on theme mode support
+            if (has_dark) {
+                const char* dark_val = lv_xml_get_const_silent(scope, new_dark);
+                if (dark_val)
+                    lv_xml_register_const(scope, dark_name, dark_val);
+            }
+            if (has_light) {
+                const char* light_val = lv_xml_get_const_silent(scope, new_light);
+                if (light_val)
+                    lv_xml_register_const(scope, light_name, light_val);
+            }
+        }
+    };
 
-    // Keyboard colors (mode-dependent)
-    register_themed("keyboard_key", c.surface_elevated.c_str(), c.bg_lightest.c_str());
-    register_themed("keyboard_key_special", c.bg_dark.c_str(), c.text_light.c_str());
+    // Legacy aliases - map old names to new semantic names
+    register_alias("app_bg_color", "app_bg");
+    register_alias("text_primary", "text");
+    register_alias("text_secondary", "text_muted");
+    register_alias("header_text", "text_muted");
+    register_alias("primary_color", "primary");
+    register_alias("secondary_color", "secondary");
+    register_alias("tertiary_color", "tertiary");
+    register_alias("error_color", "danger");
+    register_alias("danger_color", "danger");
+    register_alias("attention_color", "warning");
+    register_alias("warning_color", "warning");
+    register_alias("success_color", "success");
+    register_alias("info_color", "info");
+    register_alias("highlight_color", "primary");
+    register_alias("special_color", "info");
+    register_alias("surface_control", "card_alt");
+    register_alias("selection_highlight", "card_alt");
+    register_alias("keyboard_key", "card_bg");
+    register_alias("keyboard_key_special", "panel_bg");
 
-    // Accent colors (same in both modes)
-    lv_xml_register_const(scope, "primary_color", c.accent_primary.c_str());
-    lv_xml_register_const(scope, "secondary_color", c.accent_secondary.c_str());
-    lv_xml_register_const(scope, "tertiary_color", c.accent_tertiary.c_str());
-    lv_xml_register_const(scope, "highlight_color", c.accent_highlight.c_str());
+    // Swatch descriptions for theme editor - new semantic names
+    lv_xml_register_const(scope, "swatch_0_desc", "App background");
+    lv_xml_register_const(scope, "swatch_1_desc", "Panel/sidebar background");
+    lv_xml_register_const(scope, "swatch_2_desc", "Card surfaces");
+    lv_xml_register_const(scope, "swatch_3_desc", "Elevated surfaces");
+    lv_xml_register_const(scope, "swatch_4_desc", "Borders and dividers");
+    lv_xml_register_const(scope, "swatch_5_desc", "Primary text");
+    lv_xml_register_const(scope, "swatch_6_desc", "Secondary text");
+    lv_xml_register_const(scope, "swatch_7_desc", "Subtle/hint text");
+    lv_xml_register_const(scope, "swatch_8_desc", "Primary accent");
+    lv_xml_register_const(scope, "swatch_9_desc", "Secondary accent");
+    lv_xml_register_const(scope, "swatch_10_desc", "Tertiary accent");
+    lv_xml_register_const(scope, "swatch_11_desc", "Info states");
+    lv_xml_register_const(scope, "swatch_12_desc", "Success states");
+    lv_xml_register_const(scope, "swatch_13_desc", "Warning states");
+    lv_xml_register_const(scope, "swatch_14_desc", "Danger/error states");
+    lv_xml_register_const(scope, "swatch_15_desc", "Focus ring");
 
-    // Status colors (same in both modes)
-    lv_xml_register_const(scope, "error_color", c.status_error.c_str());
-    lv_xml_register_const(scope, "danger_color", c.status_danger.c_str());
-    lv_xml_register_const(scope, "warning_color", c.status_danger.c_str());
-    lv_xml_register_const(scope, "attention_color", c.status_warning.c_str());
-    lv_xml_register_const(scope, "success_color", c.status_success.c_str());
-    lv_xml_register_const(scope, "special_color", c.status_special.c_str());
-    lv_xml_register_const(scope, "info_color", c.accent_primary.c_str());
-
-    // Theme editor swatch descriptions (mode-dependent for background/text colors)
-    register_themed("swatch_0_desc", "App background", "Primary text");
-    register_themed("swatch_1_desc", "Card surfaces", "Header text");
-    register_themed("swatch_2_desc", "Selection highlight", "Selection highlight");
-    register_themed("swatch_3_desc", "Borders and dividers", "Secondary text");
-    register_themed("swatch_4_desc", "Secondary text", "Borders and dividers");
-    register_themed("swatch_5_desc", "Header text", "Card surfaces");
-    register_themed("swatch_6_desc", "Primary text", "App background");
-    // Accent/status colors - same in both modes
-    lv_xml_register_const(scope, "swatch_7_desc", "Subtle accents and highlights");
-    lv_xml_register_const(scope, "swatch_8_desc", "Primary accents and links");
-    lv_xml_register_const(scope, "swatch_9_desc", "Secondary accents");
-    lv_xml_register_const(scope, "swatch_10_desc", "Tertiary accents and icons");
-    lv_xml_register_const(scope, "swatch_11_desc", "Error states and alerts");
-    lv_xml_register_const(scope, "swatch_12_desc", "Warning banners");
-    lv_xml_register_const(scope, "swatch_13_desc", "Attention highlights");
-    lv_xml_register_const(scope, "swatch_14_desc", "Success confirmations");
-    lv_xml_register_const(scope, "swatch_15_desc", "Special accents");
-
-    spdlog::debug("[Theme] Registered semantic colors from palette");
+    spdlog::debug("[Theme] Registered 16 semantic colors + legacy aliases (dark={}, light={})",
+                  has_dark, has_light);
 }
 
 /**
@@ -613,16 +679,24 @@ void theme_manager_toggle_dark_mode() {
     // so we read the appropriate variant directly based on the new theme mode.
     const char* suffix = new_use_dark_mode ? "_dark" : "_light";
 
-    auto get_themed_color = [suffix](const char* base_name) -> const char* {
+    auto get_themed_color = [suffix](const char* base_name,
+                                     const char* fallback_name) -> const char* {
         char full_name[128];
         snprintf(full_name, sizeof(full_name), "%s%s", base_name, suffix);
-        return lv_xml_get_const(nullptr, full_name);
+        const char* val = lv_xml_get_const(nullptr, full_name);
+        if (!val && fallback_name) {
+            // Try legacy name as fallback
+            snprintf(full_name, sizeof(full_name), "%s%s", fallback_name, suffix);
+            val = lv_xml_get_const(nullptr, full_name);
+        }
+        return val;
     };
 
-    const char* screen_bg_str = get_themed_color("app_bg_color");
-    const char* card_bg_str = get_themed_color("card_bg");
-    const char* surface_control_str = get_themed_color("surface_control");
-    const char* text_primary_str = get_themed_color("text_primary");
+    // Use new semantic names with legacy fallbacks
+    const char* screen_bg_str = get_themed_color("app_bg", "app_bg_color");
+    const char* card_bg_str = get_themed_color("card_bg", nullptr);
+    const char* surface_control_str = get_themed_color("card_alt", "surface_control");
+    const char* text_primary_str = get_themed_color("text", "text_primary");
 
     if (!screen_bg_str || !card_bg_str || !surface_control_str || !text_primary_str) {
         spdlog::error("[Theme] Failed to read color constants for {} mode",
@@ -635,7 +709,7 @@ void theme_manager_toggle_dark_mode() {
     lv_color_t surface_control = theme_manager_parse_hex_color(surface_control_str);
     lv_color_t text_primary_color = theme_manager_parse_hex_color(text_primary_str);
 
-    spdlog::debug("[Theme] New colors: screen={}, card={}, grey={}, text={}", screen_bg_str,
+    spdlog::debug("[Theme] New colors: screen={}, card={}, surface={}, text={}", screen_bg_str,
                   card_bg_str, surface_control_str, text_primary_str);
 
     // Update helix theme styles in-place (triggers lv_obj_report_style_change)
@@ -657,6 +731,18 @@ bool theme_manager_is_dark_mode() {
 
 const helix::ThemeData& theme_manager_get_active_theme() {
     return active_theme;
+}
+
+helix::ThemeModeSupport theme_manager_get_mode_support() {
+    return active_theme.get_mode_support();
+}
+
+bool theme_manager_supports_dark_mode() {
+    return active_theme.supports_dark();
+}
+
+bool theme_manager_supports_light_mode() {
+    return active_theme.supports_light();
 }
 
 void theme_manager_preview(const helix::ThemeData& theme) {
