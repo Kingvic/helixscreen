@@ -32,13 +32,13 @@ struct SlotPatterns {
 const std::vector<SlotPatterns> DETECTION_PATTERNS = {
     {StandardMacroSlot::LoadFilament,   {"LOAD_FILAMENT", "M701"}},
     {StandardMacroSlot::UnloadFilament, {"UNLOAD_FILAMENT", "M702"}},
-    {StandardMacroSlot::Purge,          {"PURGE", "PURGE_LINE", "PRIME_LINE"}},
+    {StandardMacroSlot::Purge,          {"PURGE", "PURGE_LINE", "PRIME_LINE", "PURGE_FILAMENT", "LINE_PURGE"}},
     {StandardMacroSlot::Pause,          {"PAUSE", "M601"}},
     {StandardMacroSlot::Resume,         {"RESUME", "M602"}},
     {StandardMacroSlot::Cancel,         {"CANCEL_PRINT"}},
     {StandardMacroSlot::BedMesh,        {"BED_MESH_CALIBRATE", "G29"}},
     {StandardMacroSlot::BedLevel,       {"QUAD_GANTRY_LEVEL", "QGL", "Z_TILT_ADJUST"}},
-    {StandardMacroSlot::CleanNozzle,    {"CLEAN_NOZZLE", "NOZZLE_WIPE", "WIPE_NOZZLE"}},
+    {StandardMacroSlot::CleanNozzle,    {"CLEAN_NOZZLE", "NOZZLE_WIPE", "WIPE_NOZZLE", "CLEAR_NOZZLE"}},
     {StandardMacroSlot::HeatSoak,       {"HEAT_SOAK", "CHAMBER_SOAK", "SOAK"}},
 };
 // clang-format on
