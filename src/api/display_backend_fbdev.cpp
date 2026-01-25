@@ -471,6 +471,68 @@ bool DisplayBackendFbdev::clear_framebuffer(uint32_t color) {
     return true;
 }
 
+bool DisplayBackendFbdev::unblank_display() {
+    // Unblank the display using standard Linux framebuffer ioctls.
+    // This approach is borrowed from GuppyScreen's lv_drivers patch.
+    // Essential on AD5M where other processes may blank the display during boot.
+
+    int fd = open(fb_device_.c_str(), O_RDWR);
+    if (fd < 0) {
+        spdlog::warn("[Fbdev Backend] Cannot open {} for unblank: {}", fb_device_, strerror(errno));
+        return false;
+    }
+
+    // 1. Unblank the display (turns on backlight)
+    if (ioctl(fd, FBIOBLANK, FB_BLANK_UNBLANK) != 0) {
+        spdlog::warn("[Fbdev Backend] FBIOBLANK unblank failed: {}", strerror(errno));
+        // Continue anyway - some drivers don't support this but pan may still work
+    } else {
+        spdlog::info("[Fbdev Backend] Display unblanked via FBIOBLANK");
+    }
+
+    // 2. Get screen info and reset pan position to (0,0)
+    // This ensures we're drawing to the visible portion of the framebuffer
+    struct fb_var_screeninfo var_info;
+    if (ioctl(fd, FBIOGET_VSCREENINFO, &var_info) != 0) {
+        spdlog::warn("[Fbdev Backend] FBIOGET_VSCREENINFO failed: {}", strerror(errno));
+        close(fd);
+        return true; // Unblank may have worked
+    }
+
+    var_info.yoffset = 0;
+
+    if (ioctl(fd, FBIOPAN_DISPLAY, &var_info) != 0) {
+        spdlog::debug("[Fbdev Backend] FBIOPAN_DISPLAY failed: {} (may be unsupported)",
+                      strerror(errno));
+    } else {
+        spdlog::info("[Fbdev Backend] Display pan reset to yoffset=0");
+    }
+
+    close(fd);
+    return true;
+}
+
+bool DisplayBackendFbdev::blank_display() {
+    // Blank the display using standard Linux framebuffer ioctl.
+    // Counterpart to unblank_display() for proper display sleep.
+
+    int fd = open(fb_device_.c_str(), O_RDWR);
+    if (fd < 0) {
+        spdlog::warn("[Fbdev Backend] Cannot open {} for blank: {}", fb_device_, strerror(errno));
+        return false;
+    }
+
+    if (ioctl(fd, FBIOBLANK, FB_BLANK_NORMAL) != 0) {
+        spdlog::warn("[Fbdev Backend] FBIOBLANK blank failed: {}", strerror(errno));
+        close(fd);
+        return false;
+    }
+
+    spdlog::info("[Fbdev Backend] Display blanked via FBIOBLANK");
+    close(fd);
+    return true;
+}
+
 bool DisplayBackendFbdev::set_calibration(const helix::TouchCalibration& cal) {
     if (!helix::is_calibration_valid(cal)) {
         spdlog::warn("[Fbdev Backend] Invalid calibration rejected");

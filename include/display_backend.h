@@ -163,6 +163,39 @@ class DisplayBackend {
         return false; // Not supported by default
     }
 
+    /**
+     * @brief Unblank the display and reset pan position
+     *
+     * Explicitly enables the display backlight and resets the framebuffer
+     * pan position to (0,0). This is essential on some embedded systems
+     * (like AD5M) where the display may be blanked by other processes
+     * during boot.
+     *
+     * Uses standard Linux framebuffer ioctls:
+     * - FBIOBLANK with FB_BLANK_UNBLANK to enable display
+     * - FBIOPAN_DISPLAY with yoffset=0 to reset pan position
+     *
+     * Should be called early in startup, before or after create_display().
+     *
+     * @return true if unblank succeeded, false on error or not supported
+     */
+    virtual bool unblank_display() {
+        return false; // Not supported by default
+    }
+
+    /**
+     * @brief Blank the display (turn off backlight via framebuffer ioctl)
+     *
+     * Blanks the display using the FBIOBLANK ioctl with FB_BLANK_NORMAL.
+     * This is the counterpart to unblank_display() and should be called
+     * when putting the display to sleep.
+     *
+     * @return true if blank succeeded, false on error or not supported
+     */
+    virtual bool blank_display() {
+        return false; // Not supported by default
+    }
+
     // ========================================================================
     // Factory Methods
     // ========================================================================

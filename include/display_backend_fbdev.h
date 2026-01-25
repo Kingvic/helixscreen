@@ -82,6 +82,8 @@ class DisplayBackendFbdev : public DisplayBackend {
 
     // Framebuffer operations
     bool clear_framebuffer(uint32_t color) override;
+    bool unblank_display() override;
+    bool blank_display() override;
 
     // Configuration
     void set_fb_device(const std::string& path) {

@@ -208,6 +208,13 @@ int main(int argc, char** argv) {
         return 1;
     }
 
+    // Unblank display via framebuffer ioctl BEFORE creating LVGL display.
+    // Essential on AD5M where ForgeX may have blanked the display during boot.
+    // Uses same approach as GuppyScreen: FBIOBLANK + FBIOPAN_DISPLAY.
+    if (backend->unblank_display()) {
+        fprintf(stderr, "helix-splash: Display unblanked via framebuffer ioctl\n");
+    }
+
     // Create display
     lv_display_t* display = backend->create_display(width, height);
     if (!display) {

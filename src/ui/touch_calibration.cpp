@@ -3,7 +3,9 @@
 
 #include "touch_calibration.h"
 
+#include <algorithm>
 #include <cmath>
+#include <initializer_list>
 
 namespace helix {
 
@@ -43,8 +45,9 @@ bool compute_calibration(const Point screen_points[3], const Point touch_points[
     // Use scale-relative epsilon based on coordinate magnitudes.
     // For typical touchscreens (12-bit ADC, 0-4095 range), valid triangles
     // produce determinants >> 1000, so 0.01% of max coordinate is safe.
-    float max_coord = std::max(
-        {std::abs(Xt1), std::abs(Yt1), std::abs(Xt2), std::abs(Yt2), std::abs(Xt3), std::abs(Yt3)});
+    float max_coord =
+        std::max(std::initializer_list<float>({std::abs(Xt1), std::abs(Yt1), std::abs(Xt2),
+                                               std::abs(Yt2), std::abs(Xt3), std::abs(Yt3)}));
     float epsilon = std::max(1.0f, max_coord * 0.0001f);
     if (std::abs(div) < epsilon) {
         return false;

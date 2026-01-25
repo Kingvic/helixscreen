@@ -64,6 +64,13 @@ bool DisplayManager::init(const Config& config) {
 
     spdlog::info("[DisplayManager] Using backend: {}", m_backend->name());
 
+    // Unblank display via framebuffer ioctl BEFORE creating LVGL display.
+    // This is essential on AD5M where ForgeX may have blanked the display.
+    // Uses same approach as GuppyScreen: FBIOBLANK + FBIOPAN_DISPLAY.
+    if (m_backend->unblank_display()) {
+        spdlog::info("[DisplayManager] Display unblanked via framebuffer ioctl");
+    }
+
     // Create LVGL display
     m_display = m_backend->create_display(m_width, m_height);
     if (!m_display) {
@@ -271,10 +278,13 @@ void DisplayManager::check_display_sleep() {
         } else if (sleep_timeout_sec > 0 && inactive_ms >= sleep_timeout_ms) {
             // Transition from dimmed to sleeping
             m_display_sleeping = true;
+            if (m_backend) {
+                m_backend->blank_display();
+            }
             if (m_backlight) {
                 m_backlight->set_brightness(0);
             }
-            spdlog::info("[DisplayManager] Display sleeping (backlight off) after {}s inactivity",
+            spdlog::info("[DisplayManager] Display sleeping (blanked + backlight off) after {}s",
                          sleep_timeout_sec);
         }
     } else {
@@ -282,10 +292,13 @@ void DisplayManager::check_display_sleep() {
         if (sleep_timeout_sec > 0 && inactive_ms >= sleep_timeout_ms) {
             // Skip dim, go straight to sleep (sleep timeout <= dim timeout)
             m_display_sleeping = true;
+            if (m_backend) {
+                m_backend->blank_display();
+            }
             if (m_backlight) {
                 m_backlight->set_brightness(0);
             }
-            spdlog::info("[DisplayManager] Display sleeping (backlight off) after {}s inactivity",
+            spdlog::info("[DisplayManager] Display sleeping (blanked + backlight off) after {}s",
                          sleep_timeout_sec);
         } else if (m_dim_timeout_sec > 0 && inactive_ms >= dim_timeout_ms) {
             // Dim the display
@@ -312,6 +325,12 @@ void DisplayManager::wake_display() {
     // This prevents the wake touch from triggering UI actions
     if (was_sleeping) {
         disable_input_briefly();
+
+        // Unblank framebuffer when waking from full sleep (not just dim).
+        // On AD5M, the FBIOBLANK ioctl is needed to actually turn on the display.
+        if (m_backend) {
+            m_backend->unblank_display();
+        }
     }
 
     // Restore configured brightness from settings
