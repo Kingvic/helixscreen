@@ -73,11 +73,19 @@ else
 fi
 
 # Step 4: Copy pre-built static libraries (saves significant build time)
+# Note: We exclude libTinyGL.a because it builds in-tree and may have architecture
+# mismatches (e.g., copying macOS build to a worktree that will cross-compile for Pi).
+# TinyGL will be built on first `make` with the correct architecture.
 if ls "$MAIN_REPO/build/lib/"*.a 1>/dev/null 2>&1; then
-    echo "→ Copying pre-built static libraries..."
+    echo "→ Copying pre-built static libraries (excluding TinyGL)..."
     mkdir -p build/lib
-    cp "$MAIN_REPO/build/lib/"*.a build/lib/
+    for lib in "$MAIN_REPO/build/lib/"*.a; do
+        if [[ "$(basename "$lib")" != "libTinyGL.a" ]]; then
+            cp "$lib" build/lib/
+        fi
+    done
     echo "  ✓ Copied $(ls build/lib/*.a 2>/dev/null | wc -l | tr -d ' ') libraries"
+    echo "  ℹ TinyGL will be built on first 'make' (ensures correct architecture)"
 fi
 
 # Step 5: Run npm install for font tools (if npm available)
