@@ -15,7 +15,13 @@
 #include <algorithm>
 #include <cstring>
 
-// Display sleep option values (seconds)
+// Display dim option values (seconds) - time before screen dims to lower brightness
+// Index: 0=Never, 1=30sec, 2=1min, 3=2min, 4=5min
+static const int DIM_OPTIONS[] = {0, 30, 60, 120, 300};
+static const int DIM_OPTIONS_COUNT = sizeof(DIM_OPTIONS) / sizeof(DIM_OPTIONS[0]);
+static const char* DIM_OPTIONS_TEXT = "Never\n30 seconds\n1 minute\n2 minutes\n5 minutes";
+
+// Display sleep option values (seconds) - time before screen fully sleeps
 // Index: 0=Never, 1=1min, 2=5min, 3=10min, 4=30min
 static const int SLEEP_OPTIONS[] = {0, 60, 300, 600, 1800};
 static const int SLEEP_OPTIONS_COUNT = sizeof(SLEEP_OPTIONS) / sizeof(SLEEP_OPTIONS[0]);
@@ -63,6 +69,10 @@ void SettingsManager::init_subjects() {
     // Theme index (derived from current theme name)
     int theme_index = get_theme_index();
     UI_MANAGED_SUBJECT_INT(theme_preset_subject_, theme_index, "settings_theme_preset", subjects_);
+
+    // Display dim (default: 300 seconds = 5 minutes)
+    int dim_sec = config->get<int>("/display/dim_sec", 300);
+    UI_MANAGED_SUBJECT_INT(display_dim_subject_, dim_sec, "settings_display_dim", subjects_);
 
     // Display sleep (default: 1800 seconds = 30 minutes)
     int sleep_sec = config->get<int>("/display/sleep_sec", 1800);
@@ -140,10 +150,10 @@ void SettingsManager::init_subjects() {
 
     subjects_initialized_ = true;
     spdlog::info("[SettingsManager] Subjects initialized: dark_mode={}, theme={}, "
-                 "sleep={}s, sounds={}, "
+                 "dim={}s, sleep={}s, sounds={}, "
                  "completion_alert_mode={}, scroll_throw={}, scroll_limit={}, animations={}",
-                 dark_mode, get_theme_name(), sleep_sec, sounds, completion_mode, scroll_throw,
-                 scroll_limit, animations);
+                 dark_mode, get_theme_name(), dim_sec, sleep_sec, sounds, completion_mode,
+                 scroll_throw, scroll_limit, animations);
 }
 
 void SettingsManager::deinit_subjects() {
@@ -313,6 +323,30 @@ void SettingsManager::set_display_sleep_sec(int seconds) {
 
     // Note: Actual display sleep is handled by the display driver reading this value
     spdlog::debug("[SettingsManager] Display sleep set to {}s", seconds);
+}
+
+int SettingsManager::get_display_dim_sec() const {
+    return lv_subject_get_int(const_cast<lv_subject_t*>(&display_dim_subject_));
+}
+
+void SettingsManager::set_display_dim_sec(int seconds) {
+    spdlog::info("[SettingsManager] set_display_dim_sec({})", seconds);
+
+    // 1. Update subject
+    lv_subject_set_int(&display_dim_subject_, seconds);
+
+    // 2. Persist
+    Config* config = Config::get_instance();
+    config->set<int>("/display/dim_sec", seconds);
+    config->save();
+
+    // 3. Notify DisplayManager to reload dim setting
+    DisplayManager* dm = DisplayManager::instance();
+    if (dm) {
+        dm->set_dim_timeout(seconds);
+    }
+
+    spdlog::debug("[SettingsManager] Display dim set to {}s", seconds);
 }
 
 int SettingsManager::get_brightness() const {
@@ -555,6 +589,31 @@ void SettingsManager::set_completion_alert_mode(CompletionAlertMode mode) {
 
 const char* SettingsManager::get_completion_alert_options() {
     return COMPLETION_ALERT_OPTIONS_TEXT;
+}
+
+// =============================================================================
+// DISPLAY DIM OPTIONS
+// =============================================================================
+
+const char* SettingsManager::get_display_dim_options() {
+    return DIM_OPTIONS_TEXT;
+}
+
+int SettingsManager::dim_seconds_to_index(int seconds) {
+    for (int i = 0; i < DIM_OPTIONS_COUNT; i++) {
+        if (DIM_OPTIONS[i] == seconds) {
+            return i;
+        }
+    }
+    // Default to "5 minutes" if not found
+    return 4;
+}
+
+int SettingsManager::index_to_dim_seconds(int index) {
+    if (index >= 0 && index < DIM_OPTIONS_COUNT) {
+        return DIM_OPTIONS[index];
+    }
+    return 300; // Default 5 minutes
 }
 
 // =============================================================================

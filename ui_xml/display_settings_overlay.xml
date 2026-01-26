@@ -78,11 +78,19 @@
                               callback="on_gcode_mode_changed"/>
       </lv_obj>
       <!-- ================================================================== -->
+      <!-- DISPLAY DIM -->
+      <!-- ================================================================== -->
+      <setting_dropdown_row name="row_display_dim"
+                            label="Screen Dim" icon="lightbulb_on_50"
+                            description="Screen dims to lower brightness after period of inactivity"
+                            options="Never&#10;30 seconds&#10;1 minute&#10;2 minutes&#10;5 minutes"
+                            callback="on_display_dim_changed"/>
+      <!-- ================================================================== -->
       <!-- DISPLAY SLEEP -->
       <!-- ================================================================== -->
       <setting_dropdown_row name="row_display_sleep"
-                            label="Display Sleep" icon="clock"
-                            description="Screen will dim after the selected period of inactivity"
+                            label="Display Sleep" icon="power"
+                            description="Screen turns off completely after period of inactivity"
                             options="Never&#10;1 minute&#10;5 minutes&#10;10 minutes&#10;30 minutes"
                             callback="on_display_sleep_changed"/>
       <!-- ================================================================== -->

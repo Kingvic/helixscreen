@@ -195,6 +195,11 @@ class DisplaySettingsOverlay : public OverlayBase {
     void init_brightness_controls();
 
     /**
+     * @brief Initialize dim timeout dropdown
+     */
+    void init_dim_dropdown();
+
+    /**
      * @brief Initialize sleep timeout dropdown
      */
     void init_sleep_dropdown();

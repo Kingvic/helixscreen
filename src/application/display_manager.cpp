@@ -378,6 +378,11 @@ void DisplayManager::ensure_display_on() {
     spdlog::info("[DisplayManager] Startup: forcing display ON at {}% brightness", brightness);
 }
 
+void DisplayManager::set_dim_timeout(int seconds) {
+    m_dim_timeout_sec = seconds;
+    spdlog::info("[DisplayManager] Dim timeout set to {}s", seconds);
+}
+
 void DisplayManager::restore_display_on_shutdown() {
     // Ensure display is awake before exiting so next app doesn't start with black screen
     int brightness = SettingsManager::instance().get_brightness();

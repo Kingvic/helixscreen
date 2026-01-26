@@ -183,6 +183,15 @@ class DisplayManager {
     void ensure_display_on();
 
     /**
+     * @brief Set dim timeout for immediate effect
+     *
+     * Called by SettingsManager when user changes dim timeout setting.
+     *
+     * @param seconds Dim timeout (0 to disable)
+     */
+    void set_dim_timeout(int seconds);
+
+    /**
      * @brief Restore display to usable state on shutdown
      *
      * Called during app cleanup to ensure display is awake before exiting.

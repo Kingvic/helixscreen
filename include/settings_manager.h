@@ -170,6 +170,22 @@ class SettingsManager {
     void set_theme_by_index(int index);
 
     /**
+     * @brief Get display dim timeout in seconds
+     * @return Dim timeout (0 = disabled)
+     */
+    int get_display_dim_sec() const;
+
+    /**
+     * @brief Set display dim timeout
+     *
+     * Updates subject, persists, and notifies DisplayManager immediately.
+     * Screen dims to lower brightness after this timeout of inactivity.
+     *
+     * @param seconds Dim timeout (0 to disable)
+     */
+    void set_display_dim_sec(int seconds);
+
+    /**
      * @brief Get display sleep timeout in seconds
      * @return Sleep timeout (0 = disabled)
      */
@@ -448,6 +464,11 @@ class SettingsManager {
         return &theme_preset_subject_;
     }
 
+    /** @brief Display dim subject (integer: seconds, 0=disabled) */
+    lv_subject_t* subject_display_dim() {
+        return &display_dim_subject_;
+    }
+
     /** @brief Display sleep subject (integer: seconds, 0=disabled) */
     lv_subject_t* subject_display_sleep() {
         return &display_sleep_subject_;
@@ -519,6 +540,30 @@ class SettingsManager {
     }
 
     // =========================================================================
+    // DISPLAY DIM OPTIONS (for dropdown population)
+    // =========================================================================
+
+    /**
+     * @brief Get display dim options for dropdown
+     * @return Newline-separated string of options (e.g., "Never\n30 seconds\n1 minute")
+     */
+    static const char* get_display_dim_options();
+
+    /**
+     * @brief Get dropdown index for current dim seconds value
+     * @param seconds Current dim timeout in seconds
+     * @return Dropdown index (0-based)
+     */
+    static int dim_seconds_to_index(int seconds);
+
+    /**
+     * @brief Convert dropdown index to dim seconds
+     * @param index Dropdown index (0-based)
+     * @return Dim timeout in seconds
+     */
+    static int index_to_dim_seconds(int index);
+
+    // =========================================================================
     // DISPLAY SLEEP OPTIONS (for dropdown population)
     // =========================================================================
 
@@ -556,6 +601,7 @@ class SettingsManager {
     lv_subject_t dark_mode_subject_;
     lv_subject_t dark_mode_available_subject_;
     lv_subject_t theme_preset_subject_;
+    lv_subject_t display_dim_subject_;
     lv_subject_t display_sleep_subject_;
     lv_subject_t brightness_subject_;
     lv_subject_t has_backlight_subject_;

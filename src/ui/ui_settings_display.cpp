@@ -155,6 +155,7 @@ void DisplaySettingsOverlay::on_activate() {
 
     // Initialize all widget values from SettingsManager
     init_brightness_controls();
+    init_dim_dropdown();
     init_sleep_dropdown();
     init_bed_mesh_dropdown();
     init_gcode_dropdown();
@@ -184,6 +185,23 @@ void DisplaySettingsOverlay::init_brightness_controls() {
         lv_subject_copy_string(&brightness_value_subject_, brightness_value_buf_);
 
         spdlog::debug("[{}] Brightness initialized to {}%", get_name(), brightness);
+    }
+}
+
+void DisplaySettingsOverlay::init_dim_dropdown() {
+    if (!overlay_root_)
+        return;
+
+    lv_obj_t* dim_row = lv_obj_find_by_name(overlay_root_, "row_display_dim");
+    lv_obj_t* dim_dropdown = dim_row ? lv_obj_find_by_name(dim_row, "dropdown") : nullptr;
+    if (dim_dropdown) {
+        // Set initial selection based on current setting (options set in XML)
+        int current_sec = SettingsManager::instance().get_display_dim_sec();
+        int index = SettingsManager::dim_seconds_to_index(current_sec);
+        lv_dropdown_set_selected(dim_dropdown, index);
+
+        spdlog::debug("[{}] Dim dropdown initialized to index {} ({}s)", get_name(), index,
+                      current_sec);
     }
 }
 
@@ -467,9 +485,9 @@ void DisplaySettingsOverlay::handle_edit_colors_clicked() {
 
     if (theme_settings_overlay_) {
         // Load currently previewed theme for editing (or fallback to saved theme)
-        std::string theme_name =
-            !preview_theme_name_.empty() ? preview_theme_name_
-                                         : SettingsManager::instance().get_theme_name();
+        std::string theme_name = !preview_theme_name_.empty()
+                                     ? preview_theme_name_
+                                     : SettingsManager::instance().get_theme_name();
         get_theme_editor_overlay().load_theme(theme_name);
         ui_nav_push_overlay(theme_settings_overlay_);
     }

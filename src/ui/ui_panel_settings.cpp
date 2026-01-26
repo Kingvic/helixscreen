@@ -91,6 +91,15 @@ static void on_completion_alert_dropdown_changed(lv_event_t* e) {
     SettingsManager::instance().set_completion_alert_mode(mode);
 }
 
+// Static callback for display dim dropdown
+static void on_display_dim_dropdown_changed(lv_event_t* e) {
+    lv_obj_t* dropdown = static_cast<lv_obj_t*>(lv_event_get_current_target(e));
+    int index = static_cast<int>(lv_dropdown_get_selected(dropdown));
+    int seconds = SettingsManager::index_to_dim_seconds(index);
+    spdlog::info("[SettingsPanel] Display dim changed: index {} = {}s", index, seconds);
+    SettingsManager::instance().set_display_dim_sec(seconds);
+}
+
 // Static callback for display sleep dropdown
 static void on_display_sleep_dropdown_changed(lv_event_t* e) {
     lv_obj_t* dropdown = static_cast<lv_obj_t*>(lv_event_get_current_target(e));
@@ -253,6 +262,8 @@ void SettingsPanel::init_subjects() {
     // Register XML event callbacks for dropdowns (already in XML)
     lv_xml_register_event_cb(nullptr, "on_completion_alert_changed",
                              on_completion_alert_dropdown_changed);
+    lv_xml_register_event_cb(nullptr, "on_display_dim_changed",
+                             on_display_dim_dropdown_changed);
     lv_xml_register_event_cb(nullptr, "on_display_sleep_changed",
                              on_display_sleep_dropdown_changed);
     lv_xml_register_event_cb(nullptr, "on_bed_mesh_mode_changed", on_bed_mesh_mode_changed);
