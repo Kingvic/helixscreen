@@ -22,6 +22,20 @@
       "image": "flashforge-adventurer-5m.png",
       "heuristics": [
         {
+          "type": "macro_match",
+          "field": "macros",
+          "pattern": "SUPPORT_FORGE_X",
+          "confidence": 99,
+          "reason": "SUPPORT_FORGE_X macro - definitive ForgeX signature"
+        },
+        {
+          "type": "object_exists",
+          "field": "printer_objects",
+          "pattern": "mod_params",
+          "confidence": 95,
+          "reason": "mod_params object - ForgeX settings container"
+        },
+        {
           "type": "sensor_match",
           "field": "sensors",
           "pattern": "tvocValue",
@@ -75,25 +89,11 @@
         "macro_name": "START_PRINT",
         "params": {
           "bed_mesh": {
-            "param": "FORCE_LEVELING",
-            "skip_value": "false",
-            "enable_value": "true",
-            "default_value": "false",
-            "description": "Skip bed mesh if already loaded"
-          },
-          "purge_line": {
-            "param": "DISABLE_PRIMING",
-            "skip_value": "true",
-            "enable_value": "false",
-            "default_value": "false",
-            "description": "Skip nozzle purge/prime line"
-          },
-          "skew_correct": {
-            "param": "DISABLE_SKEW_CORRECT",
-            "skip_value": "true",
-            "enable_value": "false",
-            "default_value": "false",
-            "description": "Skip skew correction profile"
+            "param": "SKIP_LEVELING",
+            "skip_value": "1",
+            "enable_value": "0",
+            "default_value": "0",
+            "description": "Skip bed mesh calibration"
           }
         }
       }
@@ -104,6 +104,20 @@
       "manufacturer": "FlashForge",
       "image": "flashforge-adventurer-5m-pro.png",
       "heuristics": [
+        {
+          "type": "macro_match",
+          "field": "macros",
+          "pattern": "SUPPORT_FORGE_X",
+          "confidence": 99,
+          "reason": "SUPPORT_FORGE_X macro - definitive ForgeX signature"
+        },
+        {
+          "type": "object_exists",
+          "field": "printer_objects",
+          "pattern": "mod_params",
+          "confidence": 95,
+          "reason": "mod_params object - ForgeX settings container"
+        },
         {
           "type": "led_match",
           "field": "leds",
@@ -172,25 +186,11 @@
         "macro_name": "START_PRINT",
         "params": {
           "bed_mesh": {
-            "param": "FORCE_LEVELING",
-            "skip_value": "false",
-            "enable_value": "true",
-            "default_value": "false",
-            "description": "Skip bed mesh if already loaded"
-          },
-          "purge_line": {
-            "param": "DISABLE_PRIMING",
-            "skip_value": "true",
-            "enable_value": "false",
-            "default_value": "false",
-            "description": "Skip nozzle purge/prime line"
-          },
-          "skew_correct": {
-            "param": "DISABLE_SKEW_CORRECT",
-            "skip_value": "true",
-            "enable_value": "false",
-            "default_value": "false",
-            "description": "Skip skew correction profile"
+            "param": "SKIP_LEVELING",
+            "skip_value": "1",
+            "enable_value": "0",
+            "default_value": "0",
+            "description": "Skip bed mesh calibration"
           }
         }
       }
