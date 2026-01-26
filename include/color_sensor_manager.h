@@ -3,11 +3,12 @@
 
 #pragma once
 
+#include "color_sensor_types.h"
 #include "lvgl.h"
 #include "sensor_registry.h"
 #include "subject_managed_panel.h"
-#include "width_sensor_types.h"
 
+#include <array>
 #include <map>
 #include <mutex>
 #include <optional>
@@ -17,41 +18,39 @@
 namespace helix::sensors {
 
 /**
- * @brief Manager for filament width sensors (TSL1401CL and Hall-effect based)
+ * @brief Manager for TD-1 color sensors
  *
  * Implements ISensorManager interface for integration with SensorRegistry.
  * Provides:
- * - Auto-discovery of width sensors from Klipper objects list
- * - Role assignment for flow compensation
- * - Real-time state tracking from Moonraker updates
+ * - Discovery of TD-1 devices by device ID
+ * - Role assignment for filament color detection
+ * - Real-time state tracking from Moonraker TD-1 updates
  * - LVGL subjects for reactive UI binding
  *
  * Thread-safe for state updates from Moonraker callbacks.
  *
- * Klipper object names:
- * - tsl1401cl_filament_width_sensor
- * - hall_filament_width_sensor
+ * Device IDs: td1_lane0, td1_lane1, etc.
  *
- * Status JSON format:
+ * Status JSON format (from Moonraker):
  * @code
  * {
- *   "tsl1401cl_filament_width_sensor": {
- *     "Diameter": 1.75,
- *     "Raw": 12345
+ *   "td1_lane0": {
+ *     "color": "#FF5733",
+ *     "td": 1.25
  *   }
  * }
  * @endcode
  */
-class WidthSensorManager : public ISensorManager {
+class ColorSensorManager : public ISensorManager {
   public:
     /**
      * @brief Get singleton instance
      */
-    static WidthSensorManager& instance();
+    static ColorSensorManager& instance();
 
     // Prevent copying
-    WidthSensorManager(const WidthSensorManager&) = delete;
-    WidthSensorManager& operator=(const WidthSensorManager&) = delete;
+    ColorSensorManager(const ColorSensorManager&) = delete;
+    ColorSensorManager& operator=(const ColorSensorManager&) = delete;
 
     // ========================================================================
     // ISensorManager Interface
@@ -60,10 +59,11 @@ class WidthSensorManager : public ISensorManager {
     /// @brief Get category name for registry
     [[nodiscard]] std::string category_name() const override;
 
-    /// @brief Discover sensors from Klipper object list
-    void discover(const std::vector<std::string>& klipper_objects) override;
+    /// @brief Discover sensors from device ID list
+    /// @note Unlike other sensors, color sensors use device IDs, not Klipper objects
+    void discover(const std::vector<std::string>& device_ids) override;
 
-    /// @brief Update state from Moonraker status JSON
+    /// @brief Update state from Moonraker TD-1 status JSON
     void update_from_status(const nlohmann::json& status) override;
 
     /// @brief Load configuration from JSON
@@ -103,7 +103,7 @@ class WidthSensorManager : public ISensorManager {
     /**
      * @brief Get all discovered sensor configurations (thread-safe copy)
      */
-    [[nodiscard]] std::vector<WidthSensorConfig> get_sensors() const;
+    [[nodiscard]] std::vector<ColorSensorConfig> get_sensors() const;
 
     /**
      * @brief Get sensor count
@@ -117,18 +117,18 @@ class WidthSensorManager : public ISensorManager {
     /**
      * @brief Set role for a specific sensor
      *
-     * @param klipper_name Full Klipper object name
+     * @param device_id Device ID (e.g., "td1_lane0")
      * @param role New role assignment
      */
-    void set_sensor_role(const std::string& klipper_name, WidthSensorRole role);
+    void set_sensor_role(const std::string& device_id, ColorSensorRole role);
 
     /**
      * @brief Enable or disable a specific sensor
      *
-     * @param klipper_name Full Klipper object name
+     * @param device_id Device ID
      * @param enabled Whether sensor should be monitored
      */
-    void set_sensor_enabled(const std::string& klipper_name, bool enabled);
+    void set_sensor_enabled(const std::string& device_id, bool enabled);
 
     // ========================================================================
     // State Queries
@@ -140,32 +140,38 @@ class WidthSensorManager : public ISensorManager {
      * @param role The sensor role to query
      * @return State copy if sensor assigned to role, empty optional otherwise
      */
-    [[nodiscard]] std::optional<WidthSensorState> get_sensor_state(WidthSensorRole role) const;
+    [[nodiscard]] std::optional<ColorSensorState> get_sensor_state(ColorSensorRole role) const;
 
     /**
      * @brief Check if a sensor is available (exists and enabled)
      *
      * @param role The sensor role to check
-     * @return true if sensor exists, is enabled, and is available in Klipper
+     * @return true if sensor exists, is enabled, and is available
      */
-    [[nodiscard]] bool is_sensor_available(WidthSensorRole role) const;
+    [[nodiscard]] bool is_sensor_available(ColorSensorRole role) const;
 
     /**
-     * @brief Get current filament diameter for flow compensation role
+     * @brief Get current filament color hex for FILAMENT_COLOR role
      *
-     * @return Diameter in mm, or 0.0 if no sensor assigned or disabled
+     * @return Color hex string (e.g., "#FF5733"), or empty if no sensor assigned
      */
-    [[nodiscard]] float get_flow_compensation_diameter() const;
+    [[nodiscard]] std::string get_filament_color_hex() const;
 
     // ========================================================================
     // LVGL Subjects
     // ========================================================================
 
     /**
-     * @brief Get subject for filament diameter
-     * @return Subject (int: mm x 1000, -1 if no sensor assigned)
+     * @brief Get subject for filament color hex
+     * @return Subject (string: "#RRGGBB" or empty if no sensor assigned)
      */
-    [[nodiscard]] lv_subject_t* get_diameter_subject();
+    [[nodiscard]] lv_subject_t* get_color_hex_subject();
+
+    /**
+     * @brief Get subject for TD value
+     * @return Subject (int: TD x 100, -1 if no sensor assigned)
+     */
+    [[nodiscard]] lv_subject_t* get_td_value_subject();
 
     /**
      * @brief Get subject for sensor count (for conditional UI visibility)
@@ -195,32 +201,29 @@ class WidthSensorManager : public ISensorManager {
     void update_subjects_on_main_thread();
 
   private:
-    WidthSensorManager();
-    ~WidthSensorManager();
+    ColorSensorManager();
+    ~ColorSensorManager();
 
     /**
-     * @brief Parse Klipper object name to determine if it's a width sensor
+     * @brief Generate display name from device ID
      *
-     * @param klipper_name Full name like "tsl1401cl_filament_width_sensor"
-     * @param[out] sensor_name Extracted short name
-     * @param[out] type Detected sensor type
-     * @return true if successfully parsed as width sensor
+     * @param device_id Device ID like "td1_lane0"
+     * @return Display name like "TD-1 Lane 0"
      */
-    bool parse_klipper_name(const std::string& klipper_name, std::string& sensor_name,
-                            WidthSensorType& type) const;
+    [[nodiscard]] std::string generate_display_name(const std::string& device_id) const;
 
     /**
-     * @brief Find config by Klipper name
+     * @brief Find config by device ID
      * @return Pointer to config, or nullptr if not found
      */
-    WidthSensorConfig* find_config(const std::string& klipper_name);
-    const WidthSensorConfig* find_config(const std::string& klipper_name) const;
+    ColorSensorConfig* find_config(const std::string& device_id);
+    const ColorSensorConfig* find_config(const std::string& device_id) const;
 
     /**
      * @brief Find config by assigned role
      * @return Pointer to config, or nullptr if no sensor has this role
      */
-    const WidthSensorConfig* find_config_by_role(WidthSensorRole role) const;
+    const ColorSensorConfig* find_config_by_role(ColorSensorRole role) const;
 
     /**
      * @brief Update all LVGL subjects from current state
@@ -231,10 +234,10 @@ class WidthSensorManager : public ISensorManager {
     mutable std::recursive_mutex mutex_;
 
     // Configuration
-    std::vector<WidthSensorConfig> sensors_;
+    std::vector<ColorSensorConfig> sensors_;
 
-    // Runtime state (keyed by klipper_name)
-    std::map<std::string, WidthSensorState> states_;
+    // Runtime state (keyed by device_id)
+    std::map<std::string, ColorSensorState> states_;
 
     // Test mode: when true, update_from_status() calls update_subjects() synchronously
     bool sync_mode_ = false;
@@ -242,8 +245,13 @@ class WidthSensorManager : public ISensorManager {
     // LVGL subjects
     bool subjects_initialized_ = false;
     SubjectManager subjects_;
-    lv_subject_t diameter_;
+    lv_subject_t color_hex_;
+    lv_subject_t td_value_;
     lv_subject_t sensor_count_;
+
+    // Buffer for string subject
+    static constexpr size_t COLOR_HEX_BUF_SIZE = 16;
+    std::array<char, COLOR_HEX_BUF_SIZE> color_hex_buf_;
 };
 
 } // namespace helix::sensors

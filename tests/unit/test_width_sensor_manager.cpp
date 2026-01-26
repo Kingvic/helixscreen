@@ -176,8 +176,7 @@ TEST_CASE_METHOD(WidthSensorTestFixture, "WidthSensorManager - discovery", "[wid
     SECTION("Ignores unrelated objects") {
         std::vector<std::string> sensors = {"tsl1401cl_filament_width_sensor",
                                             "filament_switch_sensor runout",
-                                            "temperature_sensor chamber",
-                                            "extruder"};
+                                            "temperature_sensor chamber", "extruder"};
         mgr().discover(sensors);
 
         REQUIRE(mgr().sensor_count() == 1);
@@ -220,8 +219,7 @@ TEST_CASE_METHOD(WidthSensorTestFixture, "WidthSensorManager - discovery", "[wid
 // Role Assignment Tests
 // ============================================================================
 
-TEST_CASE_METHOD(WidthSensorTestFixture, "WidthSensorManager - role assignment",
-                 "[width][roles]") {
+TEST_CASE_METHOD(WidthSensorTestFixture, "WidthSensorManager - role assignment", "[width][roles]") {
     discover_test_sensors();
 
     SECTION("Can set FLOW_COMPENSATION role") {
