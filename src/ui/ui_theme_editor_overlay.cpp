@@ -47,6 +47,20 @@ ThemeEditorOverlay::~ThemeEditorOverlay() {
     spdlog::debug("[ThemeEditorOverlay] Destroyed");
 }
 
+helix::ModePalette& ThemeEditorOverlay::get_active_palette() {
+    // Edit dark or light palette based on editing mode (set by caller)
+    return editing_dark_mode_ ? editing_theme_.dark : editing_theme_.light;
+}
+
+const helix::ModePalette& ThemeEditorOverlay::get_active_palette() const {
+    return editing_dark_mode_ ? editing_theme_.dark : editing_theme_.light;
+}
+
+void ThemeEditorOverlay::set_editing_dark_mode(bool is_dark) {
+    editing_dark_mode_ = is_dark;
+    spdlog::debug("[ThemeEditorOverlay] Editing {} palette", is_dark ? "dark" : "light");
+}
+
 // ============================================================================
 // OVERLAYBASE IMPLEMENTATION
 // ============================================================================
@@ -236,8 +250,8 @@ void ThemeEditorOverlay::update_swatch_colors() {
             continue;
         }
 
-        // Get color from editing theme
-        const std::string& color_hex = editing_theme_.colors.at(i);
+        // Get color from editing theme's active palette (dark or light based on mode)
+        const std::string& color_hex = get_active_palette().at(i);
         if (color_hex.empty()) {
             continue;
         }
@@ -634,7 +648,7 @@ void ThemeEditorOverlay::handle_slider_change(const char* /* slider_name */, int
 
 void ThemeEditorOverlay::show_color_picker(int palette_index) {
     if (palette_index < 0 ||
-        palette_index >= static_cast<int>(editing_theme_.colors.color_names().size())) {
+        palette_index >= static_cast<int>(helix::ModePalette::color_names().size())) {
         spdlog::error("[{}] Invalid palette index {} for color picker", get_name(), palette_index);
         return;
     }
@@ -642,8 +656,8 @@ void ThemeEditorOverlay::show_color_picker(int palette_index) {
     // Store which color we're editing
     editing_color_index_ = palette_index;
 
-    // Get current color hex from the editing theme
-    const std::string& current_hex = editing_theme_.colors.at(palette_index);
+    // Get current color hex from the active palette (dark or light based on mode)
+    const std::string& current_hex = get_active_palette().at(palette_index);
     uint32_t current_rgb = 0x808080; // Default gray if parsing fails
 
     // Parse hex color (handle both "#RRGGBB" and "RRGGBB" formats)
@@ -664,7 +678,7 @@ void ThemeEditorOverlay::show_color_picker(int palette_index) {
     color_picker_->set_color_callback([this](uint32_t color_rgb,
                                              const std::string& /* color_name */) {
         if (editing_color_index_ < 0 ||
-            editing_color_index_ >= static_cast<int>(editing_theme_.colors.color_names().size())) {
+            editing_color_index_ >= static_cast<int>(helix::ModePalette::color_names().size())) {
             spdlog::warn("[{}] Color picker callback: invalid editing_color_index_ {}", get_name(),
                          editing_color_index_);
             return;
@@ -674,8 +688,8 @@ void ThemeEditorOverlay::show_color_picker(int palette_index) {
         char hex_buf[8];
         std::snprintf(hex_buf, sizeof(hex_buf), "#%06X", color_rgb);
 
-        // Update the editing theme color
-        editing_theme_.colors.at(editing_color_index_) = hex_buf;
+        // Update the active palette color (dark or light based on mode)
+        get_active_palette().at(editing_color_index_) = hex_buf;
 
         // Update the swatch visual if it exists
         if (editing_color_index_ < static_cast<int>(swatch_objects_.size()) &&

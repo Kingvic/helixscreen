@@ -240,8 +240,9 @@ TEST_CASE("parse_theme_json - new format dark only", "[theme][dual-palette]") {
     REQUIRE(theme.get_mode_support() == ThemeModeSupport::DARK_ONLY);
 }
 
-TEST_CASE("parse_theme_json - legacy format", "[theme][dual-palette]") {
-    // Legacy format with "colors" object (old ThemePalette structure)
+TEST_CASE("parse_theme_json - legacy format falls back to Nord", "[theme][dual-palette]") {
+    // Legacy format with "colors" object is no longer supported
+    // Should fall back to Nord default theme
     const char* json = R"({
         "name": "Legacy Theme",
         "colors": {
@@ -267,14 +268,9 @@ TEST_CASE("parse_theme_json - legacy format", "[theme][dual-palette]") {
 
     auto theme = parse_theme_json(json, "legacy.json");
 
-    // Should convert legacy format to dark-only with mapped colors
-    REQUIRE(theme.name == "Legacy Theme");
-    REQUIRE(theme.supports_dark());
-    REQUIRE_FALSE(theme.supports_light());
-    // Legacy mapping: bg_darkest -> app_bg
-    REQUIRE(theme.dark.app_bg == "#2E3440");
-    // Legacy mapping: bg_dark -> panel_bg
-    REQUIRE(theme.dark.panel_bg == "#3B4252");
+    // Legacy format is not supported - falls back to Nord
+    REQUIRE(theme.name == "Nord");
+    REQUIRE(theme.is_valid());
 }
 
 TEST_CASE("save and reload theme - round trip new format", "[theme][dual-palette]") {

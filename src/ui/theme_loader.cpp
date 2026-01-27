@@ -84,80 +84,12 @@ bool ModePalette::is_valid() const {
     return true;
 }
 
-// ============================================================================
-// ThemePalette implementation (legacy - kept for backward compatibility)
-// ============================================================================
-
-const std::array<const char*, 16>& ThemePalette::color_names() {
-    static const std::array<const char*, 16> names = {
-        "bg_darkest",     "bg_dark",          "surface_elevated", "surface_dim",
-        "text_light",     "bg_light",         "bg_lightest",      "accent_highlight",
-        "accent_primary", "accent_secondary", "accent_tertiary",  "status_error",
-        "status_danger",  "status_warning",   "status_success",   "status_special"};
-    return names;
-}
-
-const std::string& ThemePalette::at(size_t index) const {
-    switch (index) {
-    case 0:
-        return bg_darkest;
-    case 1:
-        return bg_dark;
-    case 2:
-        return surface_elevated;
-    case 3:
-        return surface_dim;
-    case 4:
-        return text_light;
-    case 5:
-        return bg_light;
-    case 6:
-        return bg_lightest;
-    case 7:
-        return accent_highlight;
-    case 8:
-        return accent_primary;
-    case 9:
-        return accent_secondary;
-    case 10:
-        return accent_tertiary;
-    case 11:
-        return status_error;
-    case 12:
-        return status_danger;
-    case 13:
-        return status_warning;
-    case 14:
-        return status_success;
-    case 15:
-        return status_special;
-    default:
-        throw std::out_of_range("ThemePalette index out of range");
-    }
-}
-
-std::string& ThemePalette::at(size_t index) {
-    return const_cast<std::string&>(static_cast<const ThemePalette*>(this)->at(index));
-}
-
 bool ThemeData::is_valid() const {
     if (name.empty()) {
         return false;
     }
-
-    // New format: at least one of dark/light must be valid
-    if (dark.is_valid() || light.is_valid()) {
-        return true;
-    }
-
-    // Legacy format: check all colors in ThemePalette
-    for (size_t i = 0; i < 16; ++i) {
-        const auto& color = colors.at(i);
-        if (color.empty() || color[0] != '#' || color.size() != 7) {
-            return false;
-        }
-    }
-    return true;
+    // At least one of dark/light must be valid
+    return dark.is_valid() || light.is_valid();
 }
 
 bool ThemeData::supports_dark() const {
@@ -222,24 +154,6 @@ ThemeData get_default_nord_theme() {
     theme.light.danger = "#b23a48";    // adjusted red for light bg
     theme.light.focus = "#8fbcbb";     // nord7 - frost teal
 
-    // LEGACY: Keep for backward compatibility
-    theme.colors.bg_darkest = "#2e3440";
-    theme.colors.bg_dark = "#3b4252";
-    theme.colors.surface_elevated = "#434c5e";
-    theme.colors.surface_dim = "#4c566a";
-    theme.colors.text_light = "#d8dee9";
-    theme.colors.bg_light = "#e5e9f0";
-    theme.colors.bg_lightest = "#eceff4";
-    theme.colors.accent_highlight = "#8fbcbb";
-    theme.colors.accent_primary = "#88c0d0";
-    theme.colors.accent_secondary = "#81a1c1";
-    theme.colors.accent_tertiary = "#5e81ac";
-    theme.colors.status_error = "#bf616a";
-    theme.colors.status_danger = "#d08770";
-    theme.colors.status_warning = "#ebcb8b";
-    theme.colors.status_success = "#a3be8c";
-    theme.colors.status_special = "#b48ead";
-
     theme.properties.border_radius = 12;
     theme.properties.border_width = 1;
     theme.properties.border_opacity = 40;
@@ -266,70 +180,6 @@ static void parse_mode_palette(const nlohmann::json& palette_json, ModePalette& 
     }
 }
 
-/**
- * @brief Convert legacy ThemePalette format to dark-only ModePalette
- *
- * Legacy mapping:
- *   bg_darkest -> app_bg
- *   bg_dark -> panel_bg
- *   surface_elevated -> card_bg
- *   surface_dim -> card_alt
- *   accent_secondary -> border (approximation)
- *   bg_lightest -> text (inverted for dark theme)
- *   text_light -> text_muted (approximate)
- *   accent_highlight -> text_subtle (approximate)
- *   accent_primary -> primary
- *   accent_secondary -> secondary
- *   accent_tertiary -> tertiary
- *   status_special -> info
- *   status_success -> success
- *   status_warning -> warning
- *   status_error -> danger
- *   accent_primary -> focus
- */
-static void convert_legacy_to_dark(const ThemePalette& legacy, ModePalette& dark) {
-    dark.app_bg = legacy.bg_darkest;
-    dark.panel_bg = legacy.bg_dark;
-    dark.card_bg = legacy.surface_elevated;
-    dark.card_alt = legacy.surface_dim;
-    dark.border = legacy.accent_secondary;
-    dark.text = legacy.bg_lightest;
-    dark.text_muted = legacy.text_light;
-    dark.text_subtle = legacy.accent_highlight;
-    dark.primary = legacy.accent_primary;
-    dark.secondary = legacy.accent_secondary;
-    dark.tertiary = legacy.accent_tertiary;
-    dark.info = legacy.status_special;
-    dark.success = legacy.status_success;
-    dark.warning = legacy.status_warning;
-    dark.danger = legacy.status_error;
-    dark.focus = legacy.accent_primary;
-}
-
-/**
- * @brief Convert dark ModePalette to legacy ThemePalette (for backward compatibility)
- *
- * Reverse mapping from convert_legacy_to_dark
- */
-static void convert_dark_to_legacy(const ModePalette& dark, ThemePalette& legacy) {
-    legacy.bg_darkest = dark.app_bg;
-    legacy.bg_dark = dark.panel_bg;
-    legacy.surface_elevated = dark.card_bg;
-    legacy.surface_dim = dark.card_alt;
-    legacy.text_light = dark.text_muted;
-    legacy.bg_light = dark.text_subtle; // approximate
-    legacy.bg_lightest = dark.text;
-    legacy.accent_highlight = dark.text_subtle;
-    legacy.accent_primary = dark.primary;
-    legacy.accent_secondary = dark.secondary;
-    legacy.accent_tertiary = dark.tertiary;
-    legacy.status_error = dark.danger;
-    legacy.status_danger = dark.tertiary; // approximate
-    legacy.status_warning = dark.warning;
-    legacy.status_success = dark.success;
-    legacy.status_special = dark.info;
-}
-
 ThemeData parse_theme_json(const std::string& json_str, const std::string& filename) {
     ThemeData theme;
     theme.filename = filename;
@@ -344,49 +194,23 @@ ThemeData parse_theme_json(const std::string& json_str, const std::string& filen
 
         theme.name = json.value("name", "Unnamed Theme");
 
-        // Detect format: new format has "dark" and/or "light" keys
+        // Theme must have "dark" and/or "light" palette objects
         bool has_dark = json.contains("dark");
         bool has_light = json.contains("light");
-        bool has_colors = json.contains("colors");
 
-        if (has_dark || has_light) {
-            // NEW FORMAT: Parse dark and/or light palettes
-            spdlog::debug("[ThemeLoader] Parsing {} in new dual-palette format", filename);
-
-            if (has_dark) {
-                parse_mode_palette(json["dark"], theme.dark, filename, "dark");
-                // Also populate legacy colors for backward compatibility
-                convert_dark_to_legacy(theme.dark, theme.colors);
-            }
-            if (has_light) {
-                parse_mode_palette(json["light"], theme.light, filename, "light");
-            }
-        } else if (has_colors) {
-            // LEGACY FORMAT: Parse old colors object and convert to dark-only
-            spdlog::trace("[ThemeLoader] Parsing {} in legacy format, converting to dark-only",
-                          filename);
-
-            auto& colors = json["colors"];
-            auto& names = ThemePalette::color_names();
-            auto defaults = get_default_nord_theme();
-
-            for (size_t i = 0; i < 16; ++i) {
-                const char* name = names[i];
-                if (colors.contains(name)) {
-                    theme.colors.at(i) = colors[name].get<std::string>();
-                } else {
-                    // Fall back to Nord default
-                    theme.colors.at(i) = defaults.colors.at(i);
-                    spdlog::warn("[ThemeLoader] Missing color '{}' in {}, using Nord default", name,
-                                 filename);
-                }
-            }
-
-            // Convert legacy to new dark palette
-            convert_legacy_to_dark(theme.colors, theme.dark);
-        } else {
-            spdlog::error("[ThemeLoader] No 'dark', 'light', or 'colors' object in {}", filename);
+        if (!has_dark && !has_light) {
+            spdlog::error("[ThemeLoader] No 'dark' or 'light' palette in {}", filename);
             return get_default_nord_theme();
+        }
+
+        spdlog::debug("[ThemeLoader] Parsing {} with dark={}, light={}", filename, has_dark,
+                      has_light);
+
+        if (has_dark) {
+            parse_mode_palette(json["dark"], theme.dark, filename, "dark");
+        }
+        if (has_light) {
+            parse_mode_palette(json["light"], theme.light, filename, "light");
         }
 
         // Parse properties with defaults
@@ -475,22 +299,12 @@ bool save_theme_to_file(const ThemeData& theme, const std::string& filepath) {
 
     json["name"] = theme.name;
 
-    // NEW FORMAT: Save dark and/or light palettes
+    // Save dark and/or light palettes
     if (theme.dark.is_valid()) {
         json["dark"] = serialize_mode_palette(theme.dark);
     }
     if (theme.light.is_valid()) {
         json["light"] = serialize_mode_palette(theme.light);
-    }
-
-    // LEGACY FALLBACK: If no new palettes but has legacy colors, save those
-    if (!theme.dark.is_valid() && !theme.light.is_valid()) {
-        nlohmann::json colors;
-        auto& names = ThemePalette::color_names();
-        for (size_t i = 0; i < 16; ++i) {
-            colors[names[i]] = theme.colors.at(i);
-        }
-        json["colors"] = colors;
     }
 
     // Properties

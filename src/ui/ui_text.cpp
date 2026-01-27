@@ -143,6 +143,49 @@ static void ui_text_apply(lv_xml_parser_state_t* state, const char** attrs) {
 }
 
 /**
+ * Apply callback for text_button - recalculates contrast AFTER parent is styled
+ *
+ * This is called after XML attributes are applied to both the button and its children,
+ * so the parent's bg_color is now available for luminance calculation.
+ */
+static void ui_text_button_apply(lv_xml_parser_state_t* state, const char** attrs) {
+    // First apply standard label properties
+    lv_xml_label_apply(state, attrs);
+
+    lv_obj_t* label = static_cast<lv_obj_t*>(lv_xml_state_get_item(state));
+    lv_obj_t* parent = lv_obj_get_parent(label);
+
+    if (!parent) {
+        return;
+    }
+
+    // Get parent's background color (now that XML attrs have been applied)
+    lv_color_t bg_color = lv_obj_get_style_bg_color(parent, LV_PART_MAIN);
+    lv_opa_t bg_opa = lv_obj_get_style_bg_opa(parent, LV_PART_MAIN);
+    uint8_t lum = lv_color_luminance(bg_color);
+
+    spdlog::debug("[ui_text] text_button_apply: parent bg=#{:02X}{:02X}{:02X}, opa={}, lum={}",
+                  bg_color.red, bg_color.green, bg_color.blue, bg_opa, lum);
+
+    // Only apply auto-contrast if parent has a visible background
+    if (bg_opa > LV_OPA_50) {
+        // text_light = from light mode palette (dark text for light backgrounds)
+        // text_dark = from dark mode palette (light text for dark backgrounds)
+        const char* color_const = (lum > 140) ? "text_light" : "text_dark";
+        const char* color_str = lv_xml_get_const(NULL, color_const);
+
+        spdlog::debug("[ui_text] text_button_apply: lum={} -> using {} = {}", lum, color_const,
+                      color_str ? color_str : "NULL");
+
+        if (color_str && color_str[0] == '#') {
+            uint32_t hex = static_cast<uint32_t>(strtoul(color_str + 1, NULL, 16));
+            lv_obj_set_style_text_color(label, lv_color_hex(hex), 0);
+            spdlog::debug("[ui_text] Set auto-contrast text color #{:06X}", hex);
+        }
+    }
+}
+
+/**
  * Helper to create a semantic text label with specified font and color
  */
 static lv_obj_t* create_semantic_label(lv_xml_parser_state_t* state, const char** attrs,
@@ -173,19 +216,53 @@ static void* ui_text_xs_create(lv_xml_parser_state_t* state, const char** attrs)
 }
 
 /**
+ * Helper to get contrasting text color for a given background
+ *
+ * Uses luminance calculation to determine if background is light or dark,
+ * then returns the appropriate theme text color for maximum readability.
+ *
+ * @param bg_color Background color to contrast against
+ * @return "text_dark" for light backgrounds, "text_light" for dark backgrounds
+ */
+static const char* get_contrasting_text_color(lv_color_t bg_color) {
+    uint8_t luminance = lv_color_luminance(bg_color);
+    // Threshold of 140 (slightly above midpoint) works well for most UI colors
+    // Light backgrounds (luminance > 140) need dark text
+    // Dark backgrounds (luminance <= 140) need light text
+    return (luminance > 140) ? "text_dark" : "text_light";
+}
+
+/**
  * Create callback for text_button widget
  *
- * Button text with body font, primary text color, and center alignment default.
- * Used inside lv_button elements to provide consistent button label styling.
+ * Creates a centered label with body font. Text color is determined later
+ * in ui_text_button_apply() after parent's bg_color is available.
  */
 static void* ui_text_button_create(lv_xml_parser_state_t* state, const char** attrs) {
-    lv_obj_t* label = create_semantic_label(state, attrs, "font_body", "text");
-    if (label) {
-        // Center the label within its parent (the button)
-        lv_obj_set_align(label, LV_ALIGN_CENTER);
-        // Also set text alignment for multi-line button labels
-        lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+    LV_UNUSED(attrs);
+    lv_obj_t* parent = static_cast<lv_obj_t*>(lv_xml_state_get_parent(state));
+    lv_obj_t* label = lv_label_create(parent);
+
+    // Apply font
+    const char* font_name = lv_xml_get_const(NULL, "font_body");
+    if (font_name) {
+        const lv_font_t* font = lv_xml_get_font(NULL, font_name);
+        if (font) {
+            lv_obj_set_style_text_font(label, font, 0);
+        }
     }
+
+    // Default text color - will be overridden in apply if parent has colored bg
+    const char* color_str = lv_xml_get_const(NULL, "text");
+    if (color_str && color_str[0] == '#') {
+        uint32_t hex = static_cast<uint32_t>(strtoul(color_str + 1, NULL, 16));
+        lv_obj_set_style_text_color(label, lv_color_hex(hex), 0);
+    }
+
+    // Center the label within its parent (the button)
+    lv_obj_set_align(label, LV_ALIGN_CENTER);
+    lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+
     return label;
 }
 
@@ -199,8 +276,8 @@ void ui_text_init() {
     lv_xml_register_widget("text_xs", ui_text_xs_create, ui_text_apply);
     // text_tiny is an alias for text_xs (same size, just a more intuitive name)
     lv_xml_register_widget("text_tiny", ui_text_xs_create, ui_text_apply);
-    // text_button: centered body text for button labels (eliminates manual align/color overrides)
-    lv_xml_register_widget("text_button", ui_text_button_create, ui_text_apply);
+    // text_button: centered body text with AUTO-CONTRAST based on parent bg color
+    lv_xml_register_widget("text_button", ui_text_button_create, ui_text_button_apply);
 
     spdlog::debug(
         "[ui_text] Registered semantic text widgets: text_heading, text_body, text_small, "

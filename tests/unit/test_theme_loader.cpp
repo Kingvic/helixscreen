@@ -10,29 +10,29 @@
 
 using namespace helix;
 
-TEST_CASE("ThemePalette index access", "[theme]") {
-    ThemePalette palette;
-    palette.bg_darkest = "#2e3440";
-    palette.status_special = "#b48ead";
+TEST_CASE("ModePalette index access", "[theme]") {
+    ModePalette palette;
+    palette.app_bg = "#2e3440";
+    palette.focus = "#8fbcbb";
 
     REQUIRE(palette.at(0) == "#2e3440");
-    REQUIRE(palette.at(15) == "#b48ead");
+    REQUIRE(palette.at(15) == "#8fbcbb");
 }
 
-TEST_CASE("ThemePalette color_names returns all 16 names", "[theme]") {
-    auto& names = ThemePalette::color_names();
+TEST_CASE("ModePalette color_names returns all 16 names", "[theme]") {
+    auto& names = ModePalette::color_names();
     REQUIRE(names.size() == 16);
-    REQUIRE(std::string(names[0]) == "bg_darkest");
-    REQUIRE(std::string(names[15]) == "status_special");
+    REQUIRE(std::string(names[0]) == "app_bg");
+    REQUIRE(std::string(names[15]) == "focus");
 }
 
-TEST_CASE("ThemeData::is_valid checks colors and name", "[theme]") {
+TEST_CASE("ThemeData::is_valid checks palettes and name", "[theme]") {
     ThemeData theme;
     theme.name = "Test";
 
-    // Set all 16 colors to valid hex
+    // Set all 16 colors in dark palette to valid hex
     for (size_t i = 0; i < 16; ++i) {
-        theme.colors.at(i) = "#aabbcc";
+        theme.dark.at(i) = "#aabbcc";
     }
 
     REQUIRE(theme.is_valid());
@@ -43,40 +43,40 @@ TEST_CASE("ThemeData::is_valid checks colors and name", "[theme]") {
     theme.name = "Test";
 
     // Invalid color format should fail
-    theme.colors.bg_darkest = "invalid";
+    theme.dark.app_bg = "invalid";
     REQUIRE_FALSE(theme.is_valid());
 
     // Short hex should fail
-    theme.colors.bg_darkest = "#abc";
+    theme.dark.app_bg = "#abc";
     REQUIRE_FALSE(theme.is_valid());
 }
 
-TEST_CASE("ThemePalette::at throws on invalid index", "[theme]") {
-    ThemePalette palette;
+TEST_CASE("ModePalette::at throws on invalid index", "[theme]") {
+    ModePalette palette;
     REQUIRE_THROWS_AS(palette.at(16), std::out_of_range);
     REQUIRE_THROWS_AS(palette.at(100), std::out_of_range);
 }
 
-TEST_CASE("parse_theme_json parses valid theme", "[theme]") {
+TEST_CASE("parse_theme_json parses valid dual-palette theme", "[theme]") {
     const char* json = R"({
         "name": "Test Theme",
-        "colors": {
-            "bg_darkest": "#2e3440",
-            "bg_dark": "#3b4252",
-            "surface_elevated": "#434c5e",
-            "surface_dim": "#4c566a",
-            "text_light": "#d8dee9",
-            "bg_light": "#e5e9f0",
-            "bg_lightest": "#eceff4",
-            "accent_highlight": "#8fbcbb",
-            "accent_primary": "#88c0d0",
-            "accent_secondary": "#81a1c1",
-            "accent_tertiary": "#5e81ac",
-            "status_error": "#bf616a",
-            "status_danger": "#d08770",
-            "status_warning": "#ebcb8b",
-            "status_success": "#a3be8c",
-            "status_special": "#b48ead"
+        "dark": {
+            "app_bg": "#2e3440",
+            "panel_bg": "#3b4252",
+            "card_bg": "#434c5e",
+            "card_alt": "#4c566a",
+            "border": "#616e88",
+            "text": "#eceff4",
+            "text_muted": "#d8dee9",
+            "text_subtle": "#b8c2d1",
+            "primary": "#88c0d0",
+            "secondary": "#81a1c1",
+            "tertiary": "#5e81ac",
+            "info": "#b48ead",
+            "success": "#a3be8c",
+            "warning": "#ebcb8b",
+            "danger": "#bf616a",
+            "focus": "#8fbcbb"
         },
         "border_radius": 8,
         "border_width": 2,
@@ -87,8 +87,8 @@ TEST_CASE("parse_theme_json parses valid theme", "[theme]") {
     auto theme = helix::parse_theme_json(json, "test.json");
 
     REQUIRE(theme.name == "Test Theme");
-    REQUIRE(theme.colors.bg_darkest == "#2e3440");
-    REQUIRE(theme.colors.status_special == "#b48ead");
+    REQUIRE(theme.dark.app_bg == "#2e3440");
+    REQUIRE(theme.dark.focus == "#8fbcbb");
     REQUIRE(theme.properties.border_radius == 8);
     REQUIRE(theme.properties.shadow_intensity == 10);
     REQUIRE(theme.is_valid());
@@ -99,30 +99,25 @@ TEST_CASE("get_default_nord_theme returns valid theme", "[theme]") {
 
     REQUIRE(theme.name == "Nord");
     REQUIRE(theme.is_valid());
-    REQUIRE(theme.colors.bg_darkest == "#2e3440");
-}
-
-TEST_CASE("parse_theme_json falls back to Nord for missing colors", "[theme]") {
-    // JSON with only 2 colors - rest should fall back to Nord
-    const char* json = R"({
-        "name": "Partial Theme",
-        "colors": {
-            "bg_darkest": "#111111",
-            "status_special": "#222222"
-        }
-    })";
-
-    auto theme = helix::parse_theme_json(json, "partial.json");
-
-    REQUIRE(theme.name == "Partial Theme");
-    REQUIRE(theme.colors.bg_darkest == "#111111");     // From JSON
-    REQUIRE(theme.colors.status_special == "#222222"); // From JSON
-    REQUIRE(theme.colors.bg_dark == "#3b4252");        // Nord fallback
-    REQUIRE(theme.colors.accent_primary == "#88c0d0"); // Nord fallback
+    REQUIRE(theme.dark.app_bg == "#2e3440");
+    REQUIRE(theme.light.app_bg == "#eceff4");
 }
 
 TEST_CASE("parse_theme_json returns Nord on invalid JSON", "[theme]") {
     auto theme = helix::parse_theme_json("{ invalid json", "bad.json");
+
+    REQUIRE(theme.name == "Nord");
+    REQUIRE(theme.is_valid());
+}
+
+TEST_CASE("parse_theme_json returns Nord when missing palettes", "[theme]") {
+    // JSON with no dark or light palette should fall back to Nord
+    const char* json = R"({
+        "name": "Invalid Theme",
+        "border_radius": 8
+    })";
+
+    auto theme = helix::parse_theme_json(json, "missing_palettes.json");
 
     REQUIRE(theme.name == "Nord");
     REQUIRE(theme.is_valid());
@@ -140,7 +135,8 @@ TEST_CASE("save_theme_to_file and load_theme_from_file roundtrip", "[theme]") {
 
     REQUIRE(loaded.name == "Roundtrip Test");
     REQUIRE(loaded.properties.border_radius == 20);
-    REQUIRE(loaded.colors.bg_darkest == original.colors.bg_darkest);
+    REQUIRE(loaded.dark.app_bg == original.dark.app_bg);
+    REQUIRE(loaded.light.app_bg == original.light.app_bg);
     REQUIRE(loaded.is_valid());
 
     // Cleanup

@@ -102,6 +102,14 @@ class ThemeEditorOverlay : public OverlayBase {
      */
     void load_theme(const std::string& filename);
 
+    /**
+     * @brief Set which mode (dark/light) to edit
+     * @param is_dark true to edit dark palette, false for light palette
+     *
+     * Call this before load_theme() to match the preview state.
+     */
+    void set_editing_dark_mode(bool is_dark);
+
   private:
     void setup_callbacks();
     void update_swatch_colors();
@@ -182,6 +190,11 @@ class ThemeEditorOverlay : public OverlayBase {
     helix::ThemeData editing_theme_;
     helix::ThemeData original_theme_;
     bool dirty_ = false;
+    bool editing_dark_mode_ = true; ///< Which palette to edit (true=dark, false=light)
+
+    /** @brief Get the active palette based on editing mode */
+    [[nodiscard]] helix::ModePalette& get_active_palette();
+    [[nodiscard]] const helix::ModePalette& get_active_palette() const;
     int editing_color_index_ = -1;
 
     lv_obj_t* panel_ = nullptr;

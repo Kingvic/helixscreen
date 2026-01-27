@@ -491,6 +491,8 @@ void DisplaySettingsOverlay::handle_edit_colors_clicked() {
         std::string theme_name = !preview_theme_name_.empty()
                                      ? preview_theme_name_
                                      : SettingsManager::instance().get_theme_name();
+        // Pass the preview mode so editor shows correct palette (dark or light)
+        get_theme_editor_overlay().set_editing_dark_mode(preview_is_dark_);
         get_theme_editor_overlay().load_theme(theme_name);
         ui_nav_push_overlay(theme_settings_overlay_);
     }
@@ -564,6 +566,39 @@ static void update_text_colors_recursive(lv_obj_t* obj, lv_color_t text_primary)
     }
 }
 
+// Helper to update button label text with contrast-aware color
+// text_light = dark text for light backgrounds (from light mode palette)
+// text_dark = light text for dark backgrounds (from dark mode palette)
+static void update_button_text_contrast(lv_obj_t* btn, lv_color_t text_light,
+                                        lv_color_t text_dark) {
+    if (!btn)
+        return;
+
+    // Get button's background color
+    lv_color_t bg_color = lv_obj_get_style_bg_color(btn, LV_PART_MAIN);
+    uint8_t lum = lv_color_luminance(bg_color);
+
+    // Pick text color based on luminance (same threshold as text_button component)
+    lv_color_t text_color = (lum > 140) ? text_light : text_dark;
+
+    // Update all label children in the button
+    uint32_t count = lv_obj_get_child_count(btn);
+    for (uint32_t i = 0; i < count; i++) {
+        lv_obj_t* child = lv_obj_get_child(btn, i);
+        if (lv_obj_check_type(child, &lv_label_class)) {
+            lv_obj_set_style_text_color(child, text_color, LV_PART_MAIN);
+        }
+        // Also check nested containers (some buttons have container > label structure)
+        uint32_t nested_count = lv_obj_get_child_count(child);
+        for (uint32_t j = 0; j < nested_count; j++) {
+            lv_obj_t* nested = lv_obj_get_child(child, j);
+            if (lv_obj_check_type(nested, &lv_label_class)) {
+                lv_obj_set_style_text_color(nested, text_color, LV_PART_MAIN);
+            }
+        }
+    }
+}
+
 void DisplaySettingsOverlay::handle_preview_dark_mode_toggled(bool is_dark) {
     // Update local state
     preview_is_dark_ = is_dark;
@@ -629,7 +664,7 @@ void DisplaySettingsOverlay::handle_preview_dark_mode_toggled(bool is_dark) {
         update_text_colors_recursive(background_card, text_primary);
     }
 
-    // Update header action buttons text
+    // Update header action buttons text (background updated later with accent colors)
     lv_obj_t* action_btn_2 = lv_obj_find_by_name(theme_explorer_overlay_, "action_button_2");
     if (action_btn_2) {
         update_text_colors_recursive(action_btn_2, text_primary);
@@ -698,6 +733,19 @@ void DisplaySettingsOverlay::handle_preview_dark_mode_toggled(bool is_dark) {
     // Update slider and switch colors
     lv_color_t primary = theme_manager_parse_hex_color(palette->primary.c_str());
     lv_color_t secondary = theme_manager_parse_hex_color(palette->secondary.c_str());
+    lv_color_t tertiary = theme_manager_parse_hex_color(palette->tertiary.c_str());
+    lv_color_t warning = theme_manager_parse_hex_color(palette->warning.c_str());
+    lv_color_t danger = theme_manager_parse_hex_color(palette->danger.c_str());
+
+    // Button text contrast colors - we need BOTH palettes for contrast calculation
+    // text_light = dark text for light backgrounds (from light palette)
+    // text_dark = light text for dark backgrounds (from dark palette)
+    lv_color_t text_light = theme.supports_light()
+                                ? theme_manager_parse_hex_color(theme.light.text.c_str())
+                                : text_primary; // fallback
+    lv_color_t text_dark = theme.supports_dark()
+                               ? theme_manager_parse_hex_color(theme.dark.text.c_str())
+                               : text_primary; // fallback
 
     lv_obj_t* slider = lv_obj_find_by_name(theme_explorer_overlay_, "preview_intensity_slider");
     if (slider) {
@@ -724,6 +772,48 @@ void DisplaySettingsOverlay::handle_preview_dark_mode_toggled(bool is_dark) {
             lv_obj_set_style_bg_color(inner_switch, secondary,
                                       LV_PART_INDICATOR | LV_STATE_CHECKED);
             lv_obj_set_style_bg_color(inner_switch, primary, LV_PART_KNOB);
+        }
+    }
+
+    // Update preview action buttons (Primary, Secondary, Tertiary, Warning, Danger)
+    lv_obj_t* btn = lv_obj_find_by_name(theme_explorer_overlay_, "example_btn_primary");
+    if (btn) {
+        lv_obj_set_style_bg_color(btn, primary, LV_PART_MAIN);
+        update_button_text_contrast(btn, text_light, text_dark);
+    }
+    btn = lv_obj_find_by_name(theme_explorer_overlay_, "example_btn_secondary");
+    if (btn) {
+        lv_obj_set_style_bg_color(btn, secondary, LV_PART_MAIN);
+        update_button_text_contrast(btn, text_light, text_dark);
+    }
+    btn = lv_obj_find_by_name(theme_explorer_overlay_, "example_btn_tertiary");
+    if (btn) {
+        lv_obj_set_style_bg_color(btn, tertiary, LV_PART_MAIN);
+        update_button_text_contrast(btn, text_light, text_dark);
+    }
+    btn = lv_obj_find_by_name(theme_explorer_overlay_, "example_btn_warning");
+    if (btn) {
+        lv_obj_set_style_bg_color(btn, warning, LV_PART_MAIN);
+        update_button_text_contrast(btn, text_light, text_dark);
+    }
+    btn = lv_obj_find_by_name(theme_explorer_overlay_, "example_btn_danger");
+    if (btn) {
+        lv_obj_set_style_bg_color(btn, danger, LV_PART_MAIN);
+        update_button_text_contrast(btn, text_light, text_dark);
+    }
+
+    // Update header action button backgrounds (Edit=secondary, Apply=primary)
+    // Note: 'header' already defined earlier in function
+    {
+        lv_obj_t* edit_btn = lv_obj_find_by_name(header, "action_button_2");
+        if (edit_btn) {
+            lv_obj_set_style_bg_color(edit_btn, secondary, LV_PART_MAIN);
+            update_button_text_contrast(edit_btn, text_light, text_dark);
+        }
+        lv_obj_t* apply_btn = lv_obj_find_by_name(header, "action_button");
+        if (apply_btn) {
+            lv_obj_set_style_bg_color(apply_btn, primary, LV_PART_MAIN);
+            update_button_text_contrast(apply_btn, text_light, text_dark);
         }
     }
 

@@ -121,12 +121,6 @@ static void theme_manager_register_static_constants(lv_xml_component_scope_t* sc
 
     auto color_tokens = theme_manager_parse_all_xml_for_element("ui_xml", "color");
 
-    // Merge palette colors from active theme JSON - these override any XML definitions
-    auto& names = helix::ThemePalette::color_names();
-    for (size_t i = 0; i < 16; ++i) {
-        color_tokens[names[i]] = active_theme.colors.at(i);
-    }
-
     for (const auto& [name, value] : color_tokens) {
         if (!has_dynamic_suffix(name)) {
             lv_xml_register_const(scope, name.c_str(), value.c_str());
@@ -324,25 +318,6 @@ void theme_manager_register_responsive_fonts(lv_display_t* display) {
 }
 
 /**
- * @brief Register LEGACY theme palette colors as LVGL constants
- *
- * Registers all 16 palette colors from the legacy ThemePalette.
- * These are kept for backward compatibility with existing themes.
- * Must be called BEFORE theme_manager_register_static_constants() so
- * palette colors are available for semantic mapping.
- *
- * Note: The new semantic colors are registered in theme_manager_register_semantic_colors()
- */
-static void theme_manager_register_palette_colors(lv_xml_component_scope_t* scope,
-                                                  const helix::ThemeData& theme) {
-    auto& names = helix::ThemePalette::color_names();
-    for (size_t i = 0; i < 16; ++i) {
-        lv_xml_register_const(scope, names[i], theme.colors.at(i).c_str());
-    }
-    spdlog::debug("[Theme] Registered 16 legacy palette colors from theme '{}'", theme.name);
-}
-
-/**
  * @brief Register semantic colors from dual-palette system
  *
  * Uses the new ModePalette from theme.dark and theme.light to register
@@ -493,10 +468,7 @@ void theme_manager_init(lv_display_t* display, bool use_dark_mode_param) {
     // Load active theme from config/themes directory
     active_theme = theme_manager_load_active_theme();
 
-    // Register palette colors FIRST (before static constants)
-    theme_manager_register_palette_colors(scope, active_theme);
-
-    // Register semantic colors derived from palette (includes _light/_dark variants and base names)
+    // Register semantic colors from theme (includes _light/_dark variants and base names)
     theme_manager_register_semantic_colors(scope, active_theme, use_dark_mode);
 
     // Register static constants first (colors, px, strings without dynamic suffixes)

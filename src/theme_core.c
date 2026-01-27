@@ -261,7 +261,8 @@ lv_theme_t* theme_core_init(lv_display_t* display, lv_color_t primary_color,
     lv_style_set_bg_opa(&helix_theme_instance->button_style, LV_OPA_COVER);
     lv_style_set_radius(&helix_theme_instance->button_style, border_radius);
     lv_style_set_shadow_width(&helix_theme_instance->button_style, 0);
-    lv_style_set_text_color(&helix_theme_instance->button_style, text_primary_color);
+    // NOTE: text_color intentionally NOT set on button_style
+    // Button text color is handled by text_button component with auto-contrast logic
     lv_style_set_transform_pivot_x(&helix_theme_instance->button_style, LV_PCT(50));
     lv_style_set_transform_pivot_y(&helix_theme_instance->button_style, LV_PCT(50));
     lv_style_set_transition(&helix_theme_instance->button_style, &button_press_transition);
@@ -401,9 +402,8 @@ void theme_core_update_colors(bool is_dark, lv_color_t screen_bg, lv_color_t car
     lv_style_set_bg_color(&helix_theme_instance->input_bg_style, surface_control);
     lv_style_set_text_color(&helix_theme_instance->input_bg_style, text_primary_color);
 
-    // Update button style colors
+    // Update button style colors (text_color handled by text_button auto-contrast)
     lv_style_set_bg_color(&helix_theme_instance->button_style, surface_control);
-    lv_style_set_text_color(&helix_theme_instance->button_style, text_primary_color);
 
     // Update checkbox text color
     lv_style_set_text_color(&helix_theme_instance->checkbox_text_style, text_primary_color);
@@ -502,9 +502,8 @@ void theme_core_preview_colors(bool is_dark, const char* colors[16], int32_t bor
     lv_style_set_bg_color(&helix_theme_instance->input_bg_style, card_alt);
     lv_style_set_text_color(&helix_theme_instance->input_bg_style, text_primary);
 
-    // Update button style
+    // Update button style (text_color handled by text_button auto-contrast)
     lv_style_set_bg_color(&helix_theme_instance->button_style, card_alt);
-    lv_style_set_text_color(&helix_theme_instance->button_style, text_primary);
     lv_style_set_radius(&helix_theme_instance->button_style, border_radius);
     lv_style_set_radius(&helix_theme_instance->pressed_style, border_radius);
 
