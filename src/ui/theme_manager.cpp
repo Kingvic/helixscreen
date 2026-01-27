@@ -784,7 +784,8 @@ void theme_manager_refresh_preview_elements(lv_obj_t* root, const helix::ThemeDa
         // Find theme_preset_dropdown which is in overlay_content
         lv_obj_t* dropdown = lv_obj_find_by_name(root, "theme_preset_dropdown");
         if (dropdown) {
-            // Walk up: dropdown -> container -> theme_controls_row -> overlay_content -> overlay_root
+            // Walk up: dropdown -> container -> theme_controls_row -> overlay_content ->
+            // overlay_root
             lv_obj_t* p = dropdown;
             for (int i = 0; i < 4 && p; i++) {
                 p = lv_obj_get_parent(p);
@@ -891,24 +892,15 @@ void theme_manager_refresh_preview_elements(lv_obj_t* root, const helix::ThemeDa
     // Elements using muted text color (palette.text_muted)
     static const char* text_muted_elements[] = {
         // Card section headers
-        "preview_heading_typography",
-        "preview_heading_actions",
+        "preview_heading_typography", "preview_heading_actions",
         // Sample typography demonstrations
-        "preview_sample_heading",
-        "preview_sample_small",
+        "preview_sample_heading", "preview_sample_small",
         // Form/control labels
-        "preview_label_preset",
-        "preview_label_dark_mode",
-        "preview_label_mode",
-        "preview_label_auto",
-        "preview_label_input",
-        "preview_label_intensity",
-        "preview_label_status_icons",
-        "preview_label_status",
+        "preview_label_preset", "preview_label_dark_mode", "preview_label_mode",
+        "preview_label_auto", "preview_label_input", "preview_label_intensity",
+        "preview_label_status_icons", "preview_label_status",
         // Descriptive text
-        "preview_description",
-        "preview_bg_description",
-        nullptr};
+        "preview_description", "preview_bg_description", nullptr};
 
     // Apply primary text color
     for (const char** name = text_primary_elements; *name != nullptr; ++name) {

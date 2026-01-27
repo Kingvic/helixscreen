@@ -262,8 +262,7 @@ void SettingsPanel::init_subjects() {
     // Register XML event callbacks for dropdowns (already in XML)
     lv_xml_register_event_cb(nullptr, "on_completion_alert_changed",
                              on_completion_alert_dropdown_changed);
-    lv_xml_register_event_cb(nullptr, "on_display_dim_changed",
-                             on_display_dim_dropdown_changed);
+    lv_xml_register_event_cb(nullptr, "on_display_dim_changed", on_display_dim_dropdown_changed);
     lv_xml_register_event_cb(nullptr, "on_display_sleep_changed",
                              on_display_sleep_dropdown_changed);
     lv_xml_register_event_cb(nullptr, "on_bed_mesh_mode_changed", on_bed_mesh_mode_changed);

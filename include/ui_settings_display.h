@@ -254,6 +254,17 @@ class DisplaySettingsOverlay : public OverlayBase {
     static void on_apply_theme_clicked(lv_event_t* e);
     static void on_edit_colors_clicked(lv_event_t* e);
     static void on_preview_dark_mode_toggled(lv_event_t* e);
+
+  public:
+    /**
+     * @brief Show theme preview overlay directly (for CLI access)
+     *
+     * Registers callbacks and creates the theme preview overlay
+     * without showing the parent display settings overlay.
+     *
+     * @param parent_screen Screen to create overlay on
+     */
+    void show_theme_preview(lv_obj_t* parent_screen);
 };
 
 /**

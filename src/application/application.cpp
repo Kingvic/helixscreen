@@ -65,6 +65,7 @@
 #include "ui_panel_step_test.h"
 #include "ui_panel_temp_control.h"
 #include "ui_panel_test.h"
+#include "ui_settings_display.h"
 #include "ui_severity_card.h"
 #include "ui_status_bar.h"
 #include "ui_switch.h"
@@ -1203,6 +1204,16 @@ void Application::create_overlays() {
         if (panel_obj) {
             ui_nav_push_overlay(panel_obj);
         }
+    }
+
+    if (m_args.overlays.theme) {
+        // Use the proper flow through DisplaySettingsOverlay which handles:
+        // - callback registration
+        // - dropdown population
+        // - theme preview creation
+        auto& display_settings = helix::settings::get_display_settings_overlay();
+        display_settings.show_theme_preview(m_screen);
+        spdlog::info("[Application] Opened theme preview overlay via CLI");
     }
 
     // Handle --select-file flag

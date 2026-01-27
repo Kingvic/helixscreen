@@ -28,7 +28,17 @@ enum class IconSize { XS, SM, MD, LG, XL };
 /**
  * Variant mapping: semantic name -> color styling
  */
-enum class IconVariant { NONE, PRIMARY, SECONDARY, ACCENT, DISABLED, SUCCESS, WARNING, ERROR, INFO };
+enum class IconVariant {
+    NONE,
+    PRIMARY,
+    SECONDARY,
+    ACCENT,
+    DISABLED,
+    SUCCESS,
+    WARNING,
+    ERROR,
+    INFO
+};
 
 /**
  * Parse size string to IconSize enum

@@ -49,6 +49,7 @@ struct OverlayFlags {
     bool ams = false;
     bool spoolman = false;
     bool wizard_ams_identify = false;
+    bool theme = false; // Theme preview overlay (for testing/screenshots)
 
     /** @brief Check if any overlay requiring Moonraker data is requested */
     bool needs_moonraker() const {

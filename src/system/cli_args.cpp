@@ -234,6 +234,9 @@ static bool parse_panel_arg(const char* panel_arg, CliArgs& args) {
     } else if (strcmp(panel_arg, "wizard-ams-identify") == 0 ||
                strcmp(panel_arg, "wizard_ams_identify") == 0) {
         args.overlays.wizard_ams_identify = true;
+    } else if (strcmp(panel_arg, "theme") == 0 || strcmp(panel_arg, "theme-preview") == 0) {
+        args.initial_panel = UI_PANEL_SETTINGS;
+        args.overlays.theme = true;
     } else {
         // Try base panel lookup
         auto panel_id = panel_name_to_id(panel_arg);

@@ -674,7 +674,8 @@ void DisplaySettingsOverlay::handle_preview_dark_mode_toggled(bool is_dark) {
     lv_color_t card_alt = theme_manager_parse_hex_color(palette->card_alt.c_str());
     lv_color_t border_color = theme_manager_parse_hex_color(palette->border.c_str());
 
-    lv_obj_t* preset_dropdown = lv_obj_find_by_name(theme_explorer_overlay_, "theme_preset_dropdown");
+    lv_obj_t* preset_dropdown =
+        lv_obj_find_by_name(theme_explorer_overlay_, "theme_preset_dropdown");
     if (preset_dropdown) {
         lv_obj_set_style_bg_color(preset_dropdown, card_alt, LV_PART_MAIN);
         lv_obj_set_style_border_color(preset_dropdown, border_color, LV_PART_MAIN);
@@ -713,12 +714,14 @@ void DisplaySettingsOverlay::handle_preview_dark_mode_toggled(bool is_dark) {
     }
 
     // Update the dark mode toggle switch itself
-    lv_obj_t* dark_mode_toggle = lv_obj_find_by_name(theme_explorer_overlay_, "preview_dark_mode_toggle");
+    lv_obj_t* dark_mode_toggle =
+        lv_obj_find_by_name(theme_explorer_overlay_, "preview_dark_mode_toggle");
     if (dark_mode_toggle) {
         lv_obj_t* inner_switch = lv_obj_find_by_name(dark_mode_toggle, "switch");
         if (inner_switch) {
             lv_obj_set_style_bg_color(inner_switch, border_color, LV_PART_MAIN);
-            lv_obj_set_style_bg_color(inner_switch, secondary, LV_PART_INDICATOR | LV_STATE_CHECKED);
+            lv_obj_set_style_bg_color(inner_switch, secondary,
+                                      LV_PART_INDICATOR | LV_STATE_CHECKED);
             lv_obj_set_style_bg_color(inner_switch, primary, LV_PART_KNOB);
         }
     }
