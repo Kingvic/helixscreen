@@ -164,9 +164,6 @@ static void ui_text_button_apply(lv_xml_parser_state_t* state, const char** attr
     lv_opa_t bg_opa = lv_obj_get_style_bg_opa(parent, LV_PART_MAIN);
     uint8_t lum = lv_color_luminance(bg_color);
 
-    spdlog::debug("[ui_text] text_button_apply: parent bg=#{:02X}{:02X}{:02X}, opa={}, lum={}",
-                  bg_color.red, bg_color.green, bg_color.blue, bg_opa, lum);
-
     // Only apply auto-contrast if parent has a visible background
     if (bg_opa > LV_OPA_50) {
         // text_light = from light mode palette (dark text for light backgrounds)
@@ -174,13 +171,9 @@ static void ui_text_button_apply(lv_xml_parser_state_t* state, const char** attr
         const char* color_const = (lum > 140) ? "text_light" : "text_dark";
         const char* color_str = lv_xml_get_const(NULL, color_const);
 
-        spdlog::debug("[ui_text] text_button_apply: lum={} -> using {} = {}", lum, color_const,
-                      color_str ? color_str : "NULL");
-
         if (color_str && color_str[0] == '#') {
             uint32_t hex = static_cast<uint32_t>(strtoul(color_str + 1, NULL, 16));
             lv_obj_set_style_text_color(label, lv_color_hex(hex), 0);
-            spdlog::debug("[ui_text] Set auto-contrast text color #{:06X}", hex);
         }
     }
 }
@@ -213,23 +206,6 @@ static void* ui_text_small_create(lv_xml_parser_state_t* state, const char** att
 
 static void* ui_text_xs_create(lv_xml_parser_state_t* state, const char** attrs) {
     return create_semantic_label(state, attrs, "font_xs", "text_muted");
-}
-
-/**
- * Helper to get contrasting text color for a given background
- *
- * Uses luminance calculation to determine if background is light or dark,
- * then returns the appropriate theme text color for maximum readability.
- *
- * @param bg_color Background color to contrast against
- * @return "text_dark" for light backgrounds, "text_light" for dark backgrounds
- */
-static const char* get_contrasting_text_color(lv_color_t bg_color) {
-    uint8_t luminance = lv_color_luminance(bg_color);
-    // Threshold of 140 (slightly above midpoint) works well for most UI colors
-    // Light backgrounds (luminance > 140) need dark text
-    // Dark backgrounds (luminance <= 140) need light text
-    return (luminance > 140) ? "text_dark" : "text_light";
 }
 
 /**

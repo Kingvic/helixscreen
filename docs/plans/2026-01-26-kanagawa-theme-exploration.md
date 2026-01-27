@@ -1,0 +1,146 @@
+# Theme QA: Kanagawa and System Improvements
+
+## Status: KANAGAWA DONE - System Improvements Remain
+
+## Completed This Session
+
+### Kanagawa Theme Fix
+- **Swapped secondary ↔ tertiary colors** in both dark and light modes
+- Dark: secondary=#957FB8 (oniViolet/purple), tertiary=#D27E99 (sakuraPink)
+- Light: secondary=#624C83 (purple), tertiary=#B35B79 (pink)
+- Result: Switch/slider tracks now use purple which pairs better with the light blue primary/handle color
+
+### Checkbox Theming Fix
+- Added `checkbox_text_style` to `theme_core.c`
+- Checkboxes now properly use theme text color (was potentially hardcoded)
+- Added checkbox to theme preview panel for visual verification
+
+### Header Bar Dual Button Support
+- `header_bar.xml` now supports TWO action buttons (action_button_2 left of action_button)
+- Props: `action_button_2_text`, `action_button_2_bg_color`, `action_button_2_callback`, `hide_action_button_2`
+- `overlay_panel.xml` passes through new props
+- Both buttons use `text_button` widget for auto-centering, min-width=90px for consistency
+
+### Theme Preview UI Improvements
+- Edit + Apply buttons now in header bar (was: Apply in header, Edit buried at bottom)
+- Edit uses secondary color, Apply uses primary color
+- Button preview reorganized: Primary/Secondary row, Tertiary/Warning row, Danger full-width
+- Fixed header background to use `app_bg` (was incorrectly using `card_bg` in light mode)
+- Fixed back button to have transparent background during preview
+- Added checkbox preview with "Enable" label
+
+### Files Modified
+- `config/themes/defaults/kanagawa.json` - Color swap
+- `src/theme_core.c` - Checkbox text styling
+- `src/ui/theme_manager.cpp` - Preview color updates, overlay finding
+- `src/ui/ui_settings_display.cpp` - Header color fix, button updates
+- `ui_xml/header_bar.xml` - Dual button support
+- `ui_xml/overlay_panel.xml` - Pass through new props
+- `ui_xml/theme_preview_overlay.xml` - New button layout
+
+## Next: Global Theme System Improvements
+
+### ⚠️ PRIORITY: Kill Legacy Theme System (BLOCKING)
+**This is blocking other fixes!** The legacy `ThemePalette` has color names like `text_light`
+that collide with our new naming (`text_light` = light mode's text color).
+
+Files to audit/purge:
+- `src/ui/theme_loader.cpp` - `ThemePalette` class, legacy parsing code
+- `src/ui/theme_manager.cpp` - any legacy constant registration
+- Any XML files using old color names: `bg_darkest`, `bg_dark`, `surface_elevated`,
+  `surface_dim`, `text_light` (legacy), `bg_light`, `bg_lightest`, `accent_highlight`,
+  `accent_primary`, `accent_secondary`, `accent_tertiary`, `status_error`, etc.
+
+Tasks:
+1. [ ] Remove `ThemePalette` class entirely
+2. [ ] Remove legacy JSON parsing (`"colors"` object format)
+3. [ ] Search codebase for legacy color name usage
+4. [ ] Test all themes still load correctly
+
+### Button Borders (Not Started)
+- All 65+ XML files have `style_border_width="0"` hardcoded
+- Buttons should respect theme `border_width`, `border_opacity`, and `border_radius`
+- Need to expose these as XML constants (`#border_width`, `#border_opacity`)
+
+### Shadow System (Not Started)
+- `shadow_intensity` is dead code - stored in JSON, shown in editor, never applied
+- "Raised" elements (modals, dialogs, dropdowns) should have configurable drop shadows
+- Need to wire `shadow_intensity` to actual widget rendering in `theme_core.c`
+
+### Theme Editor Bug (Not Started)
+- User reported border color showing as "gold" in edit panel but actual value is purple-gray
+- Need to investigate potential color display bug
+
+### Theme Application Refactor (Not Started)
+**Problem:** Theme styling logic is duplicated across multiple files:
+- `theme_core.c` - initial widget styling on creation
+- `ui_switch.cpp` - switch knob OFF state calculation
+- `ui_settings_display.cpp` - manual preview color updates (50+ lines of `lv_obj_set_style_*`)
+
+**Solution:** Centralize theme application:
+1. Create `theme_manager_apply_to_widget(lv_obj_t* widget, ThemePalette* palette)` - knows how to style ANY widget type
+2. Create `theme_manager_apply_to_tree(lv_obj_t* root, ThemePalette* palette)` - walks tree and applies to each widget
+3. Replace manual preview styling with single call: `theme_manager_apply_to_tree(overlay, palette)`
+4. Extract shared calculations (e.g., switch OFF knob color) into reusable functions
+
+**Benefits:**
+- Single source of truth for how each widget type gets themed
+- Preview code becomes trivial
+- Easier to add new themed widgets
+- Less duplication, fewer bugs
+
+### Remaining Theme QA - IN PROGRESS
+
+#### Design Principles (Reference These!)
+
+**1. Light Mode Background Pattern** - Theme-dependent, NOT one-size-fits-all:
+- **Cards float (white/lightest)**: Ayu, Nord, OneDark, Material, Solarized, Tokyo Night
+  - Modern clean look, cards "pop" above tinted background
+- **Cards blend (darker than bg)**: Catppuccin, Gruvbox, Kanagawa
+  - Warmer aesthetic, depth/layering feel, works with cream/sepia tones
+
+**2. Primary/Secondary Pairing** - These appear together on switches/sliders:
+- Secondary = track color, Primary = handle color
+- Should complement each other visually, not clash
+- Example fix: Kanagawa swapped secondary↔tertiary because pink clashed with blue
+
+**3. text_subtle** - Must be a muted GRAY, not an accent color:
+- Used for de-emphasized text (timestamps, hints, placeholders)
+- Dark mode: lighter gray, Light mode: darker gray
+
+#### Completed Fixes (This Session)
+- ✅ Fixed `text_subtle` in 12 themes (was bright cyan/teal, now proper grays)
+- ✅ Nord: swapped border↔text_subtle for better gray usage
+- ✅ Switch OFF knob contrast - use card_alt (lighter) in dark mode, card_bg (darker) in light mode
+- ✅ Disabled button text - Apply button now uses text_subtle when disabled
+- ✅ Theme preview switch knob colors - fixed to use calculated OFF knob color, not primary
+- ✅ Theme selection now updates all preview widgets (was only updating on dark mode toggle)
+- ✅ Status icons now update colors on theme/mode change
+- ✅ Dark Mode toggle switch styling fixed (was looking for wrong child element)
+- ✅ Removed unused `get_contrasting_text_color()` and debug logging from ui_text.cpp
+
+#### QA Progress
+- [x] ayu - DONE
+- [x] catppuccin - DONE (both dark and light)
+- [ ] catppuccin - dark DONE, light TODO
+- [ ] chatgpt-classic
+- [ ] chatgpt
+- [ ] dracula (dark only)
+- [ ] everforest
+- [ ] gruvbox
+- [ ] material-design
+- [ ] nord
+- [ ] onedark
+- [ ] rose-pine
+- [ ] solarized
+- [ ] tokyonight
+- [ ] yami (dark only)
+
+## How to Test
+
+```bash
+# View theme preview with Kanagawa
+HELIX_THEME=kanagawa ./build/bin/helix-screen --test -v -p theme
+
+# Test light mode toggle in the preview panel
+```

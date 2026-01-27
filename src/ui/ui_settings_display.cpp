@@ -24,6 +24,9 @@
 
 namespace helix::settings {
 
+// Forward declaration for use before definition
+static void update_button_text_contrast(lv_obj_t* btn, lv_color_t text_light, lv_color_t text_dark);
+
 // ============================================================================
 // SINGLETON ACCESSOR
 // ============================================================================
@@ -355,13 +358,17 @@ void DisplaySettingsOverlay::handle_explorer_theme_changed(int index) {
         lv_obj_t* header = lv_obj_find_by_name(theme_explorer_overlay_, "overlay_header");
         lv_obj_t* action_btn = header ? lv_obj_find_by_name(header, "action_button") : nullptr;
         if (action_btn) {
-            if (index != original_theme_index_) {
-                lv_obj_remove_state(action_btn, LV_STATE_DISABLED);
-            } else {
+            bool should_disable = (index == original_theme_index_);
+            if (should_disable) {
                 lv_obj_add_state(action_btn, LV_STATE_DISABLED);
+            } else {
+                lv_obj_remove_state(action_btn, LV_STATE_DISABLED);
             }
         }
     }
+
+    // Update all preview widget colors (reuse dark mode toggle logic)
+    handle_preview_dark_mode_toggled(preview_is_dark_);
 
     spdlog::debug("[{}] Explorer preview: theme '{}' (index {})", get_name(), theme_name, index);
 }
@@ -419,11 +426,20 @@ void DisplaySettingsOverlay::handle_theme_settings_clicked() {
         }
     }
 
-    // Initially disable Apply button (no changes yet)
+    // Initially disable Apply button (no changes yet) and set proper text color
     lv_obj_t* header = lv_obj_find_by_name(theme_explorer_overlay_, "overlay_header");
     lv_obj_t* action_btn = header ? lv_obj_find_by_name(header, "action_button") : nullptr;
     if (action_btn) {
         lv_obj_add_state(action_btn, LV_STATE_DISABLED);
+
+        // Update button text color for disabled state
+        const char* text_light_str = lv_xml_get_const(NULL, "text_light");
+        const char* text_dark_str = lv_xml_get_const(NULL, "text_dark");
+        if (text_light_str && text_dark_str) {
+            lv_color_t text_light = theme_manager_parse_hex_color(text_light_str);
+            lv_color_t text_dark = theme_manager_parse_hex_color(text_dark_str);
+            update_button_text_contrast(action_btn, text_light, text_dark);
+        }
     }
 
     ui_nav_push_overlay(theme_explorer_overlay_);
@@ -581,19 +597,29 @@ static void update_button_text_contrast(lv_obj_t* btn, lv_color_t text_light,
     // Pick text color based on luminance (same threshold as text_button component)
     lv_color_t text_color = (lum > 140) ? text_light : text_dark;
 
+    // Get text_subtle for disabled state (muted gray with readable contrast)
+    const char* subtle_str = lv_xml_get_const(NULL, "text_subtle");
+    bool btn_disabled = lv_obj_has_state(btn, LV_STATE_DISABLED);
+
+    // Determine effective color: subtle for disabled (if available), otherwise contrast
+    lv_color_t effective_color = text_color;
+    if (btn_disabled && subtle_str) {
+        effective_color = theme_manager_parse_hex_color(subtle_str);
+    }
+
     // Update all label children in the button
     uint32_t count = lv_obj_get_child_count(btn);
     for (uint32_t i = 0; i < count; i++) {
         lv_obj_t* child = lv_obj_get_child(btn, i);
         if (lv_obj_check_type(child, &lv_label_class)) {
-            lv_obj_set_style_text_color(child, text_color, LV_PART_MAIN);
+            lv_obj_set_style_text_color(child, effective_color, LV_PART_MAIN);
         }
         // Also check nested containers (some buttons have container > label structure)
         uint32_t nested_count = lv_obj_get_child_count(child);
         for (uint32_t j = 0; j < nested_count; j++) {
             lv_obj_t* nested = lv_obj_get_child(child, j);
             if (lv_obj_check_type(nested, &lv_label_class)) {
-                lv_obj_set_style_text_color(nested, text_color, LV_PART_MAIN);
+                lv_obj_set_style_text_color(nested, effective_color, LV_PART_MAIN);
             }
         }
     }
@@ -755,24 +781,32 @@ void DisplaySettingsOverlay::handle_preview_dark_mode_toggled(bool is_dark) {
         lv_obj_set_style_shadow_color(slider, app_bg, LV_PART_KNOB);
     }
 
+    // Calculate OFF state knob color (same logic as ui_switch.cpp)
+    // Dark mode: lighter surface (card_alt) for contrast; Light mode: darker surface (card_bg)
+    lv_color_t off_knob_color;
+    if (is_dark) {
+        off_knob_color = lv_color_mix(card_alt, border_color, 178); // 70% card_alt
+    } else {
+        off_knob_color = lv_color_mix(card_bg, border_color, 178); // 70% card_bg
+    }
+
     lv_obj_t* preview_switch = lv_obj_find_by_name(theme_explorer_overlay_, "preview_switch");
     if (preview_switch) {
         lv_obj_set_style_bg_color(preview_switch, border_color, LV_PART_MAIN);
         lv_obj_set_style_bg_color(preview_switch, secondary, LV_PART_INDICATOR | LV_STATE_CHECKED);
-        lv_obj_set_style_bg_color(preview_switch, primary, LV_PART_KNOB);
+        lv_obj_set_style_bg_color(preview_switch, off_knob_color, LV_PART_KNOB);
+        lv_obj_set_style_bg_color(preview_switch, primary, LV_PART_KNOB | LV_STATE_CHECKED);
     }
 
-    // Update the dark mode toggle switch itself
+    // Update the dark mode toggle switch itself (it's a ui_switch directly, not a container)
     lv_obj_t* dark_mode_toggle =
         lv_obj_find_by_name(theme_explorer_overlay_, "preview_dark_mode_toggle");
     if (dark_mode_toggle) {
-        lv_obj_t* inner_switch = lv_obj_find_by_name(dark_mode_toggle, "switch");
-        if (inner_switch) {
-            lv_obj_set_style_bg_color(inner_switch, border_color, LV_PART_MAIN);
-            lv_obj_set_style_bg_color(inner_switch, secondary,
-                                      LV_PART_INDICATOR | LV_STATE_CHECKED);
-            lv_obj_set_style_bg_color(inner_switch, primary, LV_PART_KNOB);
-        }
+        lv_obj_set_style_bg_color(dark_mode_toggle, border_color, LV_PART_MAIN);
+        lv_obj_set_style_bg_color(dark_mode_toggle, secondary,
+                                  LV_PART_INDICATOR | LV_STATE_CHECKED);
+        lv_obj_set_style_bg_color(dark_mode_toggle, off_knob_color, LV_PART_KNOB);
+        lv_obj_set_style_bg_color(dark_mode_toggle, primary, LV_PART_KNOB | LV_STATE_CHECKED);
     }
 
     // Update preview action buttons (Primary, Secondary, Tertiary, Warning, Danger)
@@ -814,6 +848,29 @@ void DisplaySettingsOverlay::handle_preview_dark_mode_toggled(bool is_dark) {
         if (apply_btn) {
             lv_obj_set_style_bg_color(apply_btn, primary, LV_PART_MAIN);
             update_button_text_contrast(apply_btn, text_light, text_dark);
+        }
+    }
+
+    // Update status icons - find by searching from the status icons label
+    lv_obj_t* status_label =
+        lv_obj_find_by_name(theme_explorer_overlay_, "preview_label_status_icons");
+    if (status_label) {
+        lv_color_t info_color = theme_manager_parse_hex_color(palette->info.c_str());
+        lv_color_t success_color = theme_manager_parse_hex_color(palette->success.c_str());
+        lv_color_t warning_color = theme_manager_parse_hex_color(palette->warning.c_str());
+        lv_color_t danger_color = theme_manager_parse_hex_color(palette->danger.c_str());
+
+        // Icons are siblings before this label in the same row
+        lv_obj_t* row = lv_obj_get_parent(status_label);
+        if (row) {
+            uint32_t child_count = lv_obj_get_child_count(row);
+            // Icons are first 4 children: info, success, warning, error
+            if (child_count >= 4) {
+                lv_obj_set_style_text_color(lv_obj_get_child(row, 0), info_color, LV_PART_MAIN);
+                lv_obj_set_style_text_color(lv_obj_get_child(row, 1), success_color, LV_PART_MAIN);
+                lv_obj_set_style_text_color(lv_obj_get_child(row, 2), warning_color, LV_PART_MAIN);
+                lv_obj_set_style_text_color(lv_obj_get_child(row, 3), danger_color, LV_PART_MAIN);
+            }
         }
     }
 

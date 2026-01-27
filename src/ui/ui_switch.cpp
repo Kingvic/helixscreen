@@ -211,14 +211,14 @@ static void ui_switch_xml_apply(lv_xml_parser_state_t* state, const char** attrs
     const char* card_alt_str = lv_xml_get_const(NULL, "card_alt");
 
     lv_color_t knob_color;
-    if (is_dark && card_bg_str) {
-        // Dark mode: use card_bg for visible knob
-        lv_color_t card_bg_color = theme_manager_parse_hex_color(card_bg_str);
-        knob_color = lv_color_mix(card_bg_color, track_color, LV_OPA_60);
-    } else if (!is_dark && card_alt_str) {
-        // Light mode: use card_alt for contrast against light bg
+    if (is_dark && card_alt_str) {
+        // Dark mode: use card_alt (lighter surface) for visible knob contrast against track
         lv_color_t card_alt_color = theme_manager_parse_hex_color(card_alt_str);
-        knob_color = lv_color_mix(card_alt_color, track_color, LV_OPA_50);
+        knob_color = lv_color_mix(card_alt_color, track_color, LV_OPA_70);
+    } else if (!is_dark && card_bg_str) {
+        // Light mode: use card_bg (darker surface) for visible knob against light track
+        lv_color_t card_bg_color = theme_manager_parse_hex_color(card_bg_str);
+        knob_color = lv_color_mix(card_bg_color, track_color, LV_OPA_70);
     } else {
         // Fallback
         knob_color = lv_color_mix(lv_color_white(), track_color, LV_OPA_50);
