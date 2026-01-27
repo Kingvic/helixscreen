@@ -630,6 +630,11 @@ void DisplaySettingsOverlay::on_preview_open_modal(lv_event_t* e) {
         "veniam, quis nostrud exercitation ullamco laboris.",
         ModalSeverity::Info, "OK", nullptr, nullptr, nullptr);
 
+    // Apply preview palette to the newly created modal
+    // (modal is created with global theme colors, need to update for preview)
+    auto& overlay = get_display_settings_overlay();
+    overlay.apply_preview_palette_to_screen_popups();
+
     LVGL_SAFE_EVENT_CB_END();
 }
 
@@ -808,6 +813,42 @@ void DisplaySettingsOverlay::handle_preview_dark_mode_toggled(bool is_dark) {
 
     spdlog::debug("[DisplaySettingsOverlay] Preview dark mode toggled to {} (local only)",
                   is_dark ? "dark" : "light");
+}
+
+void DisplaySettingsOverlay::apply_preview_palette_to_screen_popups() {
+    if (!theme_explorer_overlay_ || cached_themes_.empty()) {
+        return;
+    }
+
+    // Get currently selected theme from dropdown
+    lv_obj_t* dropdown = lv_obj_find_by_name(theme_explorer_overlay_, "theme_preset_dropdown");
+    if (!dropdown) {
+        return;
+    }
+
+    uint32_t selected_index = lv_dropdown_get_selected(dropdown);
+    if (selected_index >= cached_themes_.size()) {
+        return;
+    }
+
+    // Load theme data
+    helix::ThemeData theme = helix::load_theme_from_file(cached_themes_[selected_index].filename);
+    if (!theme.is_valid()) {
+        return;
+    }
+
+    // Select palette based on preview mode
+    const helix::ModePalette* palette = nullptr;
+    if (preview_is_dark_ && theme.supports_dark()) {
+        palette = &theme.dark;
+    } else if (!preview_is_dark_ && theme.supports_light()) {
+        palette = &theme.light;
+    } else {
+        palette = theme.supports_dark() ? &theme.dark : &theme.light;
+    }
+
+    // Apply to screen-level popups (modals, dropdown lists)
+    theme_apply_palette_to_screen_dropdowns(*palette);
 }
 
 void DisplaySettingsOverlay::show_theme_preview(lv_obj_t* parent_screen) {

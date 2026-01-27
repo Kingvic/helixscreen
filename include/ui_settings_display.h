@@ -186,6 +186,14 @@ class DisplaySettingsOverlay : public OverlayBase {
      */
     void handle_preview_dark_mode_toggled(bool is_dark);
 
+    /**
+     * @brief Apply current preview palette to screen-level popups (modals, dropdowns)
+     *
+     * Called after creating a modal from within the theme preview to ensure
+     * it uses preview colors instead of global theme colors.
+     */
+    void apply_preview_palette_to_screen_popups();
+
   private:
     //
     // === Internal Methods ===
