@@ -232,7 +232,7 @@ void register_xml_components() {
     lv_xml_register_component_from_file("A:ui_xml/theme_settings_overlay.xml");
     lv_xml_register_component_from_file("A:ui_xml/theme_preview_overlay.xml");
     lv_xml_register_component_from_file("A:ui_xml/theme_save_as_modal.xml");
-    lv_xml_register_component_from_file("A:ui_xml/filament_sensors_overlay.xml");
+    lv_xml_register_component_from_file("A:ui_xml/sensors_overlay.xml");
     lv_xml_register_component_from_file("A:ui_xml/macro_buttons_overlay.xml");
     lv_xml_register_component_from_file("A:ui_xml/hardware_issue_row.xml");
     lv_xml_register_component_from_file("A:ui_xml/hardware_health_overlay.xml");
