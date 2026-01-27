@@ -35,7 +35,7 @@
 
 
 ### [L020] [****-|-----] ObserverGuard for cleanup
-- **Uses**: 19 | **Velocity**: 0.07 | **Learned**: 2025-12-14 | **Last**: 2026-01-14 | **Category**: gotcha | **Type**: constraint
+- **Uses**: 19 | **Velocity**: 0.03 | **Learned**: 2025-12-14 | **Last**: 2026-01-14 | **Category**: gotcha | **Type**: constraint
 > Use ObserverGuard RAII wrapper for lv_subject observers. Manual observer cleanup is error-prone and causes use-after-free on panel destruction
 
 
@@ -70,7 +70,7 @@
 
 
 ### [L040] [**---|-----] Inline XML attrs override bind_style
-- **Uses**: 4 | **Velocity**: 0.26 | **Learned**: 2025-12-30 | **Last**: 2026-01-23 | **Category**: gotcha | **Type**: constraint
+- **Uses**: 4 | **Velocity**: 0.01 | **Learned**: 2025-12-30 | **Last**: 2026-01-23 | **Category**: gotcha | **Type**: constraint
 > When using bind_style for reactive visual changes, inline style attributes (style_bg_color, style_text_color, etc.) have higher priority in LVGL's style cascade. bind_style cannot override them. Solution: use TWO bind_styles (one per state) with NO inline styling for properties you want to change reactively.
 
 
@@ -85,7 +85,7 @@
 
 
 ### [L045] [**---|-----] LVGL dropdown options
-- **Uses**: 3 | **Velocity**: 0.02 | **Learned**: 2026-01-06 | **Last**: 2026-01-23 | **Category**: correction | **Type**: constraint
+- **Uses**: 3 | **Velocity**: 0.01 | **Learned**: 2026-01-06 | **Last**: 2026-01-23 | **Category**: correction | **Type**: constraint
 > LVGL dropdowns do NOT support bind_options in XML. Always use lv_dropdown_set_options() directly in C++ code to set dropdown options dynamically. All other dropdowns in the codebase follow this pattern.
 
 
@@ -115,7 +115,7 @@
 
 
 ### [L052] [***--|-----] Tag hv::EventLoop tests as slow
-- **Uses**: 9 | **Velocity**: 0.05 | **Learned**: 2026-01-09 | **Last**: 2026-01-14 | **Category**: gotcha | **Type**: constraint
+- **Uses**: 9 | **Velocity**: 0.03 | **Learned**: 2026-01-09 | **Last**: 2026-01-14 | **Category**: gotcha | **Type**: constraint
 > Tests using hv::EventLoop (libhv network operations) MUST be tagged [slow] or they cause parallel test shards to hang indefinitely. This includes fixtures like MoonrakerRobustnessFixture, MoonrakerClientSecurityFixture, NewFeaturesTestFixture, EventTestFixture. The [slow] tag excludes them from default `make test-run` which uses filter `~[.] ~[slow]`.
 
 
@@ -135,17 +135,17 @@
 
 
 ### [L056] [*----|-----] lv_subject_t no shallow copy
-- **Uses**: 2 | **Velocity**: 0.44 | **Learned**: 2026-01-14 | **Last**: 2026-01-16 | **Category**: gotcha | **Type**: constraint
+- **Uses**: 2 | **Velocity**: 0.1 | **Learned**: 2026-01-14 | **Last**: 2026-01-16 | **Category**: gotcha | **Type**: constraint
 > lv_subject_t must NEVER be shallow-copied in move constructors/assignment. The struct contains internal state that becomes invalid when copied. In move operations, reinitialize the subject in the moved-to object instead of copying.
 
 
 ### [L057] [*----|-----] Subject deinit before destruction
-- **Uses**: 2 | **Velocity**: 0.44 | **Learned**: 2026-01-14 | **Last**: 2026-01-16 | **Category**: gotcha | **Type**: constraint
+- **Uses**: 2 | **Velocity**: 0.1 | **Learned**: 2026-01-14 | **Last**: 2026-01-16 | **Category**: gotcha | **Type**: constraint
 > Classes owning lv_subject_t members must call lv_subject_deinit() in their destructor. Without deinit, observers attached to the subject leak and may fire after destruction causing use-after-free.
 
 
-### [L058] [**---|+----] Re-stage clang-formatted files after commit
-- **Uses**: 3 | **Velocity**: 1.01 | **Learned**: 2026-01-19 | **Last**: 2026-01-25 | **Category**: workflow | **Type**: informational
+### [L058] [**---|-----] Re-stage clang-formatted files after commit
+- **Uses**: 3 | **Velocity**: 0.23 | **Learned**: 2026-01-19 | **Last**: 2026-01-25 | **Category**: workflow | **Type**: informational
 > Pre-commit hook auto-formats files but doesn't re-stage them. After committing, check git status for modified files and amend if they're just formatting changes.
 
 
