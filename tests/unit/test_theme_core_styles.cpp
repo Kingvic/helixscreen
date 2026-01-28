@@ -1089,3 +1089,408 @@ TEST_CASE_METHOD(LVGLUITestFixture, "text_button: text color updates on theme ch
 
     lv_obj_delete(label);
 }
+
+// ============================================================================
+// Icon Style Getter Tests - Phase 2.1
+// ============================================================================
+// Icon styles mirror text styles but for icon coloring. Icons in LVGL are
+// font-based labels, so they use text_color for their color.
+// ============================================================================
+
+TEST_CASE_METHOD(LVGLUITestFixture, "theme_core: icon text style getter returns valid style",
+                 "[theme-core][icon-styles]") {
+    lv_style_t* style = theme_core_get_icon_text_style();
+    REQUIRE(style != nullptr);
+}
+
+TEST_CASE_METHOD(LVGLUITestFixture, "theme_core: icon text style has text color set",
+                 "[theme-core][icon-styles]") {
+    lv_style_t* style = theme_core_get_icon_text_style();
+    REQUIRE(style != nullptr);
+
+    // Icon style should have text_color property set (icons use text_color)
+    lv_style_value_t value;
+    lv_style_res_t res = lv_style_get_prop(style, LV_STYLE_TEXT_COLOR, &value);
+    REQUIRE(res == LV_STYLE_RES_FOUND);
+
+    uint32_t color_rgb = lv_color_to_u32(value.color) & 0x00FFFFFF;
+    INFO("Icon text color RGB: 0x" << std::hex << color_rgb);
+}
+
+TEST_CASE_METHOD(LVGLUITestFixture, "theme_core: icon muted style getter returns valid style",
+                 "[theme-core][icon-styles]") {
+    lv_style_t* style = theme_core_get_icon_muted_style();
+    REQUIRE(style != nullptr);
+}
+
+TEST_CASE_METHOD(LVGLUITestFixture, "theme_core: icon muted style has text color set",
+                 "[theme-core][icon-styles]") {
+    lv_style_t* style = theme_core_get_icon_muted_style();
+    REQUIRE(style != nullptr);
+
+    lv_style_value_t value;
+    lv_style_res_t res = lv_style_get_prop(style, LV_STYLE_TEXT_COLOR, &value);
+    REQUIRE(res == LV_STYLE_RES_FOUND);
+
+    uint32_t color_rgb = lv_color_to_u32(value.color) & 0x00FFFFFF;
+    INFO("Icon muted color RGB: 0x" << std::hex << color_rgb);
+}
+
+TEST_CASE_METHOD(LVGLUITestFixture, "theme_core: icon primary style getter returns valid style",
+                 "[theme-core][icon-styles]") {
+    lv_style_t* style = theme_core_get_icon_primary_style();
+    REQUIRE(style != nullptr);
+}
+
+TEST_CASE_METHOD(LVGLUITestFixture, "theme_core: icon primary style has text color set",
+                 "[theme-core][icon-styles]") {
+    lv_style_t* style = theme_core_get_icon_primary_style();
+    REQUIRE(style != nullptr);
+
+    lv_style_value_t value;
+    lv_style_res_t res = lv_style_get_prop(style, LV_STYLE_TEXT_COLOR, &value);
+    REQUIRE(res == LV_STYLE_RES_FOUND);
+
+    uint32_t color_rgb = lv_color_to_u32(value.color) & 0x00FFFFFF;
+    INFO("Icon primary color RGB: 0x" << std::hex << color_rgb);
+}
+
+TEST_CASE_METHOD(LVGLUITestFixture, "theme_core: icon secondary style getter returns valid style",
+                 "[theme-core][icon-styles]") {
+    lv_style_t* style = theme_core_get_icon_secondary_style();
+    REQUIRE(style != nullptr);
+}
+
+TEST_CASE_METHOD(LVGLUITestFixture, "theme_core: icon secondary style has text color set",
+                 "[theme-core][icon-styles]") {
+    lv_style_t* style = theme_core_get_icon_secondary_style();
+    REQUIRE(style != nullptr);
+
+    lv_style_value_t value;
+    lv_style_res_t res = lv_style_get_prop(style, LV_STYLE_TEXT_COLOR, &value);
+    REQUIRE(res == LV_STYLE_RES_FOUND);
+
+    uint32_t color_rgb = lv_color_to_u32(value.color) & 0x00FFFFFF;
+    INFO("Icon secondary color RGB: 0x" << std::hex << color_rgb);
+}
+
+TEST_CASE_METHOD(LVGLUITestFixture, "theme_core: icon tertiary style getter returns valid style",
+                 "[theme-core][icon-styles]") {
+    lv_style_t* style = theme_core_get_icon_tertiary_style();
+    REQUIRE(style != nullptr);
+}
+
+TEST_CASE_METHOD(LVGLUITestFixture, "theme_core: icon tertiary style has text color set",
+                 "[theme-core][icon-styles]") {
+    lv_style_t* style = theme_core_get_icon_tertiary_style();
+    REQUIRE(style != nullptr);
+
+    lv_style_value_t value;
+    lv_style_res_t res = lv_style_get_prop(style, LV_STYLE_TEXT_COLOR, &value);
+    REQUIRE(res == LV_STYLE_RES_FOUND);
+
+    uint32_t color_rgb = lv_color_to_u32(value.color) & 0x00FFFFFF;
+    INFO("Icon tertiary color RGB: 0x" << std::hex << color_rgb);
+}
+
+TEST_CASE_METHOD(LVGLUITestFixture, "theme_core: icon success style getter returns valid style",
+                 "[theme-core][icon-styles]") {
+    lv_style_t* style = theme_core_get_icon_success_style();
+    REQUIRE(style != nullptr);
+}
+
+TEST_CASE_METHOD(LVGLUITestFixture, "theme_core: icon success style has text color set",
+                 "[theme-core][icon-styles]") {
+    lv_style_t* style = theme_core_get_icon_success_style();
+    REQUIRE(style != nullptr);
+
+    lv_style_value_t value;
+    lv_style_res_t res = lv_style_get_prop(style, LV_STYLE_TEXT_COLOR, &value);
+    REQUIRE(res == LV_STYLE_RES_FOUND);
+
+    uint32_t color_rgb = lv_color_to_u32(value.color) & 0x00FFFFFF;
+    INFO("Icon success color RGB: 0x" << std::hex << color_rgb);
+}
+
+TEST_CASE_METHOD(LVGLUITestFixture, "theme_core: icon warning style getter returns valid style",
+                 "[theme-core][icon-styles]") {
+    lv_style_t* style = theme_core_get_icon_warning_style();
+    REQUIRE(style != nullptr);
+}
+
+TEST_CASE_METHOD(LVGLUITestFixture, "theme_core: icon warning style has text color set",
+                 "[theme-core][icon-styles]") {
+    lv_style_t* style = theme_core_get_icon_warning_style();
+    REQUIRE(style != nullptr);
+
+    lv_style_value_t value;
+    lv_style_res_t res = lv_style_get_prop(style, LV_STYLE_TEXT_COLOR, &value);
+    REQUIRE(res == LV_STYLE_RES_FOUND);
+
+    uint32_t color_rgb = lv_color_to_u32(value.color) & 0x00FFFFFF;
+    INFO("Icon warning color RGB: 0x" << std::hex << color_rgb);
+}
+
+TEST_CASE_METHOD(LVGLUITestFixture, "theme_core: icon danger style getter returns valid style",
+                 "[theme-core][icon-styles]") {
+    lv_style_t* style = theme_core_get_icon_danger_style();
+    REQUIRE(style != nullptr);
+}
+
+TEST_CASE_METHOD(LVGLUITestFixture, "theme_core: icon danger style has text color set",
+                 "[theme-core][icon-styles]") {
+    lv_style_t* style = theme_core_get_icon_danger_style();
+    REQUIRE(style != nullptr);
+
+    lv_style_value_t value;
+    lv_style_res_t res = lv_style_get_prop(style, LV_STYLE_TEXT_COLOR, &value);
+    REQUIRE(res == LV_STYLE_RES_FOUND);
+
+    uint32_t color_rgb = lv_color_to_u32(value.color) & 0x00FFFFFF;
+    INFO("Icon danger color RGB: 0x" << std::hex << color_rgb);
+}
+
+TEST_CASE_METHOD(LVGLUITestFixture, "theme_core: icon info style getter returns valid style",
+                 "[theme-core][icon-styles]") {
+    lv_style_t* style = theme_core_get_icon_info_style();
+    REQUIRE(style != nullptr);
+}
+
+TEST_CASE_METHOD(LVGLUITestFixture, "theme_core: icon info style has text color set",
+                 "[theme-core][icon-styles]") {
+    lv_style_t* style = theme_core_get_icon_info_style();
+    REQUIRE(style != nullptr);
+
+    lv_style_value_t value;
+    lv_style_res_t res = lv_style_get_prop(style, LV_STYLE_TEXT_COLOR, &value);
+    REQUIRE(res == LV_STYLE_RES_FOUND);
+
+    uint32_t color_rgb = lv_color_to_u32(value.color) & 0x00FFFFFF;
+    INFO("Icon info color RGB: 0x" << std::hex << color_rgb);
+}
+
+// ============================================================================
+// Icon Style Consistency Tests
+// ============================================================================
+
+TEST_CASE_METHOD(LVGLUITestFixture,
+                 "theme_core: icon style getters return same pointer on repeat calls",
+                 "[theme-core][icon-styles]") {
+    // Style pointers should be stable - multiple calls return same object
+    lv_style_t* icon_text1 = theme_core_get_icon_text_style();
+    lv_style_t* icon_text2 = theme_core_get_icon_text_style();
+    REQUIRE(icon_text1 == icon_text2);
+
+    lv_style_t* icon_muted1 = theme_core_get_icon_muted_style();
+    lv_style_t* icon_muted2 = theme_core_get_icon_muted_style();
+    REQUIRE(icon_muted1 == icon_muted2);
+
+    lv_style_t* icon_primary1 = theme_core_get_icon_primary_style();
+    lv_style_t* icon_primary2 = theme_core_get_icon_primary_style();
+    REQUIRE(icon_primary1 == icon_primary2);
+
+    lv_style_t* icon_secondary1 = theme_core_get_icon_secondary_style();
+    lv_style_t* icon_secondary2 = theme_core_get_icon_secondary_style();
+    REQUIRE(icon_secondary1 == icon_secondary2);
+
+    lv_style_t* icon_tertiary1 = theme_core_get_icon_tertiary_style();
+    lv_style_t* icon_tertiary2 = theme_core_get_icon_tertiary_style();
+    REQUIRE(icon_tertiary1 == icon_tertiary2);
+
+    lv_style_t* icon_success1 = theme_core_get_icon_success_style();
+    lv_style_t* icon_success2 = theme_core_get_icon_success_style();
+    REQUIRE(icon_success1 == icon_success2);
+
+    lv_style_t* icon_warning1 = theme_core_get_icon_warning_style();
+    lv_style_t* icon_warning2 = theme_core_get_icon_warning_style();
+    REQUIRE(icon_warning1 == icon_warning2);
+
+    lv_style_t* icon_danger1 = theme_core_get_icon_danger_style();
+    lv_style_t* icon_danger2 = theme_core_get_icon_danger_style();
+    REQUIRE(icon_danger1 == icon_danger2);
+
+    lv_style_t* icon_info1 = theme_core_get_icon_info_style();
+    lv_style_t* icon_info2 = theme_core_get_icon_info_style();
+    REQUIRE(icon_info1 == icon_info2);
+}
+
+TEST_CASE_METHOD(LVGLUITestFixture, "theme_core: all icon styles are distinct pointers",
+                 "[theme-core][icon-styles]") {
+    lv_style_t* icon_text = theme_core_get_icon_text_style();
+    lv_style_t* icon_muted = theme_core_get_icon_muted_style();
+    lv_style_t* icon_primary = theme_core_get_icon_primary_style();
+    lv_style_t* icon_secondary = theme_core_get_icon_secondary_style();
+    lv_style_t* icon_tertiary = theme_core_get_icon_tertiary_style();
+    lv_style_t* icon_success = theme_core_get_icon_success_style();
+    lv_style_t* icon_warning = theme_core_get_icon_warning_style();
+    lv_style_t* icon_danger = theme_core_get_icon_danger_style();
+    lv_style_t* icon_info = theme_core_get_icon_info_style();
+
+    // All should be non-null
+    REQUIRE(icon_text != nullptr);
+    REQUIRE(icon_muted != nullptr);
+    REQUIRE(icon_primary != nullptr);
+    REQUIRE(icon_secondary != nullptr);
+    REQUIRE(icon_tertiary != nullptr);
+    REQUIRE(icon_success != nullptr);
+    REQUIRE(icon_warning != nullptr);
+    REQUIRE(icon_danger != nullptr);
+    REQUIRE(icon_info != nullptr);
+
+    // All should be distinct
+    REQUIRE(icon_text != icon_muted);
+    REQUIRE(icon_text != icon_primary);
+    REQUIRE(icon_text != icon_secondary);
+    REQUIRE(icon_text != icon_tertiary);
+    REQUIRE(icon_text != icon_success);
+    REQUIRE(icon_text != icon_warning);
+    REQUIRE(icon_text != icon_danger);
+    REQUIRE(icon_text != icon_info);
+
+    REQUIRE(icon_muted != icon_primary);
+    REQUIRE(icon_primary != icon_secondary);
+    REQUIRE(icon_secondary != icon_tertiary);
+    REQUIRE(icon_success != icon_warning);
+    REQUIRE(icon_warning != icon_danger);
+    REQUIRE(icon_danger != icon_info);
+}
+
+// ============================================================================
+// Icon Style Reactive Update Tests
+// ============================================================================
+
+TEST_CASE_METHOD(LVGLUITestFixture, "theme_core: icon text style updates on theme change",
+                 "[theme-core][icon-styles][reactive]") {
+    lv_style_t* style = theme_core_get_icon_text_style();
+    REQUIRE(style != nullptr);
+
+    // Get initial color
+    lv_style_value_t before_value;
+    lv_style_res_t res = lv_style_get_prop(style, LV_STYLE_TEXT_COLOR, &before_value);
+    REQUIRE(res == LV_STYLE_RES_FOUND);
+    lv_color_t before = before_value.color;
+
+    // Switch to dark mode with different colors
+    lv_color_t dark_screen_bg = lv_color_hex(0x121212);
+    lv_color_t dark_card_bg = lv_color_hex(0x1E1E1E);
+    lv_color_t dark_surface = lv_color_hex(0x2D2D2D);
+    lv_color_t dark_text = lv_color_hex(0xE0E0E0);
+    lv_color_t dark_text_muted = lv_color_hex(0xA0A0A0);
+    lv_color_t dark_text_subtle = lv_color_hex(0x808080);
+    lv_color_t dark_focus = lv_color_hex(0x4FC3F7);
+    lv_color_t dark_primary = lv_color_hex(0x2196F3);
+    lv_color_t dark_border = lv_color_hex(0x424242);
+
+    theme_core_update_colors(true, dark_screen_bg, dark_card_bg, dark_surface, dark_text,
+                             dark_text_muted, dark_text_subtle, dark_focus, dark_primary,
+                             dark_border);
+
+    // Get color after update
+    lv_style_value_t after_value;
+    res = lv_style_get_prop(style, LV_STYLE_TEXT_COLOR, &after_value);
+    REQUIRE(res == LV_STYLE_RES_FOUND);
+    lv_color_t after = after_value.color;
+
+    // Icon text style should update (same as text primary style)
+    REQUIRE_FALSE(lv_color_eq(before, after));
+}
+
+TEST_CASE_METHOD(LVGLUITestFixture, "theme_core: icon muted style updates on theme change",
+                 "[theme-core][icon-styles][reactive]") {
+    lv_style_t* style = theme_core_get_icon_muted_style();
+    REQUIRE(style != nullptr);
+
+    // Get initial color
+    lv_style_value_t before_value;
+    lv_style_res_t res = lv_style_get_prop(style, LV_STYLE_TEXT_COLOR, &before_value);
+    REQUIRE(res == LV_STYLE_RES_FOUND);
+    lv_color_t before = before_value.color;
+
+    // Switch to dark mode
+    lv_color_t dark_screen_bg = lv_color_hex(0x121212);
+    lv_color_t dark_card_bg = lv_color_hex(0x1E1E1E);
+    lv_color_t dark_surface = lv_color_hex(0x2D2D2D);
+    lv_color_t dark_text = lv_color_hex(0xE0E0E0);
+    lv_color_t dark_text_muted = lv_color_hex(0xA0A0A0);
+    lv_color_t dark_text_subtle = lv_color_hex(0x808080);
+    lv_color_t dark_focus = lv_color_hex(0x4FC3F7);
+    lv_color_t dark_primary = lv_color_hex(0x2196F3);
+    lv_color_t dark_border = lv_color_hex(0x424242);
+
+    theme_core_update_colors(true, dark_screen_bg, dark_card_bg, dark_surface, dark_text,
+                             dark_text_muted, dark_text_subtle, dark_focus, dark_primary,
+                             dark_border);
+
+    // Get color after update
+    lv_style_value_t after_value;
+    res = lv_style_get_prop(style, LV_STYLE_TEXT_COLOR, &after_value);
+    REQUIRE(res == LV_STYLE_RES_FOUND);
+    lv_color_t after = after_value.color;
+
+    REQUIRE_FALSE(lv_color_eq(before, after));
+}
+
+TEST_CASE_METHOD(LVGLUITestFixture, "theme_core: icon primary style updates on theme change",
+                 "[theme-core][icon-styles][reactive]") {
+    lv_style_t* style = theme_core_get_icon_primary_style();
+    REQUIRE(style != nullptr);
+
+    // Get initial color
+    lv_style_value_t before_value;
+    lv_style_res_t res = lv_style_get_prop(style, LV_STYLE_TEXT_COLOR, &before_value);
+    REQUIRE(res == LV_STYLE_RES_FOUND);
+    lv_color_t before = before_value.color;
+
+    // Switch to dark mode with a DIFFERENT primary color
+    lv_color_t dark_screen_bg = lv_color_hex(0x121212);
+    lv_color_t dark_card_bg = lv_color_hex(0x1E1E1E);
+    lv_color_t dark_surface = lv_color_hex(0x2D2D2D);
+    lv_color_t dark_text = lv_color_hex(0xE0E0E0);
+    lv_color_t dark_text_muted = lv_color_hex(0xA0A0A0);
+    lv_color_t dark_text_subtle = lv_color_hex(0x808080);
+    lv_color_t dark_focus = lv_color_hex(0x4FC3F7);
+    lv_color_t dark_primary = lv_color_hex(0xFF5722); // Different primary color
+    lv_color_t dark_border = lv_color_hex(0x424242);
+
+    theme_core_update_colors(true, dark_screen_bg, dark_card_bg, dark_surface, dark_text,
+                             dark_text_muted, dark_text_subtle, dark_focus, dark_primary,
+                             dark_border);
+
+    // Get color after update
+    lv_style_value_t after_value;
+    res = lv_style_get_prop(style, LV_STYLE_TEXT_COLOR, &after_value);
+    REQUIRE(res == LV_STYLE_RES_FOUND);
+    lv_color_t after = after_value.color;
+
+    // Icon primary style uses primary_color, which we changed
+    REQUIRE_FALSE(lv_color_eq(before, after));
+}
+
+// ============================================================================
+// Icon Style Widget Integration Test
+// ============================================================================
+
+TEST_CASE_METHOD(LVGLUITestFixture, "theme_core: icon style can be applied to label",
+                 "[theme-core][icon-styles][integration]") {
+    lv_style_t* style = theme_core_get_icon_primary_style();
+    REQUIRE(style != nullptr);
+
+    // Create a test label (icons are just labels with icon fonts)
+    lv_obj_t* icon = lv_label_create(test_screen());
+    REQUIRE(icon != nullptr);
+    lv_label_set_text(icon, "A"); // Icon glyph
+
+    // Apply the shared icon style
+    lv_obj_add_style(icon, style, LV_PART_MAIN);
+
+    // Label should now have the style's text color
+    lv_color_t icon_color = lv_obj_get_style_text_color(icon, LV_PART_MAIN);
+
+    // Get expected color from style
+    lv_style_value_t value;
+    lv_style_get_prop(style, LV_STYLE_TEXT_COLOR, &value);
+
+    REQUIRE(lv_color_eq(icon_color, value.color));
+
+    lv_obj_delete(icon);
+}

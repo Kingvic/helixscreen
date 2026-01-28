@@ -36,7 +36,17 @@ typedef struct {
     lv_style_t text_primary_style;       // Shared primary text style (text_color)
     lv_style_t text_muted_style;         // Shared muted text style (text_muted_color)
     lv_style_t text_subtle_style;        // Shared subtle text style (text_subtle_color)
-    bool is_dark_mode;                   // Track theme mode for context
+    // Icon styles (Phase 2.1) - mirror text styles but for icon coloring
+    lv_style_t icon_text_style;      // Icon using text_primary_color
+    lv_style_t icon_muted_style;     // Icon using text_muted_color
+    lv_style_t icon_primary_style;   // Icon using primary_color (accent)
+    lv_style_t icon_secondary_style; // Icon using secondary_color
+    lv_style_t icon_tertiary_style;  // Icon using text_subtle_color
+    lv_style_t icon_success_style;   // Icon for success state (green)
+    lv_style_t icon_warning_style;   // Icon for warning state (amber)
+    lv_style_t icon_danger_style;    // Icon for danger state (red)
+    lv_style_t icon_info_style;      // Icon for info state (blue)
+    bool is_dark_mode;               // Track theme mode for context
 } helix_theme_t;
 
 // Static theme instance (singleton pattern matching LVGL's approach)
@@ -242,6 +252,16 @@ lv_theme_t* theme_core_init(lv_display_t* display, lv_color_t primary_color,
         lv_style_reset(&helix_theme_instance->text_primary_style);
         lv_style_reset(&helix_theme_instance->text_muted_style);
         lv_style_reset(&helix_theme_instance->text_subtle_style);
+        // Reset icon styles (Phase 2.1)
+        lv_style_reset(&helix_theme_instance->icon_text_style);
+        lv_style_reset(&helix_theme_instance->icon_muted_style);
+        lv_style_reset(&helix_theme_instance->icon_primary_style);
+        lv_style_reset(&helix_theme_instance->icon_secondary_style);
+        lv_style_reset(&helix_theme_instance->icon_tertiary_style);
+        lv_style_reset(&helix_theme_instance->icon_success_style);
+        lv_style_reset(&helix_theme_instance->icon_warning_style);
+        lv_style_reset(&helix_theme_instance->icon_danger_style);
+        lv_style_reset(&helix_theme_instance->icon_info_style);
         free(helix_theme_instance);
         helix_theme_instance = NULL;
     }
@@ -425,6 +445,48 @@ lv_theme_t* theme_core_init(lv_display_t* display, lv_color_t primary_color,
     lv_style_init(&helix_theme_instance->text_subtle_style);
     lv_style_set_text_color(&helix_theme_instance->text_subtle_style, text_subtle_color);
 
+    // Initialize icon styles (Phase 2.1)
+    // Icons are font-based labels, so they use text_color for their color
+
+    // icon_text_style uses text_primary_color (same as text)
+    lv_style_init(&helix_theme_instance->icon_text_style);
+    lv_style_set_text_color(&helix_theme_instance->icon_text_style, text_primary_color);
+
+    // icon_muted_style uses text_muted_color
+    lv_style_init(&helix_theme_instance->icon_muted_style);
+    lv_style_set_text_color(&helix_theme_instance->icon_muted_style, text_muted_color);
+
+    // icon_primary_style uses primary_color (accent/brand color)
+    lv_style_init(&helix_theme_instance->icon_primary_style);
+    lv_style_set_text_color(&helix_theme_instance->icon_primary_style, primary_color);
+
+    // icon_secondary_style uses secondary_color
+    lv_style_init(&helix_theme_instance->icon_secondary_style);
+    lv_style_set_text_color(&helix_theme_instance->icon_secondary_style, secondary_color);
+
+    // icon_tertiary_style uses text_subtle_color
+    lv_style_init(&helix_theme_instance->icon_tertiary_style);
+    lv_style_set_text_color(&helix_theme_instance->icon_tertiary_style, text_subtle_color);
+
+    // Semantic icon styles - using placeholder colors for now
+    // Task 3 will add proper severity color infrastructure
+
+    // icon_success_style - green
+    lv_style_init(&helix_theme_instance->icon_success_style);
+    lv_style_set_text_color(&helix_theme_instance->icon_success_style, lv_color_hex(0x4CAF50));
+
+    // icon_warning_style - amber/orange
+    lv_style_init(&helix_theme_instance->icon_warning_style);
+    lv_style_set_text_color(&helix_theme_instance->icon_warning_style, lv_color_hex(0xFFA726));
+
+    // icon_danger_style - red
+    lv_style_init(&helix_theme_instance->icon_danger_style);
+    lv_style_set_text_color(&helix_theme_instance->icon_danger_style, lv_color_hex(0xEF5350));
+
+    // icon_info_style - blue
+    lv_style_init(&helix_theme_instance->icon_info_style);
+    lv_style_set_text_color(&helix_theme_instance->icon_info_style, lv_color_hex(0x42A5F5));
+
     // CRITICAL: Now we need to patch the default theme's color fields
     // This is necessary because LVGL's default theme bakes colors into pre-computed
     // styles during init. We must update both the theme color fields AND the styles.
@@ -542,6 +604,16 @@ void theme_core_update_colors(bool is_dark, lv_color_t screen_bg, lv_color_t car
     lv_style_set_text_color(&helix_theme_instance->text_primary_style, text_primary_color);
     lv_style_set_text_color(&helix_theme_instance->text_muted_style, text_muted_color);
     lv_style_set_text_color(&helix_theme_instance->text_subtle_style, text_subtle_color);
+
+    // Update icon styles (Phase 2.1)
+    lv_style_set_text_color(&helix_theme_instance->icon_text_style, text_primary_color);
+    lv_style_set_text_color(&helix_theme_instance->icon_muted_style, text_muted_color);
+    lv_style_set_text_color(&helix_theme_instance->icon_primary_style, primary_color);
+    // Note: secondary_color is not passed to theme_core_update_colors()
+    // For now, keep it unchanged; Task 3 will add proper color parameters
+    lv_style_set_text_color(&helix_theme_instance->icon_tertiary_style, text_subtle_color);
+    // Semantic icon colors (success/warning/danger/info) are not updated here
+    // They use static semantic colors; Task 3 will add proper severity color infrastructure
 
     // Update LVGL default theme's internal styles
     // This is the same private API access pattern used in theme_core_init
@@ -710,6 +782,24 @@ void theme_core_preview_colors(bool is_dark, const char* colors[16], int32_t bor
     lv_style_set_text_color(&helix_theme_instance->text_muted_style, text_muted);
     lv_style_set_text_color(&helix_theme_instance->text_subtle_style, text_subtle);
 
+    // Update icon styles (Phase 2.1)
+    lv_style_set_text_color(&helix_theme_instance->icon_text_style, text_primary);
+    lv_style_set_text_color(&helix_theme_instance->icon_muted_style, text_muted);
+    lv_style_set_text_color(&helix_theme_instance->icon_primary_style, accent_color);
+    // secondary uses accent_highlight (colors[7]) as approximation
+    lv_color_t secondary_approx = lv_color_hex(strtoul(colors[7] + 1, NULL, 16));
+    lv_style_set_text_color(&helix_theme_instance->icon_secondary_style, secondary_approx);
+    lv_style_set_text_color(&helix_theme_instance->icon_tertiary_style, text_subtle);
+    // Semantic icon colors from palette: 11=success, 12=warning, 13=danger, 14=info
+    lv_color_t success = lv_color_hex(strtoul(colors[11] + 1, NULL, 16));
+    lv_color_t warning = lv_color_hex(strtoul(colors[12] + 1, NULL, 16));
+    lv_color_t danger = lv_color_hex(strtoul(colors[13] + 1, NULL, 16));
+    lv_color_t info = lv_color_hex(strtoul(colors[14] + 1, NULL, 16));
+    lv_style_set_text_color(&helix_theme_instance->icon_success_style, success);
+    lv_style_set_text_color(&helix_theme_instance->icon_warning_style, warning);
+    lv_style_set_text_color(&helix_theme_instance->icon_danger_style, danger);
+    lv_style_set_text_color(&helix_theme_instance->icon_info_style, info);
+
     // Update default theme internal styles (private API access)
     typedef struct {
         lv_style_t scr;
@@ -781,4 +871,71 @@ lv_style_t* theme_core_get_text_subtle_style(void) {
         return NULL;
     }
     return &helix_theme_instance->text_subtle_style;
+}
+
+// ============================================================================
+// Icon Style Getters (Phase 2.1)
+// ============================================================================
+
+lv_style_t* theme_core_get_icon_text_style(void) {
+    if (!helix_theme_instance) {
+        return NULL;
+    }
+    return &helix_theme_instance->icon_text_style;
+}
+
+lv_style_t* theme_core_get_icon_muted_style(void) {
+    if (!helix_theme_instance) {
+        return NULL;
+    }
+    return &helix_theme_instance->icon_muted_style;
+}
+
+lv_style_t* theme_core_get_icon_primary_style(void) {
+    if (!helix_theme_instance) {
+        return NULL;
+    }
+    return &helix_theme_instance->icon_primary_style;
+}
+
+lv_style_t* theme_core_get_icon_secondary_style(void) {
+    if (!helix_theme_instance) {
+        return NULL;
+    }
+    return &helix_theme_instance->icon_secondary_style;
+}
+
+lv_style_t* theme_core_get_icon_tertiary_style(void) {
+    if (!helix_theme_instance) {
+        return NULL;
+    }
+    return &helix_theme_instance->icon_tertiary_style;
+}
+
+lv_style_t* theme_core_get_icon_success_style(void) {
+    if (!helix_theme_instance) {
+        return NULL;
+    }
+    return &helix_theme_instance->icon_success_style;
+}
+
+lv_style_t* theme_core_get_icon_warning_style(void) {
+    if (!helix_theme_instance) {
+        return NULL;
+    }
+    return &helix_theme_instance->icon_warning_style;
+}
+
+lv_style_t* theme_core_get_icon_danger_style(void) {
+    if (!helix_theme_instance) {
+        return NULL;
+    }
+    return &helix_theme_instance->icon_danger_style;
+}
+
+lv_style_t* theme_core_get_icon_info_style(void) {
+    if (!helix_theme_instance) {
+        return NULL;
+    }
+    return &helix_theme_instance->icon_info_style;
 }

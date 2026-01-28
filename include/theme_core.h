@@ -168,6 +168,106 @@ lv_style_t* theme_core_get_text_muted_style(void);
  */
 lv_style_t* theme_core_get_text_subtle_style(void);
 
+// ============================================================================
+// Icon Style Getters (Phase 2.1)
+// ============================================================================
+// Icon styles mirror text styles but for icon coloring. Icons in LVGL are
+// font-based labels, so they use text_color for their color.
+
+/**
+ * @brief Get the shared icon text style
+ *
+ * Returns a pointer to the persistent icon style using text_primary_color.
+ * The style updates in-place when theme_core_update_colors() is called.
+ *
+ * @return Pointer to icon text style, or NULL if theme not initialized
+ */
+lv_style_t* theme_core_get_icon_text_style(void);
+
+/**
+ * @brief Get the shared icon muted style
+ *
+ * Returns a pointer to the persistent icon style using text_muted_color.
+ * The style updates in-place when theme_core_update_colors() is called.
+ *
+ * @return Pointer to icon muted style, or NULL if theme not initialized
+ */
+lv_style_t* theme_core_get_icon_muted_style(void);
+
+/**
+ * @brief Get the shared icon primary style
+ *
+ * Returns a pointer to the persistent icon style using primary_color (accent).
+ * The style updates in-place when theme_core_update_colors() is called.
+ *
+ * @return Pointer to icon primary style, or NULL if theme not initialized
+ */
+lv_style_t* theme_core_get_icon_primary_style(void);
+
+/**
+ * @brief Get the shared icon secondary style
+ *
+ * Returns a pointer to the persistent icon style using secondary_color.
+ * The style updates in-place when theme_core_update_colors() is called.
+ *
+ * @return Pointer to icon secondary style, or NULL if theme not initialized
+ */
+lv_style_t* theme_core_get_icon_secondary_style(void);
+
+/**
+ * @brief Get the shared icon tertiary style
+ *
+ * Returns a pointer to the persistent icon style using text_subtle_color.
+ * The style updates in-place when theme_core_update_colors() is called.
+ *
+ * @return Pointer to icon tertiary style, or NULL if theme not initialized
+ */
+lv_style_t* theme_core_get_icon_tertiary_style(void);
+
+/**
+ * @brief Get the shared icon success style
+ *
+ * Returns a pointer to the persistent icon style for success state.
+ * Uses a green success color.
+ * The style updates in-place when theme_core_update_colors() is called.
+ *
+ * @return Pointer to icon success style, or NULL if theme not initialized
+ */
+lv_style_t* theme_core_get_icon_success_style(void);
+
+/**
+ * @brief Get the shared icon warning style
+ *
+ * Returns a pointer to the persistent icon style for warning state.
+ * Uses an amber/orange warning color.
+ * The style updates in-place when theme_core_update_colors() is called.
+ *
+ * @return Pointer to icon warning style, or NULL if theme not initialized
+ */
+lv_style_t* theme_core_get_icon_warning_style(void);
+
+/**
+ * @brief Get the shared icon danger style
+ *
+ * Returns a pointer to the persistent icon style for danger/error state.
+ * Uses a red danger color.
+ * The style updates in-place when theme_core_update_colors() is called.
+ *
+ * @return Pointer to icon danger style, or NULL if theme not initialized
+ */
+lv_style_t* theme_core_get_icon_danger_style(void);
+
+/**
+ * @brief Get the shared icon info style
+ *
+ * Returns a pointer to the persistent icon style for info state.
+ * Uses a blue info color.
+ * The style updates in-place when theme_core_update_colors() is called.
+ *
+ * @return Pointer to icon info style, or NULL if theme not initialized
+ */
+lv_style_t* theme_core_get_icon_info_style(void);
+
 #ifdef __cplusplus
 }
 #endif
