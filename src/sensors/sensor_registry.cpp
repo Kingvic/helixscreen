@@ -26,15 +26,36 @@ ISensorManager* SensorRegistry::get_manager(const std::string& category) const {
     return nullptr;
 }
 
-void SensorRegistry::discover_all(const std::vector<std::string>& klipper_objects) {
+void SensorRegistry::discover_all(const std::vector<std::string>& klipper_objects,
+                                  const nlohmann::json& config_keys,
+                                  const nlohmann::json& moonraker_info) {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
-    spdlog::debug("[SensorRegistry] Discovering sensors in {} managers", managers_.size());
+    spdlog::debug("[SensorRegistry] Discovering sensors in {} managers from all sources",
+                  managers_.size());
+
     for (auto& [category, manager] : managers_) {
+        // Discovery from Klipper objects (printer.objects.list)
         try {
             manager->discover(klipper_objects);
         } catch (const std::exception& e) {
             spdlog::error("[SensorRegistry] Exception during discover for '{}': {}", category,
                           e.what());
+        }
+
+        // Discovery from Klipper config (configfile.config keys)
+        try {
+            manager->discover_from_config(config_keys);
+        } catch (const std::exception& e) {
+            spdlog::error("[SensorRegistry] Exception during discover_from_config for '{}': {}",
+                          category, e.what());
+        }
+
+        // Discovery from Moonraker API info
+        try {
+            manager->discover_from_moonraker(moonraker_info);
+        } catch (const std::exception& e) {
+            spdlog::error("[SensorRegistry] Exception during discover_from_moonraker for '{}': {}",
+                          category, e.what());
         }
     }
 }
