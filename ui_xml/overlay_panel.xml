@@ -36,9 +36,9 @@
     <!-- Header Bar -->
     <header_bar name="overlay_header"
                 title="$title" action_button_text="$action_button_text" hide_action_button="$hide_action_button"
-                action_button_callback="$action_button_callback"
-                action_button_height="$action_button_height" action_button_pad="$action_button_pad"
-                action_button_2_text="$action_button_2_text" action_button_2_bg_color="$action_button_2_bg_color"
+                action_button_callback="$action_button_callback" action_button_height="$action_button_height"
+                action_button_pad="$action_button_pad" action_button_2_text="$action_button_2_text"
+                action_button_2_bg_color="$action_button_2_bg_color"
                 action_button_2_callback="$action_button_2_callback" hide_action_button_2="$hide_action_button_2"/>
     <!-- Panel-specific overlay_content and children go here -->
   </view>

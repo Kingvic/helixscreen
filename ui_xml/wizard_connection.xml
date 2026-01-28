@@ -32,8 +32,7 @@
       </lv_obj>
 
       <!-- Separator -->
-      <text_body text="Or Enter Manually"
-                 style_text_color="#text_muted" style_pad_top="#space_sm" style_pad_bottom="0"/>
+      <text_body text="Or Enter Manually" style_text_color="#text_muted" style_pad_top="#space_sm" style_pad_bottom="0"/>
 
       <!-- Horizontal input row: Network Address (left) and Port (right) -->
       <lv_obj width="100%"

@@ -52,7 +52,6 @@
                 style_pad_all="0" clickable="false"/>
     <!-- Chevron icon for navigation hint -->
     <lv_label name="row_chevron"
-              text="" style_text_font="mdi_icons_24" style_text_color="#text_muted" style_pad_all="0"
-              clickable="false"/>
+              text="" style_text_font="mdi_icons_24" style_text_color="#text_muted" style_pad_all="0" clickable="false"/>
   </view>
 </component>

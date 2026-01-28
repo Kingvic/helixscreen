@@ -22,8 +22,7 @@
                   text="Save changes to persist them across restarts?" style_text_align="center"
                   style_text_color="#text_muted"/>
       <!-- Warning about restart -->
-      <text_small width="100%"
-                  text="This will restart Klipper." style_text_align="center" style_text_color="#warning"/>
+      <text_small width="100%" text="This will restart Klipper." style_text_align="center" style_text_color="#warning"/>
     </lv_obj>
     <modal_button_row primary_text="Save"
                       secondary_text="Don't Save" primary_callback="on_bed_mesh_save_config_yes"

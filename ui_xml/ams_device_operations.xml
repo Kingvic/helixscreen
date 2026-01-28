@@ -168,8 +168,7 @@
         <bind_flag_if_eq subject="ams_device_ops_has_backend" flag="hidden" ref_value="1"/>
         <icon src="info" size="lg" variant="secondary"/>
         <text_body name="no_backend_text"
-                   width="100%" text="No AMS system connected." style_text_color="#text_muted"
-                   style_text_align="center"/>
+                   width="100%" text="No AMS system connected." style_text_color="#text_muted" style_text_align="center"/>
       </ui_card>
 
     </lv_obj>

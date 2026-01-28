@@ -195,8 +195,7 @@
               <text_button text="Done"/>
             </lv_button>
             <lv_button name="btn_reprobe"
-                       width="120" height="#button_height_sm" style_radius="#border_radius"
-                       style_bg_color="#primary">
+                       width="120" height="#button_height_sm" style_radius="#border_radius" style_bg_color="#primary">
               <event_cb trigger="clicked" callback="screws_tilt_reprobe_cb"/>
               <text_button text="Re-probe"/>
             </lv_button>

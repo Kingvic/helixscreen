@@ -90,8 +90,7 @@ inline std::string get_prerendered_path(const std::string& image_filename) {
     }
 
     std::string basename = image_filename.substr(0, dot_pos);
-    std::string prerendered_name =
-        basename + "-" + std::to_string(PRERENDERED_SIZE) + ".bin";
+    std::string prerendered_name = basename + "-" + std::to_string(PRERENDERED_SIZE) + ".bin";
     std::string full_path = std::string(PRERENDERED_BASE_PATH) + prerendered_name;
 
     if (image_file_exists(full_path)) {

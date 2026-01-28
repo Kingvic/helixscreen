@@ -60,14 +60,12 @@
         <event_cb trigger="clicked" callback="on_step_test_prev"/>
       </lv_button>
       <lv_button name="btn_next"
-                 width="140" height="#button_height_normal" style_bg_color="#primary"
-                 style_radius="#border_radius">
+                 width="140" height="#button_height_normal" style_bg_color="#primary" style_radius="#border_radius">
         <text_button text="Next"/>
         <event_cb trigger="clicked" callback="on_step_test_next"/>
       </lv_button>
       <lv_button name="btn_complete"
-                 width="140" height="#button_height_normal" style_bg_color="#success"
-                 style_radius="#border_radius">
+                 width="140" height="#button_height_normal" style_bg_color="#success" style_radius="#border_radius">
         <text_button text="Complete"/>
         <event_cb trigger="clicked" callback="on_step_test_complete"/>
       </lv_button>

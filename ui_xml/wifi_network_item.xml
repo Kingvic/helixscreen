@@ -9,8 +9,7 @@
   <!-- Click triggers on_network_item_clicked callback in C++ -->
   <styles>
     <!-- Style applied when item has LV_STATE_CHECKED (connected network) -->
-    <style name="checked_style"
-           border_width="#space_xs" border_side="left" border_color="#primary" bg_color="#card_alt"/>
+    <style name="checked_style" border_width="#space_xs" border_side="left" border_color="#primary" bg_color="#card_alt"/>
   </styles>
   <view extends="lv_button"
         width="100%" scrollable="false" clickable="true" style_bg_color="#app_bg" style_bg_opa="255"

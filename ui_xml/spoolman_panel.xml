@@ -26,8 +26,7 @@
         <!-- Empty message -->
         <text_heading name="empty_title" text="No Spools" style_text_align="center" style_text_color="#text_muted"/>
         <text_small name="empty_subtitle"
-                    text="Spoolman has no spools configured" style_text_align="center"
-                    style_text_color="#text_muted"/>
+                    text="Spoolman has no spools configured" style_text_align="center" style_text_color="#text_muted"/>
       </centered_column>
       <!-- Loading indicator - visible when state = LOADING (0) -->
       <centered_column name="loading_state" flex_grow="1" hidden="true">

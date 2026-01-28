@@ -40,8 +40,7 @@
           <text_body bind_text="ams_endless_spool_description" style_text_color="#text"/>
           <text_small text="Configure backup slots for automatic filament switching when a spool runs out."
                       style_text_color="#text_muted"/>
-          <text_small name="editable_hint"
-                      style_text_color="#text_muted" bind_text="ams_endless_spool_editable_text">
+          <text_small name="editable_hint" style_text_color="#text_muted" bind_text="ams_endless_spool_editable_text">
             <bind_flag_if_eq subject="ams_endless_spool_editable" flag="hidden" ref_value="1"/>
           </text_small>
         </lv_obj>

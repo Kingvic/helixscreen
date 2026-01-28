@@ -15,9 +15,9 @@
       <!-- MASTER ENABLE SECTION -->
       <!-- ================================================================== -->
       <lv_obj name="master_enable_card"
-              width="100%" height="content" style_bg_color="#app_bg" style_bg_opa="255"
-              style_radius="#border_radius" style_border_width="0" style_pad_all="#space_lg" scrollable="false"
-              flex_flow="column" style_pad_gap="#space_sm">
+              width="100%" height="content" style_bg_color="#app_bg" style_bg_opa="255" style_radius="#border_radius"
+              style_border_width="0" style_pad_all="#space_lg" scrollable="false" flex_flow="column"
+              style_pad_gap="#space_sm">
         <!-- Header Row: Label + toggle -->
         <lv_obj width="100%"
                 height="content" style_bg_opa="0" style_border_width="0" style_pad_all="0" scrollable="false"
@@ -60,8 +60,7 @@
         <centered_column name="no_sensors_placeholder" flex_grow="1" style_pad_all="#space_lg">
           <bind_flag_if_not_eq subject="filament_sensor_count" flag="hidden" ref_value="0"/>
           <icon src="filament" size="md" variant="secondary"/>
-          <text_small text="No filament sensors detected"
-                      style_text_color="#text_muted" style_margin_top="#space_sm"/>
+          <text_small text="No filament sensors detected" style_text_color="#text_muted" style_margin_top="#space_sm"/>
         </centered_column>
       </lv_obj>
       <!-- ================================================================== -->

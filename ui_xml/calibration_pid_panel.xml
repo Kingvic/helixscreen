@@ -85,8 +85,7 @@
                       style_text_color="#text_muted" flex_grow="1"/>
         </lv_obj>
         <!-- Start Button -->
-        <lv_button name="btn_start"
-                   width="200" height="56" style_radius="#border_radius" style_bg_color="#primary">
+        <lv_button name="btn_start" width="200" height="56" style_radius="#border_radius" style_bg_color="#primary">
           <text_button text="Start Calibration"/>
           <event_cb trigger="clicked" callback="on_pid_start"/>
         </lv_button>
@@ -117,8 +116,7 @@
                     style_text_color="#text_muted"/>
         <!-- Abort Button -->
         <lv_button name="btn_abort"
-                   width="120" height="#button_height_normal" style_radius="#border_radius"
-                   style_bg_color="#danger">
+                   width="120" height="#button_height_normal" style_radius="#border_radius" style_bg_color="#danger">
           <text_button text="Abort"/>
           <event_cb trigger="clicked" callback="on_pid_abort"/>
         </lv_button>
@@ -199,8 +197,7 @@
             <text_button text="Close"/>
             <event_cb trigger="clicked" callback="on_pid_done"/>
           </lv_button>
-          <lv_button name="btn_retry"
-                     width="140" height="56" style_radius="#border_radius" style_bg_color="#primary">
+          <lv_button name="btn_retry" width="140" height="56" style_radius="#border_radius" style_bg_color="#primary">
             <text_button text="Retry"/>
             <event_cb trigger="clicked" callback="on_pid_retry"/>
           </lv_button>

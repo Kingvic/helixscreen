@@ -22,8 +22,7 @@
       </lv_obj>
       <!-- Status message at bottom -->
       <text_small name="status_message"
-                  width="100%" bind_text="power_status" text="" style_text_align="center"
-                  style_text_color="#text_muted"/>
+                  width="100%" bind_text="power_status" text="" style_text_align="center" style_text_color="#text_muted"/>
     </lv_obj>
   </view>
 </component>
