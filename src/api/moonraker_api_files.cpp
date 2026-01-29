@@ -273,13 +273,7 @@ void MoonrakerAPI::download_file(const std::string& root, const std::string& pat
     if (http_base_url_.empty()) {
         spdlog::error(
             "[Moonraker API] HTTP base URL not configured - call set_http_base_url first");
-        if (on_error) {
-            MoonrakerError err;
-            err.type = MoonrakerErrorType::CONNECTION_LOST;
-            err.message = "HTTP base URL not configured";
-            err.method = "download_file";
-            on_error(err);
-        }
+        report_connection_error(on_error, "download_file", "HTTP base URL not configured");
         return;
     }
 
@@ -296,41 +290,21 @@ void MoonrakerAPI::download_file(const std::string& root, const std::string& pat
 
         if (!resp) {
             spdlog::error("[Moonraker API] HTTP request failed for: {}", url);
-            if (on_error) {
-                MoonrakerError err;
-                err.type = MoonrakerErrorType::CONNECTION_LOST;
-                err.message = "HTTP request failed";
-                err.method = "download_file";
-                on_error(err);
-            }
+            report_connection_error(on_error, "download_file", "HTTP request failed");
             return;
         }
 
         if (resp->status_code == 404) {
             spdlog::debug("[Moonraker API] File not found: {}", path);
-            if (on_error) {
-                MoonrakerError err;
-                err.type = MoonrakerErrorType::FILE_NOT_FOUND;
-                err.code = resp->status_code;
-                err.message = "File not found: " + path;
-                err.method = "download_file";
-                on_error(err);
-            }
+            report_error(on_error, MoonrakerErrorType::FILE_NOT_FOUND, "download_file",
+                         "File not found: " + path, 404);
             return;
         }
 
         if (resp->status_code != 200) {
             spdlog::error("[Moonraker API] HTTP {} downloading {}: {}",
                           static_cast<int>(resp->status_code), path, resp->status_message());
-            if (on_error) {
-                MoonrakerError err;
-                err.type = MoonrakerErrorType::UNKNOWN;
-                err.code = static_cast<int>(resp->status_code);
-                err.message = "HTTP " + std::to_string(static_cast<int>(resp->status_code)) + ": " +
-                              resp->status_message();
-                err.method = "download_file";
-                on_error(err);
-            }
+            report_http_error(on_error, resp->status_code, "download_file", resp->status_message());
             return;
         }
 
@@ -353,13 +327,7 @@ void MoonrakerAPI::download_file_partial(const std::string& root, const std::str
     if (http_base_url_.empty()) {
         spdlog::error(
             "[Moonraker API] HTTP base URL not configured - call set_http_base_url first");
-        if (on_error) {
-            MoonrakerError err;
-            err.type = MoonrakerErrorType::CONNECTION_LOST;
-            err.message = "HTTP base URL not configured";
-            err.method = "download_file_partial";
-            on_error(err);
-        }
+        report_connection_error(on_error, "download_file_partial", "HTTP base URL not configured");
         return;
     }
 
@@ -386,26 +354,14 @@ void MoonrakerAPI::download_file_partial(const std::string& root, const std::str
 
         if (!resp) {
             spdlog::error("[Moonraker API] HTTP request failed for: {}", url);
-            if (on_error) {
-                MoonrakerError err;
-                err.type = MoonrakerErrorType::CONNECTION_LOST;
-                err.message = "HTTP request failed";
-                err.method = "download_file_partial";
-                on_error(err);
-            }
+            report_connection_error(on_error, "download_file_partial", "HTTP request failed");
             return;
         }
 
         if (resp->status_code == 404) {
             spdlog::debug("[Moonraker API] File not found: {}", path);
-            if (on_error) {
-                MoonrakerError err;
-                err.type = MoonrakerErrorType::FILE_NOT_FOUND;
-                err.code = resp->status_code;
-                err.message = "File not found: " + path;
-                err.method = "download_file_partial";
-                on_error(err);
-            }
+            report_error(on_error, MoonrakerErrorType::FILE_NOT_FOUND, "download_file_partial",
+                         "File not found: " + path, 404);
             return;
         }
 
@@ -413,15 +369,8 @@ void MoonrakerAPI::download_file_partial(const std::string& root, const std::str
         if (resp->status_code != 200 && resp->status_code != 206) {
             spdlog::error("[Moonraker API] HTTP {} downloading {}: {}",
                           static_cast<int>(resp->status_code), path, resp->status_message());
-            if (on_error) {
-                MoonrakerError err;
-                err.type = MoonrakerErrorType::UNKNOWN;
-                err.code = static_cast<int>(resp->status_code);
-                err.message = "HTTP " + std::to_string(static_cast<int>(resp->status_code)) + ": " +
-                              resp->status_message();
-                err.method = "download_file_partial";
-                on_error(err);
-            }
+            report_http_error(on_error, resp->status_code, "download_file_partial",
+                              resp->status_message());
             return;
         }
 
@@ -439,13 +388,7 @@ void MoonrakerAPI::download_file_to_path(const std::string& root, const std::str
                                          ErrorCallback on_error, ProgressCallback on_progress) {
     if (http_base_url_.empty()) {
         spdlog::error("[Moonraker API] HTTP base URL not set - cannot download file");
-        if (on_error) {
-            MoonrakerError err;
-            err.type = MoonrakerErrorType::CONNECTION_LOST;
-            err.message = "HTTP base URL not configured";
-            err.method = "download_file_to_path";
-            on_error(err);
-        }
+        report_connection_error(on_error, "download_file_to_path", "HTTP base URL not configured");
         return;
     }
 
@@ -464,13 +407,8 @@ void MoonrakerAPI::download_file_to_path(const std::string& root, const std::str
 
         if (bytes_written == 0) {
             spdlog::error("[Moonraker API] Streaming download failed: {} -> {}", url, dest_path);
-            if (on_error) {
-                MoonrakerError err;
-                err.type = MoonrakerErrorType::CONNECTION_LOST;
-                err.message = "Streaming download failed: " + path;
-                err.method = "download_file_to_path";
-                on_error(err);
-            }
+            report_connection_error(on_error, "download_file_to_path",
+                                    "Streaming download failed: " + path);
             return;
         }
 
@@ -488,25 +426,14 @@ void MoonrakerAPI::download_thumbnail(const std::string& thumbnail_path,
     // Validate inputs
     if (thumbnail_path.empty()) {
         spdlog::warn("[Moonraker API] Empty thumbnail path");
-        if (on_error) {
-            MoonrakerError err;
-            err.type = MoonrakerErrorType::VALIDATION_ERROR;
-            err.message = "Empty thumbnail path";
-            err.method = "download_thumbnail";
-            on_error(err);
-        }
+        report_error(on_error, MoonrakerErrorType::VALIDATION_ERROR, "download_thumbnail",
+                     "Empty thumbnail path");
         return;
     }
 
     // Ensure HTTP URL is available (auto-derives from WebSocket if needed)
     if (!ensure_http_base_url()) {
-        if (on_error) {
-            MoonrakerError err;
-            err.type = MoonrakerErrorType::CONNECTION_LOST;
-            err.message = "HTTP base URL not configured";
-            err.method = "download_thumbnail";
-            on_error(err);
-        }
+        report_connection_error(on_error, "download_thumbnail", "HTTP base URL not configured");
         return;
     }
 
@@ -525,26 +452,14 @@ void MoonrakerAPI::download_thumbnail(const std::string& thumbnail_path,
 
         if (!resp) {
             spdlog::error("[Moonraker API] HTTP request failed for thumbnail: {}", url);
-            if (on_error) {
-                MoonrakerError err;
-                err.type = MoonrakerErrorType::CONNECTION_LOST;
-                err.message = "HTTP request failed";
-                err.method = "download_thumbnail";
-                on_error(err);
-            }
+            report_connection_error(on_error, "download_thumbnail", "HTTP request failed");
             return;
         }
 
         if (resp->status_code == 404) {
             spdlog::warn("[Moonraker API] Thumbnail not found: {}", thumbnail_path);
-            if (on_error) {
-                MoonrakerError err;
-                err.type = MoonrakerErrorType::FILE_NOT_FOUND;
-                err.code = resp->status_code;
-                err.message = "Thumbnail not found: " + thumbnail_path;
-                err.method = "download_thumbnail";
-                on_error(err);
-            }
+            report_error(on_error, MoonrakerErrorType::FILE_NOT_FOUND, "download_thumbnail",
+                         "Thumbnail not found: " + thumbnail_path, 404);
             return;
         }
 
@@ -552,15 +467,8 @@ void MoonrakerAPI::download_thumbnail(const std::string& thumbnail_path,
             spdlog::error("[Moonraker API] HTTP {} downloading thumbnail {}: {}",
                           static_cast<int>(resp->status_code), thumbnail_path,
                           resp->status_message());
-            if (on_error) {
-                MoonrakerError err;
-                err.type = MoonrakerErrorType::UNKNOWN;
-                err.code = static_cast<int>(resp->status_code);
-                err.message = "HTTP " + std::to_string(static_cast<int>(resp->status_code)) + ": " +
-                              resp->status_message();
-                err.method = "download_thumbnail";
-                on_error(err);
-            }
+            report_http_error(on_error, resp->status_code, "download_thumbnail",
+                              resp->status_message());
             return;
         }
 
@@ -568,13 +476,8 @@ void MoonrakerAPI::download_thumbnail(const std::string& thumbnail_path,
         std::ofstream file(cache_path, std::ios::binary);
         if (!file) {
             spdlog::error("[Moonraker API] Failed to create cache file: {}", cache_path);
-            if (on_error) {
-                MoonrakerError err;
-                err.type = MoonrakerErrorType::UNKNOWN;
-                err.message = "Failed to create cache file: " + cache_path;
-                err.method = "download_thumbnail";
-                on_error(err);
-            }
+            report_error(on_error, MoonrakerErrorType::UNKNOWN, "download_thumbnail",
+                         "Failed to create cache file: " + cache_path);
             return;
         }
 

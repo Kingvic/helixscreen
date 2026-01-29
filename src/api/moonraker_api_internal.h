@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <cctype>
 #include <string>
+#include <string_view>
 
 namespace moonraker_internal {
 
@@ -265,6 +266,99 @@ inline bool reject_out_of_range(double value, double min, double max, const char
         on_error(err);
     }
     return true; // Invalid, caller should return
+}
+
+// ============================================================================
+// ERROR REPORTING HELPERS
+// ============================================================================
+// These functions consolidate the common pattern of:
+// 1. Check if callback exists
+// 2. Construct MoonrakerError with appropriate type
+// 3. Invoke callback
+//
+// Usage:
+//   report_error(on_error, MoonrakerErrorType::CONNECTION_LOST, "method", "message");
+//   report_http_error(on_error, 404, "method", "status message");
+
+/**
+ * @brief Report an error via callback with specified type
+ *
+ * @param on_error Error callback (may be nullptr)
+ * @param type Error type classification
+ * @param method Method name for error context
+ * @param message Human-readable error message
+ * @param code Optional error code (default: 0)
+ */
+inline void report_error(const MoonrakerAPI::ErrorCallback& on_error, MoonrakerErrorType type,
+                         std::string_view method, std::string_view message, int code = 0) {
+    if (!on_error)
+        return;
+
+    MoonrakerError err;
+    err.type = type;
+    err.method = std::string(method);
+    err.message = std::string(message);
+    err.code = code;
+    on_error(err);
+}
+
+/**
+ * @brief Report an HTTP error with automatic type mapping
+ *
+ * Maps HTTP status codes to appropriate MoonrakerErrorType:
+ * - 404 -> FILE_NOT_FOUND
+ * - 403 -> PERMISSION_DENIED
+ * - Other -> UNKNOWN
+ *
+ * @param on_error Error callback (may be nullptr)
+ * @param status_code HTTP status code
+ * @param method Method name for error context
+ * @param status_message HTTP status message
+ */
+inline void report_http_error(const MoonrakerAPI::ErrorCallback& on_error, int status_code,
+                              std::string_view method, std::string_view status_message) {
+    if (!on_error)
+        return;
+
+    MoonrakerErrorType type;
+    if (status_code == 404) {
+        type = MoonrakerErrorType::FILE_NOT_FOUND;
+    } else if (status_code == 403) {
+        type = MoonrakerErrorType::PERMISSION_DENIED;
+    } else {
+        type = MoonrakerErrorType::UNKNOWN;
+    }
+
+    MoonrakerError err;
+    err.type = type;
+    err.code = status_code;
+    err.method = std::string(method);
+    err.message = "HTTP " + std::to_string(status_code) + ": " + std::string(status_message);
+    on_error(err);
+}
+
+/**
+ * @brief Report a connection error (convenience wrapper)
+ *
+ * @param on_error Error callback (may be nullptr)
+ * @param method Method name for error context
+ * @param message Human-readable error message
+ */
+inline void report_connection_error(const MoonrakerAPI::ErrorCallback& on_error,
+                                    std::string_view method, std::string_view message) {
+    report_error(on_error, MoonrakerErrorType::CONNECTION_LOST, method, message);
+}
+
+/**
+ * @brief Report a parse error (convenience wrapper)
+ *
+ * @param on_error Error callback (may be nullptr)
+ * @param method Method name for error context
+ * @param message Human-readable error message
+ */
+inline void report_parse_error(const MoonrakerAPI::ErrorCallback& on_error, std::string_view method,
+                               std::string_view message) {
+    report_error(on_error, MoonrakerErrorType::PARSE_ERROR, method, message);
 }
 
 } // namespace moonraker_internal
