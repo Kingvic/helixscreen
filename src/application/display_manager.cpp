@@ -24,6 +24,7 @@
 #include <algorithm>
 
 #ifdef HELIX_DISPLAY_SDL
+#include "app_globals.h" // For app_request_quit()
 #include "drivers/sdl/lv_sdl_window.h"
 
 #include <SDL.h>
@@ -35,6 +36,34 @@
 
 // Static instance pointer for global access (e.g., from print_completion)
 static DisplayManager* s_instance = nullptr;
+
+#ifdef HELIX_DISPLAY_SDL
+/**
+ * @brief SDL event filter to intercept window close before LVGL processes it
+ *
+ * CRITICAL: Without this filter, clicking the window close button (X) causes LVGL's
+ * SDL driver to immediately delete the display DURING lv_timer_handler().
+ * This destroys all LVGL objects while timer callbacks may still be running, causing
+ * use-after-free crashes.
+ *
+ * By intercepting SDL_WINDOWEVENT_CLOSE here and returning 0, we:
+ * 1. Prevent LVGL from seeing the event (so it won't delete the display)
+ * 2. Signal graceful shutdown via app_request_quit()
+ * 3. Let Application::shutdown() clean up in the proper order
+ *
+ * @param userdata Unused
+ * @param event SDL event to filter
+ * @return 1 to pass event through, 0 to drop it
+ */
+static int sdl_event_filter(void* /*userdata*/, SDL_Event* event) {
+    if (event->type == SDL_WINDOWEVENT && event->window.event == SDL_WINDOWEVENT_CLOSE) {
+        spdlog::info("[DisplayManager] Window close intercepted - requesting graceful shutdown");
+        app_request_quit();
+        return 0; // Drop event - don't let LVGL's SDL driver see it
+    }
+    return 1; // Pass all other events through
+}
+#endif
 
 DisplayManager::DisplayManager() = default;
 
@@ -84,6 +113,14 @@ bool DisplayManager::init(const Config& config) {
     // Initialize UI update queue for thread-safe async updates
     // Must be done AFTER display is created - registers LV_EVENT_REFR_START handler
     ui_update_queue_init();
+
+#ifdef HELIX_DISPLAY_SDL
+    // Install event filter to intercept window close before LVGL sees it.
+    // Without this, closing the window deletes the display mid-timer-handler,
+    // causing use-after-free crashes in any running timer callbacks.
+    SDL_AddEventWatch(sdl_event_filter, nullptr);
+    spdlog::debug("[DisplayManager] Installed SDL event filter for graceful window close");
+#endif
 
     // Create pointer input device (mouse/touch)
     m_pointer = m_backend->create_input_pointer();
@@ -210,9 +247,9 @@ void DisplayManager::shutdown() {
     ui_update_queue_shutdown();
 
     // Quit SDL before LVGL deinit - must be called outside the SDL event handler.
-    // When the SDL_QUIT event is received, the event handler just deletes displays
-    // to exit the main loop, then we clean up SDL here during proper shutdown.
 #ifdef HELIX_DISPLAY_SDL
+    // Remove our event filter before SDL cleanup
+    SDL_DelEventWatch(sdl_event_filter, nullptr);
     lv_sdl_quit();
 #endif
 

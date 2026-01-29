@@ -136,8 +136,9 @@ void MemoryStatsOverlay::shutdown() {
 
     spdlog::debug("[MemoryStats] Shutting down");
 
-    // Stop the timer first to prevent callbacks during cleanup
-    // Check lv_is_initialized() to avoid crash if LVGL was already deinitialized
+    // Stop the timer first to prevent callbacks during cleanup.
+    // Note: With proper shutdown order (StaticPanelRegistry before lv_deinit),
+    // lv_is_initialized() should always be true here. The check is defense-in-depth.
     if (update_timer_ && lv_is_initialized()) {
         lv_timer_delete(update_timer_);
         update_timer_ = nullptr;
