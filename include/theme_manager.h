@@ -175,6 +175,17 @@ bool theme_manager_supports_light_mode();
 void theme_manager_preview(const helix::ThemeData& theme);
 
 /**
+ * @brief Preview theme colors with explicit dark mode
+ *
+ * Like theme_manager_preview() but allows UI to control dark/light mode
+ * independently from the global setting (for preview toggle).
+ *
+ * @param theme Theme data to preview
+ * @param is_dark Whether to preview in dark mode
+ */
+void theme_manager_preview(const helix::ThemeData& theme, bool is_dark);
+
+/**
  * @brief Revert to active theme (cancel preview)
  */
 void theme_manager_revert_preview();

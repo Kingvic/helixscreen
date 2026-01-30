@@ -793,11 +793,16 @@ bool theme_manager_supports_light_mode() {
 }
 
 void theme_manager_preview(const helix::ThemeData& theme) {
+    // Use global dark mode setting
+    theme_manager_preview(theme, use_dark_mode);
+}
+
+void theme_manager_preview(const helix::ThemeData& theme, bool is_dark) {
     // Select the appropriate mode palette for preview
     const helix::ModePalette* mode_palette = nullptr;
-    if (use_dark_mode && theme.supports_dark()) {
+    if (is_dark && theme.supports_dark()) {
         mode_palette = &theme.dark;
-    } else if (!use_dark_mode && theme.supports_light()) {
+    } else if (!is_dark && theme.supports_light()) {
         mode_palette = &theme.light;
     } else if (theme.supports_dark()) {
         mode_palette = &theme.dark;
@@ -806,15 +811,15 @@ void theme_manager_preview(const helix::ThemeData& theme) {
     }
 
     theme_palette_t palette = build_palette_from_mode(*mode_palette);
-    theme_core_preview_colors(use_dark_mode, &palette, theme.properties.border_radius,
+    theme_core_preview_colors(is_dark, &palette, theme.properties.border_radius,
                               theme.properties.border_opacity);
     theme_manager_refresh_widget_tree(lv_screen_active());
 
-    spdlog::debug("[Theme] Previewing theme: {}", theme.name);
+    spdlog::debug("[Theme] Previewing theme: {} ({})", theme.name, is_dark ? "dark" : "light");
 }
 
 void theme_manager_revert_preview() {
-    theme_manager_preview(active_theme);
+    theme_manager_preview(active_theme, use_dark_mode);
     spdlog::debug("[Theme] Reverted to active theme: {}", active_theme.name);
 }
 

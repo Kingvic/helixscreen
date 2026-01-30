@@ -17,7 +17,6 @@
 #include "format_utils.h"
 #include "settings_manager.h"
 #include "static_panel_registry.h"
-#include "theme_core.h"
 #include "theme_manager.h"
 
 #include <spdlog/spdlog.h>
@@ -609,10 +608,8 @@ void DisplaySettingsOverlay::on_preview_dark_mode_toggled(lv_event_t* e) {
 }
 
 void DisplaySettingsOverlay::handle_preview_dark_mode_toggled(bool is_dark) {
-    // Update local state
     preview_is_dark_ = is_dark;
 
-    // Get currently previewed theme (from dropdown selection)
     if (!theme_explorer_overlay_) {
         return;
     }
@@ -623,8 +620,6 @@ void DisplaySettingsOverlay::handle_preview_dark_mode_toggled(bool is_dark) {
     }
 
     int selected_index = lv_dropdown_get_selected(dropdown);
-
-    // Load theme
     std::string themes_dir = helix::get_themes_directory();
     auto themes = helix::discover_themes(themes_dir);
 
@@ -639,43 +634,8 @@ void DisplaySettingsOverlay::handle_preview_dark_mode_toggled(bool is_dark) {
         return;
     }
 
-    // Select appropriate mode palette based on is_dark toggle
-    const helix::ModePalette* mode_palette = nullptr;
-    if (is_dark && theme.supports_dark()) {
-        mode_palette = &theme.dark;
-    } else if (!is_dark && theme.supports_light()) {
-        mode_palette = &theme.light;
-    } else if (theme.supports_dark()) {
-        mode_palette = &theme.dark;
-    } else {
-        mode_palette = &theme.light;
-    }
-
-    // Build palette from the mode palette
-    theme_palette_t palette = {};
-    palette.screen_bg = theme_manager_parse_hex_color(mode_palette->app_bg.c_str());
-    palette.panel_bg = theme_manager_parse_hex_color(mode_palette->panel_bg.c_str());
-    palette.card_bg = theme_manager_parse_hex_color(mode_palette->card_bg.c_str());
-    palette.surface_control = theme_manager_parse_hex_color(mode_palette->card_alt.c_str());
-    palette.border = theme_manager_parse_hex_color(mode_palette->border.c_str());
-    palette.text = theme_manager_parse_hex_color(mode_palette->text.c_str());
-    palette.text_muted = theme_manager_parse_hex_color(mode_palette->text_muted.c_str());
-    palette.text_subtle = theme_manager_parse_hex_color(mode_palette->text_subtle.c_str());
-    palette.primary = theme_manager_parse_hex_color(mode_palette->primary.c_str());
-    palette.secondary = theme_manager_parse_hex_color(mode_palette->secondary.c_str());
-    palette.tertiary = theme_manager_parse_hex_color(mode_palette->tertiary.c_str());
-    palette.info = theme_manager_parse_hex_color(mode_palette->info.c_str());
-    palette.success = theme_manager_parse_hex_color(mode_palette->success.c_str());
-    palette.warning = theme_manager_parse_hex_color(mode_palette->warning.c_str());
-    palette.danger = theme_manager_parse_hex_color(mode_palette->danger.c_str());
-    palette.focus = theme_manager_parse_hex_color(mode_palette->focus.c_str());
-
-    // Use reactive theme system: update shared styles, LVGL auto-refreshes widgets
-    theme_core_preview_colors(is_dark, &palette, theme.properties.border_radius,
-                              theme.properties.border_opacity);
-
-    // Refresh widget tree for any local/inline styles
-    theme_manager_refresh_widget_tree(lv_screen_active());
+    // Use the new overload with explicit dark mode
+    theme_manager_preview(theme, is_dark);
 
     spdlog::debug("[DisplaySettingsOverlay] Preview dark mode toggled to {}",
                   is_dark ? "dark" : "light");
