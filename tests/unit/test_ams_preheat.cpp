@@ -207,15 +207,27 @@ class MockAmsBackendPreheat {
  * @return Temperature in °C to heat to before loading
  */
 inline int get_load_temp_for_slot(const SlotInfo* slot) {
-    // STUB: This function does not exist yet - tests should FAIL
-    // Implementation should:
-    // 1. If slot is null, return DEFAULT_LOAD_PREHEAT_TEMP
-    // 2. If slot->nozzle_temp_min > 0, return that
-    // 3. If slot->material is set, lookup in FilamentDatabase
-    // 4. Fall back to DEFAULT_LOAD_PREHEAT_TEMP
+    // Priority 1: Null slot returns default
+    if (slot == nullptr) {
+        return DEFAULT_LOAD_PREHEAT_TEMP;
+    }
 
-    (void)slot; // Suppress unused parameter warning
-    return -1;  // Intentionally wrong - tests should fail
+    // Priority 2: Slot has explicit nozzle_temp_min
+    if (slot->nozzle_temp_min > 0) {
+        return slot->nozzle_temp_min;
+    }
+
+    // Priority 3: Look up material in FilamentDatabase
+    if (!slot->material.empty()) {
+        auto mat_info = filament::find_material(slot->material);
+        if (mat_info.has_value()) {
+            // Use nozzle_min for loading - safer than recommended
+            return mat_info->nozzle_min;
+        }
+    }
+
+    // Priority 4: Fall back to default
+    return DEFAULT_LOAD_PREHEAT_TEMP;
 }
 
 /**
@@ -232,10 +244,27 @@ inline int get_load_temp_for_slot(const SlotInfo* slot) {
  */
 inline void handle_load_with_preheat(MockAmsBackendPreheat& backend,
                                      MockTemperatureProvider& temp_provider, int slot_index) {
-    // STUB: This function does not exist yet - tests should FAIL
-    (void)backend;
-    (void)temp_provider;
-    (void)slot_index;
+    // If backend handles heating automatically, just load directly
+    if (backend.supports_auto_heat()) {
+        backend.capture_load_filament(slot_index);
+        return;
+    }
+
+    // Get the target temperature for this slot
+    const SlotInfo* slot = backend.get_slot(slot_index);
+    int target_temp = get_load_temp_for_slot(slot);
+
+    // If nozzle is already hot enough, load directly
+    if (temp_provider.is_temp_reached(target_temp)) {
+        backend.capture_load_filament(slot_index);
+        return;
+    }
+
+    // Need to preheat first - start heating and set pending load
+    backend.capture_set_heater_temp(target_temp);
+    backend.pending_load_slot_ = slot_index;
+    backend.pending_load_target_temp_ = target_temp;
+    backend.ui_initiated_heat_ = true;
 }
 
 /**
@@ -250,9 +279,19 @@ inline void handle_load_with_preheat(MockAmsBackendPreheat& backend,
  */
 inline void check_pending_load(MockAmsBackendPreheat& backend,
                                MockTemperatureProvider& temp_provider) {
-    // STUB: This function does not exist yet - tests should FAIL
-    (void)backend;
-    (void)temp_provider;
+    // No pending load
+    if (backend.pending_load_slot_ < 0) {
+        return;
+    }
+
+    // Check if temperature has been reached
+    if (!temp_provider.is_temp_reached(backend.pending_load_target_temp_)) {
+        return;
+    }
+
+    // Temperature reached - issue load command and clear pending state
+    backend.capture_load_filament(backend.pending_load_slot_);
+    backend.pending_load_slot_ = -1;
 }
 
 /**
@@ -265,15 +304,21 @@ inline void check_pending_load(MockAmsBackendPreheat& backend,
  * @param backend Mock backend to operate on
  */
 inline void handle_load_complete(MockAmsBackendPreheat& backend) {
-    // STUB: This function does not exist yet - tests should FAIL
-    (void)backend;
+    // Only turn off heater if we initiated the heating
+    if (!backend.ui_initiated_heat_) {
+        return;
+    }
+
+    // Turn off heater and clear flag
+    backend.capture_set_heater_temp(0);
+    backend.ui_initiated_heat_ = false;
 }
 
 // ============================================================================
 // Test Cases: get_load_temp_for_slot() - Temperature Priority Logic
 // ============================================================================
 
-TEST_CASE("get_load_temp_for_slot: slot has nozzle_temp_min set", "[ams][preheat][temp][.tdd]") {
+TEST_CASE("get_load_temp_for_slot: slot has nozzle_temp_min set", "[ams][preheat][temp]") {
     SlotInfo slot;
     slot.nozzle_temp_min = 200;
     slot.material = "PLA"; // Has material, but nozzle_temp_min should take priority
@@ -285,7 +330,7 @@ TEST_CASE("get_load_temp_for_slot: slot has nozzle_temp_min set", "[ams][preheat
 }
 
 TEST_CASE("get_load_temp_for_slot: slot has material but no temp - uses FilamentDatabase",
-          "[ams][preheat][temp][.tdd]") {
+          "[ams][preheat][temp]") {
     SlotInfo slot;
     slot.nozzle_temp_min = 0; // Not set
     slot.material = "PLA";
@@ -303,7 +348,7 @@ TEST_CASE("get_load_temp_for_slot: slot has material but no temp - uses Filament
     REQUIRE(valid_temp);
 }
 
-TEST_CASE("get_load_temp_for_slot: slot has PETG material", "[ams][preheat][temp][.tdd]") {
+TEST_CASE("get_load_temp_for_slot: slot has PETG material", "[ams][preheat][temp]") {
     SlotInfo slot;
     slot.nozzle_temp_min = 0;
     slot.material = "PETG";
@@ -319,7 +364,7 @@ TEST_CASE("get_load_temp_for_slot: slot has PETG material", "[ams][preheat][temp
 }
 
 TEST_CASE("get_load_temp_for_slot: unknown material falls back to default",
-          "[ams][preheat][temp][.tdd]") {
+          "[ams][preheat][temp]") {
     SlotInfo slot;
     slot.nozzle_temp_min = 0;
     slot.material = "UnknownMaterial123";
@@ -330,8 +375,7 @@ TEST_CASE("get_load_temp_for_slot: unknown material falls back to default",
     REQUIRE(temp == DEFAULT_LOAD_PREHEAT_TEMP);
 }
 
-TEST_CASE("get_load_temp_for_slot: empty material falls back to default",
-          "[ams][preheat][temp][.tdd]") {
+TEST_CASE("get_load_temp_for_slot: empty material falls back to default", "[ams][preheat][temp]") {
     SlotInfo slot;
     slot.nozzle_temp_min = 0;
     slot.material = "";
@@ -342,15 +386,14 @@ TEST_CASE("get_load_temp_for_slot: empty material falls back to default",
     REQUIRE(temp == DEFAULT_LOAD_PREHEAT_TEMP);
 }
 
-TEST_CASE("get_load_temp_for_slot: null slot returns default", "[ams][preheat][temp][.tdd]") {
+TEST_CASE("get_load_temp_for_slot: null slot returns default", "[ams][preheat][temp]") {
     int temp = get_load_temp_for_slot(nullptr);
 
     // Null slot should return default safely
     REQUIRE(temp == DEFAULT_LOAD_PREHEAT_TEMP);
 }
 
-TEST_CASE("get_load_temp_for_slot: case-insensitive material lookup",
-          "[ams][preheat][temp][.tdd]") {
+TEST_CASE("get_load_temp_for_slot: case-insensitive material lookup", "[ams][preheat][temp]") {
     SlotInfo slot;
     slot.nozzle_temp_min = 0;
     slot.material = "pla"; // lowercase
@@ -370,7 +413,7 @@ TEST_CASE("get_load_temp_for_slot: case-insensitive material lookup",
 // ============================================================================
 
 TEST_CASE("handle_load_with_preheat: backend supports auto-heat - loads directly",
-          "[ams][preheat][load][.tdd]") {
+          "[ams][preheat][load]") {
     MockAmsBackendPreheat backend(4);
     MockTemperatureProvider temp_provider;
 
@@ -386,8 +429,7 @@ TEST_CASE("handle_load_with_preheat: backend supports auto-heat - loads directly
     REQUIRE(backend.pending_load_slot_ == -1);
 }
 
-TEST_CASE("handle_load_with_preheat: nozzle already hot - loads directly",
-          "[ams][preheat][load][.tdd]") {
+TEST_CASE("handle_load_with_preheat: nozzle already hot - loads directly", "[ams][preheat][load]") {
     MockAmsBackendPreheat backend(4);
     MockTemperatureProvider temp_provider;
 
@@ -410,7 +452,7 @@ TEST_CASE("handle_load_with_preheat: nozzle already hot - loads directly",
 }
 
 TEST_CASE("handle_load_with_preheat: nozzle cold - starts heating and sets pending",
-          "[ams][preheat][load][.tdd]") {
+          "[ams][preheat][load]") {
     MockAmsBackendPreheat backend(4);
     MockTemperatureProvider temp_provider;
 
@@ -440,7 +482,7 @@ TEST_CASE("handle_load_with_preheat: nozzle cold - starts heating and sets pendi
 }
 
 TEST_CASE("handle_load_with_preheat: uses FilamentDatabase temp when slot has no temp set",
-          "[ams][preheat][load][.tdd]") {
+          "[ams][preheat][load]") {
     MockAmsBackendPreheat backend(4);
     MockTemperatureProvider temp_provider;
 
@@ -468,7 +510,7 @@ TEST_CASE("handle_load_with_preheat: uses FilamentDatabase temp when slot has no
 }
 
 TEST_CASE("handle_load_with_preheat: temp within threshold is considered hot enough",
-          "[ams][preheat][load][.tdd]") {
+          "[ams][preheat][load]") {
     MockAmsBackendPreheat backend(4);
     MockTemperatureProvider temp_provider;
 
@@ -492,7 +534,7 @@ TEST_CASE("handle_load_with_preheat: temp within threshold is considered hot eno
 // Test Cases: check_pending_load() - Temperature Monitoring
 // ============================================================================
 
-TEST_CASE("check_pending_load: no pending load - does nothing", "[ams][preheat][pending][.tdd]") {
+TEST_CASE("check_pending_load: no pending load - does nothing", "[ams][preheat][pending]") {
     MockAmsBackendPreheat backend(4);
     MockTemperatureProvider temp_provider;
 
@@ -506,7 +548,7 @@ TEST_CASE("check_pending_load: no pending load - does nothing", "[ams][preheat][
 }
 
 TEST_CASE("check_pending_load: pending but temp not reached - does nothing",
-          "[ams][preheat][pending][.tdd]") {
+          "[ams][preheat][pending]") {
     MockAmsBackendPreheat backend(4);
     MockTemperatureProvider temp_provider;
 
@@ -523,7 +565,7 @@ TEST_CASE("check_pending_load: pending but temp not reached - does nothing",
 }
 
 TEST_CASE("check_pending_load: temp reached - issues load and clears pending",
-          "[ams][preheat][pending][.tdd]") {
+          "[ams][preheat][pending]") {
     MockAmsBackendPreheat backend(4);
     MockTemperatureProvider temp_provider;
 
@@ -542,8 +584,7 @@ TEST_CASE("check_pending_load: temp reached - issues load and clears pending",
     REQUIRE(backend.ui_initiated_heat_);
 }
 
-TEST_CASE("check_pending_load: temp within threshold triggers load",
-          "[ams][preheat][pending][.tdd]") {
+TEST_CASE("check_pending_load: temp within threshold triggers load", "[ams][preheat][pending]") {
     MockAmsBackendPreheat backend(4);
     MockTemperatureProvider temp_provider;
 
@@ -558,8 +599,7 @@ TEST_CASE("check_pending_load: temp within threshold triggers load",
     REQUIRE(backend.pending_load_slot_ == -1);
 }
 
-TEST_CASE("check_pending_load: temp just outside threshold - waits",
-          "[ams][preheat][pending][.tdd]") {
+TEST_CASE("check_pending_load: temp just outside threshold - waits", "[ams][preheat][pending]") {
     MockAmsBackendPreheat backend(4);
     MockTemperatureProvider temp_provider;
 
@@ -579,7 +619,7 @@ TEST_CASE("check_pending_load: temp just outside threshold - waits",
 // ============================================================================
 
 TEST_CASE("handle_load_complete: ui_initiated_heat true - turns off heater",
-          "[ams][preheat][complete][.tdd]") {
+          "[ams][preheat][complete]") {
     MockAmsBackendPreheat backend(4);
 
     backend.ui_initiated_heat_ = true;
@@ -595,7 +635,7 @@ TEST_CASE("handle_load_complete: ui_initiated_heat true - turns off heater",
 }
 
 TEST_CASE("handle_load_complete: ui_initiated_heat false - does nothing",
-          "[ams][preheat][complete][.tdd]") {
+          "[ams][preheat][complete]") {
     MockAmsBackendPreheat backend(4);
 
     backend.ui_initiated_heat_ = false;
@@ -609,7 +649,7 @@ TEST_CASE("handle_load_complete: ui_initiated_heat false - does nothing",
 }
 
 TEST_CASE("handle_load_complete: clears ui_initiated_heat after turning off heater",
-          "[ams][preheat][complete][.tdd]") {
+          "[ams][preheat][complete]") {
     MockAmsBackendPreheat backend(4);
 
     // Simulate state after UI-initiated load completes
@@ -631,8 +671,7 @@ TEST_CASE("handle_load_complete: clears ui_initiated_heat after turning off heat
 // Integration Test Cases
 // ============================================================================
 
-TEST_CASE("Preheat flow: cold start -> heat -> load -> cooldown",
-          "[ams][preheat][integration][.tdd]") {
+TEST_CASE("Preheat flow: cold start -> heat -> load -> cooldown", "[ams][preheat][integration]") {
     MockAmsBackendPreheat backend(4);
     MockTemperatureProvider temp_provider;
 
@@ -679,7 +718,7 @@ TEST_CASE("Preheat flow: cold start -> heat -> load -> cooldown",
     REQUIRE_FALSE(backend.ui_initiated_heat_);
 }
 
-TEST_CASE("Preheat flow: already hot skips heating phase", "[ams][preheat][integration][.tdd]") {
+TEST_CASE("Preheat flow: already hot skips heating phase", "[ams][preheat][integration]") {
     MockAmsBackendPreheat backend(4);
     MockTemperatureProvider temp_provider;
 
@@ -706,8 +745,7 @@ TEST_CASE("Preheat flow: already hot skips heating phase", "[ams][preheat][integ
     REQUIRE_FALSE(backend.has_command("SET_HEATER_TEMPERATURE"));
 }
 
-TEST_CASE("Preheat flow: auto-heat backend skips all UI heating",
-          "[ams][preheat][integration][.tdd]") {
+TEST_CASE("Preheat flow: auto-heat backend skips all UI heating", "[ams][preheat][integration]") {
     MockAmsBackendPreheat backend(4);
     MockTemperatureProvider temp_provider;
 
