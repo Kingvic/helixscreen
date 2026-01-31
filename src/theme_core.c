@@ -488,10 +488,12 @@ lv_theme_t* theme_core_init(lv_display_t* display, const theme_palette_t* palett
     // Initialize focus ring style for accessibility
     // Uses outline (not border) to avoid layout shift
     lv_style_init(&helix_theme_instance->focus_ring_style);
+    // Focus ring: same width as border (1px), drawn in same position
+    // outline_pad of -1 aligns outline with element edge (where border sits)
     lv_style_set_outline_color(&helix_theme_instance->focus_ring_style, focus_color);
-    lv_style_set_outline_width(&helix_theme_instance->focus_ring_style, 2);
+    lv_style_set_outline_width(&helix_theme_instance->focus_ring_style, border_width);
     lv_style_set_outline_opa(&helix_theme_instance->focus_ring_style, LV_OPA_COVER);
-    lv_style_set_outline_pad(&helix_theme_instance->focus_ring_style, 2);
+    lv_style_set_outline_pad(&helix_theme_instance->focus_ring_style, -border_width);
 
     // Initialize slider track style (unfilled portion) - uses border color
     lv_style_init(&helix_theme_instance->slider_track_style);
