@@ -287,8 +287,7 @@ static void helix_theme_apply(lv_theme_t* theme, lv_obj_t* obj) {
         lv_obj_add_style(obj, &helix->slider_disabled_style, LV_PART_MAIN | LV_STATE_DISABLED);
         lv_obj_add_style(obj, &helix->slider_disabled_style, LV_PART_INDICATOR | LV_STATE_DISABLED);
         lv_obj_add_style(obj, &helix->slider_disabled_style, LV_PART_KNOB | LV_STATE_DISABLED);
-        // Focus ring for accessibility
-        lv_obj_add_style(obj, &helix->focus_ring_style, LV_STATE_FOCUSED);
+        // No focus ring on sliders - they're adjusted via touch/mouse, not keyboard
     }
 #endif
 }
@@ -495,23 +494,27 @@ lv_theme_t* theme_core_init(lv_display_t* display, const theme_palette_t* palett
     lv_style_set_outline_opa(&helix_theme_instance->focus_ring_style, LV_OPA_COVER);
     lv_style_set_outline_pad(&helix_theme_instance->focus_ring_style, -border_width);
 
-    // Initialize slider track style (unfilled portion) - uses border color
+    // Initialize slider track style (unfilled portion) - uses border_color (same as switch OFF
+    // state) Set pad_ver=0 so track fills the full slider height
     lv_style_init(&helix_theme_instance->slider_track_style);
     lv_style_set_bg_color(&helix_theme_instance->slider_track_style, border_color);
     lv_style_set_bg_opa(&helix_theme_instance->slider_track_style, LV_OPA_COVER);
+    lv_style_set_pad_ver(&helix_theme_instance->slider_track_style, 0);
 
-    // Initialize slider indicator style (filled portion) - uses secondary accent color
+    // Initialize slider indicator style (filled portion) - uses knob color (same as knob)
+    // Set pad_ver=0 so indicator fills the full slider height
     lv_style_init(&helix_theme_instance->slider_indicator_style);
-    lv_style_set_bg_color(&helix_theme_instance->slider_indicator_style, secondary_color);
+    lv_style_set_bg_color(&helix_theme_instance->slider_indicator_style, knob_color);
     lv_style_set_bg_opa(&helix_theme_instance->slider_indicator_style, LV_OPA_COVER);
+    lv_style_set_pad_ver(&helix_theme_instance->slider_indicator_style, 0);
 
-    // Initialize slider knob style - uses computed knob color with shadow using screen_bg
+    // Initialize slider knob style - uses computed knob color with border for visual separation
     lv_style_init(&helix_theme_instance->slider_knob_style);
     lv_style_set_bg_color(&helix_theme_instance->slider_knob_style, knob_color);
     lv_style_set_bg_opa(&helix_theme_instance->slider_knob_style, LV_OPA_COVER);
-    lv_style_set_shadow_color(&helix_theme_instance->slider_knob_style, screen_bg);
-    lv_style_set_shadow_width(&helix_theme_instance->slider_knob_style, 4);
-    lv_style_set_shadow_opa(&helix_theme_instance->slider_knob_style, LV_OPA_50);
+    lv_style_set_border_color(&helix_theme_instance->slider_knob_style, border_color);
+    lv_style_set_border_width(&helix_theme_instance->slider_knob_style, 1);
+    lv_style_set_border_opa(&helix_theme_instance->slider_knob_style, LV_OPA_COVER);
 
     // Initialize slider disabled style - 50% opacity
     lv_style_init(&helix_theme_instance->slider_disabled_style);
@@ -540,11 +543,13 @@ lv_theme_t* theme_core_init(lv_display_t* display, const theme_palette_t* palett
     lv_style_set_bg_opa(&helix_theme_instance->dialog_style, LV_OPA_COVER);
     lv_style_set_radius(&helix_theme_instance->dialog_style, border_radius);
 
-    // Initialize base lv_obj style - transparent with no border by default
-    // This eliminates the need for style_bg_opa="0" style_border_width="0" on every container
+    // Initialize base lv_obj style - transparent with no border/padding by default
+    // This eliminates the need for style_bg_opa="0" style_border_width="0" style_pad_all="0" on
+    // every container
     lv_style_init(&helix_theme_instance->obj_base_style);
     lv_style_set_bg_opa(&helix_theme_instance->obj_base_style, LV_OPA_0);
     lv_style_set_border_width(&helix_theme_instance->obj_base_style, 0);
+    lv_style_set_pad_all(&helix_theme_instance->obj_base_style, 0);
     // Default lv_obj to content sizing (LVGL defaults to LV_DPI_DEF ~130px)
     lv_style_set_width(&helix_theme_instance->obj_base_style, LV_SIZE_CONTENT);
     lv_style_set_height(&helix_theme_instance->obj_base_style, LV_SIZE_CONTENT);
@@ -771,11 +776,11 @@ void theme_core_update_colors(bool is_dark, const theme_palette_t* palette,
     // Update focus ring color
     lv_style_set_outline_color(&helix_theme_instance->focus_ring_style, focus_color);
 
-    // Update slider styles (indicator=secondary, knob=computed brighter color)
+    // Update slider styles (track=border_color like switch OFF, indicator=knob_color like knob)
     lv_style_set_bg_color(&helix_theme_instance->slider_track_style, border_color);
-    lv_style_set_bg_color(&helix_theme_instance->slider_indicator_style, secondary_color);
+    lv_style_set_bg_color(&helix_theme_instance->slider_indicator_style, knob_color);
     lv_style_set_bg_color(&helix_theme_instance->slider_knob_style, knob_color);
-    lv_style_set_shadow_color(&helix_theme_instance->slider_knob_style, screen_bg);
+    lv_style_set_border_color(&helix_theme_instance->slider_knob_style, border_color);
 
     // Update dropdown selected item style - uses accent_color (more saturated of primary/secondary)
     lv_style_set_bg_color(&helix_theme_instance->dropdown_selected_style, accent_color);
@@ -918,11 +923,12 @@ void theme_core_preview_colors(bool is_dark, const theme_palette_t* palette, int
     // Update focus ring color
     lv_style_set_outline_color(&helix_theme_instance->focus_ring_style, focus_color);
 
-    // Update slider styles
+    // Update slider styles (track=border_color like switch OFF, indicator=primary, knob with
+    // border)
     lv_style_set_bg_color(&helix_theme_instance->slider_track_style, border_color);
     lv_style_set_bg_color(&helix_theme_instance->slider_indicator_style, primary_color);
     lv_style_set_bg_color(&helix_theme_instance->slider_knob_style, card_bg);
-    lv_style_set_shadow_color(&helix_theme_instance->slider_knob_style, screen_bg);
+    lv_style_set_border_color(&helix_theme_instance->slider_knob_style, border_color);
 
     // Update dropdown selected item style
     lv_style_set_bg_color(&helix_theme_instance->dropdown_selected_style, elevated_bg);

@@ -43,7 +43,7 @@
           <lv_obj width="100%"
                   height="content" style_pad_all="0" scrollable="false" flex_flow="row" style_flex_cross_place="center"
                   style_pad_gap="#space_xs">
-            <text_body width="content" text="X:"/>
+            <text_muted width="content" text="X:"/>
             <text_body name="pos_x" bind_text="controls_pos_x" flex_grow="1" style_text_align="right"/>
             <lv_obj width="10" height="10" style_radius="9999" style_margin_left="#space_xs">
               <bind_style name="indicator_homed" subject="x_homed" ref_value="1"/>
@@ -54,7 +54,7 @@
           <lv_obj width="100%"
                   height="content" style_pad_all="0" scrollable="false" flex_flow="row" style_flex_cross_place="center"
                   style_pad_gap="#space_xs">
-            <text_body width="content" text="Y:"/>
+            <text_muted width="content" text="Y:"/>
             <text_body name="pos_y" bind_text="controls_pos_y" flex_grow="1" style_text_align="right"/>
             <lv_obj width="10" height="10" style_radius="9999" style_margin_left="#space_xs">
               <bind_style name="indicator_homed" subject="y_homed" ref_value="1"/>
@@ -65,29 +65,23 @@
           <lv_obj width="100%"
                   height="content" style_pad_all="0" scrollable="false" flex_flow="row" style_flex_cross_place="center"
                   style_pad_gap="#space_xs">
-            <text_body width="content" text="Z:"/>
+            <text_muted width="content" text="Z:"/>
             <text_body name="pos_z" bind_text="controls_pos_z" flex_grow="1" style_text_align="right"/>
             <lv_obj width="10" height="10" style_radius="9999" style_margin_left="#space_xs">
               <bind_style name="indicator_homed" subject="z_homed" ref_value="1"/>
               <bind_style name="indicator_unhomed" subject="z_homed" ref_value="0"/>
             </lv_obj>
           </lv_obj>
-        </lv_obj>
-        <!-- Z-Offset display (clickable to open Print Tune overlay) -->
-        <ui_button name="btn_zoffset_tune" width="100%" height="content" variant="ghost">
-          <event_cb trigger="clicked" callback="on_zoffset_tune"/>
-          <lv_obj width="100%"
-                  height="content" flex_flow="row" style_flex_main_place="space_between" style_flex_cross_place="center"
-                  style_pad_all="0" clickable="false" scrollable="false">
-            <text_muted text="Z-Offset:"/>
-            <lv_obj height="content"
-                    flex_flow="row" style_flex_cross_place="center" style_pad_gap="#space_xs" clickable="false"
-                    scrollable="false">
-              <text_body bind_text="controls_z_offset"/>
-              <icon src="chevron_right" size="xs" variant="secondary"/>
-            </lv_obj>
+          <!-- Z-Offset display (clickable to open Print Tune overlay) -->
+          <lv_obj name="btn_zoffset_tune"
+                  width="100%" flex_flow="row" style_flex_cross_place="center"
+                  style_pad_gap="#space_xs" style_margin_top="#space_sm" clickable="true" scrollable="false">
+            <event_cb trigger="clicked" callback="on_zoffset_tune"/>
+            <text_muted width="content" text="Z-Offset:"/>
+            <text_body bind_text="controls_z_offset" flex_grow="1" style_text_align="right"/>
+            <icon src="chevron_right" size="xs" variant="secondary"/>
           </lv_obj>
-        </ui_button>
+        </lv_obj>
         <!-- Save Z-Offset button (conditional: visible when gcode_z_offset != 0, disabled during print) -->
         <ui_button name="btn_save_z_offset"
                    width="100%" height="#button_height_sm" variant="success" icon="check" text="Save Z-Offset"
@@ -130,39 +124,37 @@
               <text_small text="Temperatures" style_translate_y="2"/>
             </lv_obj>
             <!-- Nozzle section (clickable) -->
-            <ui_button name="btn_nozzle_temp" width="90%" height="content" variant="ghost" style_pad_top="#space_sm">
+            <lv_obj name="btn_nozzle_temp"
+                    width="100%" flex_flow="row" style_flex_main_place="space_between"
+                    style_flex_cross_place="center" style_margin_top="#space_sm" clickable="true" scrollable="false">
               <event_cb trigger="clicked" callback="on_nozzle_temp_clicked"/>
-              <lv_obj width="100%"
-                      height="content" flex_flow="row" style_flex_main_place="space_between"
-                      style_flex_cross_place="center" style_pad_all="0" clickable="false" scrollable="false">
-                <text_small text="Nozzle"/>
-                <temp_display name="nozzle_temp_display"
-                              size="md" show_target="true" bind_current="extruder_temp" bind_target="extruder_target"
-                              event_cb="on_nozzle_temp_clicked"/>
-              </lv_obj>
-            </ui_button>
+              <text_small text="Nozzle:"/>
+              <temp_display name="nozzle_temp_display"
+                            size="md" show_target="true" bind_current="extruder_temp" bind_target="extruder_target"
+                            event_cb="on_nozzle_temp_clicked"/>
+            </lv_obj>
             <text_small name="nozzle_status"
-                        width="90%" bind_text="controls_nozzle_status" style_text_color="#text" style_text_align="right"/>
+                        width="100%" bind_text="controls_nozzle_status" style_text_color="#text" style_text_align="right"
+                        style_margin_bottom="#space_xs"/>
             <!-- Bed section (clickable) -->
-            <ui_button name="btn_bed_temp" width="90%" height="content" variant="ghost" style_pad_top="#space_xs">
+            <lv_obj name="btn_bed_temp"
+                    width="100%" flex_flow="row" style_flex_main_place="space_between"
+                    style_flex_cross_place="center" clickable="true" scrollable="false">
               <event_cb trigger="clicked" callback="on_bed_temp_clicked"/>
-              <lv_obj width="100%"
-                      height="content" flex_flow="row" style_flex_main_place="space_between"
-                      style_flex_cross_place="center" style_pad_all="0" clickable="false" scrollable="false">
-                <text_small text="Bed"/>
-                <temp_display name="bed_temp_display"
-                              size="md" show_target="true" bind_current="bed_temp" bind_target="bed_target"
-                              event_cb="on_bed_temp_clicked"/>
-              </lv_obj>
-            </ui_button>
+              <text_small text="Bed:"/>
+              <temp_display name="bed_temp_display"
+                            size="md" show_target="true" bind_current="bed_temp" bind_target="bed_target"
+                            event_cb="on_bed_temp_clicked"/>
+            </lv_obj>
             <text_small name="bed_status"
-                        width="90%" bind_text="controls_bed_status" style_text_color="#text" style_text_align="right"/>
+                        width="100%" bind_text="controls_bed_status" style_text_color="#text" style_text_align="right"
+                        style_margin_bottom="#space_xs"/>
             <!-- Chamber section (visible only if printer has chamber sensor) -->
             <lv_obj name="chamber_section"
-                    width="90%" height="content" style_pad_all="0" style_pad_top="#space_xs" hidden="true"
-                    flex_flow="row" style_flex_main_place="space_between" style_flex_cross_place="center">
+                    width="100%" flex_flow="row" style_flex_main_place="space_between"
+                    style_flex_cross_place="center" style_margin_top="#space_xs" hidden="true">
               <bind_flag_if_eq subject="printer_has_chamber_sensor" flag="hidden" ref_value="0"/>
-              <text_small text="Chamber"/>
+              <text_small text="Chamber:"/>
               <temp_display name="chamber_temp_display" size="md" show_target="false" bind_current="chamber_temp"/>
             </lv_obj>
           </ui_card>
@@ -179,11 +171,10 @@
               <text_small text="Cooling" style_translate_y="2"/>
             </lv_obj>
             <!-- Part cooling hero section -->
-            <text_small text="Part Fan" style_pad_top="#space_sm"/>
+            <text_small text="Part Fan" width="100%" style_margin_top="#space_sm"/>
             <lv_slider name="part_fan_slider"
                        width="80%" height="#space_lg" bind_value="controls_fan_pct" range_min="0" range_max="100"
-                       style_bg_color="#elevated_bg" style_radius="#space_md" style_pad_top="#space_xs"
-                       style_margin_left="#space_md" style_margin_right="#space_sm">
+                       style_radius="#space_md" style_margin_left="#space_md" style_margin_right="#space_sm">
               <event_cb trigger="value_changed" callback="on_controls_fan_slider"/>
             </lv_slider>
             <text_body name="fan_speed_display" width="80%" bind_text="controls_fan_speed" style_text_align="right"/>
