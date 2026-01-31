@@ -1,10 +1,10 @@
 {
   "name": "Dracula",
   "dark": {
-    "app_bg": "#282A36",
-    "panel_bg": "#21222C",
+    "screen_bg": "#282A36",
+    "overlay_bg": "#21222C",
     "card_bg": "#44475A",
-    "card_alt": "#6272A4",
+    "elevated_bg": "#6272A4",
     "border": "#6272A4",
     "text": "#F8F8F2",
     "text_muted": "#F8F8F2",

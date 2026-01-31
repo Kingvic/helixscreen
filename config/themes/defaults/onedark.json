@@ -1,10 +1,10 @@
 {
   "name": "One Dark",
   "dark": {
-    "app_bg": "#21252B",
-    "panel_bg": "#282C34",
+    "screen_bg": "#21252B",
+    "overlay_bg": "#282C34",
     "card_bg": "#2C323C",
-    "card_alt": "#3E4451",
+    "elevated_bg": "#3E4451",
     "border": "#4B5263",
     "text": "#E5E5E5",
     "text_muted": "#ABB2BF",
@@ -19,10 +19,10 @@
     "focus": "#61AFEF"
   },
   "light": {
-    "app_bg": "#FAFAFA",
-    "panel_bg": "#F0F0F0",
+    "screen_bg": "#FAFAFA",
+    "overlay_bg": "#F0F0F0",
     "card_bg": "#FFFFFF",
-    "card_alt": "#EAEAEB",
+    "elevated_bg": "#EAEAEB",
     "border": "#D4D4D5",
     "text": "#383A42",
     "text_muted": "#696C77",

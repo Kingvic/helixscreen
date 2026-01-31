@@ -32,7 +32,7 @@ typedef struct {
     lv_style_t slider_disabled_style;    // Slider disabled state (50% opacity)
     lv_style_t dropdown_selected_style;  // Dropdown selected item highlight
     lv_style_t card_style;               // Shared card style (bg_color, border, radius)
-    lv_style_t dialog_style;             // Shared dialog style (surface_control bg)
+    lv_style_t dialog_style;             // Shared dialog style (elevated_bg bg)
     lv_style_t obj_base_style;           // Base lv_obj style (transparent, no border)
     lv_style_t text_primary_style;       // Shared primary text style (text_color)
     lv_style_t text_muted_style;         // Shared muted text style (text_muted_color)
@@ -134,7 +134,7 @@ static lv_style_transition_dsc_t button_press_transition;
  * @param is_dark Dark mode flag
  * @return Computed input background color
  */
-// Input widgets (dropdowns, textareas, etc.) use card_alt color
+// Input widgets (dropdowns, textareas, etc.) use elevated_bg color
 // This is passed directly rather than computed from card_bg
 
 /**
@@ -299,7 +299,7 @@ lv_theme_t* theme_core_init(lv_display_t* display, const theme_palette_t* palett
     // Extract colors from palette for readability
     lv_color_t screen_bg = palette->screen_bg;
     lv_color_t card_bg = palette->card_bg;
-    lv_color_t surface_control = palette->surface_control;
+    lv_color_t elevated_bg = palette->elevated_bg;
     lv_color_t border_color = palette->border;
     lv_color_t text_primary_color = palette->text;
     lv_color_t text_muted_color = palette->text_muted;
@@ -403,12 +403,12 @@ lv_theme_t* theme_core_init(lv_display_t* display, const theme_palette_t* palett
     helix_theme_instance->base.flags = 0;
     helix_theme_instance->is_dark_mode = is_dark;
 
-    // Input widgets use card_alt color (surface_control) for background
+    // Input widgets use elevated_bg color (elevated_bg) for background
     // This provides consistent contrast in both light and dark modes
 
     // Initialize custom input background style
     lv_style_init(&helix_theme_instance->input_bg_style);
-    lv_style_set_bg_color(&helix_theme_instance->input_bg_style, surface_control);
+    lv_style_set_bg_color(&helix_theme_instance->input_bg_style, elevated_bg);
     lv_style_set_bg_opa(&helix_theme_instance->input_bg_style, LV_OPA_COVER);
     lv_style_set_text_color(&helix_theme_instance->input_bg_style, text_primary_color);
     lv_style_set_radius(&helix_theme_instance->input_bg_style, border_radius);
@@ -437,7 +437,7 @@ lv_theme_t* theme_core_init(lv_display_t* display, const theme_palette_t* palett
     // theme-aware text color) Pivot point set to center (50%) so release animation stays centered
     // (matches pressed_style)
     lv_style_init(&helix_theme_instance->button_style);
-    lv_style_set_bg_color(&helix_theme_instance->button_style, surface_control);
+    lv_style_set_bg_color(&helix_theme_instance->button_style, elevated_bg);
     lv_style_set_bg_opa(&helix_theme_instance->button_style, LV_OPA_COVER);
     lv_style_set_radius(&helix_theme_instance->button_style, border_radius);
     lv_style_set_border_width(&helix_theme_instance->button_style, border_width);
@@ -535,7 +535,7 @@ lv_theme_t* theme_core_init(lv_display_t* display, const theme_palette_t* palett
 
     // Initialize shared dialog style - for ui_dialog and modal backgrounds
     lv_style_init(&helix_theme_instance->dialog_style);
-    lv_style_set_bg_color(&helix_theme_instance->dialog_style, surface_control);
+    lv_style_set_bg_color(&helix_theme_instance->dialog_style, elevated_bg);
     lv_style_set_bg_opa(&helix_theme_instance->dialog_style, LV_OPA_COVER);
     lv_style_set_radius(&helix_theme_instance->dialog_style, border_radius);
 
@@ -626,9 +626,9 @@ lv_theme_t* theme_core_init(lv_display_t* display, const theme_palette_t* palett
     lv_style_set_bg_color(&helix_theme_instance->button_primary_style, primary_color);
     lv_style_set_bg_opa(&helix_theme_instance->button_primary_style, LV_OPA_COVER);
 
-    // button_secondary_style - uses surface_control as background
+    // button_secondary_style - uses elevated_bg as background
     lv_style_init(&helix_theme_instance->button_secondary_style);
-    lv_style_set_bg_color(&helix_theme_instance->button_secondary_style, surface_control);
+    lv_style_set_bg_color(&helix_theme_instance->button_secondary_style, elevated_bg);
     lv_style_set_bg_opa(&helix_theme_instance->button_secondary_style, LV_OPA_COVER);
 
     // button_danger_style - uses danger color from palette
@@ -696,7 +696,7 @@ lv_theme_t* theme_core_init(lv_display_t* display, const theme_palette_t* palett
     // Update theme color fields
     def_theme->color_scr = screen_bg;
     def_theme->color_card = card_bg;
-    def_theme->color_grey = surface_control;
+    def_theme->color_grey = elevated_bg;
 
     // Update pre-computed style colors
     // Screen background
@@ -706,7 +706,7 @@ lv_theme_t* theme_core_init(lv_display_t* display, const theme_palette_t* palett
     lv_style_set_bg_color(&def_theme->styles.card, card_bg);
 
     // Button background and radius
-    lv_style_set_bg_color(&def_theme->styles.btn, surface_control);
+    lv_style_set_bg_color(&def_theme->styles.btn, elevated_bg);
     lv_style_set_radius(&def_theme->styles.btn, border_radius);
 
     return (lv_theme_t*)helix_theme_instance;
@@ -721,7 +721,7 @@ void theme_core_update_colors(bool is_dark, const theme_palette_t* palette,
     // Extract colors from palette for readability
     lv_color_t screen_bg = palette->screen_bg;
     lv_color_t card_bg = palette->card_bg;
-    lv_color_t surface_control = palette->surface_control;
+    lv_color_t elevated_bg = palette->elevated_bg;
     lv_color_t border_color = palette->border;
     lv_color_t text_primary_color = palette->text;
     lv_color_t text_muted_color = palette->text_muted;
@@ -742,14 +742,14 @@ void theme_core_update_colors(bool is_dark, const theme_palette_t* palette,
     // Update our custom styles in-place
     helix_theme_instance->is_dark_mode = is_dark;
 
-    // Input widgets use card_alt color (surface_control) and text_primary for text
-    lv_style_set_bg_color(&helix_theme_instance->input_bg_style, surface_control);
+    // Input widgets use elevated_bg color (elevated_bg) and text_primary for text
+    lv_style_set_bg_color(&helix_theme_instance->input_bg_style, elevated_bg);
     lv_style_set_text_color(&helix_theme_instance->input_bg_style, text_primary_color);
     lv_style_set_border_color(&helix_theme_instance->input_bg_style, border_color);
     lv_style_set_border_opa(&helix_theme_instance->input_bg_style, border_opacity);
 
     // Update button style colors (text_color handled by text_button auto-contrast)
-    lv_style_set_bg_color(&helix_theme_instance->button_style, surface_control);
+    lv_style_set_bg_color(&helix_theme_instance->button_style, elevated_bg);
     lv_style_set_border_color(&helix_theme_instance->button_style, border_color);
     lv_style_set_border_opa(&helix_theme_instance->button_style, border_opacity);
 
@@ -783,7 +783,7 @@ void theme_core_update_colors(bool is_dark, const theme_palette_t* palette,
     lv_style_set_border_opa(&helix_theme_instance->card_style, (lv_opa_t)border_opacity);
 
     // Update shared dialog style
-    lv_style_set_bg_color(&helix_theme_instance->dialog_style, surface_control);
+    lv_style_set_bg_color(&helix_theme_instance->dialog_style, elevated_bg);
 
     // Update shared text styles
     lv_style_set_text_color(&helix_theme_instance->text_primary_style, text_primary_color);
@@ -814,7 +814,7 @@ void theme_core_update_colors(bool is_dark, const theme_palette_t* palette,
 
     // Update button styles (Phase 2.6a)
     lv_style_set_bg_color(&helix_theme_instance->button_primary_style, primary_color);
-    lv_style_set_bg_color(&helix_theme_instance->button_secondary_style, surface_control);
+    lv_style_set_bg_color(&helix_theme_instance->button_secondary_style, elevated_bg);
     lv_style_set_bg_color(&helix_theme_instance->button_tertiary_style, tertiary_color);
     lv_style_set_bg_color(&helix_theme_instance->button_success_style, success_color);
     lv_style_set_bg_color(&helix_theme_instance->button_warning_style, warning_color);
@@ -854,14 +854,14 @@ void theme_core_update_colors(bool is_dark, const theme_palette_t* palette,
     // Update theme color fields
     def_theme->color_scr = screen_bg;
     def_theme->color_card = card_bg;
-    def_theme->color_grey = surface_control;
+    def_theme->color_grey = elevated_bg;
     def_theme->color_text = text_primary_color;
 
     // Update pre-computed style colors
     lv_style_set_bg_color(&def_theme->styles.scr, screen_bg);
     lv_style_set_text_color(&def_theme->styles.scr, text_primary_color);
     lv_style_set_bg_color(&def_theme->styles.card, card_bg);
-    lv_style_set_bg_color(&def_theme->styles.btn, surface_control);
+    lv_style_set_bg_color(&def_theme->styles.btn, elevated_bg);
 
     // Notify LVGL that all styles have changed - triggers refresh cascade
     // NULL means "all styles changed", which forces a complete style recalculation
@@ -877,7 +877,7 @@ void theme_core_preview_colors(bool is_dark, const theme_palette_t* palette, int
     // Extract colors from palette for readability
     lv_color_t screen_bg = palette->screen_bg;
     lv_color_t card_bg = palette->card_bg;
-    lv_color_t surface_control = palette->surface_control;
+    lv_color_t elevated_bg = palette->elevated_bg;
     lv_color_t border_color = palette->border;
     lv_color_t text_primary = palette->text;
     lv_color_t text_muted = palette->text_muted;
@@ -894,14 +894,14 @@ void theme_core_preview_colors(bool is_dark, const theme_palette_t* palette, int
     // Update the helix_theme instance
     helix_theme_instance->is_dark_mode = is_dark;
 
-    // Input widgets use surface_control color and text_primary for text
-    lv_style_set_bg_color(&helix_theme_instance->input_bg_style, surface_control);
+    // Input widgets use elevated_bg color and text_primary for text
+    lv_style_set_bg_color(&helix_theme_instance->input_bg_style, elevated_bg);
     lv_style_set_text_color(&helix_theme_instance->input_bg_style, text_primary);
     lv_style_set_radius(&helix_theme_instance->input_bg_style, border_radius);
     lv_style_set_border_opa(&helix_theme_instance->input_bg_style, border_opacity);
 
     // Update button style
-    lv_style_set_bg_color(&helix_theme_instance->button_style, surface_control);
+    lv_style_set_bg_color(&helix_theme_instance->button_style, elevated_bg);
     lv_style_set_text_color(&helix_theme_instance->button_style, text_primary);
     lv_style_set_radius(&helix_theme_instance->button_style, border_radius);
     lv_style_set_radius(&helix_theme_instance->pressed_style, border_radius);
@@ -921,7 +921,7 @@ void theme_core_preview_colors(bool is_dark, const theme_palette_t* palette, int
     lv_style_set_shadow_color(&helix_theme_instance->slider_knob_style, screen_bg);
 
     // Update dropdown selected item style
-    lv_style_set_bg_color(&helix_theme_instance->dropdown_selected_style, surface_control);
+    lv_style_set_bg_color(&helix_theme_instance->dropdown_selected_style, elevated_bg);
 
     // Update shared card style
     lv_style_set_bg_color(&helix_theme_instance->card_style, card_bg);
@@ -930,7 +930,7 @@ void theme_core_preview_colors(bool is_dark, const theme_palette_t* palette, int
     lv_style_set_radius(&helix_theme_instance->card_style, border_radius);
 
     // Update shared dialog style
-    lv_style_set_bg_color(&helix_theme_instance->dialog_style, surface_control);
+    lv_style_set_bg_color(&helix_theme_instance->dialog_style, elevated_bg);
     lv_style_set_radius(&helix_theme_instance->dialog_style, border_radius);
 
     // Update shared text styles
@@ -962,7 +962,7 @@ void theme_core_preview_colors(bool is_dark, const theme_palette_t* palette, int
 
     // Update button styles (Phase 2.6a) - use palette colors
     lv_style_set_bg_color(&helix_theme_instance->button_primary_style, primary_color);
-    lv_style_set_bg_color(&helix_theme_instance->button_secondary_style, surface_control);
+    lv_style_set_bg_color(&helix_theme_instance->button_secondary_style, elevated_bg);
     lv_style_set_bg_color(&helix_theme_instance->button_tertiary_style, tertiary_color);
     lv_style_set_bg_color(&helix_theme_instance->button_success_style, success_color);
     lv_style_set_bg_color(&helix_theme_instance->button_warning_style, warning_color);
@@ -994,13 +994,13 @@ void theme_core_preview_colors(bool is_dark, const theme_palette_t* palette, int
 
     def_theme->color_scr = screen_bg;
     def_theme->color_card = card_bg;
-    def_theme->color_grey = surface_control;
+    def_theme->color_grey = elevated_bg;
     def_theme->color_text = text_primary;
 
     lv_style_set_bg_color(&def_theme->styles.scr, screen_bg);
     lv_style_set_text_color(&def_theme->styles.scr, text_primary);
     lv_style_set_bg_color(&def_theme->styles.card, card_bg);
-    lv_style_set_bg_color(&def_theme->styles.btn, surface_control);
+    lv_style_set_bg_color(&def_theme->styles.btn, elevated_bg);
     lv_style_set_radius(&def_theme->styles.btn, border_radius);
 
     // Trigger style refresh

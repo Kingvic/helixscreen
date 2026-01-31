@@ -1,10 +1,10 @@
 {
   "name": "Ayu",
   "dark": {
-    "app_bg": "#0D1017",
-    "panel_bg": "#1F2430",
+    "screen_bg": "#0D1017",
+    "overlay_bg": "#1F2430",
     "card_bg": "#272D38",
-    "card_alt": "#3D4455",
+    "elevated_bg": "#3D4455",
     "border": "#4D5566",
     "text": "#BFBDB6",
     "text_muted": "#9DA2AC",
@@ -19,10 +19,10 @@
     "focus": "#FFCC66"
   },
   "light": {
-    "app_bg": "#FAFAFA",
-    "panel_bg": "#F3F4F5",
+    "screen_bg": "#FAFAFA",
+    "overlay_bg": "#F3F4F5",
     "card_bg": "#FFFFFF",
-    "card_alt": "#E7E8E9",
+    "elevated_bg": "#E7E8E9",
     "border": "#D1D2D3",
     "text": "#5C6166",
     "text_muted": "#787B80",

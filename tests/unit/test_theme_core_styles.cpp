@@ -24,9 +24,9 @@
 static theme_palette_t make_dark_test_palette() {
     theme_palette_t p = {};
     p.screen_bg = lv_color_hex(0x121212);
-    p.panel_bg = lv_color_hex(0x1A1A1A);
+    p.overlay_bg = lv_color_hex(0x1A1A1A);
     p.card_bg = lv_color_hex(0x1E1E1E);
-    p.surface_control = lv_color_hex(0x2D2D2D);
+    p.elevated_bg = lv_color_hex(0x2D2D2D);
     p.border = lv_color_hex(0x424242);
     p.text = lv_color_hex(0xE0E0E0);
     p.text_muted = lv_color_hex(0xA0A0A0);
@@ -709,7 +709,7 @@ TEST_CASE_METHOD(LVGLUITestFixture,
     lv_obj_delete(dialog);
 }
 
-TEST_CASE_METHOD(LVGLUITestFixture, "ui_dialog: uses card_alt token color initially",
+TEST_CASE_METHOD(LVGLUITestFixture, "ui_dialog: uses elevated_bg token color initially",
                  "[reactive-dialog]") {
     // Create ui_dialog widget
     lv_obj_t* dialog = static_cast<lv_obj_t*>(lv_xml_create(test_screen(), "ui_dialog", nullptr));
@@ -733,8 +733,8 @@ TEST_CASE_METHOD(LVGLUITestFixture, "ui_dialog: uses card_alt token color initia
     INFO("Expected (from shared dialog_style): 0x" << std::hex << expected_rgb);
     INFO("Actual (from ui_dialog): 0x" << std::hex << actual_rgb);
 
-    // Both should be the same card_alt color
-    // Note: This may pass since both read from theme_manager_get_color("card_alt")
+    // Both should be the same elevated_bg color
+    // Note: This may pass since both read from theme_manager_get_color("elevated_bg")
     // at initialization time. The real test is whether it updates on theme change.
     REQUIRE(lv_color_eq(actual, expected_value.color));
 

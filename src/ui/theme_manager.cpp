@@ -46,10 +46,10 @@ static helix::ThemeData active_theme;
  */
 static theme_palette_t build_palette_from_mode(const helix::ModePalette& mode_palette) {
     theme_palette_t palette = {};
-    palette.screen_bg = theme_manager_parse_hex_color(mode_palette.app_bg.c_str());
-    palette.panel_bg = theme_manager_parse_hex_color(mode_palette.panel_bg.c_str());
+    palette.screen_bg = theme_manager_parse_hex_color(mode_palette.screen_bg.c_str());
+    palette.overlay_bg = theme_manager_parse_hex_color(mode_palette.overlay_bg.c_str());
     palette.card_bg = theme_manager_parse_hex_color(mode_palette.card_bg.c_str());
-    palette.surface_control = theme_manager_parse_hex_color(mode_palette.card_alt.c_str());
+    palette.elevated_bg = theme_manager_parse_hex_color(mode_palette.elevated_bg.c_str());
     palette.border = theme_manager_parse_hex_color(mode_palette.border.c_str());
     palette.text = theme_manager_parse_hex_color(mode_palette.text.c_str());
     palette.text_muted = theme_manager_parse_hex_color(mode_palette.text_muted.c_str());
@@ -659,7 +659,7 @@ void theme_manager_init(lv_display_t* display, bool use_dark_mode_param) {
     theme_manager_register_static_constants(scope);
 
     // Auto-register all color pairs from globals.xml (xxx_light/xxx_dark -> xxx)
-    // This handles app_bg, text, header_text, card_alt, card_bg, etc.
+    // This handles screen_bg, text, header_text, elevated_bg, card_bg, etc.
     theme_manager_register_color_pairs(scope, use_dark_mode);
 
     // Register responsive constants (must be before theme_core_init so fonts are available)
@@ -667,7 +667,7 @@ void theme_manager_init(lv_display_t* display, bool use_dark_mode_param) {
     theme_manager_register_responsive_fonts(display);
 
     // Validate critical color pairs were registered (fail-fast if missing)
-    static const char* required_colors[] = {"app_bg", "text", "text_muted", nullptr};
+    static const char* required_colors[] = {"screen_bg", "text", "text_muted", nullptr};
     for (const char** name = required_colors; *name != nullptr; ++name) {
         if (!lv_xml_get_const(nullptr, *name)) {
             spdlog::critical(
@@ -715,7 +715,7 @@ void theme_manager_init(lv_display_t* display, bool use_dark_mode_param) {
         spdlog::info("[Theme] Initialized HelixScreen theme: {} mode",
                      use_dark_mode ? "dark" : "light");
         spdlog::debug("[Theme] Colors: primary={}, screen={}, card={}", mode_palette.primary,
-                      mode_palette.app_bg, mode_palette.card_bg);
+                      mode_palette.screen_bg, mode_palette.card_bg);
     } else {
         spdlog::error("[Theme] Failed to initialize HelixScreen theme");
     }
@@ -757,7 +757,7 @@ void theme_manager_toggle_dark_mode() {
     const helix::ModePalette& mode_palette = get_current_mode_palette();
     theme_palette_t palette = build_palette_from_mode(mode_palette);
 
-    spdlog::debug("[Theme] New colors: screen={}, card={}, text={}", mode_palette.app_bg,
+    spdlog::debug("[Theme] New colors: screen={}, card={}, text={}", mode_palette.screen_bg,
                   mode_palette.card_bg, mode_palette.text);
 
     // Update helix theme styles in-place (triggers lv_obj_report_style_change)
@@ -841,9 +841,9 @@ void theme_manager_refresh_preview_elements(lv_obj_t* root, const helix::ThemeDa
     }
 
     // Background/surface colors
-    lv_color_t app_bg = theme_manager_parse_hex_color(palette->app_bg.c_str());
+    lv_color_t screen_bg = theme_manager_parse_hex_color(palette->screen_bg.c_str());
     lv_color_t card_bg = theme_manager_parse_hex_color(palette->card_bg.c_str());
-    lv_color_t card_alt = theme_manager_parse_hex_color(palette->card_alt.c_str());
+    lv_color_t elevated_bg = theme_manager_parse_hex_color(palette->elevated_bg.c_str());
     lv_color_t border = theme_manager_parse_hex_color(palette->border.c_str());
 
     // Text colors
@@ -914,17 +914,17 @@ void theme_manager_refresh_preview_elements(lv_obj_t* root, const helix::ThemeDa
         if (!overlay)
             return;
         // Update the wrapper
-        lv_obj_set_style_bg_color(overlay, app_bg, LV_PART_MAIN);
+        lv_obj_set_style_bg_color(overlay, screen_bg, LV_PART_MAIN);
         lv_obj_set_style_bg_opa(overlay, LV_OPA_COVER, LV_PART_MAIN);
         // Update the first child (actual content from component template)
         lv_obj_t* first_child = lv_obj_get_child(overlay, 0);
         if (first_child) {
-            lv_obj_set_style_bg_color(first_child, app_bg, LV_PART_MAIN);
+            lv_obj_set_style_bg_color(first_child, screen_bg, LV_PART_MAIN);
             lv_obj_set_style_bg_opa(first_child, LV_OPA_COVER, LV_PART_MAIN);
         }
         lv_obj_invalidate(overlay);
         spdlog::debug("[Theme] Updated {} bg to #{:06X} (first_child={})", name,
-                      lv_color_to_u32(app_bg) & 0xFFFFFF, first_child ? "yes" : "no");
+                      lv_color_to_u32(screen_bg) & 0xFFFFFF, first_child ? "yes" : "no");
     };
 
     if (preview_overlay) {
@@ -944,13 +944,13 @@ void theme_manager_refresh_preview_elements(lv_obj_t* root, const helix::ThemeDa
             return;
         lv_obj_t* header = lv_obj_find_by_name(overlay, "overlay_header");
         if (header) {
-            // Header should match overlay background (app_bg), not card_bg
-            lv_obj_set_style_bg_color(header, app_bg, LV_PART_MAIN);
+            // Header should match overlay background (screen_bg), not card_bg
+            lv_obj_set_style_bg_color(header, screen_bg, LV_PART_MAIN);
             lv_obj_set_style_bg_opa(header, LV_OPA_COVER, LV_PART_MAIN);
             // Also update first child (actual header_bar view)
             lv_obj_t* inner = lv_obj_get_child(header, 0);
             if (inner) {
-                lv_obj_set_style_bg_color(inner, app_bg, LV_PART_MAIN);
+                lv_obj_set_style_bg_color(inner, screen_bg, LV_PART_MAIN);
                 lv_obj_set_style_bg_opa(inner, LV_OPA_COVER, LV_PART_MAIN);
             }
             // Back button should have no background (transparent icon)
@@ -984,7 +984,7 @@ void theme_manager_refresh_preview_elements(lv_obj_t* root, const helix::ThemeDa
     }
     card = lv_obj_find_by_name(root, "preview_background");
     if (card) {
-        lv_obj_set_style_bg_color(card, app_bg, LV_PART_MAIN);
+        lv_obj_set_style_bg_color(card, screen_bg, LV_PART_MAIN);
         lv_obj_set_style_border_color(card, border, LV_PART_MAIN);
         lv_obj_set_style_border_width(card, border_width, LV_PART_MAIN);
         lv_obj_set_style_border_opa(card, border_opacity, LV_PART_MAIN);
@@ -1104,25 +1104,25 @@ void theme_manager_refresh_preview_elements(lv_obj_t* root, const helix::ThemeDa
     }
 
     // ========================================================================
-    // INPUT WIDGETS (dropdowns, textarea) - use card_alt for input backgrounds
+    // INPUT WIDGETS (dropdowns, textarea) - use elevated_bg for input backgrounds
     // ========================================================================
     lv_obj_t* dropdown = lv_obj_find_by_name(root, "theme_preset_dropdown");
     if (dropdown) {
-        lv_obj_set_style_bg_color(dropdown, card_alt, LV_PART_MAIN);
+        lv_obj_set_style_bg_color(dropdown, elevated_bg, LV_PART_MAIN);
         lv_obj_set_style_border_color(dropdown, border, LV_PART_MAIN);
         lv_obj_set_style_text_color(dropdown, text_color, LV_PART_MAIN);
         lv_obj_set_style_radius(dropdown, border_radius, LV_PART_MAIN);
     }
     dropdown = lv_obj_find_by_name(root, "preview_dropdown");
     if (dropdown) {
-        lv_obj_set_style_bg_color(dropdown, card_alt, LV_PART_MAIN);
+        lv_obj_set_style_bg_color(dropdown, elevated_bg, LV_PART_MAIN);
         lv_obj_set_style_text_color(dropdown, text_color, LV_PART_MAIN);
         lv_obj_set_style_radius(dropdown, border_radius, LV_PART_MAIN);
     }
 
     lv_obj_t* textarea = lv_obj_find_by_name(root, "preview_text_input");
     if (textarea) {
-        lv_obj_set_style_bg_color(textarea, card_alt, LV_PART_MAIN);
+        lv_obj_set_style_bg_color(textarea, elevated_bg, LV_PART_MAIN);
         lv_obj_set_style_text_color(textarea, text_color, LV_PART_MAIN);
         lv_obj_set_style_radius(textarea, border_radius, LV_PART_MAIN);
     }
@@ -1148,7 +1148,7 @@ void theme_manager_refresh_preview_elements(lv_obj_t* root, const helix::ThemeDa
         lv_obj_set_style_bg_color(slider, border, LV_PART_MAIN);
         lv_obj_set_style_bg_color(slider, secondary, LV_PART_INDICATOR);
         lv_obj_set_style_bg_color(slider, knob_color, LV_PART_KNOB);
-        lv_obj_set_style_shadow_color(slider, app_bg, LV_PART_KNOB);
+        lv_obj_set_style_shadow_color(slider, screen_bg, LV_PART_KNOB);
     }
 
     // ========================================================================
@@ -1247,7 +1247,7 @@ void theme_manager_refresh_preview_elements(lv_obj_t* root, const helix::ThemeDa
     // It gets border_radius from XML constants at creation, so we update it here.
     lv_obj_t* modal_dialog = lv_obj_find_by_name(root, "modal_dialog");
     if (modal_dialog) {
-        lv_obj_set_style_bg_color(modal_dialog, card_alt, LV_PART_MAIN);
+        lv_obj_set_style_bg_color(modal_dialog, elevated_bg, LV_PART_MAIN);
         lv_obj_set_style_radius(modal_dialog, border_radius, LV_PART_MAIN);
 
         // Update icon colors in the sample modal
@@ -1354,15 +1354,32 @@ static bool is_muted_text_font(const lv_font_t* font) {
     return font == font_small || font == font_xs || font == font_heading;
 }
 
+/**
+ * @brief Check if an object is inside a dialog container
+ *
+ * Dialogs are marked with LV_OBJ_FLAG_USER_1 in ui_dialog_xml_create().
+ * Inputs inside dialogs need overlay_bg for contrast against elevated_bg dialog background.
+ */
+static bool is_inside_dialog(lv_obj_t* obj) {
+    lv_obj_t* parent = lv_obj_get_parent(obj);
+    while (parent) {
+        if (lv_obj_has_flag(parent, LV_OBJ_FLAG_USER_1))
+            return true;
+        parent = lv_obj_get_parent(parent);
+    }
+    return false;
+}
+
 void theme_apply_palette_to_widget(lv_obj_t* obj, const helix::ModePalette& palette,
                                    lv_color_t text_light, lv_color_t text_dark) {
     if (!obj)
         return;
 
     // Parse palette colors
-    lv_color_t app_bg = theme_manager_parse_hex_color(palette.app_bg.c_str());
+    lv_color_t screen_bg = theme_manager_parse_hex_color(palette.screen_bg.c_str());
+    lv_color_t overlay_bg = theme_manager_parse_hex_color(palette.overlay_bg.c_str());
     lv_color_t card_bg = theme_manager_parse_hex_color(palette.card_bg.c_str());
-    lv_color_t card_alt = theme_manager_parse_hex_color(palette.card_alt.c_str());
+    lv_color_t elevated_bg = theme_manager_parse_hex_color(palette.elevated_bg.c_str());
     lv_color_t border = theme_manager_parse_hex_color(palette.border.c_str());
     lv_color_t text_primary = theme_manager_parse_hex_color(palette.text.c_str());
     lv_color_t text_muted = theme_manager_parse_hex_color(palette.text_muted.c_str());
@@ -1422,9 +1439,9 @@ void theme_apply_palette_to_widget(lv_obj_t* obj, const helix::ModePalette& pale
         int min_rgb = std::min({(int)r, (int)g, (int)b});
         int saturation = (max_rgb > 0) ? ((max_rgb - min_rgb) * 255 / max_rgb) : 0;
 
-        // If saturation is low (<30), this is a neutral/gray button - apply card_alt
+        // If saturation is low (<30), this is a neutral/gray button - apply elevated_bg
         if (saturation < 30) {
-            lv_obj_set_style_bg_color(obj, card_alt, LV_PART_MAIN);
+            lv_obj_set_style_bg_color(obj, elevated_bg, LV_PART_MAIN);
         }
 
         lv_obj_set_style_border_color(obj, border, LV_PART_MAIN);
@@ -1460,21 +1477,25 @@ void theme_apply_palette_to_widget(lv_obj_t* obj, const helix::ModePalette& pale
         lv_obj_set_style_bg_color(obj, border, LV_PART_MAIN);
         lv_obj_set_style_bg_color(obj, secondary, LV_PART_INDICATOR);
         lv_obj_set_style_bg_color(obj, knob_color, LV_PART_KNOB);
-        lv_obj_set_style_shadow_color(obj, app_bg, LV_PART_KNOB);
+        lv_obj_set_style_shadow_color(obj, screen_bg, LV_PART_KNOB);
         return;
     }
 
     // Dropdowns - background, border, text
+    // Inside dialogs (elevated_bg background), use overlay_bg for contrast
     if (lv_obj_check_type(obj, &lv_dropdown_class)) {
-        lv_obj_set_style_bg_color(obj, card_alt, LV_PART_MAIN);
+        lv_color_t bg = is_inside_dialog(obj) ? overlay_bg : elevated_bg;
+        lv_obj_set_style_bg_color(obj, bg, LV_PART_MAIN);
         lv_obj_set_style_border_color(obj, border, LV_PART_MAIN);
         lv_obj_set_style_text_color(obj, text_primary, LV_PART_MAIN);
         return;
     }
 
     // Textareas - background, text
+    // Inside dialogs (elevated_bg background), use overlay_bg for contrast
     if (lv_obj_check_type(obj, &lv_textarea_class)) {
-        lv_obj_set_style_bg_color(obj, card_alt, LV_PART_MAIN);
+        lv_color_t bg = is_inside_dialog(obj) ? overlay_bg : elevated_bg;
+        lv_obj_set_style_bg_color(obj, bg, LV_PART_MAIN);
         lv_obj_set_style_text_color(obj, text_primary, LV_PART_MAIN);
         return;
     }
@@ -1482,7 +1503,7 @@ void theme_apply_palette_to_widget(lv_obj_t* obj, const helix::ModePalette& pale
     // Dropdown lists (popup menus)
     if (lv_obj_check_type(obj, &lv_dropdownlist_class)) {
         lv_color_t dropdown_accent = theme_compute_more_saturated(primary, secondary);
-        lv_obj_set_style_bg_color(obj, card_alt, LV_PART_MAIN);
+        lv_obj_set_style_bg_color(obj, elevated_bg, LV_PART_MAIN);
         lv_obj_set_style_bg_opa(obj, LV_OPA_COVER, LV_PART_MAIN);
         lv_obj_set_style_text_color(obj, text_primary, LV_PART_MAIN);
         lv_obj_set_style_bg_color(obj, dropdown_accent, LV_PART_SELECTED);
@@ -1521,14 +1542,14 @@ void theme_apply_palette_to_widget(lv_obj_t* obj, const helix::ModePalette& pale
             lv_obj_set_style_bg_color(obj, card_bg, LV_PART_MAIN);
             lv_obj_set_style_border_color(obj, border, LV_PART_MAIN);
         } else if (strstr(obj_name, "dialog") != nullptr) {
-            // Modal dialogs use card_alt (elevated surface)
-            spdlog::debug("[Theme] Applying card_alt to dialog: {} (color: 0x{:06X})", obj_name,
-                          lv_color_to_u32(card_alt) & 0xFFFFFF);
-            lv_obj_set_style_bg_color(obj, card_alt, LV_PART_MAIN);
+            // Modal dialogs use elevated_bg (elevated surface)
+            spdlog::debug("[Theme] Applying elevated_bg to dialog: {} (color: 0x{:06X})", obj_name,
+                          lv_color_to_u32(elevated_bg) & 0xFFFFFF);
+            lv_obj_set_style_bg_color(obj, elevated_bg, LV_PART_MAIN);
         } else if (strstr(obj_name, "background") != nullptr) {
-            lv_obj_set_style_bg_color(obj, app_bg, LV_PART_MAIN);
+            lv_obj_set_style_bg_color(obj, screen_bg, LV_PART_MAIN);
         } else if (strstr(obj_name, "header") != nullptr) {
-            lv_obj_set_style_bg_color(obj, app_bg, LV_PART_MAIN);
+            lv_obj_set_style_bg_color(obj, screen_bg, LV_PART_MAIN);
         }
     }
 }
@@ -1552,7 +1573,7 @@ void theme_apply_palette_to_tree(lv_obj_t* root, const helix::ModePalette& palet
 void theme_apply_palette_to_screen_dropdowns(const helix::ModePalette& palette) {
     // Style any screen-level popups (dropdown lists, modals, etc.)
     // These are direct children of the screen, not part of the overlay tree
-    lv_color_t card_alt = theme_manager_parse_hex_color(palette.card_alt.c_str());
+    lv_color_t elevated_bg = theme_manager_parse_hex_color(palette.elevated_bg.c_str());
     lv_color_t text_color = theme_manager_parse_hex_color(palette.text.c_str());
     lv_color_t border = theme_manager_parse_hex_color(palette.border.c_str());
     lv_color_t primary = theme_manager_parse_hex_color(palette.primary.c_str());
@@ -1581,7 +1602,7 @@ void theme_apply_palette_to_screen_dropdowns(const helix::ModePalette& palette) 
 
         // Dropdown lists get special treatment for selection highlighting
         if (lv_obj_check_type(child, &lv_dropdownlist_class)) {
-            lv_obj_set_style_bg_color(child, card_alt, LV_PART_MAIN);
+            lv_obj_set_style_bg_color(child, elevated_bg, LV_PART_MAIN);
             lv_obj_set_style_bg_opa(child, LV_OPA_COVER, LV_PART_MAIN);
             lv_obj_set_style_text_color(child, text_color, LV_PART_MAIN);
             lv_obj_set_style_border_color(child, border, LV_PART_MAIN);
@@ -1612,12 +1633,12 @@ void theme_apply_palette_to_screen_dropdowns(const helix::ModePalette& palette) 
  * don't exist, falls back to {base_name} directly (for static colors like
  * warning, danger that are the same in both themes).
  *
- * @param base_name Color constant base name (e.g., "app_bg", "warning")
+ * @param base_name Color constant base name (e.g., "screen_bg", "warning")
  * @return Parsed color, or black (0x000000) if not found
  *
  * Example:
- *   lv_color_t bg = theme_manager_get_color("app_bg");
- *   // Returns app_bg_light in light mode, app_bg_dark in dark mode
+ *   lv_color_t bg = theme_manager_get_color("screen_bg");
+ *   // Returns screen_bg_light in light mode, screen_bg_dark in dark mode
  *
  *   lv_color_t warn = theme_manager_get_color("warning");
  *   // Returns warning directly (static, no theme variants)
@@ -1668,12 +1689,12 @@ lv_color_t theme_manager_get_color(const char* base_name) {
  * Convenience wrapper that gets the color variant and applies it to the object.
  *
  * @param obj LVGL object to apply color to
- * @param base_name Color constant base name (e.g., "app_bg", "card_bg")
+ * @param base_name Color constant base name (e.g., "screen_bg", "card_bg")
  * @param part Style part to apply to (default: LV_PART_MAIN)
  *
  * Example:
- *   theme_manager_apply_bg_color(screen, "app_bg", LV_PART_MAIN);
- *   // Applies app_bg_light/dark depending on theme mode
+ *   theme_manager_apply_bg_color(screen, "screen_bg", LV_PART_MAIN);
+ *   // Applies screen_bg_light/dark depending on theme mode
  */
 void theme_manager_apply_bg_color(lv_obj_t* obj, const char* base_name, lv_part_t part) {
     if (!obj) {

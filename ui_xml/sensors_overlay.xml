@@ -6,7 +6,7 @@
 <!-- XML-First Design: Layout/styling here; C++ populates sensor lists dynamically -->
 <component>
   <view name="sensors_overlay"
-        extends="overlay_panel" width="#overlay_panel_width_full" title="Sensors" bg_color="#app_bg">
+        extends="overlay_panel" width="#overlay_panel_width_full" title="Sensors" bg_color="#screen_bg">
     <!-- Content Area -->
     <lv_obj name="overlay_content"
             width="100%" flex_grow="1" style_bg_opa="0" style_pad_all="#space_lg" scrollable="true" scroll_dir="VER"
@@ -15,7 +15,7 @@
       <!-- SWITCH SENSORS SECTION (filament runout/motion sensors) -->
       <!-- ================================================================== -->
       <lv_obj name="switch_sensors_section"
-              width="100%" height="content" style_bg_color="#app_bg" style_bg_opa="255" style_radius="#border_radius"
+              width="100%" height="content" style_bg_color="#screen_bg" style_bg_opa="255" style_radius="#border_radius"
               style_border_width="0" style_pad_all="#space_lg" scrollable="false" flex_flow="column"
               style_pad_gap="#space_md">
         <bind_flag_if_eq subject="filament_sensor_count" flag="hidden" ref_value="0"/>
@@ -53,7 +53,7 @@
       <!-- PROBE SENSORS SECTION -->
       <!-- ================================================================== -->
       <lv_obj name="probe_sensors_section"
-              width="100%" height="content" style_bg_color="#app_bg" style_bg_opa="255" style_radius="#border_radius"
+              width="100%" height="content" style_bg_color="#screen_bg" style_bg_opa="255" style_radius="#border_radius"
               style_border_width="0" style_pad_all="#space_lg" scrollable="false" flex_flow="column"
               style_pad_gap="#space_md">
         <bind_flag_if_eq subject="probe_count" flag="hidden" ref_value="0"/>
@@ -77,7 +77,7 @@
       <!-- WIDTH SENSORS SECTION -->
       <!-- ================================================================== -->
       <lv_obj name="width_sensors_section"
-              width="100%" height="content" style_bg_color="#app_bg" style_bg_opa="255" style_radius="#border_radius"
+              width="100%" height="content" style_bg_color="#screen_bg" style_bg_opa="255" style_radius="#border_radius"
               style_border_width="0" style_pad_all="#space_lg" scrollable="false" flex_flow="column"
               style_pad_gap="#space_md">
         <bind_flag_if_eq subject="width_sensor_count" flag="hidden" ref_value="0"/>
@@ -101,7 +101,7 @@
       <!-- HUMIDITY SENSORS SECTION -->
       <!-- ================================================================== -->
       <lv_obj name="humidity_sensors_section"
-              width="100%" height="content" style_bg_color="#app_bg" style_bg_opa="255" style_radius="#border_radius"
+              width="100%" height="content" style_bg_color="#screen_bg" style_bg_opa="255" style_radius="#border_radius"
               style_border_width="0" style_pad_all="#space_lg" scrollable="false" flex_flow="column"
               style_pad_gap="#space_md">
         <bind_flag_if_eq subject="humidity_sensor_count" flag="hidden" ref_value="0"/>
@@ -125,7 +125,7 @@
       <!-- ACCELEROMETER SENSORS SECTION -->
       <!-- ================================================================== -->
       <lv_obj name="accel_sensors_section"
-              width="100%" height="content" style_bg_color="#app_bg" style_bg_opa="255" style_radius="#border_radius"
+              width="100%" height="content" style_bg_color="#screen_bg" style_bg_opa="255" style_radius="#border_radius"
               style_border_width="0" style_pad_all="#space_lg" scrollable="false" flex_flow="column"
               style_pad_gap="#space_md">
         <bind_flag_if_eq subject="accel_count" flag="hidden" ref_value="0"/>
@@ -149,7 +149,7 @@
       <!-- COLOR SENSORS SECTION -->
       <!-- ================================================================== -->
       <lv_obj name="color_sensors_section"
-              width="100%" height="content" style_bg_color="#app_bg" style_bg_opa="255" style_radius="#border_radius"
+              width="100%" height="content" style_bg_color="#screen_bg" style_bg_opa="255" style_radius="#border_radius"
               style_border_width="0" style_pad_all="#space_lg" scrollable="false" flex_flow="column"
               style_pad_gap="#space_md">
         <bind_flag_if_eq subject="color_sensor_count" flag="hidden" ref_value="0"/>

@@ -1,10 +1,10 @@
 {
   "name": "ChatGPT",
   "dark": {
-    "app_bg": "#212121",
-    "panel_bg": "#181818",
+    "screen_bg": "#212121",
+    "overlay_bg": "#181818",
     "card_bg": "#303030",
-    "card_alt": "#4B4B4B",
+    "elevated_bg": "#4B4B4B",
     "border": "#505050",
     "text": "#FFFFFF",
     "text_muted": "#AEAEAE",
@@ -19,10 +19,10 @@
     "focus": "#3C46FF"
   },
   "light": {
-    "app_bg": "#FFFFFF",
-    "panel_bg": "#F9F9F9",
+    "screen_bg": "#FFFFFF",
+    "overlay_bg": "#F9F9F9",
     "card_bg": "#FFFFFF",
-    "card_alt": "#F2F2F2",
+    "elevated_bg": "#F2F2F2",
     "border": "#DAD9DA",
     "text": "#101010",
     "text_muted": "#8F8F8F",

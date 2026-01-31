@@ -869,7 +869,7 @@ void MyPanel::init_subjects() {
 
 ```xml
 <component>
-    <view extends="lv_obj" width="100%" height="100%" style_bg_color="#panel_bg">
+    <view extends="lv_obj" width="100%" height="100%" style_bg_color="#overlay_bg">
         <!-- Bound to subject -->
         <text_body bind_text="example_status"/>
 

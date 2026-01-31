@@ -5,7 +5,7 @@
 <!-- Navigation: Settings → Display → Theme → Edit Colors → (this) -->
 <component>
   <view name="theme_editor_overlay"
-        extends="overlay_panel" width="#overlay_panel_width_full" title="Edit Theme Colors" bg_color="#app_bg">
+        extends="overlay_panel" width="#overlay_panel_width_full" title="Edit Theme Colors" bg_color="#screen_bg">
     <!-- Content Area - no padding, rows handle their own -->
     <lv_obj name="overlay_content"
             width="100%" flex_grow="1" style_pad_all="0" scrollable="true" scroll_dir="ver"
@@ -26,8 +26,8 @@
                   style_radius="#border_radius_small" style_flex_cross_place="center">
             <lv_obj name="swatch_0"
                     width="#theme_swatch_size" height="#theme_swatch_size" style_radius="#border_radius_small"
-                    style_bg_color="#app_bg" style_bg_opa="255" style_border_width="1"
-                    style_border_color="#card_alt" style_border_opa="80" scrollable="false" clickable="true">
+                    style_bg_color="#screen_bg" style_bg_opa="255" style_border_width="1"
+                    style_border_color="#elevated_bg" style_border_opa="80" scrollable="false" clickable="true">
               <event_cb trigger="clicked" callback="on_theme_swatch_clicked"/>
             </lv_obj>
             <lv_obj width="0"
@@ -41,7 +41,7 @@
                   style_radius="#border_radius_small" style_flex_cross_place="center">
             <lv_obj name="swatch_1"
                     width="#theme_swatch_size" height="#theme_swatch_size" style_radius="#border_radius_small"
-                    style_bg_color="#panel_bg" style_bg_opa="255" style_border_width="1" style_border_color="#card_alt"
+                    style_bg_color="#overlay_bg" style_bg_opa="255" style_border_width="1" style_border_color="#elevated_bg"
                     style_border_opa="80" scrollable="false" clickable="true">
               <event_cb trigger="clicked" callback="on_theme_swatch_clicked"/>
             </lv_obj>
@@ -61,7 +61,7 @@
             <lv_obj name="swatch_2"
                     width="#theme_swatch_size" height="#theme_swatch_size" style_radius="#border_radius_small"
                     style_bg_color="#card_bg" style_bg_opa="255" style_border_width="1"
-                    style_border_color="#card_alt" style_border_opa="80" scrollable="false" clickable="true">
+                    style_border_color="#elevated_bg" style_border_opa="80" scrollable="false" clickable="true">
               <event_cb trigger="clicked" callback="on_theme_swatch_clicked"/>
             </lv_obj>
             <lv_obj width="0"
@@ -75,8 +75,8 @@
                   style_radius="#border_radius_small" style_flex_cross_place="center">
             <lv_obj name="swatch_3"
                     width="#theme_swatch_size" height="#theme_swatch_size" style_radius="#border_radius_small"
-                    style_bg_color="#card_alt" style_bg_opa="255" style_border_width="1"
-                    style_border_color="#card_alt" style_border_opa="80" scrollable="false" clickable="true">
+                    style_bg_color="#elevated_bg" style_bg_opa="255" style_border_width="1"
+                    style_border_color="#elevated_bg" style_border_opa="80" scrollable="false" clickable="true">
               <event_cb trigger="clicked" callback="on_theme_swatch_clicked"/>
             </lv_obj>
             <lv_obj width="0"
@@ -95,7 +95,7 @@
             <lv_obj name="swatch_4"
                     width="#theme_swatch_size" height="#theme_swatch_size" style_radius="#border_radius_small"
                     style_bg_color="#border" style_bg_opa="255" style_border_width="1"
-                    style_border_color="#card_alt" style_border_opa="80" scrollable="false" clickable="true">
+                    style_border_color="#elevated_bg" style_border_opa="80" scrollable="false" clickable="true">
               <event_cb trigger="clicked" callback="on_theme_swatch_clicked"/>
             </lv_obj>
             <lv_obj width="0"
@@ -110,7 +110,7 @@
             <lv_obj name="swatch_5"
                     width="#theme_swatch_size" height="#theme_swatch_size" style_radius="#border_radius_small"
                     style_bg_color="#text" style_bg_opa="255" style_border_width="1"
-                    style_border_color="#card_alt" style_border_opa="80" scrollable="false" clickable="true">
+                    style_border_color="#elevated_bg" style_border_opa="80" scrollable="false" clickable="true">
               <event_cb trigger="clicked" callback="on_theme_swatch_clicked"/>
             </lv_obj>
             <lv_obj width="0"
@@ -129,7 +129,7 @@
             <lv_obj name="swatch_6"
                     width="#theme_swatch_size" height="#theme_swatch_size" style_radius="#border_radius_small"
                     style_bg_color="#text_muted" style_bg_opa="255" style_border_width="1"
-                    style_border_color="#card_alt" style_border_opa="80" scrollable="false" clickable="true">
+                    style_border_color="#elevated_bg" style_border_opa="80" scrollable="false" clickable="true">
               <event_cb trigger="clicked" callback="on_theme_swatch_clicked"/>
             </lv_obj>
             <lv_obj width="0"
@@ -144,7 +144,7 @@
             <lv_obj name="swatch_7"
                     width="#theme_swatch_size" height="#theme_swatch_size" style_radius="#border_radius_small"
                     style_bg_color="#text_subtle" style_bg_opa="255" style_border_width="1"
-                    style_border_color="#card_alt" style_border_opa="80" scrollable="false" clickable="true">
+                    style_border_color="#elevated_bg" style_border_opa="80" scrollable="false" clickable="true">
               <event_cb trigger="clicked" callback="on_theme_swatch_clicked"/>
             </lv_obj>
             <lv_obj width="0"
@@ -163,7 +163,7 @@
             <lv_obj name="swatch_8"
                     width="#theme_swatch_size" height="#theme_swatch_size" style_radius="#border_radius_small"
                     style_bg_color="#primary" style_bg_opa="255" style_border_width="1"
-                    style_border_color="#card_alt" style_border_opa="80" scrollable="false" clickable="true">
+                    style_border_color="#elevated_bg" style_border_opa="80" scrollable="false" clickable="true">
               <event_cb trigger="clicked" callback="on_theme_swatch_clicked"/>
             </lv_obj>
             <lv_obj width="0"
@@ -178,7 +178,7 @@
             <lv_obj name="swatch_9"
                     width="#theme_swatch_size" height="#theme_swatch_size" style_radius="#border_radius_small"
                     style_bg_color="#secondary" style_bg_opa="255" style_border_width="1"
-                    style_border_color="#card_alt" style_border_opa="80" scrollable="false" clickable="true">
+                    style_border_color="#elevated_bg" style_border_opa="80" scrollable="false" clickable="true">
               <event_cb trigger="clicked" callback="on_theme_swatch_clicked"/>
             </lv_obj>
             <lv_obj width="0"
@@ -197,7 +197,7 @@
             <lv_obj name="swatch_10"
                     width="#theme_swatch_size" height="#theme_swatch_size" style_radius="#border_radius_small"
                     style_bg_color="#tertiary" style_bg_opa="255" style_border_width="1"
-                    style_border_color="#card_alt" style_border_opa="80" scrollable="false" clickable="true">
+                    style_border_color="#elevated_bg" style_border_opa="80" scrollable="false" clickable="true">
               <event_cb trigger="clicked" callback="on_theme_swatch_clicked"/>
             </lv_obj>
             <lv_obj width="0"
@@ -212,7 +212,7 @@
             <lv_obj name="swatch_11"
                     width="#theme_swatch_size" height="#theme_swatch_size" style_radius="#border_radius_small"
                     style_bg_color="#info" style_bg_opa="255" style_border_width="1"
-                    style_border_color="#card_alt" style_border_opa="80" scrollable="false" clickable="true">
+                    style_border_color="#elevated_bg" style_border_opa="80" scrollable="false" clickable="true">
               <event_cb trigger="clicked" callback="on_theme_swatch_clicked"/>
             </lv_obj>
             <lv_obj width="0"
@@ -231,7 +231,7 @@
             <lv_obj name="swatch_12"
                     width="#theme_swatch_size" height="#theme_swatch_size" style_radius="#border_radius_small"
                     style_bg_color="#success" style_bg_opa="255" style_border_width="1"
-                    style_border_color="#card_alt" style_border_opa="80" scrollable="false" clickable="true">
+                    style_border_color="#elevated_bg" style_border_opa="80" scrollable="false" clickable="true">
               <event_cb trigger="clicked" callback="on_theme_swatch_clicked"/>
             </lv_obj>
             <lv_obj width="0"
@@ -246,7 +246,7 @@
             <lv_obj name="swatch_13"
                     width="#theme_swatch_size" height="#theme_swatch_size" style_radius="#border_radius_small"
                     style_bg_color="#warning" style_bg_opa="255" style_border_width="1"
-                    style_border_color="#card_alt" style_border_opa="80" scrollable="false" clickable="true">
+                    style_border_color="#elevated_bg" style_border_opa="80" scrollable="false" clickable="true">
               <event_cb trigger="clicked" callback="on_theme_swatch_clicked"/>
             </lv_obj>
             <lv_obj width="0"
@@ -265,7 +265,7 @@
             <lv_obj name="swatch_14"
                     width="#theme_swatch_size" height="#theme_swatch_size" style_radius="#border_radius_small"
                     style_bg_color="#danger" style_bg_opa="255" style_border_width="1"
-                    style_border_color="#card_alt" style_border_opa="80" scrollable="false" clickable="true">
+                    style_border_color="#elevated_bg" style_border_opa="80" scrollable="false" clickable="true">
               <event_cb trigger="clicked" callback="on_theme_swatch_clicked"/>
             </lv_obj>
             <lv_obj width="0"
@@ -280,7 +280,7 @@
             <lv_obj name="swatch_15"
                     width="#theme_swatch_size" height="#theme_swatch_size" style_radius="#border_radius_small"
                     style_bg_color="#focus" style_bg_opa="255" style_border_width="1"
-                    style_border_color="#card_alt" style_border_opa="80" scrollable="false" clickable="true">
+                    style_border_color="#elevated_bg" style_border_opa="80" scrollable="false" clickable="true">
               <event_cb trigger="clicked" callback="on_theme_swatch_clicked"/>
             </lv_obj>
             <lv_obj width="0"

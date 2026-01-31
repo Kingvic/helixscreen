@@ -1,10 +1,10 @@
 {
   "name": "Tokyo Night",
   "dark": {
-    "app_bg": "#1A1B26",
-    "panel_bg": "#16161E",
+    "screen_bg": "#1A1B26",
+    "overlay_bg": "#16161E",
     "card_bg": "#24283B",
-    "card_alt": "#414868",
+    "elevated_bg": "#414868",
     "border": "#565F89",
     "text": "#C0CAF5",
     "text_muted": "#A9B1D6",
@@ -19,10 +19,10 @@
     "focus": "#7AA2F7"
   },
   "light": {
-    "app_bg": "#D5D6DB",
-    "panel_bg": "#E1E2E7",
+    "screen_bg": "#D5D6DB",
+    "overlay_bg": "#E1E2E7",
     "card_bg": "#FFFFFF",
-    "card_alt": "#E9E9ED",
+    "elevated_bg": "#E9E9ED",
     "border": "#9699A3",
     "text": "#343B58",
     "text_muted": "#4C505E",

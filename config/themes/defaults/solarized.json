@@ -1,10 +1,10 @@
 {
   "name": "Solarized",
   "dark": {
-    "app_bg": "#002B36",
-    "panel_bg": "#073642",
+    "screen_bg": "#002B36",
+    "overlay_bg": "#073642",
     "card_bg": "#094555",
-    "card_alt": "#586E75",
+    "elevated_bg": "#586E75",
     "border": "#657B83",
     "text": "#FDF6E3",
     "text_muted": "#EEE8D5",
@@ -19,10 +19,10 @@
     "focus": "#268BD2"
   },
   "light": {
-    "app_bg": "#FDF6E3",
-    "panel_bg": "#EEE8D5",
+    "screen_bg": "#FDF6E3",
+    "overlay_bg": "#EEE8D5",
     "card_bg": "#FFFFFF",
-    "card_alt": "#F5EFDC",
+    "elevated_bg": "#F5EFDC",
     "border": "#93A1A1",
     "text": "#002B36",
     "text_muted": "#073642",

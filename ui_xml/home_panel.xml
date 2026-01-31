@@ -22,7 +22,7 @@
   <!-- Now references global constants from globals.xml -->
   <view extends="lv_obj"
         width="100%" height="100%" style_pad_all="0" style_pad_gap="0" style_border_width="0" flex_flow="column"
-        style_bg_color="#app_bg" scrollable="false">
+        style_bg_color="#screen_bg" scrollable="false">
 
     <!-- Top section: Printer visualization + Tip -->
     <lv_obj width="100%"
@@ -62,7 +62,7 @@
           <bind_flag_if_eq subject="printer_info_visible" flag="hidden" ref_value="0"/>
           <text_small width="100%"
                       height="content" bind_text="printer_type_text" style_text_color="#text" style_text_align="center"
-                      stroke_width="1" stroke_color="#app_bg" stroke_opa="180"/>
+                      stroke_width="1" stroke_color="#screen_bg" stroke_opa="180"/>
         </lv_obj>
       </lv_obj>
 
@@ -120,7 +120,7 @@
           <!-- Progress bar -->
           <lv_bar name="print_start_bar"
                   width="90%" height="8" bind_value="print_start_progress" range_min="0" range_max="100"
-                  style_bg_color="#app_bg" style_radius="4"/>
+                  style_bg_color="#screen_bg" style_radius="4"/>
           <!-- Phase message -->
           <text_small bind_text="print_start_message"/>
         </lv_obj>
@@ -147,7 +147,7 @@
             <!-- Progress bar showing actual print progress -->
             <lv_bar name="print_progress_bar"
                     width="90%" height="8" bind_value="print_progress" range_min="0" range_max="100"
-                    style_bg_color="#app_bg" style_radius="4"/>
+                    style_bg_color="#screen_bg" style_radius="4"/>
             <!-- Progress percentage -->
             <text_small bind_text="print_progress_text"/>
           </lv_obj>

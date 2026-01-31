@@ -712,9 +712,9 @@ void KeyboardManager::init(lv_obj_t* parent) {
     mode_ = MODE_ALPHA_LC;
     apply_keyboard_mode();
 
-    lv_color_t keyboard_bg = theme_manager_get_color("app_bg");
+    lv_color_t keyboard_bg = theme_manager_get_color("screen_bg");
     lv_color_t key_bg = theme_manager_get_color("card_bg");
-    lv_color_t key_special_bg = theme_manager_get_color("panel_bg");
+    lv_color_t key_special_bg = theme_manager_get_color("overlay_bg");
     lv_color_t key_text = theme_manager_get_color("text");
 
     lv_obj_set_style_bg_color(keyboard_, keyboard_bg, LV_PART_MAIN);

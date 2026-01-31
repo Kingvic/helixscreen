@@ -204,7 +204,7 @@ void theme_manager_revert_preview();
  * Named widgets updated:
  * - example_btn_primary, example_btn_success, example_btn_warning, example_btn_danger
  * - aurora_0, aurora_1 (danger), aurora_2 (warning), aurora_3 (success), aurora_4 (info)
- * - preview_typography_card, preview_actions_card, preview_background (card_bg, app_bg)
+ * - preview_typography_card, preview_actions_card, preview_background (card_bg, screen_bg)
  *
  * @param root Widget tree root to search (typically lv_screen_active())
  * @param theme Theme data with colors to apply
@@ -289,8 +289,8 @@ lv_color_t theme_get_accent_color();
  * - Buttons: background color (accent), text contrast
  * - Switches: track (border), indicator (secondary), knob (brighter of primary/tertiary)
  * - Sliders: track (border), indicator (secondary), knob (brighter of primary/tertiary)
- * - Dropdowns: background (card_alt), border, text
- * - Textareas: background (card_alt), text
+ * - Dropdowns: background (elevated_bg), border, text
+ * - Textareas: background (elevated_bg), text
  *
  * @param obj Widget to style
  * @param palette Colors to apply

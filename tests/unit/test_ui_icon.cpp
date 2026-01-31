@@ -194,9 +194,9 @@ TEST_CASE("strip_legacy_prefix handles empty string", "[ui_icon][legacy][error]"
 static theme_palette_t make_dark_test_palette() {
     theme_palette_t p = {};
     p.screen_bg = lv_color_hex(0x121212);
-    p.panel_bg = lv_color_hex(0x1A1A1A);
+    p.overlay_bg = lv_color_hex(0x1A1A1A);
     p.card_bg = lv_color_hex(0x1E1E1E);
-    p.surface_control = lv_color_hex(0x2D2D2D);
+    p.elevated_bg = lv_color_hex(0x2D2D2D);
     p.border = lv_color_hex(0x424242);
     p.text = lv_color_hex(0xE0E0E0);
     p.text_muted = lv_color_hex(0xA0A0A0);

@@ -10,7 +10,7 @@ using namespace helix;
 
 TEST_CASE("ModePalette index access", "[theme][dual-palette]") {
     ModePalette palette;
-    palette.app_bg = "#282828";
+    palette.screen_bg = "#282828";
     palette.focus = "#FFFFFF";
     REQUIRE(palette.at(0) == "#282828");
     REQUIRE(palette.at(15) == "#FFFFFF");
@@ -19,18 +19,18 @@ TEST_CASE("ModePalette index access", "[theme][dual-palette]") {
 TEST_CASE("ModePalette::color_names order", "[theme][dual-palette]") {
     auto& names = ModePalette::color_names();
     REQUIRE(names.size() == 16);
-    REQUIRE(std::string(names[0]) == "app_bg");
-    REQUIRE(std::string(names[1]) == "panel_bg");
+    REQUIRE(std::string(names[0]) == "screen_bg");
+    REQUIRE(std::string(names[1]) == "overlay_bg");
     REQUIRE(std::string(names[15]) == "focus");
 }
 
 TEST_CASE("ModePalette::is_valid - all colors set", "[theme][dual-palette]") {
     ModePalette palette;
     // Fill all 16 colors
-    palette.app_bg = "#111111";
-    palette.panel_bg = "#222222";
+    palette.screen_bg = "#111111";
+    palette.overlay_bg = "#222222";
     palette.card_bg = "#333333";
-    palette.card_alt = "#444444";
+    palette.elevated_bg = "#444444";
     palette.border = "#555555";
     palette.text = "#666666";
     palette.text_muted = "#777777";
@@ -48,7 +48,7 @@ TEST_CASE("ModePalette::is_valid - all colors set", "[theme][dual-palette]") {
 
 TEST_CASE("ModePalette::is_valid - missing colors", "[theme][dual-palette]") {
     ModePalette palette;
-    palette.app_bg = "#111111";
+    palette.screen_bg = "#111111";
     // Missing other colors
     REQUIRE_FALSE(palette.is_valid());
 }
@@ -63,10 +63,10 @@ TEST_CASE("ThemeData mode support - dual", "[theme][dual-palette]") {
     ThemeData theme;
     theme.name = "Test";
     // Fill dark palette
-    theme.dark.app_bg = "#282828";
-    theme.dark.panel_bg = "#282828";
+    theme.dark.screen_bg = "#282828";
+    theme.dark.overlay_bg = "#282828";
     theme.dark.card_bg = "#282828";
-    theme.dark.card_alt = "#282828";
+    theme.dark.elevated_bg = "#282828";
     theme.dark.border = "#282828";
     theme.dark.text = "#FFFFFF";
     theme.dark.text_muted = "#CCCCCC";
@@ -80,10 +80,10 @@ TEST_CASE("ThemeData mode support - dual", "[theme][dual-palette]") {
     theme.dark.danger = "#BF616A";
     theme.dark.focus = "#88C0D0";
     // Fill light palette
-    theme.light.app_bg = "#FFFFFF";
-    theme.light.panel_bg = "#F0F0F0";
+    theme.light.screen_bg = "#FFFFFF";
+    theme.light.overlay_bg = "#F0F0F0";
     theme.light.card_bg = "#FFFFFF";
-    theme.light.card_alt = "#F5F5F5";
+    theme.light.elevated_bg = "#F5F5F5";
     theme.light.border = "#E0E0E0";
     theme.light.text = "#282828";
     theme.light.text_muted = "#555555";
@@ -106,10 +106,10 @@ TEST_CASE("ThemeData mode support - dark only", "[theme][dual-palette]") {
     ThemeData theme;
     theme.name = "Test";
     // Fill only dark palette (same values as above)
-    theme.dark.app_bg = "#282828";
-    theme.dark.panel_bg = "#282828";
+    theme.dark.screen_bg = "#282828";
+    theme.dark.overlay_bg = "#282828";
     theme.dark.card_bg = "#282828";
-    theme.dark.card_alt = "#282828";
+    theme.dark.elevated_bg = "#282828";
     theme.dark.border = "#282828";
     theme.dark.text = "#FFFFFF";
     theme.dark.text_muted = "#CCCCCC";
@@ -134,10 +134,10 @@ TEST_CASE("ThemeData mode support - light only", "[theme][dual-palette]") {
     theme.name = "Test";
     // dark palette empty
     // Fill only light palette
-    theme.light.app_bg = "#FFFFFF";
-    theme.light.panel_bg = "#F0F0F0";
+    theme.light.screen_bg = "#FFFFFF";
+    theme.light.overlay_bg = "#F0F0F0";
     theme.light.card_bg = "#FFFFFF";
-    theme.light.card_alt = "#F5F5F5";
+    theme.light.elevated_bg = "#F5F5F5";
     theme.light.border = "#E0E0E0";
     theme.light.text = "#282828";
     theme.light.text_muted = "#555555";
@@ -160,10 +160,10 @@ TEST_CASE("parse_theme_json - new format dual mode", "[theme][dual-palette]") {
     const char* json = R"({
         "name": "Test Dual",
         "dark": {
-            "app_bg": "#2E3440",
-            "panel_bg": "#3B4252",
+            "screen_bg": "#2E3440",
+            "overlay_bg": "#3B4252",
             "card_bg": "#434C5E",
-            "card_alt": "#4C566A",
+            "elevated_bg": "#4C566A",
             "border": "#616E88",
             "text": "#ECEFF4",
             "text_muted": "#D8DEE9",
@@ -178,10 +178,10 @@ TEST_CASE("parse_theme_json - new format dual mode", "[theme][dual-palette]") {
             "focus": "#88C0D0"
         },
         "light": {
-            "app_bg": "#ECEFF4",
-            "panel_bg": "#E5E9F0",
+            "screen_bg": "#ECEFF4",
+            "overlay_bg": "#E5E9F0",
             "card_bg": "#FFFFFF",
-            "card_alt": "#EDEFF6",
+            "elevated_bg": "#EDEFF6",
             "border": "#CBD5E1",
             "text": "#2E3440",
             "text_muted": "#3B4252",
@@ -203,8 +203,8 @@ TEST_CASE("parse_theme_json - new format dual mode", "[theme][dual-palette]") {
     REQUIRE(theme.name == "Test Dual");
     REQUIRE(theme.supports_dark());
     REQUIRE(theme.supports_light());
-    REQUIRE(theme.dark.app_bg == "#2E3440");
-    REQUIRE(theme.light.app_bg == "#ECEFF4");
+    REQUIRE(theme.dark.screen_bg == "#2E3440");
+    REQUIRE(theme.light.screen_bg == "#ECEFF4");
     REQUIRE(theme.properties.border_radius == 12);
 }
 
@@ -212,10 +212,10 @@ TEST_CASE("parse_theme_json - new format dark only", "[theme][dual-palette]") {
     const char* json = R"({
         "name": "Dracula",
         "dark": {
-            "app_bg": "#282A36",
-            "panel_bg": "#21222C",
+            "screen_bg": "#282A36",
+            "overlay_bg": "#21222C",
             "card_bg": "#44475A",
-            "card_alt": "#6272A4",
+            "elevated_bg": "#6272A4",
             "border": "#6272A4",
             "text": "#F8F8F2",
             "text_muted": "#BFBFBF",
@@ -278,10 +278,10 @@ TEST_CASE("save and reload theme - round trip new format", "[theme][dual-palette
     original.name = "RoundTrip";
     original.filename = "roundtrip";
     // Set dark palette
-    original.dark.app_bg = "#111111";
-    original.dark.panel_bg = "#222222";
+    original.dark.screen_bg = "#111111";
+    original.dark.overlay_bg = "#222222";
     original.dark.card_bg = "#333333";
-    original.dark.card_alt = "#444444";
+    original.dark.elevated_bg = "#444444";
     original.dark.border = "#555555";
     original.dark.text = "#FFFFFF";
     original.dark.text_muted = "#CCCCCC";
@@ -295,10 +295,10 @@ TEST_CASE("save and reload theme - round trip new format", "[theme][dual-palette
     original.dark.danger = "#BF616A";
     original.dark.focus = "#88C0D0";
     // Set light palette
-    original.light.app_bg = "#FFFFFF";
-    original.light.panel_bg = "#F0F0F0";
+    original.light.screen_bg = "#FFFFFF";
+    original.light.overlay_bg = "#F0F0F0";
     original.light.card_bg = "#FAFAFA";
-    original.light.card_alt = "#F5F5F5";
+    original.light.elevated_bg = "#F5F5F5";
     original.light.border = "#E0E0E0";
     original.light.text = "#111111";
     original.light.text_muted = "#555555";
@@ -317,8 +317,8 @@ TEST_CASE("save and reload theme - round trip new format", "[theme][dual-palette
 
     auto loaded = load_theme_from_file(path);
     REQUIRE(loaded.name == "RoundTrip");
-    REQUIRE(loaded.dark.app_bg == original.dark.app_bg);
-    REQUIRE(loaded.light.app_bg == original.light.app_bg);
+    REQUIRE(loaded.dark.screen_bg == original.dark.screen_bg);
+    REQUIRE(loaded.light.screen_bg == original.light.screen_bg);
     REQUIRE(loaded.supports_dark());
     REQUIRE(loaded.supports_light());
 

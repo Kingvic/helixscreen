@@ -19,7 +19,7 @@
         <bind_flag_if_not_eq subject="input_shaper_state" flag="hidden" ref_value="0"/>
         <!-- Hero section: icon + title + help button -->
         <lv_obj width="100%"
-                height="content" style_bg_color="#app_bg" style_bg_opa="255" style_radius="#border_radius"
+                height="content" style_bg_color="#screen_bg" style_bg_opa="255" style_radius="#border_radius"
                 style_border_width="0" style_pad_all="#space_lg" flex_flow="column" style_flex_main_place="center"
                 style_flex_cross_place="center" style_pad_gap="#space_sm" scrollable="false">
           <!-- Top row: icon and help button -->
@@ -64,7 +64,7 @@
         <bind_flag_if_not_eq subject="input_shaper_state" flag="hidden" ref_value="1"/>
         <!-- Spinner and status container -->
         <lv_obj width="100%"
-                height="content" style_min_height="160" style_bg_color="#app_bg" style_bg_opa="255"
+                height="content" style_min_height="160" style_bg_color="#screen_bg" style_bg_opa="255"
                 style_radius="#border_radius" style_border_width="0" style_pad_all="#space_xl" flex_flow="column"
                 style_flex_main_place="center" style_flex_cross_place="center" style_pad_gap="#space_md"
                 scrollable="false">
@@ -100,7 +100,7 @@
         </lv_obj>
         <!-- Frequency response chart container (populated programmatically) -->
         <lv_obj name="chart_container"
-                width="100%" height="160" style_bg_color="#app_bg" style_bg_opa="255" style_radius="#border_radius"
+                width="100%" height="160" style_bg_color="#screen_bg" style_bg_opa="255" style_radius="#border_radius"
                 style_border_width="0" style_pad_all="#space_sm" scrollable="false">
           <!-- FrequencyResponseChart created here by InputShaperPanel -->
         </lv_obj>
@@ -114,7 +114,7 @@
         </lv_obj>
         <!-- Results rows container -->
         <lv_obj width="100%"
-                height="content" style_bg_color="#app_bg" style_bg_opa="255" style_radius="#border_radius"
+                height="content" style_bg_color="#screen_bg" style_bg_opa="255" style_radius="#border_radius"
                 style_border_width="0" style_pad_all="0" flex_flow="column" scrollable="false">
           <!-- Row 0 -->
           <lv_obj name="shaper_row_0"
@@ -215,7 +215,7 @@
         </lv_obj>
         <!-- Troubleshooting tips -->
         <lv_obj width="100%"
-                height="content" style_bg_color="#app_bg" style_bg_opa="255" style_radius="#border_radius"
+                height="content" style_bg_color="#screen_bg" style_bg_opa="255" style_radius="#border_radius"
                 style_border_width="0" style_pad_all="#space_md" flex_flow="column" style_pad_gap="#space_xs"
                 scrollable="false">
           <text_small text="Troubleshooting:"/>

@@ -37,7 +37,7 @@ lv_obj_add_style(obj, theme_get_card_style(), LV_PART_MAIN);
 | `card_style_` | bg_color, border_color/width/opa, radius | `ui_card` |
 | `dialog_style_` | bg_color, border_color/width/opa, radius, shadow | `ui_dialog`, modals |
 | `app_bg_style_` | bg_color | overlay backgrounds, panels |
-| `card_alt_style_` | bg_color (for inputs) | input backgrounds |
+| `elevated_bg_style_` | bg_color (for inputs) | input backgrounds |
 
 ### Text Styles
 | Style | Properties | Used By |

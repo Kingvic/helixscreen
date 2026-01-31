@@ -183,8 +183,8 @@ TEST_CASE_METHOD(ThemeConstantsFixture,
     write_xml("theme.xml", R"(
 <component>
     <consts>
-        <color name="app_bg_color_light" value="#FFFFFF"/>
-        <color name="app_bg_color_dark" value="#1A1A1A"/>
+        <color name="screen_bg_color_light" value="#FFFFFF"/>
+        <color name="screen_bg_color_dark" value="#1A1A1A"/>
         <color name="text_primary_light" value="#111111"/>
         <color name="text_primary_dark" value="#EEEEEE"/>
     </consts>
@@ -198,14 +198,14 @@ TEST_CASE_METHOD(ThemeConstantsFixture,
         theme_manager_parse_all_xml_for_suffix(temp_dir.string().c_str(), "color", "_dark");
 
     // Base names should be extracted (suffix stripped)
-    REQUIRE(has_key(light_result, "app_bg_color"));
+    REQUIRE(has_key(light_result, "screen_bg_color"));
     REQUIRE(has_key(light_result, "text_primary"));
-    REQUIRE(light_result["app_bg_color"] == "#FFFFFF");
+    REQUIRE(light_result["screen_bg_color"] == "#FFFFFF");
     REQUIRE(light_result["text_primary"] == "#111111");
 
-    REQUIRE(has_key(dark_result, "app_bg_color"));
+    REQUIRE(has_key(dark_result, "screen_bg_color"));
     REQUIRE(has_key(dark_result, "text_primary"));
-    REQUIRE(dark_result["app_bg_color"] == "#1A1A1A");
+    REQUIRE(dark_result["screen_bg_color"] == "#1A1A1A");
     REQUIRE(dark_result["text_primary"] == "#EEEEEE");
 
     cleanup_temp_dir();

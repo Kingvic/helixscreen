@@ -1,10 +1,10 @@
 {
   "name": "Gruvbox",
   "dark": {
-    "app_bg": "#282828",
-    "panel_bg": "#3C3836",
+    "screen_bg": "#282828",
+    "overlay_bg": "#3C3836",
     "card_bg": "#504945",
-    "card_alt": "#665C54",
+    "elevated_bg": "#665C54",
     "border": "#7C6F64",
     "text": "#EBDBB2",
     "text_muted": "#D5C4A1",
@@ -19,10 +19,10 @@
     "focus": "#83A598"
   },
   "light": {
-    "app_bg": "#FBF1C7",
-    "panel_bg": "#EBDBB2",
+    "screen_bg": "#FBF1C7",
+    "overlay_bg": "#EBDBB2",
     "card_bg": "#D5C4A1",
-    "card_alt": "#BDAE93",
+    "elevated_bg": "#BDAE93",
     "border": "#A89984",
     "text": "#3C3836",
     "text_muted": "#504945",

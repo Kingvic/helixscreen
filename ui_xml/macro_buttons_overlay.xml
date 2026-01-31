@@ -6,7 +6,7 @@
 <!-- Quick buttons map to macro slots; standard macros map to printer macros -->
 <component>
   <view name="macro_buttons_overlay"
-        extends="overlay_panel" width="#overlay_panel_width_full" title="Macro Buttons" bg_color="#app_bg">
+        extends="overlay_panel" width="#overlay_panel_width_full" title="Macro Buttons" bg_color="#screen_bg">
     <!-- Content Area - scrollable column of settings -->
     <lv_obj name="overlay_content"
             width="100%" flex_grow="1" style_bg_opa="0" style_pad_all="0" scrollable="true" scroll_dir="ver"

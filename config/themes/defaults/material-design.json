@@ -1,10 +1,10 @@
 {
   "name": "Material Design",
   "dark": {
-    "app_bg": "#1F1F1F",
-    "panel_bg": "#2D2D2D",
+    "screen_bg": "#1F1F1F",
+    "overlay_bg": "#2D2D2D",
     "card_bg": "#3C3C3C",
-    "card_alt": "#5F6368",
+    "elevated_bg": "#5F6368",
     "border": "#5F6368",
     "text": "#E8EAED",
     "text_muted": "#BDC1C6",
@@ -19,10 +19,10 @@
     "focus": "#8AB4F8"
   },
   "light": {
-    "app_bg": "#F8F9FA",
-    "panel_bg": "#FFFFFF",
+    "screen_bg": "#F8F9FA",
+    "overlay_bg": "#FFFFFF",
     "card_bg": "#FFFFFF",
-    "card_alt": "#E8EAED",
+    "elevated_bg": "#E8EAED",
     "border": "#DADCE0",
     "text": "#202124",
     "text_muted": "#5F6368",

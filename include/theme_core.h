@@ -16,10 +16,10 @@ extern "C" {
  * parameter lists in theme_core_init/update/preview functions.
  *
  * Index mapping matches ModePalette in theme_loader.h:
- *   0: screen_bg (app_bg)      8:  primary
- *   1: panel_bg                9:  secondary
+ *   0: screen_bg (screen_bg)      8:  primary
+ *   1: overlay_bg                9:  secondary
  *   2: card_bg                 10: tertiary
- *   3: surface_control         11: info
+ *   3: elevated_bg         11: info
  *   4: border                  12: success
  *   5: text                    13: warning
  *   6: text_muted              14: danger
@@ -27,9 +27,9 @@ extern "C" {
  */
 typedef struct {
     lv_color_t screen_bg;       // 0: Main app background
-    lv_color_t panel_bg;        // 1: Sidebar/panel background
+    lv_color_t overlay_bg;        // 1: Sidebar/panel background
     lv_color_t card_bg;         // 2: Card surfaces
-    lv_color_t surface_control; // 3: Elevated/control surfaces (buttons, inputs)
+    lv_color_t elevated_bg; // 3: Elevated/control surfaces (buttons, inputs)
     lv_color_t border;          // 4: Borders and dividers
     lv_color_t text;            // 5: Primary text
     lv_color_t text_muted;      // 6: Secondary text
@@ -124,7 +124,7 @@ lv_style_t* theme_core_get_card_style(void);
  * @brief Get the shared dialog style
  *
  * Returns a pointer to the persistent dialog style that includes:
- * - bg_color: surface_control/card_alt token
+ * - bg_color: elevated_bg/elevated_bg token
  * - bg_opa: LV_OPA_COVER
  * - radius: from border_radius parameter
  *
@@ -335,7 +335,7 @@ lv_style_t* theme_core_get_button_primary_style(void);
 /**
  * @brief Get the shared button secondary style
  *
- * Returns a pointer to the persistent button style using surface_control for bg.
+ * Returns a pointer to the persistent button style using elevated_bg for bg.
  * The style updates in-place when theme_core_update_colors() is called.
  *
  * @return Pointer to button secondary style, or NULL if theme not initialized

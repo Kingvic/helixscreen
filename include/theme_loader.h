@@ -33,10 +33,10 @@ enum class ThemeModeSupport {
  * New format using semantic color names that map directly to UI purpose.
  */
 struct ModePalette {
-    std::string app_bg;      // 0: Main app background
-    std::string panel_bg;    // 1: Sidebar/panel background
+    std::string screen_bg;      // 0: Main app background
+    std::string overlay_bg;    // 1: Sidebar/panel background
     std::string card_bg;     // 2: Card surfaces
-    std::string card_alt;    // 3: Elevated/alternate surfaces
+    std::string elevated_bg;    // 3: Elevated/alternate surfaces
     std::string border;      // 4: Borders and dividers
     std::string text;        // 5: Primary text
     std::string text_muted;  // 6: Secondary text

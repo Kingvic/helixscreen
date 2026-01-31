@@ -79,9 +79,9 @@ All colors are referenced as tokens with `#` prefix in XML:
 | Token | Purpose |
 |-------|---------|
 | `#app_bg` | Main application background |
-| `#panel_bg` | Sidebar/panel backgrounds |
+| `#overlay_bg` | Sidebar/panel backgrounds |
 | `#card_bg` | Card surfaces |
-| `#card_alt` | Elevated/control surfaces (dialogs, inputs) |
+| `#elevated_bg` | Elevated/control surfaces (dialogs, inputs) |
 | `#border` | Borders and dividers |
 | `#text` | Primary text |
 | `#text_muted` | Secondary/dimmed text |
@@ -240,7 +240,7 @@ Modal/overlay container with elevated surface color.
 </ui_dialog>
 ```
 
-Uses `theme_core_get_dialog_style()` → `card_alt` color.
+Uses `theme_core_get_dialog_style()` → `elevated_bg` color.
 
 ### Buttons
 

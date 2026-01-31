@@ -20,7 +20,7 @@
        where hidden objects affect flex-grow space calculation -->
   <view name="controls_panel"
         extends="lv_obj" width="100%" height="100%" style_pad_all="#space_md" style_border_width="0" flex_flow="column"
-        style_bg_color="#app_bg" style_pad_gap="#space_md" scrollable="false">
+        style_bg_color="#screen_bg" style_pad_gap="#space_md" scrollable="false">
     <!-- Row 1: Position card (left) | Right section with conditional E-Stop + Temps/Cooling -->
     <!-- Using explicit 55% height instead of flex-grow to avoid LVGL hidden-object bug -->
     <lv_obj width="100%"
@@ -190,7 +190,7 @@
             <text_small text="Part Fan" style_pad_top="#space_sm"/>
             <lv_slider name="part_fan_slider"
                        width="80%" height="#space_lg" bind_value="controls_fan_pct" range_min="0" range_max="100"
-                       style_bg_color="#card_alt" style_radius="#space_md" style_pad_top="#space_xs"
+                       style_bg_color="#elevated_bg" style_radius="#space_md" style_pad_top="#space_xs"
                        style_margin_left="#space_md" style_margin_right="#space_sm">
               <event_cb trigger="value_changed" callback="on_controls_fan_slider"/>
             </lv_slider>

@@ -27,9 +27,9 @@
 static theme_palette_t make_dark_test_palette_with_primary(lv_color_t primary) {
     theme_palette_t p = {};
     p.screen_bg = lv_color_hex(0x121212);
-    p.panel_bg = lv_color_hex(0x1A1A1A);
+    p.overlay_bg = lv_color_hex(0x1A1A1A);
     p.card_bg = lv_color_hex(0x1E1E1E);
-    p.surface_control = lv_color_hex(0x2D2D2D);
+    p.elevated_bg = lv_color_hex(0x2D2D2D);
     p.border = lv_color_hex(0x424242);
     p.text = lv_color_hex(0xE0E0E0);
     p.text_muted = lv_color_hex(0xA0A0A0);
@@ -48,7 +48,7 @@ static theme_palette_t make_dark_test_palette_with_primary(lv_color_t primary) {
 // Helper: Create a dark mode test palette with configurable primary and surface
 static theme_palette_t make_dark_test_palette_custom(lv_color_t primary, lv_color_t surface) {
     theme_palette_t p = make_dark_test_palette_with_primary(primary);
-    p.surface_control = surface;
+    p.elevated_bg = surface;
     return p;
 }
 

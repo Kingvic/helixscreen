@@ -25,7 +25,7 @@ namespace helix {
 
 const std::array<const char*, 16>& ModePalette::color_names() {
     static const std::array<const char*, 16> names = {
-        "app_bg",     "panel_bg",    "card_bg", "card_alt",  "border",   "text",
+        "screen_bg",     "overlay_bg",    "card_bg", "elevated_bg",  "border",   "text",
         "text_muted", "text_subtle", "primary", "secondary", "tertiary", "info",
         "success",    "warning",     "danger",  "focus"};
     return names;
@@ -34,13 +34,13 @@ const std::array<const char*, 16>& ModePalette::color_names() {
 const std::string& ModePalette::at(size_t index) const {
     switch (index) {
     case 0:
-        return app_bg;
+        return screen_bg;
     case 1:
-        return panel_bg;
+        return overlay_bg;
     case 2:
         return card_bg;
     case 3:
-        return card_alt;
+        return elevated_bg;
     case 4:
         return border;
     case 5:
@@ -119,10 +119,10 @@ ThemeData get_default_nord_theme() {
     theme.filename = "nord";
 
     // NEW: Populate dual palette system (dark mode)
-    theme.dark.app_bg = "#2e3440";
-    theme.dark.panel_bg = "#3b4252";
+    theme.dark.screen_bg = "#2e3440";
+    theme.dark.overlay_bg = "#3b4252";
     theme.dark.card_bg = "#434c5e";
-    theme.dark.card_alt = "#4c566a";
+    theme.dark.elevated_bg = "#4c566a";
     theme.dark.border = "#616e88";
     theme.dark.text = "#eceff4";
     theme.dark.text_muted = "#d8dee9";
@@ -137,10 +137,10 @@ ThemeData get_default_nord_theme() {
     theme.dark.focus = "#8fbcbb";     // nord7 - frost teal
 
     // NEW: Populate dual palette system (light mode)
-    theme.light.app_bg = "#eceff4";
-    theme.light.panel_bg = "#e5e9f0";
+    theme.light.screen_bg = "#eceff4";
+    theme.light.overlay_bg = "#e5e9f0";
     theme.light.card_bg = "#ffffff";
-    theme.light.card_alt = "#edeff6";
+    theme.light.elevated_bg = "#edeff6";
     theme.light.border = "#cbd5e1";
     theme.light.text = "#2e3440";
     theme.light.text_muted = "#3b4252";

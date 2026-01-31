@@ -1,10 +1,10 @@
 {
   "name": "Everforest",
   "dark": {
-    "app_bg": "#272E33",
-    "panel_bg": "#2D353B",
+    "screen_bg": "#272E33",
+    "overlay_bg": "#2D353B",
     "card_bg": "#3D484D",
-    "card_alt": "#475258",
+    "elevated_bg": "#475258",
     "border": "#56635F",
     "text": "#D3C6AA",
     "text_muted": "#9DA9A0",
@@ -19,10 +19,10 @@
     "focus": "#A7C080"
   },
   "light": {
-    "app_bg": "#FDF6E3",
-    "panel_bg": "#F4F0D9",
+    "screen_bg": "#FDF6E3",
+    "overlay_bg": "#F4F0D9",
     "card_bg": "#FFFBEF",
-    "card_alt": "#F3EAD3",
+    "elevated_bg": "#F3EAD3",
     "border": "#D5C9A0",
     "text": "#5C6A72",
     "text_muted": "#708089",

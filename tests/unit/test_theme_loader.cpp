@@ -12,7 +12,7 @@ using namespace helix;
 
 TEST_CASE("ModePalette index access", "[theme]") {
     ModePalette palette;
-    palette.app_bg = "#2e3440";
+    palette.screen_bg = "#2e3440";
     palette.focus = "#8fbcbb";
 
     REQUIRE(palette.at(0) == "#2e3440");
@@ -22,7 +22,7 @@ TEST_CASE("ModePalette index access", "[theme]") {
 TEST_CASE("ModePalette color_names returns all 16 names", "[theme]") {
     auto& names = ModePalette::color_names();
     REQUIRE(names.size() == 16);
-    REQUIRE(std::string(names[0]) == "app_bg");
+    REQUIRE(std::string(names[0]) == "screen_bg");
     REQUIRE(std::string(names[15]) == "focus");
 }
 
@@ -43,11 +43,11 @@ TEST_CASE("ThemeData::is_valid checks palettes and name", "[theme]") {
     theme.name = "Test";
 
     // Invalid color format should fail
-    theme.dark.app_bg = "invalid";
+    theme.dark.screen_bg = "invalid";
     REQUIRE_FALSE(theme.is_valid());
 
     // Short hex should fail
-    theme.dark.app_bg = "#abc";
+    theme.dark.screen_bg = "#abc";
     REQUIRE_FALSE(theme.is_valid());
 }
 
@@ -61,10 +61,10 @@ TEST_CASE("parse_theme_json parses valid dual-palette theme", "[theme]") {
     const char* json = R"({
         "name": "Test Theme",
         "dark": {
-            "app_bg": "#2e3440",
-            "panel_bg": "#3b4252",
+            "screen_bg": "#2e3440",
+            "overlay_bg": "#3b4252",
             "card_bg": "#434c5e",
-            "card_alt": "#4c566a",
+            "elevated_bg": "#4c566a",
             "border": "#616e88",
             "text": "#eceff4",
             "text_muted": "#d8dee9",
@@ -87,7 +87,7 @@ TEST_CASE("parse_theme_json parses valid dual-palette theme", "[theme]") {
     auto theme = helix::parse_theme_json(json, "test.json");
 
     REQUIRE(theme.name == "Test Theme");
-    REQUIRE(theme.dark.app_bg == "#2e3440");
+    REQUIRE(theme.dark.screen_bg == "#2e3440");
     REQUIRE(theme.dark.focus == "#8fbcbb");
     REQUIRE(theme.properties.border_radius == 8);
     REQUIRE(theme.properties.shadow_intensity == 10);
@@ -99,8 +99,8 @@ TEST_CASE("get_default_nord_theme returns valid theme", "[theme]") {
 
     REQUIRE(theme.name == "Nord");
     REQUIRE(theme.is_valid());
-    REQUIRE(theme.dark.app_bg == "#2e3440");
-    REQUIRE(theme.light.app_bg == "#eceff4");
+    REQUIRE(theme.dark.screen_bg == "#2e3440");
+    REQUIRE(theme.light.screen_bg == "#eceff4");
 }
 
 TEST_CASE("parse_theme_json returns Nord on invalid JSON", "[theme]") {
@@ -135,8 +135,8 @@ TEST_CASE("save_theme_to_file and load_theme_from_file roundtrip", "[theme]") {
 
     REQUIRE(loaded.name == "Roundtrip Test");
     REQUIRE(loaded.properties.border_radius == 20);
-    REQUIRE(loaded.dark.app_bg == original.dark.app_bg);
-    REQUIRE(loaded.light.app_bg == original.light.app_bg);
+    REQUIRE(loaded.dark.screen_bg == original.dark.screen_bg);
+    REQUIRE(loaded.light.screen_bg == original.light.screen_bg);
     REQUIRE(loaded.is_valid());
 
     // Cleanup
@@ -175,7 +175,7 @@ TEST_CASE("user theme overrides default theme with same name", "[theme]") {
     // Create a user theme with the same name as a default theme
     helix::ThemeData user_theme = helix::get_default_nord_theme();
     user_theme.name = "User Nord Override";
-    user_theme.dark.app_bg = "#111111"; // Different color to identify it
+    user_theme.dark.screen_bg = "#111111"; // Different color to identify it
 
     std::string user_path = themes_dir + "/nord.json";
     REQUIRE(helix::save_theme_to_file(user_theme, user_path));
@@ -184,7 +184,7 @@ TEST_CASE("user theme overrides default theme with same name", "[theme]") {
     auto loaded = helix::load_theme_from_file("nord");
 
     REQUIRE(loaded.name == "User Nord Override");
-    REQUIRE(loaded.dark.app_bg == "#111111");
+    REQUIRE(loaded.dark.screen_bg == "#111111");
 
     // Cleanup
     std::remove(user_path.c_str());
@@ -251,7 +251,7 @@ TEST_CASE("reset_theme_to_default deletes user file and returns default", "[them
     // Create a user override for nord
     helix::ThemeData user_override = helix::get_default_nord_theme();
     user_override.name = "Modified Nord";
-    user_override.dark.app_bg = "#222222";
+    user_override.dark.screen_bg = "#222222";
 
     std::string user_path = themes_dir + "/nord.json";
     REQUIRE(helix::save_theme_to_file(user_override, user_path));
@@ -265,7 +265,7 @@ TEST_CASE("reset_theme_to_default deletes user file and returns default", "[them
 
     REQUIRE(result.has_value());
     REQUIRE(result->name == "Nord");           // Should be original default
-    REQUIRE(result->dark.app_bg != "#222222"); // Should not be user override
+    REQUIRE(result->dark.screen_bg != "#222222"); // Should not be user override
 
     // User file should be deleted
     REQUIRE(stat(user_path.c_str(), &st) != 0);

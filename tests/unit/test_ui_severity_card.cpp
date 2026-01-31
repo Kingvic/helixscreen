@@ -33,9 +33,9 @@
 static theme_palette_t make_base_test_palette() {
     theme_palette_t p = {};
     p.screen_bg = lv_color_hex(0x121212);
-    p.panel_bg = lv_color_hex(0x1E1E1E);
+    p.overlay_bg = lv_color_hex(0x1E1E1E);
     p.card_bg = lv_color_hex(0x2D2D2D);
-    p.surface_control = lv_color_hex(0x424242);
+    p.elevated_bg = lv_color_hex(0x424242);
     p.border = lv_color_hex(0x424242);
     p.text = lv_color_hex(0xE0E0E0);
     p.text_muted = lv_color_hex(0xB0B0B0);
@@ -55,9 +55,9 @@ static theme_palette_t make_base_test_palette() {
 static theme_palette_t make_test_palette_with_warning(lv_color_t warning_color) {
     theme_palette_t p = {};
     p.screen_bg = lv_color_hex(0x121212);
-    p.panel_bg = lv_color_hex(0x1E1E1E);
+    p.overlay_bg = lv_color_hex(0x1E1E1E);
     p.card_bg = lv_color_hex(0x2D2D2D);
-    p.surface_control = lv_color_hex(0x424242);
+    p.elevated_bg = lv_color_hex(0x424242);
     p.border = lv_color_hex(0x424242);
     p.text = lv_color_hex(0xE0E0E0);
     p.text_muted = lv_color_hex(0xB0B0B0);

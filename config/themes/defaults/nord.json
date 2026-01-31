@@ -1,10 +1,10 @@
 {
   "name": "Nord",
   "dark": {
-    "app_bg": "#2E3440",
-    "panel_bg": "#3B4252",
+    "screen_bg": "#2E3440",
+    "overlay_bg": "#3B4252",
     "card_bg": "#434C5E",
-    "card_alt": "#4C566A",
+    "elevated_bg": "#4C566A",
     "border": "#8FBCBB",
     "text": "#ECEFF4",
     "text_muted": "#D8DEE9",
@@ -19,10 +19,10 @@
     "focus": "#88C0D0"
   },
   "light": {
-    "app_bg": "#ECEFF4",
-    "panel_bg": "#E5E9F0",
+    "screen_bg": "#ECEFF4",
+    "overlay_bg": "#E5E9F0",
     "card_bg": "#FFFFFF",
-    "card_alt": "#D8DEE9",
+    "elevated_bg": "#D8DEE9",
     "border": "#C6CDD8",
     "text": "#2E3440",
     "text_muted": "#3B4252",

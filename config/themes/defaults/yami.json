@@ -1,10 +1,10 @@
 {
   "name": "Yami",
   "dark": {
-    "app_bg": "#13141A",
-    "panel_bg": "#1D1F26",
+    "screen_bg": "#13141A",
+    "overlay_bg": "#1D1F26",
     "card_bg": "#272A33",
-    "card_alt": "#323540",
+    "elevated_bg": "#323540",
     "border": "#4E5566",
     "text": "#EBEBEB",
     "text_muted": "#C2C2C2",

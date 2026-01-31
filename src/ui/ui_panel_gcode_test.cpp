@@ -185,7 +185,7 @@ void GcodeTestPanel::show_file_picker() {
     // Create full-screen overlay
     file_picker_overlay_ = lv_obj_create(lv_screen_active());
     lv_obj_set_size(file_picker_overlay_, LV_PCT(100), LV_PCT(100));
-    lv_obj_set_style_bg_color(file_picker_overlay_, theme_manager_get_color("app_bg"), 0);
+    lv_obj_set_style_bg_color(file_picker_overlay_, theme_manager_get_color("screen_bg"), 0);
     lv_obj_set_style_bg_opa(file_picker_overlay_, 200, 0); // Semi-transparent
     lv_obj_set_style_pad_all(file_picker_overlay_, 40, 0);
 

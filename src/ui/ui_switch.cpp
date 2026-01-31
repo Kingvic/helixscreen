@@ -217,7 +217,7 @@ static void ui_switch_xml_apply(lv_xml_parser_state_t* state, const char** attrs
     bool is_dark = theme_manager_is_dark_mode();
 
     // Get theme colors for mixing (preserves theme warmth/coolness)
-    const char* dark_color_str = lv_xml_get_const(NULL, "card_alt");
+    const char* dark_color_str = lv_xml_get_const(NULL, "elevated_bg");
     const char* light_color_str = lv_xml_get_const(NULL, "text_subtle");
 
     if (dark_color_str && light_color_str) {
