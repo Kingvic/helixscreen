@@ -80,3 +80,141 @@ TEST_CASE_METHOD(LVGLTestFixture, "ThemeManager::get_style returns valid style f
     // Different roles return different pointers
     REQUIRE(card != btn);
 }
+
+// ============================================================================
+// Phase 3: Style Configure Function Tests
+// ============================================================================
+
+TEST_CASE_METHOD(LVGLTestFixture, "Card style has correct properties after init",
+                 "[theme-manager][card-style]") {
+    auto& tm = ThemeManager::instance();
+    tm.init();
+
+    lv_style_t* card = tm.get_style(StyleRole::Card);
+    REQUIRE(card != nullptr);
+
+    // Card should have background color set
+    lv_style_value_t bg;
+    auto res = lv_style_get_prop(card, LV_STYLE_BG_COLOR, &bg);
+    REQUIRE(res == LV_STYLE_RES_FOUND);
+
+    // Card should have border
+    lv_style_value_t border_width;
+    res = lv_style_get_prop(card, LV_STYLE_BORDER_WIDTH, &border_width);
+    REQUIRE(res == LV_STYLE_RES_FOUND);
+    REQUIRE(border_width.num > 0);
+}
+
+TEST_CASE_METHOD(LVGLTestFixture, "Text styles have text color set",
+                 "[theme-manager][text-style]") {
+    auto& tm = ThemeManager::instance();
+    tm.init();
+
+    lv_style_t* primary = tm.get_style(StyleRole::TextPrimary);
+    lv_style_t* muted = tm.get_style(StyleRole::TextMuted);
+
+    lv_style_value_t c1, c2;
+    REQUIRE(lv_style_get_prop(primary, LV_STYLE_TEXT_COLOR, &c1) == LV_STYLE_RES_FOUND);
+    REQUIRE(lv_style_get_prop(muted, LV_STYLE_TEXT_COLOR, &c2) == LV_STYLE_RES_FOUND);
+}
+
+TEST_CASE_METHOD(LVGLTestFixture, "Icon styles have text color set",
+                 "[theme-manager][icon-style]") {
+    auto& tm = ThemeManager::instance();
+    tm.init();
+
+    lv_style_t* icon_primary = tm.get_style(StyleRole::IconPrimary);
+    lv_style_t* icon_danger = tm.get_style(StyleRole::IconDanger);
+
+    lv_style_value_t c1, c2;
+    REQUIRE(lv_style_get_prop(icon_primary, LV_STYLE_TEXT_COLOR, &c1) == LV_STYLE_RES_FOUND);
+    REQUIRE(lv_style_get_prop(icon_danger, LV_STYLE_TEXT_COLOR, &c2) == LV_STYLE_RES_FOUND);
+}
+
+TEST_CASE_METHOD(LVGLTestFixture, "Button styles have background set",
+                 "[theme-manager][button-style]") {
+    auto& tm = ThemeManager::instance();
+    tm.init();
+
+    lv_style_t* btn = tm.get_style(StyleRole::Button);
+    lv_style_t* btn_primary = tm.get_style(StyleRole::ButtonPrimary);
+
+    lv_style_value_t c1, c2;
+    REQUIRE(lv_style_get_prop(btn, LV_STYLE_BG_COLOR, &c1) == LV_STYLE_RES_FOUND);
+    REQUIRE(lv_style_get_prop(btn_primary, LV_STYLE_BG_COLOR, &c2) == LV_STYLE_RES_FOUND);
+}
+
+TEST_CASE_METHOD(LVGLTestFixture, "Severity styles have border color set",
+                 "[theme-manager][severity-style]") {
+    auto& tm = ThemeManager::instance();
+    tm.init();
+
+    lv_style_t* info = tm.get_style(StyleRole::SeverityInfo);
+    lv_style_t* danger = tm.get_style(StyleRole::SeverityDanger);
+
+    lv_style_value_t c1, c2;
+    REQUIRE(lv_style_get_prop(info, LV_STYLE_BORDER_COLOR, &c1) == LV_STYLE_RES_FOUND);
+    REQUIRE(lv_style_get_prop(danger, LV_STYLE_BORDER_COLOR, &c2) == LV_STYLE_RES_FOUND);
+}
+
+TEST_CASE_METHOD(LVGLTestFixture, "Spinner style has arc color set",
+                 "[theme-manager][spinner-style]") {
+    auto& tm = ThemeManager::instance();
+    tm.init();
+
+    lv_style_t* spinner = tm.get_style(StyleRole::Spinner);
+    REQUIRE(spinner != nullptr);
+
+    lv_style_value_t arc_color;
+    REQUIRE(lv_style_get_prop(spinner, LV_STYLE_ARC_COLOR, &arc_color) == LV_STYLE_RES_FOUND);
+}
+
+TEST_CASE_METHOD(LVGLTestFixture, "ObjBase style has transparent background",
+                 "[theme-manager][obj-base-style]") {
+    auto& tm = ThemeManager::instance();
+    tm.init();
+
+    lv_style_t* obj_base = tm.get_style(StyleRole::ObjBase);
+    REQUIRE(obj_base != nullptr);
+
+    lv_style_value_t bg_opa;
+    REQUIRE(lv_style_get_prop(obj_base, LV_STYLE_BG_OPA, &bg_opa) == LV_STYLE_RES_FOUND);
+    REQUIRE(bg_opa.num == LV_OPA_0);
+}
+
+TEST_CASE_METHOD(LVGLTestFixture, "All registered configure functions are called",
+                 "[theme-manager][configure-all]") {
+    auto& tm = ThemeManager::instance();
+    tm.init();
+
+    // Check that all major style roles have properties set
+    struct TestCase {
+        StyleRole role;
+        lv_style_prop_t prop;
+    };
+
+    TestCase cases[] = {
+        {StyleRole::Card, LV_STYLE_BG_COLOR},
+        {StyleRole::Dialog, LV_STYLE_BG_COLOR},
+        {StyleRole::TextPrimary, LV_STYLE_TEXT_COLOR},
+        {StyleRole::IconPrimary, LV_STYLE_TEXT_COLOR},
+        {StyleRole::Button, LV_STYLE_BG_COLOR},
+        {StyleRole::ButtonPrimary, LV_STYLE_BG_COLOR},
+        {StyleRole::SeverityInfo, LV_STYLE_BORDER_COLOR},
+        {StyleRole::Dropdown, LV_STYLE_BG_COLOR},
+        {StyleRole::Checkbox, LV_STYLE_BG_COLOR},
+        {StyleRole::Switch, LV_STYLE_BG_COLOR},
+        {StyleRole::Slider, LV_STYLE_BG_COLOR},
+        {StyleRole::Spinner, LV_STYLE_ARC_COLOR},
+        {StyleRole::Arc, LV_STYLE_ARC_COLOR},
+    };
+
+    for (const auto& tc : cases) {
+        lv_style_t* style = tm.get_style(tc.role);
+        REQUIRE(style != nullptr);
+
+        lv_style_value_t val;
+        INFO("Testing StyleRole index " << static_cast<int>(tc.role));
+        REQUIRE(lv_style_get_prop(style, tc.prop, &val) == LV_STYLE_RES_FOUND);
+    }
+}
