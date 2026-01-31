@@ -25,8 +25,8 @@ namespace helix {
 
 const std::array<const char*, 16>& ModePalette::color_names() {
     static const std::array<const char*, 16> names = {
-        "screen_bg",     "overlay_bg",    "card_bg", "elevated_bg",  "border",   "text",
-        "text_muted", "text_subtle", "primary", "secondary", "tertiary", "info",
+        "screen_bg",  "overlay_bg",  "card_bg", "elevated_bg", "border",   "text",
+        "text_muted", "text_subtle", "primary", "secondary",   "tertiary", "info",
         "success",    "warning",     "danger",  "focus"};
     return names;
 }

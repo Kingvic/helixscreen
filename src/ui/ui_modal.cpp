@@ -3,6 +3,7 @@
 
 #include "ui_modal.h"
 
+#include "theme_manager.h"
 #include "ui_event_safety.h"
 #include "ui_keyboard.h"
 #include "ui_update_queue.h"
@@ -392,6 +393,9 @@ lv_obj_t* Modal::show(const char* component_name, const char** attrs) {
     // Position dialog centered
     lv_obj_align(dialog, LV_ALIGN_CENTER, 0, 0);
 
+    // Apply current theme palette to dialog tree (context-aware input styling)
+    theme_apply_current_palette_to_tree(dialog);
+
     // Add backdrop click handler
     lv_obj_add_event_cb(backdrop, backdrop_click_cb, LV_EVENT_CLICKED, nullptr);
 
@@ -628,6 +632,9 @@ bool Modal::create_and_show(lv_obj_t* parent, const char* comp_name, const char*
 
     // Position dialog centered
     lv_obj_align(dialog_, LV_ALIGN_CENTER, 0, 0);
+
+    // Apply current theme palette to dialog tree (context-aware input styling)
+    theme_apply_current_palette_to_tree(dialog_);
 
     // Add backdrop click handler
     lv_obj_add_event_cb(backdrop_, backdrop_click_cb, LV_EVENT_CLICKED, this);

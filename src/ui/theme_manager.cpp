@@ -1570,6 +1570,25 @@ void theme_apply_palette_to_tree(lv_obj_t* root, const helix::ModePalette& palet
     }
 }
 
+void theme_apply_current_palette_to_tree(lv_obj_t* root) {
+    if (!root)
+        return;
+
+    // Get the active palette based on current mode
+    const helix::ModePalette& palette = use_dark_mode ? active_theme.dark : active_theme.light;
+
+    // Get text contrast colors from globals
+    const char* text_light_str = lv_xml_get_const(nullptr, "text_light");
+    const char* text_dark_str = lv_xml_get_const(nullptr, "text_dark");
+    lv_color_t text_light = text_light_str ? theme_manager_parse_hex_color(text_light_str)
+                                           : theme_manager_parse_hex_color(palette.text.c_str());
+    lv_color_t text_dark = text_dark_str ? theme_manager_parse_hex_color(text_dark_str)
+                                         : theme_manager_parse_hex_color(palette.text.c_str());
+
+    spdlog::debug("[Theme] Applying current palette to tree root={}", lv_obj_get_name(root));
+    theme_apply_palette_to_tree(root, palette, text_light, text_dark);
+}
+
 void theme_apply_palette_to_screen_dropdowns(const helix::ModePalette& palette) {
     // Style any screen-level popups (dropdown lists, modals, etc.)
     // These are direct children of the screen, not part of the overlay tree

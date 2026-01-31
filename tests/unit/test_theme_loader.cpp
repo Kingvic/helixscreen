@@ -264,7 +264,7 @@ TEST_CASE("reset_theme_to_default deletes user file and returns default", "[them
     auto result = helix::reset_theme_to_default("nord");
 
     REQUIRE(result.has_value());
-    REQUIRE(result->name == "Nord");           // Should be original default
+    REQUIRE(result->name == "Nord");              // Should be original default
     REQUIRE(result->dark.screen_bg != "#222222"); // Should not be user override
 
     // User file should be deleted

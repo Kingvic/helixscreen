@@ -325,6 +325,17 @@ void theme_apply_palette_to_tree(lv_obj_t* root, const helix::ModePalette& palet
 void theme_apply_palette_to_screen_dropdowns(const helix::ModePalette& palette);
 
 /**
+ * @brief Apply current theme palette to a widget tree
+ *
+ * Convenience wrapper that applies the currently active theme palette
+ * to a widget tree. Use this when showing new UI elements (like modals)
+ * that need context-aware styling.
+ *
+ * @param root Root object to apply palette to (recurses into children)
+ */
+void theme_apply_current_palette_to_tree(lv_obj_t* root);
+
+/**
  * @brief Get themed color by base name
  *
  * Retrieves color from globals.xml with automatic _light/_dark
