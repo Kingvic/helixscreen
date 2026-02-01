@@ -415,11 +415,9 @@ float BedMeshPanel::calculate_profile_range(const std::string& profile_name) {
     if (!api)
         return 0.0f;
 
-    // Get mesh data for this profile
-    // Note: MoonrakerAPI stores profiles in bed_mesh.profiles map
-    // For now, we'll use the active mesh if it matches, otherwise return 0
-    const BedMeshProfile* mesh = api->get_active_bed_mesh();
-    if (!mesh || mesh->name != profile_name || mesh->probed_matrix.empty()) {
+    // Get mesh data for this profile (supports both active and stored profiles)
+    const BedMeshProfile* mesh = api->get_bed_mesh_profile(profile_name);
+    if (!mesh || mesh->probed_matrix.empty()) {
         return 0.0f;
     }
 

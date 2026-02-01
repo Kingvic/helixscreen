@@ -67,11 +67,58 @@ void MoonrakerAPI::update_bed_mesh(const json& bed_mesh) {
         active_bed_mesh_.mesh_max[1] = bed_mesh["mesh_max"][1].template get<float>();
     }
 
-    // Parse available profiles
+    // Parse available profiles and their mesh data
     if (bed_mesh.contains("profiles") && bed_mesh["profiles"].is_object()) {
         bed_mesh_profiles_.clear();
+        stored_bed_mesh_profiles_.clear();
+
         for (auto& [profile_name, profile_data] : bed_mesh["profiles"].items()) {
             bed_mesh_profiles_.push_back(profile_name);
+
+            // Parse and store mesh data for this profile (if available)
+            if (profile_data.is_object()) {
+                BedMeshProfile profile;
+                profile.name = profile_name;
+
+                // Parse points array (Moonraker calls it "points", not "probed_matrix")
+                if (profile_data.contains("points") && profile_data["points"].is_array()) {
+                    for (const auto& row : profile_data["points"]) {
+                        if (row.is_array()) {
+                            std::vector<float> row_vec;
+                            for (const auto& val : row) {
+                                if (val.is_number()) {
+                                    row_vec.push_back(val.template get<float>());
+                                }
+                            }
+                            if (!row_vec.empty()) {
+                                profile.probed_matrix.push_back(row_vec);
+                            }
+                        }
+                    }
+                }
+
+                // Parse mesh bounds
+                if (profile_data.contains("mesh_params") &&
+                    profile_data["mesh_params"].is_object()) {
+                    const auto& params = profile_data["mesh_params"];
+                    if (params.contains("min_x"))
+                        profile.mesh_min[0] = params["min_x"].template get<float>();
+                    if (params.contains("min_y"))
+                        profile.mesh_min[1] = params["min_y"].template get<float>();
+                    if (params.contains("max_x"))
+                        profile.mesh_max[0] = params["max_x"].template get<float>();
+                    if (params.contains("max_y"))
+                        profile.mesh_max[1] = params["max_y"].template get<float>();
+                    if (params.contains("x_count"))
+                        profile.x_count = params["x_count"].template get<int>();
+                    if (params.contains("y_count"))
+                        profile.y_count = params["y_count"].template get<int>();
+                }
+
+                if (!profile.probed_matrix.empty()) {
+                    stored_bed_mesh_profiles_[profile_name] = std::move(profile);
+                }
+            }
         }
     }
 
@@ -110,6 +157,23 @@ std::vector<std::string> MoonrakerAPI::get_bed_mesh_profiles() const {
 bool MoonrakerAPI::has_bed_mesh() const {
     std::lock_guard<std::mutex> lock(bed_mesh_mutex_);
     return !active_bed_mesh_.probed_matrix.empty();
+}
+
+const BedMeshProfile* MoonrakerAPI::get_bed_mesh_profile(const std::string& profile_name) const {
+    std::lock_guard<std::mutex> lock(bed_mesh_mutex_);
+
+    // Check stored profiles first
+    auto it = stored_bed_mesh_profiles_.find(profile_name);
+    if (it != stored_bed_mesh_profiles_.end()) {
+        return &it->second;
+    }
+
+    // Fall back to active mesh if name matches
+    if (active_bed_mesh_.name == profile_name && !active_bed_mesh_.probed_matrix.empty()) {
+        return &active_bed_mesh_;
+    }
+
+    return nullptr;
 }
 
 void MoonrakerAPI::get_excluded_objects(

@@ -922,6 +922,17 @@ class MoonrakerAPI {
     bool has_bed_mesh() const;
 
     /**
+     * @brief Get mesh data for a specific stored profile
+     *
+     * Returns the mesh data for any stored profile (not just the active one).
+     * This enables showing Z range for all profiles in the list.
+     *
+     * @param profile_name Name of the profile to retrieve
+     * @return Pointer to profile data, or nullptr if not found
+     */
+    const BedMeshProfile* get_bed_mesh_profile(const std::string& profile_name) const;
+
+    /**
      * @brief Get set of currently excluded object names (async)
      *
      * Queries Klipper's exclude_object module for the list of objects
@@ -1304,6 +1315,7 @@ class MoonrakerAPI {
     // Bed mesh storage (migrated from MoonrakerClient)
     BedMeshProfile active_bed_mesh_;
     std::vector<std::string> bed_mesh_profiles_;
+    std::map<std::string, BedMeshProfile> stored_bed_mesh_profiles_; // All profiles with mesh data
     mutable std::mutex bed_mesh_mutex_;
 
     // Track pending HTTP request threads to ensure clean shutdown
