@@ -743,15 +743,16 @@ void KeyboardManager::init(lv_obj_t* parent) {
     lv_obj_align(keyboard_, LV_ALIGN_BOTTOM_MID, 0, 0);
     lv_obj_add_flag(keyboard_, LV_OBJ_FLAG_HIDDEN);
 
-    lv_obj_add_event_cb(keyboard_, keyboard_event_cb, LV_EVENT_READY, NULL);
-    lv_obj_add_event_cb(keyboard_, keyboard_event_cb, LV_EVENT_CANCEL, NULL);
-    lv_obj_add_event_cb(keyboard_, keyboard_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
+    lv_obj_add_event_cb(keyboard_, keyboard_event_cb, LV_EVENT_READY, nullptr);
+    lv_obj_add_event_cb(keyboard_, keyboard_event_cb, LV_EVENT_CANCEL, nullptr);
+    lv_obj_add_event_cb(keyboard_, keyboard_event_cb, LV_EVENT_VALUE_CHANGED, nullptr);
 
-    lv_obj_add_event_cb(keyboard_, longpress_event_handler, LV_EVENT_PRESSED, NULL);
-    lv_obj_add_event_cb(keyboard_, longpress_event_handler, LV_EVENT_LONG_PRESSED, NULL);
-    lv_obj_add_event_cb(keyboard_, longpress_event_handler, LV_EVENT_RELEASED, NULL);
+    lv_obj_add_event_cb(keyboard_, longpress_event_handler, LV_EVENT_PRESSED, nullptr);
+    lv_obj_add_event_cb(keyboard_, longpress_event_handler, LV_EVENT_LONG_PRESSED, nullptr);
+    lv_obj_add_event_cb(keyboard_, longpress_event_handler, LV_EVENT_RELEASED, nullptr);
 
-    lv_obj_add_event_cb(keyboard_, keyboard_draw_alternative_chars, LV_EVENT_DRAW_POST_END, NULL);
+    lv_obj_add_event_cb(keyboard_, keyboard_draw_alternative_chars, LV_EVENT_DRAW_POST_END,
+                        nullptr);
 
     initialized_ = true;
     spdlog::info("[KeyboardManager] Initialization complete");
@@ -770,8 +771,8 @@ void KeyboardManager::register_textarea(lv_obj_t* textarea) {
 
     spdlog::debug("[KeyboardManager] Registering textarea: {}", (void*)textarea);
 
-    lv_obj_add_event_cb(textarea, textarea_focus_event_cb, LV_EVENT_FOCUSED, NULL);
-    lv_obj_add_event_cb(textarea, textarea_focus_event_cb, LV_EVENT_DEFOCUSED, NULL);
+    lv_obj_add_event_cb(textarea, textarea_focus_event_cb, LV_EVENT_FOCUSED, nullptr);
+    lv_obj_add_event_cb(textarea, textarea_focus_event_cb, LV_EVENT_DEFOCUSED, nullptr);
 
     lv_group_t* default_group = lv_group_get_default();
     if (default_group) {
@@ -925,7 +926,7 @@ void KeyboardManager::hide() {
     overlay_cleanup();
     longpress_state_ = LP_IDLE;
 
-    lv_keyboard_set_textarea(keyboard_, NULL);
+    lv_keyboard_set_textarea(keyboard_, nullptr);
 
     // Animate keyboard sliding down (or hide instantly if animations disabled)
     if (SettingsManager::instance().get_animations_enabled()) {

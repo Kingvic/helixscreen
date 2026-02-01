@@ -584,7 +584,7 @@ static void on_zoffset_row_clicked(lv_event_t* e) {
     if (!overlay.get_root()) {
         overlay.init_subjects();
         overlay.set_client(get_moonraker_client());
-        overlay.create(lv_display_get_screen_active(NULL));
+        overlay.create(lv_display_get_screen_active(nullptr));
     }
 
     overlay.show();

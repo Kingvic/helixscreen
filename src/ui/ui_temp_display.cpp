@@ -349,7 +349,7 @@ static void ui_temp_display_apply_cb(lv_xml_parser_state_t* state, const char** 
 
         if (strcmp(name, "bind_current") == 0) {
             // Bind current temperature to a subject (NULL = global scope)
-            lv_subject_t* subject = lv_xml_get_subject(NULL, value);
+            lv_subject_t* subject = lv_xml_get_subject(nullptr, value);
             if (subject && data && data->current_label) {
                 lv_subject_add_observer_obj(subject, current_temp_observer_cb, data->current_label,
                                             nullptr);
@@ -365,7 +365,7 @@ static void ui_temp_display_apply_cb(lv_xml_parser_state_t* state, const char** 
             }
         } else if (strcmp(name, "bind_target") == 0) {
             // Bind target temperature to a subject (NULL = global scope)
-            lv_subject_t* subject = lv_xml_get_subject(NULL, value);
+            lv_subject_t* subject = lv_xml_get_subject(nullptr, value);
             if (subject && data && data->target_label) {
                 data->has_target_binding = true; // Mark as heater mode (not sensor-only)
                 lv_subject_add_observer_obj(subject, target_temp_observer_cb, data->target_label,

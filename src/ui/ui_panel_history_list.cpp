@@ -194,9 +194,9 @@ lv_obj_t* HistoryListPanel::create(lv_obj_t* parent) {
 
     // Set MDI chevron icons for dropdowns (Noto Sans doesn't have LV_SYMBOL_DOWN)
     // Must set BOTH the symbol AND the indicator font to MDI for the symbol to render
-    const char* icon_font_name = lv_xml_get_const(NULL, "icon_font_md");
+    const char* icon_font_name = lv_xml_get_const(nullptr, "icon_font_md");
     const lv_font_t* icon_font =
-        icon_font_name ? lv_xml_get_font(NULL, icon_font_name) : &mdi_icons_24;
+        icon_font_name ? lv_xml_get_font(nullptr, icon_font_name) : &mdi_icons_24;
 
     if (filter_status_) {
         lv_dropdown_set_symbol(filter_status_, MDI_CHEVRON_DOWN);
@@ -593,19 +593,14 @@ void HistoryListPanel::populate_list() {
         const char* status_text = get_status_text(job.status);
 
         // Build attrs for row creation
-        const char* attrs[] = {"filename",
-                               job.filename.c_str(),
-                               "date",
-                               job.date_str.c_str(),
-                               "duration",
-                               job.duration_str.c_str(),
-                               "filament_type",
-                               job.filament_type.empty() ? "Unknown" : job.filament_type.c_str(),
-                               "status",
-                               status_text,
-                               "status_color",
-                               status_color,
-                               NULL};
+        const char* attrs[] = {
+            "filename",      job.filename.c_str(),
+            "date",          job.date_str.c_str(),
+            "duration",      job.duration_str.c_str(),
+            "filament_type", job.filament_type.empty() ? "Unknown" : job.filament_type.c_str(),
+            "status",        status_text,
+            "status_color",  status_color,
+            nullptr};
 
         lv_obj_t* row =
             static_cast<lv_obj_t*>(lv_xml_create(list_rows_, "history_list_row", attrs));
@@ -977,8 +972,8 @@ void HistoryListPanel::show_detail_overlay(const PrintHistoryJob& job) {
 
     // Create overlay if not exists (lazy init)
     if (!detail_overlay_) {
-        detail_overlay_ =
-            static_cast<lv_obj_t*>(lv_xml_create(parent_screen_, "history_detail_overlay", NULL));
+        detail_overlay_ = static_cast<lv_obj_t*>(
+            lv_xml_create(parent_screen_, "history_detail_overlay", nullptr));
 
         if (detail_overlay_) {
             spdlog::debug("[{}] Detail overlay created", get_name());
@@ -1332,19 +1327,14 @@ void HistoryListPanel::append_rows(size_t start_index) {
         const char* status_text = get_status_text(job.status);
 
         // Build attrs for row creation
-        const char* attrs[] = {"filename",
-                               job.filename.c_str(),
-                               "date",
-                               job.date_str.c_str(),
-                               "duration",
-                               job.duration_str.c_str(),
-                               "filament_type",
-                               job.filament_type.empty() ? "Unknown" : job.filament_type.c_str(),
-                               "status",
-                               status_text,
-                               "status_color",
-                               status_color,
-                               NULL};
+        const char* attrs[] = {
+            "filename",      job.filename.c_str(),
+            "date",          job.date_str.c_str(),
+            "duration",      job.duration_str.c_str(),
+            "filament_type", job.filament_type.empty() ? "Unknown" : job.filament_type.c_str(),
+            "status",        status_text,
+            "status_color",  status_color,
+            nullptr};
 
         lv_obj_t* row =
             static_cast<lv_obj_t*>(lv_xml_create(list_rows_, "history_list_row", attrs));

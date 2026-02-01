@@ -89,6 +89,7 @@ static void ui_wizard_load_screen(int step);
 static void ui_wizard_cleanup_current_screen();
 static const char* get_step_title_from_xml(int step);
 static const char* get_step_subtitle_from_xml(int step);
+static void ui_wizard_precalculate_skips();
 
 // ============================================================================
 // Step Metadata (read from XML <consts>)
@@ -225,7 +226,7 @@ static void register_constants_to_scope(lv_xml_component_scope_t* scope,
                                         const WizardConstant* constants) {
     if (!scope)
         return;
-    for (int i = 0; constants[i].name != NULL; i++) {
+    for (int i = 0; constants[i].name != nullptr; i++) {
         lv_xml_register_const(scope, constants[i].name, constants[i].value);
     }
 }
@@ -258,7 +259,7 @@ void ui_wizard_container_register_responsive_constants() {
 
     // Register button width constant
     WizardConstant constants[] = {
-        {"wizard_button_width", button_width}, {NULL, NULL} // Sentinel
+        {"wizard_button_width", button_width}, {nullptr, nullptr} // Sentinel
     };
 
     // Register to wizard_container scope (parent)
@@ -279,12 +280,12 @@ void ui_wizard_container_register_responsive_constants() {
         "wizard_probe_sensor_select",
         "wizard_input_shaper",
         "wizard_summary",
-        NULL // Sentinel
+        nullptr // Sentinel
     };
 
     // Propagate to all children
     int child_count = 0;
-    for (int i = 0; children[i] != NULL; i++) {
+    for (int i = 0; children[i] != nullptr; i++) {
         lv_xml_component_scope_t* child_scope = lv_xml_component_get_scope(children[i]);
         if (child_scope) {
             register_constants_to_scope(child_scope, constants);
@@ -430,6 +431,64 @@ void ui_wizard_set_title(const char* title) {
 
     spdlog::debug("[Wizard] Setting title: {}", title);
     lv_subject_copy_string(&wizard_title, title);
+}
+
+/**
+ * Pre-calculate which steps will be skipped based on hardware data
+ *
+ * Called after the connection step (step 2) completes so hardware data is available.
+ * This ensures the step counter shows consistent totals from step 3 onwards.
+ */
+static void ui_wizard_precalculate_skips() {
+    spdlog::info("[Wizard] Pre-calculating step skips based on hardware data");
+
+    // Touch calibration is already handled at step 0
+
+    // AMS skip (step 6)
+    if (!ams_step_skipped && get_wizard_ams_identify_step()->should_skip()) {
+        ams_step_skipped = true;
+        spdlog::debug("[Wizard] Pre-calculated: AMS step will be skipped");
+    }
+
+    // LED skip (step 7)
+    if (!led_step_skipped && get_wizard_led_select_step()->should_skip()) {
+        led_step_skipped = true;
+        spdlog::debug("[Wizard] Pre-calculated: LED step will be skipped");
+    }
+
+    // Ensure FilamentSensorManager is populated before skip checks
+    auto& fsm = helix::FilamentSensorManager::instance();
+    if (fsm.get_sensors().empty()) {
+        MoonrakerAPI* api = get_moonraker_api();
+        if (api && api->hardware().has_filament_sensors()) {
+            fsm.discover_sensors(api->hardware().filament_sensor_names());
+            spdlog::debug("[Wizard] Populated FilamentSensorManager for skip calculation");
+        }
+    }
+
+    // Filament sensor skip (step 8)
+    if (!filament_step_skipped && get_wizard_filament_sensor_select_step()->should_skip()) {
+        filament_step_skipped = true;
+        spdlog::debug("[Wizard] Pre-calculated: Filament sensor step will be skipped");
+    }
+
+    // Probe sensor skip (step 9)
+    if (!probe_step_skipped && get_wizard_probe_sensor_select_step()->should_skip()) {
+        probe_step_skipped = true;
+        spdlog::debug("[Wizard] Pre-calculated: Probe sensor step will be skipped");
+    }
+
+    // Input shaper skip (step 10)
+    if (!input_shaper_step_skipped && get_wizard_input_shaper_step()->should_skip()) {
+        input_shaper_step_skipped = true;
+        spdlog::debug("[Wizard] Pre-calculated: Input shaper step will be skipped");
+    }
+
+    int total_skipped = (touch_cal_step_skipped ? 1 : 0) + (ams_step_skipped ? 1 : 0) +
+                        (led_step_skipped ? 1 : 0) + (filament_step_skipped ? 1 : 0) +
+                        (probe_step_skipped ? 1 : 0) + (input_shaper_step_skipped ? 1 : 0);
+    spdlog::info("[Wizard] Pre-calculated skips: {} steps will be skipped, {} total steps",
+                 total_skipped, 12 - total_skipped);
 }
 
 // ============================================================================
@@ -902,6 +961,13 @@ static void on_next_clicked(lv_event_t* e) {
     }
 
     int next_step = current + 1;
+
+    // Pre-calculate all skip flags when leaving connection step (step 2)
+    // This ensures consistent step totals from step 3 onwards
+    if (current == 2) {
+        spdlog::info("[Wizard] Leaving connection step, pre-calculating skips...");
+        ui_wizard_precalculate_skips();
+    }
 
     // Skip AMS step (6) if no AMS detected
     if (next_step == 6 && get_wizard_ams_identify_step()->should_skip()) {

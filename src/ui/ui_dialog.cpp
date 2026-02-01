@@ -24,7 +24,7 @@ static void* ui_dialog_xml_create(lv_xml_parser_state_t* state, const char** att
 
     if (!obj) {
         spdlog::error("[Dialog] Failed to create lv_obj");
-        return NULL;
+        return nullptr;
     }
 
     // Apply shared dialog style (bg_color, bg_opa, radius - all reactive to theme changes)

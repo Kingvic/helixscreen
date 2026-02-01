@@ -303,7 +303,7 @@ static void on_retraction_row_clicked(lv_event_t* /*e*/) {
     if (!g_retraction_settings_panel) {
         spdlog::debug("[Retraction Settings] Creating retraction settings panel...");
         g_retraction_settings_panel =
-            g_retraction_settings->create(lv_display_get_screen_active(NULL));
+            g_retraction_settings->create(lv_display_get_screen_active(nullptr));
 
         if (g_retraction_settings_panel) {
             // Register with NavigationManager for lifecycle callbacks

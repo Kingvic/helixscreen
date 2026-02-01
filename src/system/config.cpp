@@ -231,7 +231,7 @@ json get_default_config(const std::string& moonraker_host, bool include_user_pre
 Config::Config() {}
 
 Config* Config::get_instance() {
-    if (instance == NULL) {
+    if (instance == nullptr) {
         instance = new Config();
     }
     return instance;

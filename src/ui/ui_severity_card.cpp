@@ -77,7 +77,7 @@ static void* severity_card_xml_create(lv_xml_parser_state_t* state, const char**
 
     if (!obj) {
         spdlog::error("[SeverityCard] Failed to create lv_obj");
-        return NULL;
+        return nullptr;
     }
 
     spdlog::trace("[SeverityCard] Created base lv_obj");

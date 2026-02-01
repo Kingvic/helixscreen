@@ -310,7 +310,7 @@ static void on_timelapse_row_clicked(lv_event_t* e) {
     if (!g_timelapse_settings_panel) {
         spdlog::debug("[Timelapse Settings] Creating timelapse settings panel...");
         g_timelapse_settings_panel =
-            g_timelapse_settings->create(lv_display_get_screen_active(NULL));
+            g_timelapse_settings->create(lv_display_get_screen_active(nullptr));
 
         if (g_timelapse_settings_panel) {
             // Register with NavigationManager for lifecycle callbacks

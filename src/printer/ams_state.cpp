@@ -156,13 +156,13 @@ void AmsState::init_subjects(bool register_xml) {
                            sizeof(action_detail_buf_), "");
     subjects_.register_subject(&ams_action_detail_);
     if (register_xml)
-        lv_xml_register_subject(NULL, "ams_action_detail", &ams_action_detail_);
+        lv_xml_register_subject(nullptr, "ams_action_detail", &ams_action_detail_);
 
     lv_subject_init_string(&ams_system_name_, system_name_buf_, nullptr, sizeof(system_name_buf_),
                            "");
     subjects_.register_subject(&ams_system_name_);
     if (register_xml)
-        lv_xml_register_subject(NULL, "ams_system_name", &ams_system_name_);
+        lv_xml_register_subject(nullptr, "ams_system_name", &ams_system_name_);
 
     INIT_SUBJECT_STRING(ams_current_tool_text, "---", subjects_, register_xml);
 

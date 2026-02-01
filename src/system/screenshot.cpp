@@ -65,7 +65,8 @@ bool write_bmp(const char* filename, const uint8_t* data, int width, int height)
 void save_screenshot() {
     // Generate unique filename with timestamp
     char filename[256];
-    snprintf(filename, sizeof(filename), "/tmp/ui-screenshot-%lu.bmp", (unsigned long)time(NULL));
+    snprintf(filename, sizeof(filename), "/tmp/ui-screenshot-%lu.bmp",
+             (unsigned long)time(nullptr));
 
     // Take snapshot using LVGL's native API (platform-independent)
     lv_obj_t* screen = lv_screen_active();

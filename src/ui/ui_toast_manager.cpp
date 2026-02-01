@@ -191,14 +191,14 @@ void ToastManager::init() {
 
     // Action button subjects
     lv_subject_init_int(&action_visible_subject_, 0);
-    lv_xml_register_subject(NULL, "toast_action_visible", &action_visible_subject_);
+    lv_xml_register_subject(nullptr, "toast_action_visible", &action_visible_subject_);
 
     lv_subject_init_pointer(&action_text_subject_, action_text_buf_);
-    lv_xml_register_subject(NULL, "toast_action_text", &action_text_subject_);
+    lv_xml_register_subject(nullptr, "toast_action_text", &action_text_subject_);
 
     // Severity subject (0=info, 1=success, 2=warning, 3=error)
     lv_subject_init_int(&severity_subject_, 0);
-    lv_xml_register_subject(NULL, "toast_severity", &severity_subject_);
+    lv_xml_register_subject(nullptr, "toast_severity", &severity_subject_);
 
     // Register callback for XML event_cb to work
     lv_xml_register_event_cb(nullptr, "toast_close_btn_clicked", close_btn_clicked);

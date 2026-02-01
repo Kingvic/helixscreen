@@ -315,7 +315,7 @@ static void* bed_mesh_xml_create(lv_xml_parser_state_t* state, const char** attr
     lv_obj_t* obj = lv_obj_create((lv_obj_t*)parent);
     if (!obj) {
         spdlog::error("[bed_mesh] Failed to create object");
-        return NULL;
+        return nullptr;
     }
 
     // Configure appearance (transparent background, no border, no padding)
@@ -333,7 +333,7 @@ static void* bed_mesh_xml_create(lv_xml_parser_state_t* state, const char** attr
     if (!data_ptr->renderer) {
         spdlog::error("[bed_mesh] Failed to create renderer");
         lv_obj_safe_delete(obj);
-        return NULL; // unique_ptr automatically cleans up
+        return nullptr; // unique_ptr automatically cleans up
     }
 
     // Set default rotation angles
@@ -360,17 +360,17 @@ static void* bed_mesh_xml_create(lv_xml_parser_state_t* state, const char** attr
     lv_obj_set_user_data(obj, data_ptr.release());
 
     // Register event handlers
-    lv_obj_add_event_cb(obj, bed_mesh_draw_cb, LV_EVENT_DRAW_POST, NULL); // Custom drawing
+    lv_obj_add_event_cb(obj, bed_mesh_draw_cb, LV_EVENT_DRAW_POST, nullptr); // Custom drawing
     lv_obj_add_event_cb(obj, bed_mesh_size_changed_cb, LV_EVENT_SIZE_CHANGED,
-                        NULL);                                           // Handle resize
-    lv_obj_add_event_cb(obj, bed_mesh_delete_cb, LV_EVENT_DELETE, NULL); // Cleanup
+                        nullptr);                                           // Handle resize
+    lv_obj_add_event_cb(obj, bed_mesh_delete_cb, LV_EVENT_DELETE, nullptr); // Cleanup
 
     // Register touch event handlers for drag rotation
-    lv_obj_add_event_cb(obj, bed_mesh_press_cb, LV_EVENT_PRESSED, NULL);
-    lv_obj_add_event_cb(obj, bed_mesh_pressing_cb, LV_EVENT_PRESSING, NULL);
-    lv_obj_add_event_cb(obj, bed_mesh_release_cb, LV_EVENT_RELEASED, NULL);
+    lv_obj_add_event_cb(obj, bed_mesh_press_cb, LV_EVENT_PRESSED, nullptr);
+    lv_obj_add_event_cb(obj, bed_mesh_pressing_cb, LV_EVENT_PRESSING, nullptr);
+    lv_obj_add_event_cb(obj, bed_mesh_release_cb, LV_EVENT_RELEASED, nullptr);
     lv_obj_add_event_cb(obj, bed_mesh_release_cb, LV_EVENT_PRESS_LOST,
-                        NULL); // Handle drag outside widget
+                        nullptr); // Handle drag outside widget
 
     // Set default size (will be overridden by XML width/height attributes)
     lv_obj_set_size(obj, BED_MESH_CANVAS_WIDTH, BED_MESH_CANVAS_HEIGHT);

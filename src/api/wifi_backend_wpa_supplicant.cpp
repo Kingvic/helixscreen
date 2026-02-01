@@ -26,7 +26,8 @@
 namespace fs = std::filesystem;
 
 WifiBackendWpaSupplicant::WifiBackendWpaSupplicant()
-    : hv::EventLoopThread(NULL), conn(NULL), mon_conn(NULL) // Initialize monitor connection
+    : hv::EventLoopThread(nullptr), conn(nullptr),
+      mon_conn(nullptr) // Initialize monitor connection
 {
     spdlog::debug("[WifiBackend] Initialized (wpa_supplicant mode)");
 }
@@ -384,9 +385,9 @@ void WifiBackendWpaSupplicant::init_wpa() {
     }
 
     // Open control connection (for sending commands)
-    if (conn == NULL) {
+    if (conn == nullptr) {
         conn = wpa_ctrl_open(wpa_socket.c_str());
-        if (conn == NULL) {
+        if (conn == nullptr) {
             LOG_ERROR_INTERNAL("Failed to open control connection to {}", wpa_socket);
             dispatch_event("INIT_FAILED", "Failed to connect to wpa_supplicant");
             signal_init_complete();
@@ -397,7 +398,7 @@ void WifiBackendWpaSupplicant::init_wpa() {
 
     // Open monitor connection (for receiving events)
     mon_conn = wpa_ctrl_open(wpa_socket.c_str()); // SECURITY: Use member variable to prevent leak
-    if (mon_conn == NULL) {
+    if (mon_conn == nullptr) {
         LOG_ERROR_INTERNAL("Failed to open monitor connection to {}", wpa_socket);
         dispatch_event("INIT_FAILED", "Failed to connect to wpa_supplicant monitor");
         signal_init_complete();
@@ -409,7 +410,7 @@ void WifiBackendWpaSupplicant::init_wpa() {
         LOG_ERROR_INTERNAL("Failed to attach to wpa_supplicant events");
         dispatch_event("INIT_FAILED", "Failed to attach to wpa_supplicant events");
         wpa_ctrl_close(mon_conn);
-        mon_conn = NULL; // Clear member to avoid double-close
+        mon_conn = nullptr; // Clear member to avoid double-close
         signal_init_complete();
         return;
     }
@@ -421,7 +422,7 @@ void WifiBackendWpaSupplicant::init_wpa() {
         LOG_ERROR_INTERNAL("Failed to get monitor socket file descriptor");
         dispatch_event("INIT_FAILED", "Failed to initialize wpa_supplicant communication");
         wpa_ctrl_close(mon_conn);
-        mon_conn = NULL; // Clear member to avoid double-close
+        mon_conn = nullptr; // Clear member to avoid double-close
         signal_init_complete();
         return;
     }
@@ -429,11 +430,11 @@ void WifiBackendWpaSupplicant::init_wpa() {
 
     // Register with libhv event loop for async I/O
     mon_io_ = hio_get(loop()->loop(), monfd);
-    if (mon_io_ == NULL) {
+    if (mon_io_ == nullptr) {
         LOG_ERROR_INTERNAL("Failed to register monitor socket with libhv");
         dispatch_event("INIT_FAILED", "Failed to initialize WiFi event handling");
         wpa_ctrl_close(mon_conn);
-        mon_conn = NULL;
+        mon_conn = nullptr;
         signal_init_complete();
         return;
     }
@@ -464,14 +465,14 @@ void WifiBackendWpaSupplicant::cleanup_wpa() {
         spdlog::trace("[WifiBackend] Detaching from wpa_supplicant events");
         wpa_ctrl_detach(mon_conn); // Detach from event stream
         wpa_ctrl_close(mon_conn);  // Close monitor connection
-        mon_conn = NULL;
+        mon_conn = nullptr;
     }
 
     // Close control connection
     if (conn) {
         spdlog::trace("[WifiBackend] Closing wpa_supplicant control connection");
         wpa_ctrl_close(conn);
-        conn = NULL;
+        conn = nullptr;
     }
 
     spdlog::debug("[WifiBackend] wpa_supplicant connections cleaned up");
@@ -579,7 +580,7 @@ static std::string sanitize_command_for_log(const std::string& cmd) {
 }
 
 std::string WifiBackendWpaSupplicant::send_command(const std::string& cmd) {
-    if (conn == NULL) {
+    if (conn == nullptr) {
         LOG_WARN_INTERNAL("send_command called but not connected to wpa_supplicant");
         return "";
     }
@@ -591,7 +592,7 @@ std::string WifiBackendWpaSupplicant::send_command(const std::string& cmd) {
     std::string safe_cmd = sanitize_command_for_log(cmd);
     spdlog::trace("[WifiBackend] Sending command: {}", safe_cmd);
 
-    int result = wpa_ctrl_request(conn, cmd.c_str(), cmd.length(), resp, &len, NULL);
+    int result = wpa_ctrl_request(conn, cmd.c_str(), cmd.length(), resp, &len, nullptr);
     if (result != 0) {
         LOG_ERROR_INTERNAL("Command failed: {} (error code: {})", safe_cmd, result);
         return "";

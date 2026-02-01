@@ -127,7 +127,7 @@ static void* ui_switch_xml_create(lv_xml_parser_state_t* state, const char** att
 
     if (!obj) {
         spdlog::error("[Switch] Failed to create lv_switch");
-        return NULL;
+        return nullptr;
     }
 
     return (void*)obj;

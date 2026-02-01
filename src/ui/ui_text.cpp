@@ -38,7 +38,7 @@ enum class TextStyleType {
  */
 static void apply_semantic_font(lv_obj_t* label, const char* font_const_name) {
     // Apply font - FAIL FAST if font is not available
-    const char* font_name = lv_xml_get_const(NULL, font_const_name);
+    const char* font_name = lv_xml_get_const(nullptr, font_const_name);
     if (!font_name) {
         spdlog::critical("[ui_text] FATAL: Font constant '{}' not found in globals.xml",
                          font_const_name);
@@ -46,7 +46,7 @@ static void apply_semantic_font(lv_obj_t* label, const char* font_const_name) {
         std::exit(EXIT_FAILURE);
     }
 
-    const lv_font_t* font = lv_xml_get_font(NULL, font_name);
+    const lv_font_t* font = lv_xml_get_font(nullptr, font_name);
     if (!font) {
         // Extract font size from name like "montserrat_26" -> "26"
         std::string font_str(font_name);
@@ -224,9 +224,9 @@ static void* ui_text_button_create(lv_xml_parser_state_t* state, const char** at
     }
 
     // Default text color - will be overridden in apply if parent has colored bg
-    const char* color_str = lv_xml_get_const(NULL, "text");
+    const char* color_str = lv_xml_get_const(nullptr, "text");
     if (color_str && color_str[0] == '#') {
-        uint32_t hex = static_cast<uint32_t>(strtoul(color_str + 1, NULL, 16));
+        uint32_t hex = static_cast<uint32_t>(strtoul(color_str + 1, nullptr, 16));
         lv_obj_set_style_text_color(label, lv_color_hex(hex), 0);
     }
 

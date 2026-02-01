@@ -81,7 +81,7 @@ static void on_screws_tilt_row_clicked(lv_event_t* e) {
         panel.set_client(client, api);
 
         // Create the overlay UI
-        lv_obj_t* overlay = panel.create(lv_display_get_screen_active(NULL));
+        lv_obj_t* overlay = panel.create(lv_display_get_screen_active(nullptr));
 
         if (!overlay) {
             spdlog::error("[ScrewsTilt] Failed to create screws_tilt_panel");

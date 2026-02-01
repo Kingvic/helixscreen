@@ -1039,7 +1039,7 @@ void NetworkSettingsOverlay::handle_security_changed(lv_event_t* e) {
     spdlog::debug("[NetworkSettingsOverlay] Security changed to index: {}", selected);
 
     // Update hidden_security subject (0=None hides password field)
-    lv_subject_t* security_subject = lv_xml_get_subject(NULL, "hidden_security");
+    lv_subject_t* security_subject = lv_xml_get_subject(nullptr, "hidden_security");
     if (security_subject) {
         lv_subject_set_int(security_subject, static_cast<int>(selected));
     }

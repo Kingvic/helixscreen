@@ -85,7 +85,7 @@ void NotificationManager::register_callbacks() {
     }
 
     // Register notification history callback (must be called BEFORE app_layout XML is created)
-    lv_xml_register_event_cb(NULL, "status_notification_history_clicked",
+    lv_xml_register_event_cb(nullptr, "status_notification_history_clicked",
                              notification_history_clicked);
     callbacks_registered_ = true;
     spdlog::debug("[NotificationManager] Event callbacks registered");

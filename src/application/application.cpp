@@ -779,7 +779,7 @@ bool Application::init_panel_subjects() {
 
 bool Application::init_ui() {
     // Create entire UI from XML
-    m_app_layout = static_cast<lv_obj_t*>(lv_xml_create(m_screen, "app_layout", NULL));
+    m_app_layout = static_cast<lv_obj_t*>(lv_xml_create(m_screen, "app_layout", nullptr));
     if (!m_app_layout) {
         spdlog::error("[Application] Failed to create app_layout from XML");
         return false;
@@ -1597,7 +1597,7 @@ int Application::main_loop() {
     }
 
     // Main event loop
-    while (lv_display_get_next(NULL) && !app_quit_requested()) {
+    while (lv_display_get_next(nullptr) && !app_quit_requested()) {
         handle_keyboard_shortcuts();
 
         // Auto-screenshot
@@ -1677,7 +1677,7 @@ int Application::main_loop() {
 void Application::handle_keyboard_shortcuts() {
 #ifdef HELIX_DISPLAY_SDL
     SDL_Keymod modifiers = SDL_GetModState();
-    const Uint8* keyboard_state = SDL_GetKeyboardState(NULL);
+    const Uint8* keyboard_state = SDL_GetKeyboardState(nullptr);
 
     // Cmd+Q / Win+Q to quit
     if ((modifiers & KMOD_GUI) && keyboard_state[SDL_SCANCODE_Q]) {

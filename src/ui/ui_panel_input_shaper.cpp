@@ -88,7 +88,7 @@ static void on_input_shaper_row_clicked(lv_event_t* e) {
         MoonrakerAPI* api = get_moonraker_api();
         panel.set_api(client, api);
 
-        lv_obj_t* screen = lv_display_get_screen_active(NULL);
+        lv_obj_t* screen = lv_display_get_screen_active(nullptr);
         if (!panel.create(screen)) {
             spdlog::error("[InputShaper] Failed to create input_shaper_panel");
             return;

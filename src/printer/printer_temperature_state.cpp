@@ -53,11 +53,11 @@ void PrinterTemperatureState::register_xml_subjects() {
     }
 
     spdlog::debug("[PrinterTemperatureState] Re-registering subjects with XML system");
-    lv_xml_register_subject(NULL, "extruder_temp", &extruder_temp_);
-    lv_xml_register_subject(NULL, "extruder_target", &extruder_target_);
-    lv_xml_register_subject(NULL, "bed_temp", &bed_temp_);
-    lv_xml_register_subject(NULL, "bed_target", &bed_target_);
-    lv_xml_register_subject(NULL, "chamber_temp", &chamber_temp_);
+    lv_xml_register_subject(nullptr, "extruder_temp", &extruder_temp_);
+    lv_xml_register_subject(nullptr, "extruder_target", &extruder_target_);
+    lv_xml_register_subject(nullptr, "bed_temp", &bed_temp_);
+    lv_xml_register_subject(nullptr, "bed_target", &bed_target_);
+    lv_xml_register_subject(nullptr, "chamber_temp", &chamber_temp_);
 }
 
 void PrinterTemperatureState::update_from_status(const nlohmann::json& status) {

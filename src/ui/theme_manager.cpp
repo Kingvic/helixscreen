@@ -91,7 +91,7 @@ lv_color_t theme_manager_parse_hex_color(const char* hex_str) {
         spdlog::error("[Theme] Invalid hex color string: {}", hex_str ? hex_str : "NULL");
         return lv_color_hex(0x000000);
     }
-    uint32_t hex = static_cast<uint32_t>(strtoul(hex_str + 1, NULL, 16));
+    uint32_t hex = static_cast<uint32_t>(strtoul(hex_str + 1, nullptr, 16));
     return lv_color_hex(hex);
 }
 
@@ -657,8 +657,9 @@ void theme_manager_init(lv_display_t* display, bool use_dark_mode_param) {
 
     char font_variant_name[64];
     snprintf(font_variant_name, sizeof(font_variant_name), "font_body%s", size_suffix);
-    const char* font_body_name = lv_xml_get_const(NULL, font_variant_name);
-    const lv_font_t* base_font = font_body_name ? lv_xml_get_font(NULL, font_body_name) : nullptr;
+    const char* font_body_name = lv_xml_get_const(nullptr, font_variant_name);
+    const lv_font_t* base_font =
+        font_body_name ? lv_xml_get_font(nullptr, font_body_name) : nullptr;
     if (!base_font) {
         spdlog::warn("[Theme] Failed to get font '{}', using noto_sans_16", font_variant_name);
         base_font = &noto_sans_16;
@@ -1306,15 +1307,15 @@ static bool is_muted_text_font(const lv_font_t* font) {
     static bool fonts_initialized = false;
 
     if (!fonts_initialized) {
-        const char* small_name = lv_xml_get_const(NULL, "font_small");
-        const char* xs_name = lv_xml_get_const(NULL, "font_xs");
-        const char* heading_name = lv_xml_get_const(NULL, "font_heading");
+        const char* small_name = lv_xml_get_const(nullptr, "font_small");
+        const char* xs_name = lv_xml_get_const(nullptr, "font_xs");
+        const char* heading_name = lv_xml_get_const(nullptr, "font_heading");
         if (small_name)
-            font_small = lv_xml_get_font(NULL, small_name);
+            font_small = lv_xml_get_font(nullptr, small_name);
         if (xs_name)
-            font_xs = lv_xml_get_font(NULL, xs_name);
+            font_xs = lv_xml_get_font(nullptr, xs_name);
         if (heading_name)
-            font_heading = lv_xml_get_font(NULL, heading_name);
+            font_heading = lv_xml_get_font(nullptr, heading_name);
         fonts_initialized = true;
     }
 
@@ -1574,8 +1575,8 @@ void theme_apply_palette_to_screen_dropdowns(const helix::ModePalette& palette) 
     lv_color_t selected_text = (lum > 140) ? lv_color_black() : lv_color_white();
 
     // Get text_light/text_dark for button contrast
-    const char* text_light_str = lv_xml_get_const(NULL, "text_light");
-    const char* text_dark_str = lv_xml_get_const(NULL, "text_dark");
+    const char* text_light_str = lv_xml_get_const(nullptr, "text_light");
+    const char* text_dark_str = lv_xml_get_const(nullptr, "text_dark");
     lv_color_t text_light = text_light_str ? theme_manager_parse_hex_color(text_light_str)
                                            : theme_manager_parse_hex_color(palette.text.c_str());
     lv_color_t text_dark = text_dark_str ? theme_manager_parse_hex_color(text_dark_str)
@@ -1773,7 +1774,7 @@ int32_t theme_manager_get_spacing(const char* token) {
         return 0;
     }
 
-    const char* value = lv_xml_get_const(NULL, token);
+    const char* value = lv_xml_get_const(nullptr, token);
     if (!value) {
         spdlog::warn("[Theme] Spacing token '{}' not found - is theme initialized?", token);
         return 0;

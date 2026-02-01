@@ -8,7 +8,7 @@
  * These macros consolidate the repetitive 3-line subject initialization pattern:
  * 1. lv_subject_init_*(subject, value)
  * 2. subjects.register_subject(subject)
- * 3. if (register_xml) lv_xml_register_subject(NULL, "name", subject)
+ * 3. if (register_xml) lv_xml_register_subject(nullptr, "name", subject)
  *
  * The macros use naming convention: name_ for subject, name_buf_ for string buffer.
  * This allows short, readable initialization code:
@@ -17,7 +17,7 @@
  * // Before: 3 lines per subject
  * lv_subject_init_int(&temperature_, 0);
  * subjects_.register_subject(&temperature_);
- * lv_xml_register_subject(NULL, "temperature", &temperature_);
+ * lv_xml_register_subject(nullptr, "temperature", &temperature_);
  *
  * // After: 1 line per subject
  * INIT_SUBJECT_INT(temperature, 0, subjects_, true);
@@ -51,14 +51,14 @@
  * // Equivalent to:
  * //   lv_subject_init_int(&my_count_, 42);
  * //   subjects.register_subject(&my_count_);
- * //   lv_xml_register_subject(NULL, "my_count", &my_count_);
+ * //   lv_xml_register_subject(nullptr, "my_count", &my_count_);
  */
 #define INIT_SUBJECT_INT(name, default_val, subjects, register_xml)                                \
     do {                                                                                           \
         lv_subject_init_int(&name##_, (default_val));                                              \
         (subjects).register_subject(&name##_);                                                     \
         if (register_xml) {                                                                        \
-            lv_xml_register_subject(NULL, #name, &name##_);                                        \
+            lv_xml_register_subject(nullptr, #name, &name##_);                                     \
         }                                                                                          \
     } while (0)
 
@@ -83,13 +83,14 @@
  * //   lv_subject_init_string(&status_text_, status_text_buf_, NULL,
  * //                          sizeof(status_text_buf_), "Ready");
  * //   subjects.register_subject(&status_text_);
- * //   lv_xml_register_subject(NULL, "status_text", &status_text_);
+ * //   lv_xml_register_subject(nullptr, "status_text", &status_text_);
  */
 #define INIT_SUBJECT_STRING(name, default_val, subjects, register_xml)                             \
     do {                                                                                           \
-        lv_subject_init_string(&name##_, name##_buf_, NULL, sizeof(name##_buf_), (default_val));   \
+        lv_subject_init_string(&name##_, name##_buf_, nullptr, sizeof(name##_buf_),                \
+                               (default_val));                                                     \
         (subjects).register_subject(&name##_);                                                     \
         if (register_xml) {                                                                        \
-            lv_xml_register_subject(NULL, #name, &name##_);                                        \
+            lv_xml_register_subject(nullptr, #name, &name##_);                                     \
         }                                                                                          \
     } while (0)

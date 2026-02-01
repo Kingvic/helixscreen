@@ -25,7 +25,7 @@ static void* ui_card_xml_create(lv_xml_parser_state_t* state, const char** attrs
 
     if (!obj) {
         spdlog::error("[Card] Failed to create lv_obj");
-        return NULL;
+        return nullptr;
     }
 
     // Apply shared card style (bg_color, bg_opa, border, radius - all reactive to theme changes)

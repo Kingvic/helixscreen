@@ -253,7 +253,7 @@ void ExtrusionPanel::setup_action_buttons() {
 void ExtrusionPanel::setup_temperature_observer() {
     // Look up nozzle temperature subject from LVGL's global registry
     // This subject is owned by TempControlPanel (or PrinterState in the future)
-    lv_subject_t* nozzle_temp = lv_xml_get_subject(NULL, "nozzle_temp_current");
+    lv_subject_t* nozzle_temp = lv_xml_get_subject(nullptr, "nozzle_temp_current");
 
     if (nozzle_temp) {
         // Observer factory handles ObserverGuard creation and cleanup
