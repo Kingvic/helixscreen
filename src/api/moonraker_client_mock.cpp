@@ -16,6 +16,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <map>
+#include <random>
 
 // Delegating constructor - uses default speedup of 1.0
 MoonrakerClientMock::MoonrakerClientMock(PrinterType type) : MoonrakerClientMock(type, 1.0) {}
@@ -684,53 +685,62 @@ void MoonrakerClientMock::parse_incoming_bed_mesh(const json& bed_mesh) {
 }
 
 void MoonrakerClientMock::generate_mock_bed_mesh() {
-    // Configure mesh profile using centralized mock printer constants
-    // Mesh bounds are bed size minus probe margins (probes can't reach edges)
-    active_bed_mesh_.name = "default";
-    active_bed_mesh_.mesh_min[0] = static_cast<float>(mock_internal::MOCK_MESH_X_MIN);
-    active_bed_mesh_.mesh_min[1] = static_cast<float>(mock_internal::MOCK_MESH_Y_MIN);
-    active_bed_mesh_.mesh_max[0] = static_cast<float>(mock_internal::MOCK_MESH_X_MAX);
-    active_bed_mesh_.mesh_max[1] = static_cast<float>(mock_internal::MOCK_MESH_Y_MAX);
-    active_bed_mesh_.x_count = 7;
-    active_bed_mesh_.y_count = 7;
-    active_bed_mesh_.algo = "lagrange";
+    // Helper lambda to generate a mesh with given shape parameters
+    auto generate_mesh = [](const std::string& name, float amplitude, float x_tilt,
+                            float y_tilt) -> BedMeshProfile {
+        BedMeshProfile mesh;
+        mesh.name = name;
+        mesh.mesh_min[0] = static_cast<float>(mock_internal::MOCK_MESH_X_MIN);
+        mesh.mesh_min[1] = static_cast<float>(mock_internal::MOCK_MESH_Y_MIN);
+        mesh.mesh_max[0] = static_cast<float>(mock_internal::MOCK_MESH_X_MAX);
+        mesh.mesh_max[1] = static_cast<float>(mock_internal::MOCK_MESH_Y_MAX);
+        mesh.x_count = 7;
+        mesh.y_count = 7;
+        mesh.algo = "lagrange";
 
-    // Generate dome-shaped mesh (matches Phase 3 test mesh for consistency)
-    active_bed_mesh_.probed_matrix.clear();
-    float center_x = active_bed_mesh_.x_count / 2.0f;
-    float center_y = active_bed_mesh_.y_count / 2.0f;
-    float max_radius = std::min(center_x, center_y);
+        float center_x = mesh.x_count / 2.0f;
+        float center_y = mesh.y_count / 2.0f;
+        float max_radius = std::min(center_x, center_y);
 
-    for (int row = 0; row < active_bed_mesh_.y_count; row++) {
-        std::vector<float> row_vec;
-        for (int col = 0; col < active_bed_mesh_.x_count; col++) {
-            // Distance from center
-            float dx = col - center_x;
-            float dy = row - center_y;
-            float dist = std::sqrt(dx * dx + dy * dy);
+        for (int row = 0; row < mesh.y_count; row++) {
+            std::vector<float> row_vec;
+            for (int col = 0; col < mesh.x_count; col++) {
+                float dx = col - center_x;
+                float dy = row - center_y;
+                float dist = std::sqrt(dx * dx + dy * dy);
 
-            // Dome shape: height decreases with distance from center
-            // Z values from 0.0 to 0.3mm (realistic bed mesh range)
-            float normalized_dist = dist / max_radius;
-            float height = 0.3f * (1.0f - normalized_dist * normalized_dist);
+                // Dome shape + optional tilt
+                float normalized_dist = dist / max_radius;
+                float height = amplitude * (1.0f - normalized_dist * normalized_dist);
+                height += x_tilt * (col - center_x) / center_x * 0.1f;
+                height += y_tilt * (row - center_y) / center_y * 0.1f;
 
-            row_vec.push_back(height);
+                row_vec.push_back(height);
+            }
+            mesh.probed_matrix.push_back(row_vec);
         }
-        active_bed_mesh_.probed_matrix.push_back(row_vec);
-    }
+        return mesh;
+    };
 
-    // Add profile names
+    // Generate "default" profile: centered dome, 0.3mm amplitude
+    stored_bed_mesh_profiles_["default"] = generate_mesh("default", 0.3f, 0.0f, 0.0f);
+
+    // Generate "adaptive" profile: dome with slight tilt, different amplitude
+    stored_bed_mesh_profiles_["adaptive"] = generate_mesh("adaptive", 0.25f, 0.5f, -0.3f);
+
+    // Set profile name list
     bed_mesh_profiles_ = {"default", "adaptive"};
 
-    spdlog::info("[MoonrakerClientMock] Generated synthetic bed mesh: profile='{}', size={}x{}, "
-                 "profiles={}",
-                 active_bed_mesh_.name, active_bed_mesh_.x_count, active_bed_mesh_.y_count,
-                 bed_mesh_profiles_.size());
+    // Load "default" as active
+    active_bed_mesh_ = stored_bed_mesh_profiles_["default"];
+
+    spdlog::info("[MoonrakerClientMock] Generated {} bed mesh profiles, active='{}'",
+                 stored_bed_mesh_profiles_.size(), active_bed_mesh_.name);
 }
 
 void MoonrakerClientMock::generate_mock_bed_mesh_with_variation() {
-    // Generate a new mesh with the same structure but slightly different values
-    // This simulates re-probing the bed and getting slightly different results
+    // Generate a realistic bed mesh with true randomness
+    // Simulates re-probing with measurement noise and slight bed changes
 
     // Keep existing configuration using centralized mock printer constants
     active_bed_mesh_.mesh_min[0] = static_cast<float>(mock_internal::MOCK_MESH_X_MIN);
@@ -741,43 +751,52 @@ void MoonrakerClientMock::generate_mock_bed_mesh_with_variation() {
     active_bed_mesh_.y_count = 7;
     active_bed_mesh_.algo = "lagrange";
 
-    // Generate dome-shaped mesh with slight random variation
-    active_bed_mesh_.probed_matrix.clear();
-    float center_x = active_bed_mesh_.x_count / 2.0f;
-    float center_y = active_bed_mesh_.y_count / 2.0f;
-    float max_radius = std::min(center_x, center_y);
+    // True random number generator for realistic variation
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<float> noise(-0.03f, 0.03f);      // ±0.03mm probe noise
+    std::uniform_real_distribution<float> amplitude(0.15f, 0.35f);   // Overall dome height
+    std::uniform_real_distribution<float> tilt(-0.08f, 0.08f);       // Bed tilt per axis
+    std::uniform_real_distribution<float> center_shift(-0.5f, 0.5f); // Dome center offset
 
-    // Use a simple pseudo-random offset based on profile name
-    // This ensures different profiles get different (but deterministic) meshes
-    float offset = 0.0f;
-    for (char c : active_bed_mesh_.name) {
-        offset += static_cast<float>(c) * 0.001f;
-    }
-    offset = std::fmod(offset, 0.05f); // Keep variation small (0-0.05mm)
+    // Random parameters for this calibration
+    float dome_amp = amplitude(gen);
+    float x_tilt = tilt(gen);
+    float y_tilt = tilt(gen);
+    float cx_shift = center_shift(gen);
+    float cy_shift = center_shift(gen);
+
+    active_bed_mesh_.probed_matrix.clear();
+    float center_x = active_bed_mesh_.x_count / 2.0f + cx_shift;
+    float center_y = active_bed_mesh_.y_count / 2.0f + cy_shift;
+    float max_radius = std::min(active_bed_mesh_.x_count, active_bed_mesh_.y_count) / 2.0f;
 
     for (int row = 0; row < active_bed_mesh_.y_count; row++) {
         std::vector<float> row_vec;
         for (int col = 0; col < active_bed_mesh_.x_count; col++) {
-            // Distance from center
             float dx = col - center_x;
             float dy = row - center_y;
             float dist = std::sqrt(dx * dx + dy * dy);
 
-            // Dome shape with variation: height decreases with distance from center
+            // Base dome shape
             float normalized_dist = dist / max_radius;
-            float height = 0.3f * (1.0f - normalized_dist * normalized_dist);
+            float height = dome_amp * (1.0f - normalized_dist * normalized_dist);
 
-            // Add small variation based on position and profile
-            float variation = std::sin(col * 0.5f + offset) * 0.02f + std::cos(row * 0.5f) * 0.02f;
-            height += variation + offset;
+            // Add bed tilt (simulates unlevel bed)
+            float norm_x = static_cast<float>(col) / (active_bed_mesh_.x_count - 1) - 0.5f;
+            float norm_y = static_cast<float>(row) / (active_bed_mesh_.y_count - 1) - 0.5f;
+            height += x_tilt * norm_x + y_tilt * norm_y;
+
+            // Add per-point probe noise (simulates measurement uncertainty)
+            height += noise(gen);
 
             row_vec.push_back(height);
         }
         active_bed_mesh_.probed_matrix.push_back(row_vec);
     }
 
-    spdlog::debug("[MoonrakerClientMock] Regenerated bed mesh with variation for profile '{}'",
-                  active_bed_mesh_.name);
+    spdlog::debug("[MoonrakerClientMock] Regenerated bed mesh: amp={:.3f}, tilt=({:.3f},{:.3f})",
+                  dome_amp, x_tilt, y_tilt);
 }
 
 void MoonrakerClientMock::dispatch_bed_mesh_update() {
@@ -1238,6 +1257,8 @@ int MoonrakerClientMock::gcode_script(const std::string& gcode) {
             bed_mesh_profiles_.end()) {
             bed_mesh_profiles_.push_back(profile_name);
         }
+        // Store the calibrated mesh
+        stored_bed_mesh_profiles_[profile_name] = active_bed_mesh_;
 
         spdlog::info(
             "[MoonrakerClientMock] BED_MESH_CALIBRATE: generated new mesh for profile '{}'",
@@ -1255,13 +1276,11 @@ int MoonrakerClientMock::gcode_script(const std::string& gcode) {
             std::string profile_name =
                 gcode.substr(start, end == std::string::npos ? end : end - start);
 
-            // Check if profile exists
-            if (std::find(bed_mesh_profiles_.begin(), bed_mesh_profiles_.end(), profile_name) !=
-                bed_mesh_profiles_.end()) {
-                active_bed_mesh_.name = profile_name;
-                // In real Moonraker, this would load actual saved mesh data
-                // For mock, we just change the profile name
-                generate_mock_bed_mesh_with_variation();
+            // Check if profile exists in stored data
+            auto it = stored_bed_mesh_profiles_.find(profile_name);
+            if (it != stored_bed_mesh_profiles_.end()) {
+                // Load stored mesh data
+                active_bed_mesh_ = it->second;
                 spdlog::info("[MoonrakerClientMock] BED_MESH_PROFILE LOAD: loaded profile '{}'",
                              profile_name);
                 dispatch_bed_mesh_update();
@@ -1281,7 +1300,9 @@ int MoonrakerClientMock::gcode_script(const std::string& gcode) {
                 bed_mesh_profiles_.end()) {
                 bed_mesh_profiles_.push_back(profile_name);
             }
+            // Store current mesh data under new name
             active_bed_mesh_.name = profile_name;
+            stored_bed_mesh_profiles_[profile_name] = active_bed_mesh_;
             spdlog::info("[MoonrakerClientMock] BED_MESH_PROFILE SAVE: saved profile '{}'",
                          profile_name);
             dispatch_bed_mesh_update();
@@ -1292,10 +1313,11 @@ int MoonrakerClientMock::gcode_script(const std::string& gcode) {
             std::string profile_name =
                 gcode.substr(start, end == std::string::npos ? end : end - start);
 
-            // Remove profile from list
+            // Remove profile from list and stored data
             auto it = std::find(bed_mesh_profiles_.begin(), bed_mesh_profiles_.end(), profile_name);
             if (it != bed_mesh_profiles_.end()) {
                 bed_mesh_profiles_.erase(it);
+                stored_bed_mesh_profiles_.erase(profile_name);
                 spdlog::info("[MoonrakerClientMock] BED_MESH_PROFILE REMOVE: removed profile '{}'",
                              profile_name);
                 dispatch_bed_mesh_update();

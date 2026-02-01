@@ -630,13 +630,14 @@ void MoonrakerAPIMock::start_bed_mesh_calibrate(BedMeshProgressCallback on_progr
 
     // Context struct to track state across timer callbacks
     struct ProbeSimContext {
+        MoonrakerAPIMock* api;
         BedMeshProgressCallback on_progress;
         SuccessCallback on_complete;
         int current = 0;
-        int total = 25;
+        int total = 49; // 7x7 mesh = 49 probe points
     };
 
-    auto* ctx = new ProbeSimContext{std::move(on_progress), std::move(on_complete)};
+    auto* ctx = new ProbeSimContext{this, std::move(on_progress), std::move(on_complete)};
 
     // Timer callback - advances probe simulation one step at a time
     auto timer_cb = [](lv_timer_t* t) {
@@ -652,18 +653,33 @@ void MoonrakerAPIMock::start_bed_mesh_calibrate(BedMeshProgressCallback on_progr
         }
 
         if (c->current >= c->total) {
-            // Simulation complete
-            spdlog::info("[MoonrakerAPIMock] Probe simulation complete");
+            // Simulation complete - regenerate mesh with new random data
+            spdlog::info("[MoonrakerAPIMock] Probe simulation complete, regenerating mesh");
             lv_timer_delete(t);
-            if (c->on_complete) {
-                c->on_complete();
-            }
-            delete c;
+
+            // Send BED_MESH_CALIBRATE to client mock to regenerate mesh data
+            // Use a temporary profile name that will be renamed by the save dialog
+            c->api->execute_gcode(
+                "BED_MESH_CALIBRATE PROFILE=_calibrating",
+                [c]() {
+                    spdlog::debug("[MoonrakerAPIMock] Mesh regenerated");
+                    if (c->on_complete) {
+                        c->on_complete();
+                    }
+                    delete c;
+                },
+                [c](const MoonrakerError& err) {
+                    spdlog::error("[MoonrakerAPIMock] Mesh regen failed: {}", err.message);
+                    if (c->on_complete) {
+                        c->on_complete(); // Still complete the UI flow
+                    }
+                    delete c;
+                });
         }
     };
 
-    // Create timer - 100ms between each probe point (2.5 seconds total for 25 points)
-    lv_timer_t* timer = lv_timer_create(timer_cb, 100, ctx);
+    // Create timer - 50ms between each probe point (~2.5 seconds total for 49 points)
+    lv_timer_t* timer = lv_timer_create(timer_cb, 50, ctx);
     lv_timer_set_repeat_count(timer, ctx->total + 1); // +1 for final completion check
 }
 

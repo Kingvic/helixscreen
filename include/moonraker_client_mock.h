@@ -831,6 +831,7 @@ class MoonrakerClientMock : public MoonrakerClient {
     // Mock bed mesh storage (Client no longer stores this; mock simulates it)
     BedMeshProfile active_bed_mesh_;
     std::vector<std::string> bed_mesh_profiles_;
+    std::map<std::string, BedMeshProfile> stored_bed_mesh_profiles_; // Actual mesh data per profile
 
     // Mock request ID counter for simulating send_jsonrpc return values
     std::atomic<RequestId> mock_request_id_counter_{0};
