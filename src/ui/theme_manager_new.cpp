@@ -54,48 +54,8 @@ void ThemeManager::init() {
 
     register_style_configs();
 
-    // Default Nord-ish dark palette
-    dark_palette_.screen_bg = lv_color_hex(0x1a1a2e);
-    dark_palette_.overlay_bg = lv_color_hex(0x2E3440);
-    dark_palette_.card_bg = lv_color_hex(0x2E3440);
-    dark_palette_.elevated_bg = lv_color_hex(0x3B4252);
-    dark_palette_.border = lv_color_hex(0x4C566A);
-    dark_palette_.text = lv_color_hex(0xECEFF4);
-    dark_palette_.text_muted = lv_color_hex(0xD8DEE9);
-    dark_palette_.text_subtle = lv_color_hex(0x8FBCBB);
-    dark_palette_.primary = lv_color_hex(0x88C0D0);
-    dark_palette_.secondary = lv_color_hex(0x81A1C1);
-    dark_palette_.tertiary = lv_color_hex(0x5E81AC);
-    dark_palette_.info = lv_color_hex(0x88C0D0);
-    dark_palette_.success = lv_color_hex(0xA3BE8C);
-    dark_palette_.warning = lv_color_hex(0xEBCB8B);
-    dark_palette_.danger = lv_color_hex(0xBF616A);
-    dark_palette_.focus = lv_color_hex(0x88C0D0);
-    dark_palette_.border_radius = 8;
-    dark_palette_.border_width = 1;
-    dark_palette_.border_opacity = 40;
-
-    // Default light palette (inverted tones)
-    light_palette_.screen_bg = lv_color_hex(0xECEFF4);
-    light_palette_.overlay_bg = lv_color_hex(0xE5E9F0);
-    light_palette_.card_bg = lv_color_hex(0xFFFFFF);
-    light_palette_.elevated_bg = lv_color_hex(0xF5F7FA);
-    light_palette_.border = lv_color_hex(0xD8DEE9);
-    light_palette_.text = lv_color_hex(0x2E3440);
-    light_palette_.text_muted = lv_color_hex(0x4C566A);
-    light_palette_.text_subtle = lv_color_hex(0x7B88A1);
-    light_palette_.primary = lv_color_hex(0x5E81AC);
-    light_palette_.secondary = lv_color_hex(0x81A1C1);
-    light_palette_.tertiary = lv_color_hex(0x88C0D0);
-    light_palette_.info = lv_color_hex(0x5E81AC);
-    light_palette_.success = lv_color_hex(0xA3BE8C);
-    light_palette_.warning = lv_color_hex(0xD08770);
-    light_palette_.danger = lv_color_hex(0xBF616A);
-    light_palette_.focus = lv_color_hex(0x5E81AC);
-    light_palette_.border_radius = 8;
-    light_palette_.border_width = 1;
-    light_palette_.border_opacity = 30;
-
+    // Apply current palette (set via set_palettes() or default-initialized)
+    // ThemePalette struct has sensible defaults if set_palettes() wasn't called
     apply_palette(dark_mode_ ? dark_palette_ : light_palette_);
     initialized_ = true;
 }
