@@ -169,11 +169,17 @@ bool AmsContextMenu::show_near_widget(lv_obj_t* parent, int slot_index, lv_obj_t
 }
 
 void AmsContextMenu::hide() {
-    // Check if LVGL is initialized - may be called from destructor during static destruction
-    if (lv_obj_safe_delete(menu_)) {
-        slot_index_ = -1;
-        spdlog::debug("[AmsContextMenu] hide()");
+    if (!menu_)
+        return;
+
+    // Use async delete since we may be called during event processing
+    // (e.g., button click handler). Deleting during event causes crash.
+    if (lv_is_initialized()) {
+        lv_obj_delete_async(menu_);
     }
+    menu_ = nullptr;
+    slot_index_ = -1;
+    spdlog::debug("[AmsContextMenu] hide()");
 }
 
 // ============================================================================

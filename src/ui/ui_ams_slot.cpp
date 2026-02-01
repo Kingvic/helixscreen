@@ -266,18 +266,56 @@ static void apply_slot_status(AmsSlotData* data, int status_int) {
     if (show_badge) {
         lv_obj_remove_flag(data->status_badge_bg, LV_OBJ_FLAG_HIDDEN);
         lv_obj_set_style_bg_color(data->status_badge_bg, badge_bg, LV_PART_MAIN);
+
+        // Auto-contrast text color based on badge background brightness
+        if (data->slot_badge) {
+            int brightness = theme_compute_brightness(badge_bg);
+            lv_color_t text_color = (brightness > 140) ? lv_color_black() : lv_color_white();
+            lv_obj_set_style_text_color(data->slot_badge, text_color, LV_PART_MAIN);
+        }
     } else {
         lv_obj_add_flag(data->status_badge_bg, LV_OBJ_FLAG_HIDDEN);
     }
-    lv_opa_t empty_opa = (status == SlotStatus::EMPTY) ? LV_OPA_40 : LV_OPA_COVER;
+    // Handle spool visibility based on status and assignment
+    lv_opa_t spool_opa = LV_OPA_COVER;
+    bool show_spool = true;
+
+    if (status == SlotStatus::EMPTY) {
+        // Check if slot is assigned (has Spoolman data or material)
+        AmsBackend* backend = AmsState::instance().get_backend();
+        bool is_assigned = false;
+        if (backend && data->slot_index >= 0) {
+            SlotInfo slot_info = backend->get_slot_info(data->slot_index);
+            is_assigned = (slot_info.spoolman_id > 0 || !slot_info.material.empty());
+        }
+
+        if (is_assigned) {
+            // Assigned but empty: ghosted spool at 20%
+            spool_opa = LV_OPA_20;
+        } else {
+            // Unassigned and empty: hide spool entirely
+            show_spool = false;
+        }
+    }
+
+    // Apply visibility and opacity to spool elements
+    if (data->spool_container) {
+        if (show_spool) {
+            lv_obj_remove_flag(data->spool_container, LV_OBJ_FLAG_HIDDEN);
+        } else {
+            lv_obj_add_flag(data->spool_container, LV_OBJ_FLAG_HIDDEN);
+        }
+    }
     if (data->color_swatch)
-        lv_obj_set_style_bg_opa(data->color_swatch, empty_opa, LV_PART_MAIN);
+        lv_obj_set_style_bg_opa(data->color_swatch, spool_opa, LV_PART_MAIN);
     if (data->spool_outer)
-        lv_obj_set_style_bg_opa(data->spool_outer, empty_opa, LV_PART_MAIN);
+        lv_obj_set_style_bg_opa(data->spool_outer, spool_opa, LV_PART_MAIN);
     if (data->spool_canvas)
-        lv_obj_set_style_opa(data->spool_canvas, empty_opa, LV_PART_MAIN);
-    spdlog::trace("[AmsSlot] Slot {} status={} badge={}", data->slot_index,
-                  slot_status_to_string(status), show_badge ? "visible" : "hidden");
+        lv_obj_set_style_opa(data->spool_canvas, spool_opa, LV_PART_MAIN);
+
+    spdlog::trace("[AmsSlot] Slot {} status={} badge={} spool={}", data->slot_index,
+                  slot_status_to_string(status), show_badge ? "visible" : "hidden",
+                  show_spool ? (spool_opa == LV_OPA_COVER ? "full" : "ghosted") : "hidden");
 }
 
 /**
@@ -343,6 +381,14 @@ static void apply_tool_badge(AmsSlotData* data, int mapped_tool) {
         snprintf(tool_text, sizeof(tool_text), "T%d", mapped_tool);
         lv_subject_copy_string(&data->tool_badge_subject, tool_text);
         lv_obj_remove_flag(data->tool_badge_bg, LV_OBJ_FLAG_HIDDEN);
+
+        // Auto-contrast text color based on badge background
+        if (data->tool_badge) {
+            lv_color_t bg = lv_obj_get_style_bg_color(data->tool_badge_bg, LV_PART_MAIN);
+            int brightness = theme_compute_brightness(bg);
+            lv_color_t text_color = (brightness > 140) ? lv_color_black() : lv_color_white();
+            lv_obj_set_style_text_color(data->tool_badge, text_color, LV_PART_MAIN);
+        }
         spdlog::trace("[AmsSlot] Slot {} tool badge: {}", data->slot_index, tool_text);
     } else {
         // No tool mapped - hide badge
@@ -441,8 +487,7 @@ static void create_spool_visualization(AmsSlotData* data) {
         lv_obj_set_style_bg_color(outer_ring, default_darker, LV_PART_MAIN);
         lv_obj_set_style_bg_opa(outer_ring, LV_OPA_COVER, LV_PART_MAIN);
         lv_obj_set_style_border_width(outer_ring, 2, LV_PART_MAIN);
-        lv_obj_set_style_border_color(outer_ring, theme_manager_get_color("ams_hub_dark"),
-                                      LV_PART_MAIN);
+        lv_obj_set_style_border_color(outer_ring, theme_manager_get_color("ams_hub"), LV_PART_MAIN);
         lv_obj_set_style_border_opa(outer_ring, LV_OPA_50, LV_PART_MAIN);
         lv_obj_remove_flag(outer_ring, LV_OBJ_FLAG_SCROLLABLE);
         lv_obj_add_flag(outer_ring, LV_OBJ_FLAG_EVENT_BUBBLE);
@@ -466,7 +511,7 @@ static void create_spool_visualization(AmsSlotData* data) {
         lv_obj_set_size(hub, hub_size, hub_size);
         lv_obj_align(hub, LV_ALIGN_CENTER, 0, 0);
         lv_obj_set_style_radius(hub, LV_RADIUS_CIRCLE, LV_PART_MAIN);
-        lv_obj_set_style_bg_color(hub, theme_manager_get_color("ams_hub_dark"), LV_PART_MAIN);
+        lv_obj_set_style_bg_color(hub, theme_manager_get_color("ams_hub"), LV_PART_MAIN);
         lv_obj_set_style_bg_opa(hub, LV_OPA_COVER, LV_PART_MAIN);
         lv_obj_set_style_border_width(hub, 1, LV_PART_MAIN);
         lv_obj_set_style_border_color(hub, theme_manager_get_color("ams_hub_border"), LV_PART_MAIN);
@@ -475,6 +520,15 @@ static void create_spool_visualization(AmsSlotData* data) {
         data->spool_hub = hub;
 
         spdlog::debug("[AmsSlot] Created flat spool rings ({}x{})", spool_size, spool_size);
+    }
+
+    // Move badges to front so they render on top of the spool visualization
+    // (badges are created by XML before spool canvas/rings are added in C++)
+    if (data->status_badge_bg) {
+        lv_obj_move_to_index(data->status_badge_bg, -1); // -1 = move to end (front)
+    }
+    if (data->tool_badge_bg) {
+        lv_obj_move_to_index(data->tool_badge_bg, -1);
     }
 }
 

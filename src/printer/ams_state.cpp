@@ -145,9 +145,21 @@ void AmsState::init_subjects(bool register_xml) {
     INIT_SUBJECT_INT(ams_action, static_cast<int>(AmsAction::IDLE), subjects_, register_xml);
     INIT_SUBJECT_INT(current_slot, -1, subjects_, register_xml);
     INIT_SUBJECT_INT(ams_current_tool, -1, subjects_, register_xml);
-    INIT_SUBJECT_INT(filament_loaded, 0, subjects_, register_xml);
-    INIT_SUBJECT_INT(bypass_active, 0, subjects_, register_xml);
-    INIT_SUBJECT_INT(supports_bypass, 0, subjects_, register_xml);
+    // These subjects need ams_ prefix for XML but member vars don't have it
+    lv_subject_init_int(&filament_loaded_, 0);
+    subjects_.register_subject(&filament_loaded_);
+    if (register_xml)
+        lv_xml_register_subject(nullptr, "ams_filament_loaded", &filament_loaded_);
+
+    lv_subject_init_int(&bypass_active_, 0);
+    subjects_.register_subject(&bypass_active_);
+    if (register_xml)
+        lv_xml_register_subject(nullptr, "ams_bypass_active", &bypass_active_);
+
+    lv_subject_init_int(&supports_bypass_, 0);
+    subjects_.register_subject(&supports_bypass_);
+    if (register_xml)
+        lv_xml_register_subject(nullptr, "ams_supports_bypass", &supports_bypass_);
     INIT_SUBJECT_INT(ams_slot_count, 0, subjects_, register_xml);
     INIT_SUBJECT_INT(slots_version, 0, subjects_, register_xml);
 
@@ -191,10 +203,30 @@ void AmsState::init_subjects(bool register_xml) {
     INIT_SUBJECT_STRING(dryer_modal_duration_text, "4h", subjects_, register_xml);
 
     // Currently Loaded display subjects (for reactive UI binding)
-    INIT_SUBJECT_STRING(current_material_text, "---", subjects_, register_xml);
-    INIT_SUBJECT_STRING(current_slot_text, "None", subjects_, register_xml);
-    INIT_SUBJECT_STRING(current_weight_text, "", subjects_, register_xml);
-    INIT_SUBJECT_INT(current_has_weight, 0, subjects_, register_xml);
+    // These subjects need ams_ prefix for XML but member vars don't have it
+    lv_subject_init_string(&current_material_text_, current_material_text_buf_, nullptr,
+                           sizeof(current_material_text_buf_), "---");
+    subjects_.register_subject(&current_material_text_);
+    if (register_xml)
+        lv_xml_register_subject(nullptr, "ams_current_material_text", &current_material_text_);
+
+    lv_subject_init_string(&current_slot_text_, current_slot_text_buf_, nullptr,
+                           sizeof(current_slot_text_buf_), "None");
+    subjects_.register_subject(&current_slot_text_);
+    if (register_xml)
+        lv_xml_register_subject(nullptr, "ams_current_slot_text", &current_slot_text_);
+
+    lv_subject_init_string(&current_weight_text_, current_weight_text_buf_, nullptr,
+                           sizeof(current_weight_text_buf_), "");
+    subjects_.register_subject(&current_weight_text_);
+    if (register_xml)
+        lv_xml_register_subject(nullptr, "ams_current_weight_text", &current_weight_text_);
+
+    lv_subject_init_int(&current_has_weight_, 0);
+    subjects_.register_subject(&current_has_weight_);
+    if (register_xml)
+        lv_xml_register_subject(nullptr, "ams_current_has_weight", &current_has_weight_);
+
     INIT_SUBJECT_INT(current_color, 0x505050, subjects_, register_xml);
 
     // Per-slot subjects (dynamic names require manual init)
@@ -856,7 +888,8 @@ void AmsState::stop_spoolman_polling() {
     spdlog::debug("[AmsState] Stopping Spoolman polling (refcount: {})", spoolman_poll_refcount_);
 
     // Only delete timer when refcount reaches zero
-    if (spoolman_poll_refcount_ == 0 && spoolman_poll_timer_) {
+    // Guard against LVGL already being deinitialized during shutdown
+    if (spoolman_poll_refcount_ == 0 && spoolman_poll_timer_ && lv_is_initialized()) {
         lv_timer_delete(spoolman_poll_timer_);
         spoolman_poll_timer_ = nullptr;
     }
