@@ -321,7 +321,10 @@ void register_object_handlers(std::unordered_map<std::string, MethodHandler>& re
                       {"stepper_z", {{"position_min", 0.0}, {"position_max", 300.0}}},
                       {"extruder",
                        {{"min_temp", 0.0}, {"max_temp", 300.0}, {"min_extrude_temp", 170.0}}},
-                      {"heater_bed", {{"min_temp", 0.0}, {"max_temp", 120.0}}}}}};
+                      {"heater_bed", {{"min_temp", 0.0}, {"max_temp", 120.0}}}}},
+                    // config section contains raw Klipper config keys (used for sensor discovery)
+                    {"config",
+                     {{"adxl345", json::object()}, {"resonance_tester", json::object()}}}};
             }
         }
 
