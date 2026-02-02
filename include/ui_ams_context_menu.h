@@ -100,8 +100,9 @@ class AmsContextMenu {
     int slot_index_ = -1;
     ActionCallback action_callback_;
 
-    // === Subject for Unload button state ===
-    lv_subject_t slot_is_loaded_subject_;
+    // === Subjects for button enable/disable states ===
+    lv_subject_t slot_is_loaded_subject_; ///< 1 = loaded (Unload enabled), 0 = not loaded
+    lv_subject_t slot_can_load_subject_;  ///< 1 = has filament (Load enabled), 0 = empty
     bool subject_initialized_ = false;
 
     // === Backend reference for dropdown operations ===

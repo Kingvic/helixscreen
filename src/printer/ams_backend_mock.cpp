@@ -37,17 +37,19 @@ constexpr int NUM_SAMPLE_FILAMENTS = sizeof(SAMPLE_FILAMENTS) / sizeof(SAMPLE_FI
 
 // Timing constants for realistic mode (milliseconds at 1x speed)
 // These values simulate real AMS/MMU timing behavior
-constexpr int HEATING_BASE_MS = 3000;           // 3 seconds to heat nozzle
-constexpr int CUTTING_BASE_MS = 2000;           // 2 seconds for filament cut
-constexpr int CHECKING_BASE_MS = 1500;          // 1.5 seconds for sensor check
-constexpr int SELECTING_BASE_MS = 1000;         // 1 second for slot/tool selection
-constexpr int SEGMENT_ANIMATION_BASE_MS = 5000; // 5 seconds for full segment animation
+constexpr int HEATING_BASE_MS = 3000;            // 3 seconds to heat nozzle
+constexpr int CUTTING_BASE_MS = 2000;            // 2 seconds for filament cut
+constexpr int PURGING_BASE_MS = 3000;            // 3 seconds for purge after load
+constexpr int CHECKING_BASE_MS = 1500;           // 1.5 seconds for recovery check
+constexpr int SELECTING_BASE_MS = 1000;          // 1 second for slot/tool selection
+constexpr int SEGMENT_ANIMATION_BASE_MS = 10000; // 10 seconds for full segment animation
 
 // Variance factors (±percentage) for natural timing variation
 constexpr float HEATING_VARIANCE = 0.3f;    // ±30%
 constexpr float TIP_VARIANCE = 0.2f;        // ±20%
 constexpr float LOADING_VARIANCE = 0.2f;    // ±20%
-constexpr float CHECKING_VARIANCE = 0.2f;   // ±20%
+constexpr float PURGING_VARIANCE = 0.2f;    // ±20%
+constexpr float CHECKING_VARIANCE = 0.2f;   // ±20% (for recovery)
 constexpr float SELECTING_VARIANCE = 0.15f; // ±15%
 } // namespace
 
@@ -69,6 +71,8 @@ AmsBackendMock::AmsBackendMock(int slot_count) {
     system_info_.supports_tool_mapping = true;
     system_info_.supports_bypass = true;
     system_info_.has_hardware_bypass_sensor = false; // Default: virtual (manual toggle)
+    system_info_.tip_method = TipMethod::CUT;        // Happy Hare typically has cutter
+    system_info_.supports_purge = true;              // Happy Hare supports purging
 
     // Create single unit with all slots
     AmsUnit unit;
@@ -1181,12 +1185,12 @@ void AmsBackendMock::execute_load_operation(int slot_index,
     if (shutdown_requested_ || cancel_requested_)
         return;
 
-    if (realistic_mode_) {
-        // Phase 3: CHECKING
-        spdlog::debug("[AmsBackendMock] Load phase: CHECKING");
-        set_action(AmsAction::CHECKING, "Verifying filament sensor");
+    if (realistic_mode_ && system_info_.supports_purge) {
+        // Phase 3: PURGING (only if AMS supports it)
+        spdlog::debug("[AmsBackendMock] Load phase: PURGING");
+        set_action(AmsAction::PURGING, "Purging filament");
         emit_event(EVENT_STATE_CHANGED);
-        if (!interruptible_sleep(get_effective_delay_ms(CHECKING_BASE_MS, CHECKING_VARIANCE)))
+        if (!interruptible_sleep(get_effective_delay_ms(PURGING_BASE_MS, PURGING_VARIANCE)))
             return;
         if (shutdown_requested_ || cancel_requested_)
             return;

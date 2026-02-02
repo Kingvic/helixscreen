@@ -552,6 +552,26 @@ class AmsState {
      */
     void sync_current_loaded_from_backend();
 
+    /**
+     * @brief Set action detail text directly (for UI-managed states)
+     *
+     * Used when UI is managing a process (like preheat) that the backend
+     * doesn't know about. Updates the ams_action_detail_ subject.
+     *
+     * @param detail The status text to display (e.g., "Heating to 230°C...")
+     */
+    void set_action_detail(const std::string& detail);
+
+    /**
+     * @brief Set the current AMS action state directly
+     *
+     * Used by UI to indicate operation in progress (e.g., during UI-managed preheat
+     * before backend starts). Triggers XML binding updates for action-dependent UI.
+     *
+     * @param action The action state to set
+     */
+    void set_action(AmsAction action);
+
     // ========================================================================
     // Spoolman Weight Polling
     // ========================================================================

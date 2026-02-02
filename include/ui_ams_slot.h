@@ -111,6 +111,30 @@ void ui_ams_slot_set_layout_info(lv_obj_t* obj, int slot_index, int total_count)
  */
 void ui_ams_slot_move_label_to_layer(lv_obj_t* obj, lv_obj_t* labels_layer, int32_t slot_center_x);
 
+/**
+ * @brief Set pulsing animation state for a slot (during loading operations)
+ *
+ * When enabled, the spool_container border pulses continuously to indicate
+ * the slot is the target of an ongoing operation (loading/unloading).
+ * When disabled, restores the border to its static state (highlighted if active,
+ * hidden if not).
+ *
+ * @param obj     The ams_slot widget
+ * @param pulsing true to start continuous pulse, false to stop
+ */
+void ui_ams_slot_set_pulsing(lv_obj_t* obj, bool pulsing);
+
+/**
+ * @brief Forcibly clear the highlight ring on a slot
+ *
+ * Removes the border highlight and blocks automatic re-highlighting until
+ * set_pulsing() is called. Use this during swap operations where the slot
+ * being unloaded should lose its highlight but NOT pulse.
+ *
+ * @param obj The ams_slot widget
+ */
+void ui_ams_slot_clear_highlight(lv_obj_t* obj);
+
 #ifdef __cplusplus
 }
 #endif

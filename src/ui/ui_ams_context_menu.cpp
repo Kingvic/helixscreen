@@ -7,6 +7,7 @@
 #include "ui_utils.h"
 
 #include "ams_backend.h"
+#include "ams_types.h"
 #include "filament_database.h"
 
 #include <spdlog/spdlog.h>
@@ -26,9 +27,13 @@ static AmsContextMenu* s_active_instance = nullptr;
 // ============================================================================
 
 AmsContextMenu::AmsContextMenu() {
-    // Initialize the subject for Unload button enabled state
+    // Initialize subjects for button enabled states
     lv_subject_init_int(&slot_is_loaded_subject_, 0);
     lv_xml_register_subject(nullptr, "ams_slot_is_loaded", &slot_is_loaded_subject_);
+
+    lv_subject_init_int(&slot_can_load_subject_, 1);
+    lv_xml_register_subject(nullptr, "ams_slot_can_load", &slot_can_load_subject_);
+
     subject_initialized_ = true;
     spdlog::debug("[AmsContextMenu] Constructed");
 }
@@ -36,9 +41,10 @@ AmsContextMenu::AmsContextMenu() {
 AmsContextMenu::~AmsContextMenu() {
     hide();
 
-    // Clean up subject
+    // Clean up subjects
     if (subject_initialized_ && lv_is_initialized()) {
         lv_subject_deinit(&slot_is_loaded_subject_);
+        lv_subject_deinit(&slot_can_load_subject_);
         subject_initialized_ = false;
     }
     spdlog::debug("[AmsContextMenu] Destroyed");
@@ -46,9 +52,15 @@ AmsContextMenu::~AmsContextMenu() {
 
 AmsContextMenu::AmsContextMenu(AmsContextMenu&& other) noexcept
     : menu_(other.menu_), parent_(other.parent_), slot_index_(other.slot_index_),
-      action_callback_(std::move(other.action_callback_)), backend_(other.backend_),
+      action_callback_(std::move(other.action_callback_)),
+      subject_initialized_(other.subject_initialized_), backend_(other.backend_),
       total_slots_(other.total_slots_), tool_dropdown_(other.tool_dropdown_),
       backup_dropdown_(other.backup_dropdown_) {
+    // Transfer subject ownership - copy the subject state
+    if (other.subject_initialized_) {
+        slot_is_loaded_subject_ = other.slot_is_loaded_subject_;
+        slot_can_load_subject_ = other.slot_can_load_subject_;
+    }
     // Update static instance to point to new location
     if (s_active_instance == &other) {
         s_active_instance = this;
@@ -60,6 +72,7 @@ AmsContextMenu::AmsContextMenu(AmsContextMenu&& other) noexcept
     other.total_slots_ = 0;
     other.tool_dropdown_ = nullptr;
     other.backup_dropdown_ = nullptr;
+    other.subject_initialized_ = false; // Prevent double-cleanup
 }
 
 AmsContextMenu& AmsContextMenu::operator=(AmsContextMenu&& other) noexcept {
@@ -75,6 +88,13 @@ AmsContextMenu& AmsContextMenu::operator=(AmsContextMenu&& other) noexcept {
         tool_dropdown_ = other.tool_dropdown_;
         backup_dropdown_ = other.backup_dropdown_;
 
+        // Transfer subject ownership
+        if (other.subject_initialized_) {
+            slot_is_loaded_subject_ = other.slot_is_loaded_subject_;
+            slot_can_load_subject_ = other.slot_can_load_subject_;
+        }
+        subject_initialized_ = other.subject_initialized_;
+
         // Update static instance to point to new location
         if (s_active_instance == &other) {
             s_active_instance = this;
@@ -87,6 +107,7 @@ AmsContextMenu& AmsContextMenu::operator=(AmsContextMenu&& other) noexcept {
         other.total_slots_ = 0;
         other.tool_dropdown_ = nullptr;
         other.backup_dropdown_ = nullptr;
+        other.subject_initialized_ = false; // Prevent double-cleanup
     }
     return *this;
 }
@@ -124,8 +145,33 @@ bool AmsContextMenu::show_near_widget(lv_obj_t* parent, int slot_index, lv_obj_t
         total_slots_ = 0;
     }
 
+    // Check if system is busy (operation in progress)
+    bool system_busy = false;
+    if (backend_) {
+        AmsSystemInfo info = backend_->get_system_info();
+        system_busy = (info.action != AmsAction::IDLE && info.action != AmsAction::ERROR);
+        if (system_busy) {
+            spdlog::debug("[AmsContextMenu] System busy ({}), disabling Load/Unload",
+                          ams_action_to_string(info.action));
+        }
+    }
+
     // Update subject for Unload button state (1=enabled, 0=disabled)
-    lv_subject_set_int(&slot_is_loaded_subject_, is_loaded ? 1 : 0);
+    // Disable if busy or slot not loaded
+    lv_subject_set_int(&slot_is_loaded_subject_, (!system_busy && is_loaded) ? 1 : 0);
+
+    // Determine if slot has filament for Load button state
+    // Load should be disabled if slot is empty, system is busy, or already loaded
+    bool can_load = !system_busy;
+    if (can_load && backend_) {
+        SlotInfo slot_info = backend_->get_slot_info(slot_index);
+        // Only allow load if slot has filament (AVAILABLE, LOADED, or FROM_BUFFER)
+        // Disable for EMPTY or UNKNOWN status
+        can_load =
+            (slot_info.status == SlotStatus::AVAILABLE || slot_info.status == SlotStatus::LOADED ||
+             slot_info.status == SlotStatus::FROM_BUFFER);
+    }
+    lv_subject_set_int(&slot_can_load_subject_, can_load ? 1 : 0);
 
     // Create context menu from XML
     menu_ = static_cast<lv_obj_t*>(lv_xml_create(parent, "ams_context_menu", nullptr));
@@ -136,6 +182,14 @@ bool AmsContextMenu::show_near_widget(lv_obj_t* parent, int slot_index, lv_obj_t
 
     // Set as active instance for static callbacks (only one menu visible at a time)
     s_active_instance = this;
+
+    // Update the slot header text (1-based for user display)
+    lv_obj_t* slot_header = lv_obj_find_by_name(menu_, "slot_header");
+    if (slot_header) {
+        char header_text[32];
+        snprintf(header_text, sizeof(header_text), "Slot %d", slot_index + 1);
+        lv_label_set_text(slot_header, header_text);
+    }
 
     // Configure dropdowns based on backend capabilities
     configure_dropdowns();

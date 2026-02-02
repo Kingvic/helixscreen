@@ -160,14 +160,13 @@ static void apply_step_styling(lv_obj_t* step_item, ui_step_state_t state) {
     // Note: Horizontal connectors are now siblings in the main container, not children of step_item
     // They will be updated separately in ui_step_progress_set_current()
 
-    // Apply label styling (larger + brighter for active, dimmed for others)
+    // Apply label styling (slightly larger for active, smaller for inactive)
     if (label) {
         if (state == UI_STEP_STATE_ACTIVE) {
-            lv_obj_set_style_text_font(label, theme_manager_get_font("font_heading"), 0); // Larger
+            lv_obj_set_style_text_font(label, theme_manager_get_font("font_body"), 0);
             lv_obj_set_style_text_color(label, color_label_active, 0); // Theme-aware active color
         } else {
-            lv_obj_set_style_text_font(label, theme_manager_get_font("font_body"),
-                                       0); // Normal size
+            lv_obj_set_style_text_font(label, theme_manager_get_font("font_small"), 0);
             lv_obj_set_style_text_color(label, color_label_inactive,
                                         0); // Theme-aware inactive color
         }
@@ -261,7 +260,7 @@ lv_obj_t* ui_step_progress_create(lv_obj_t* parent, const ui_step_t* steps, int 
     if (horizontal) {
         lv_obj_set_style_pad_column(container, 0, 0); // No gap - connectors fill space
     } else {
-        lv_obj_set_style_pad_row(container, 24, 0); // 24px spacing between vertical steps
+        lv_obj_set_style_pad_row(container, 12, 0); // 12px spacing between vertical steps (compact)
     }
 
     // Transfer ownership to LVGL widget
@@ -300,7 +299,7 @@ lv_obj_t* ui_step_progress_create(lv_obj_t* parent, const ui_step_t* steps, int 
             lv_obj_set_size(indicator_column, 24, LV_SIZE_CONTENT); // Horizontal: just the circle
         } else {
             // Vertical: circle only (connectors are positioned separately)
-            lv_obj_set_size(indicator_column, 24, 24); // step_indicator_size
+            lv_obj_set_size(indicator_column, 18, 18); // step_indicator_size (compact)
         }
         lv_obj_set_style_bg_opa(indicator_column, LV_OPA_0, 0);
         lv_obj_set_style_border_width(indicator_column, 0, 0);
@@ -312,7 +311,7 @@ lv_obj_t* ui_step_progress_create(lv_obj_t* parent, const ui_step_t* steps, int 
 
         // Create circle indicator
         lv_obj_t* circle = lv_obj_create(indicator_column);
-        lv_obj_set_size(circle, 24, 24); // step_indicator_size
+        lv_obj_set_size(circle, 18, 18); // step_indicator_size (compact)
         lv_obj_set_style_radius(circle, LV_RADIUS_CIRCLE, 0);
         lv_obj_set_style_border_width(circle, 2, 0);
         lv_obj_set_style_pad_all(circle, 0, 0);
@@ -354,8 +353,8 @@ lv_obj_t* ui_step_progress_create(lv_obj_t* parent, const ui_step_t* steps, int 
             lv_obj_set_style_max_width(label, 120, 0); // Max width for wrapping long labels
         } else {
             // Vertical: label to right of circle
-            lv_obj_set_style_pad_left(label, 16, 0); // step_spacing
-            lv_obj_set_style_pad_top(label, 2, 0);
+            lv_obj_set_style_pad_left(label, 8, 0); // step_spacing (compact)
+            lv_obj_set_style_pad_top(label, 0, 0);
             lv_obj_set_flex_grow(label, 1);
         }
 
@@ -382,9 +381,10 @@ lv_obj_t* ui_step_progress_create(lv_obj_t* parent, const ui_step_t* steps, int 
                 lv_coord_t next_y = lv_obj_get_y(next_step);
 
                 // Calculate connector position and height
-                // Circle is 24px with 2px border - connector should overlap slightly to eliminate
+                // Circle is 18px with 2px border - connector should overlap slightly to eliminate
                 // gaps
-                lv_coord_t connector_y = current_y + 22; // Start 2px before bottom edge
+                lv_coord_t connector_y =
+                    current_y + 16; // Start 2px before bottom edge of 18px circle
                 lv_coord_t connector_height =
                     (next_y - connector_y) + 2; // Extend 2px into next circle
 
@@ -392,26 +392,23 @@ lv_obj_t* ui_step_progress_create(lv_obj_t* parent, const ui_step_t* steps, int 
                               "connector_y={}, height={}",
                               i, current_y, next_y, connector_y, connector_height);
 
-                // Create connector line
+                // Create connector line - MUST add IGNORE_LAYOUT first before sizing
                 lv_obj_t* connector = lv_obj_create(container);
-                lv_obj_remove_flag(connector,
-                                   LV_OBJ_FLAG_FLEX_IN_NEW_TRACK); // Remove from flex layout
-                lv_obj_set_size(connector, 1, connector_height);
-                lv_obj_set_pos(connector, 11,
-                               connector_y); // x=11 (center of 24px indicator, 1px line)
+                lv_obj_add_flag(connector, LV_OBJ_FLAG_IGNORE_LAYOUT); // Exempt from flex FIRST
+                lv_obj_remove_flag(connector, LV_OBJ_FLAG_CLICKABLE);
+                lv_obj_set_size(connector, 2, connector_height); // 2px wide line
+                lv_obj_set_pos(connector, 8, connector_y);       // x=8 (center of 18px indicator)
                 lv_obj_set_style_bg_opa(connector, LV_OPA_COVER, 0);
                 lv_obj_set_style_border_width(connector, 0, 0);
                 lv_obj_set_style_pad_all(connector, 0, 0);
                 lv_obj_set_style_radius(connector, 0, 0);
-                lv_obj_add_flag(connector, LV_OBJ_FLAG_IGNORE_LAYOUT); // Don't let flex move this
                 // Connector color: green only for COMPLETED steps, gray for all others
                 lv_color_t connector_color =
                     (steps[i].state == UI_STEP_STATE_COMPLETED) ? color_completed : color_pending;
                 lv_obj_set_style_bg_color(connector, connector_color, 0);
 
-                spdlog::debug("[Step Progress] Connector {} created at pos ({}, {}) size ({}, {})",
-                              i, lv_obj_get_x(connector), lv_obj_get_y(connector),
-                              lv_obj_get_width(connector), lv_obj_get_height(connector));
+                spdlog::debug("[Step Progress] Connector {} at ({}, {}) h={}", i, 8, connector_y,
+                              connector_height);
             }
         }
     } else {

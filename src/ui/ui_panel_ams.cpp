@@ -19,6 +19,7 @@
 #include "ui_panel_common.h"
 #include "ui_spool_canvas.h"
 #include "ui_step_progress.h"
+#include "ui_temperature_utils.h"
 #include "ui_utils.h"
 
 #include "ams_backend.h"
@@ -32,6 +33,7 @@
 #include "moonraker_api.h"
 #include "observer_factory.h"
 #include "printer_state.h"
+#include "settings_manager.h"
 #include "static_panel_registry.h"
 #include "theme_manager.h"
 #include "wizard_config_paths.h"
@@ -255,7 +257,8 @@ void AmsPanel::init_subjects() {
             if (!self->subjects_initialized_ || !self->panel_)
                 return;
             auto action = static_cast<AmsAction>(action_int);
-            spdlog::debug("[AmsPanel] Action changed: {}", ams_action_to_string(action));
+            spdlog::debug("[AmsPanel] Action changed: {} (prev={})", ams_action_to_string(action),
+                          ams_action_to_string(self->prev_ams_action_));
 
             // Detect LOADING -> IDLE or LOADING -> ERROR transition for post-load cooling
             // Also turn off heater if load fails, to prevent leaving heater on indefinitely
@@ -263,9 +266,12 @@ void AmsPanel::init_subjects() {
                 (action == AmsAction::IDLE || action == AmsAction::ERROR)) {
                 self->handle_load_complete();
             }
-            self->prev_ams_action_ = action;
 
+            // IMPORTANT: Call update_action_display BEFORE updating prev_ams_action_
+            // so that operation type detection can compare old vs new action
             self->update_action_display(action);
+
+            self->prev_ams_action_ = action;
         });
 
     current_slot_observer_ = ObserverGuard(AmsState::instance().get_current_slot_subject(),
@@ -346,6 +352,16 @@ void AmsPanel::on_activate() {
     AmsState::instance().sync_from_backend();
     refresh_slots();
 
+    // Sync step progress with current action (in case we reopened mid-operation)
+    auto action =
+        static_cast<AmsAction>(lv_subject_get_int(AmsState::instance().get_ams_action_subject()));
+    update_step_progress(action);
+
+    // If we're in a UI-managed preheat, restore visual feedback
+    if (pending_load_slot_ >= 0 && pending_load_target_temp_ > 0) {
+        show_preheat_feedback(pending_load_slot_, pending_load_target_temp_);
+    }
+
     // Sync Spoolman active spool with currently loaded slot
     sync_spoolman_active_spool();
 
@@ -398,25 +414,18 @@ void AmsPanel::clear_panel_reference() {
     error_modal_.reset();
 
     // Clear observer guards BEFORE clearing widget pointers (they reference widgets)
+    // NOTE: Keep extruder_temp_observer_ alive so check_pending_load() runs while
+    // panel is closed - it doesn't touch widgets, just checks temp and calls backend.
     slots_version_observer_.reset();
     action_observer_.reset();
     current_slot_observer_.reset();
     slot_count_observer_.reset();
     path_segment_observer_.reset();
     path_topology_observer_.reset();
-    extruder_temp_observer_.reset();
+    // extruder_temp_observer_ intentionally NOT reset - needed for preheat completion
 
-    // Turn off heater if we initiated heating and panel is closing during preheat
-    // This prevents leaving the heater on if user navigates away mid-preheat
-    if (ui_initiated_heat_ && pending_load_slot_ >= 0 && api_) {
-        api_->set_temperature("extruder", 0, []() {}, [](const MoonrakerError& /*err*/) {});
-        spdlog::info("[AmsPanel] Panel closing during preheat, turning off heater");
-    }
-
-    // Clear preheat state
-    pending_load_slot_ = -1;
-    pending_load_target_temp_ = 0;
-    ui_initiated_heat_ = false;
+    // Don't cancel preheat or clear pending load state when panel closes.
+    // User initiated a load operation - let it complete even if they navigate away.
     prev_ams_action_ = AmsAction::IDLE;
 
     // Now clear all widget references
@@ -893,79 +902,275 @@ void AmsPanel::setup_step_progress() {
         return;
     }
 
-    // Create step progress widget with loading steps
-    ui_step_t steps[] = {
-        {"Heat nozzle", UI_STEP_STATE_PENDING},
-        {"Feed filament", UI_STEP_STATE_PENDING},
-        {"Verify extrusion", UI_STEP_STATE_PENDING},
-        {"Complete", UI_STEP_STATE_PENDING},
-    };
-
-    step_progress_ =
-        ui_step_progress_create(step_progress_container_, steps, 4, false, "ams_step_progress");
-
-    if (!step_progress_) {
-        spdlog::error("[{}] Failed to create step progress widget", get_name());
-        return;
-    }
+    // Create initial step progress widget (fresh load by default)
+    recreate_step_progress_for_operation(StepOperationType::LOAD_FRESH);
 
     // Container is hidden by default (via XML)
     spdlog::debug("[{}] Step progress widget created", get_name());
 }
 
+void AmsPanel::recreate_step_progress_for_operation(StepOperationType op_type) {
+    if (!step_progress_container_) {
+        return;
+    }
+
+    // Delete existing step progress widget if any
+    if (step_progress_) {
+        lv_obj_del(step_progress_);
+        step_progress_ = nullptr;
+    }
+
+    current_operation_type_ = op_type;
+
+    // Get capabilities from backend for dynamic labels
+    TipMethod tip_method = TipMethod::CUT;
+    bool supports_purge = false;
+    AmsBackend* backend = AmsState::instance().get_backend();
+    if (backend) {
+        AmsSystemInfo info = backend->get_system_info();
+        tip_method = info.tip_method;
+        supports_purge = info.supports_purge;
+    }
+    const char* tip_step_label = tip_method_step_label(tip_method);
+
+    // Define steps based on operation type and capabilities
+    // NOTE: No "Complete" step - operation just finishes and stepper hides
+    switch (op_type) {
+    case StepOperationType::LOAD_FRESH: {
+        if (supports_purge) {
+            // Fresh load with purge: Heat → Feed → Purge
+            ui_step_t steps[] = {
+                {"Heat nozzle", UI_STEP_STATE_PENDING},
+                {"Feed filament", UI_STEP_STATE_PENDING},
+                {"Purge", UI_STEP_STATE_PENDING},
+            };
+            current_step_count_ = 3;
+            step_progress_ = ui_step_progress_create(step_progress_container_, steps, 3, false,
+                                                     "ams_step_progress");
+        } else {
+            // Fresh load without purge: Heat → Feed
+            ui_step_t steps[] = {
+                {"Heat nozzle", UI_STEP_STATE_PENDING},
+                {"Feed filament", UI_STEP_STATE_PENDING},
+            };
+            current_step_count_ = 2;
+            step_progress_ = ui_step_progress_create(step_progress_container_, steps, 2, false,
+                                                     "ams_step_progress");
+        }
+        break;
+    }
+    case StepOperationType::LOAD_SWAP: {
+        if (supports_purge) {
+            // Swap load with purge: Heat → Cut/Tip → Feed → Purge
+            ui_step_t steps[] = {
+                {"Heat nozzle", UI_STEP_STATE_PENDING},
+                {tip_step_label, UI_STEP_STATE_PENDING},
+                {"Feed filament", UI_STEP_STATE_PENDING},
+                {"Purge", UI_STEP_STATE_PENDING},
+            };
+            current_step_count_ = 4;
+            step_progress_ = ui_step_progress_create(step_progress_container_, steps, 4, false,
+                                                     "ams_step_progress");
+        } else {
+            // Swap load without purge: Heat → Cut/Tip → Feed
+            ui_step_t steps[] = {
+                {"Heat nozzle", UI_STEP_STATE_PENDING},
+                {tip_step_label, UI_STEP_STATE_PENDING},
+                {"Feed filament", UI_STEP_STATE_PENDING},
+            };
+            current_step_count_ = 3;
+            step_progress_ = ui_step_progress_create(step_progress_container_, steps, 3, false,
+                                                     "ams_step_progress");
+        }
+        break;
+    }
+    case StepOperationType::UNLOAD: {
+        // Unload: Heat → Cut/Tip → Retract
+        ui_step_t steps[] = {
+            {"Heat nozzle", UI_STEP_STATE_PENDING},
+            {tip_step_label, UI_STEP_STATE_PENDING},
+            {"Retract", UI_STEP_STATE_PENDING},
+        };
+        current_step_count_ = 3;
+        step_progress_ =
+            ui_step_progress_create(step_progress_container_, steps, 3, false, "ams_step_progress");
+        break;
+    }
+    }
+
+    if (!step_progress_) {
+        spdlog::error("[{}] Failed to create step progress widget for op_type={}", get_name(),
+                      static_cast<int>(op_type));
+    } else {
+        spdlog::debug("[{}] Created step progress: {} steps for op_type={}", get_name(),
+                      current_step_count_, static_cast<int>(op_type));
+    }
+}
+
+int AmsPanel::get_step_index_for_action(AmsAction action, StepOperationType op_type) {
+    // Map action to step index based on operation type
+    // No "Complete" step - stepper just hides when IDLE
+    switch (op_type) {
+    case StepOperationType::LOAD_FRESH:
+        // With purge (3 steps): Heat(0) → Feed(1) → Purge(2)
+        // Without purge (2 steps): Heat(0) → Feed(1)
+        switch (action) {
+        case AmsAction::HEATING:
+            return 0;
+        case AmsAction::LOADING:
+            return 1;
+        case AmsAction::PURGING:
+            return 2; // Only if supports_purge
+        case AmsAction::IDLE:
+            return -1; // Hide stepper
+        default:
+            return -1;
+        }
+
+    case StepOperationType::LOAD_SWAP:
+        // With purge (4 steps): Heat(0) → Cut(1) → Feed(2) → Purge(3)
+        // Without purge (3 steps): Heat(0) → Cut(1) → Feed(2)
+        switch (action) {
+        case AmsAction::HEATING:
+            return 0;
+        case AmsAction::CUTTING:
+        case AmsAction::FORMING_TIP:
+        case AmsAction::UNLOADING:
+            return 1; // Cut/tip and retract phase
+        case AmsAction::LOADING:
+            return 2;
+        case AmsAction::PURGING:
+            return 3; // Only if supports_purge
+        case AmsAction::IDLE:
+            return -1; // Hide stepper
+        default:
+            return -1;
+        }
+
+    case StepOperationType::UNLOAD:
+        // 3 steps: Heat(0) → Cut/Tip(1) → Retract(2)
+        switch (action) {
+        case AmsAction::HEATING:
+            return 0;
+        case AmsAction::CUTTING:
+        case AmsAction::FORMING_TIP:
+            return 1;
+        case AmsAction::UNLOADING:
+            return 2;
+        case AmsAction::IDLE:
+            return -1; // Hide stepper
+        default:
+            return -1;
+        }
+    }
+    return -1;
+}
+
+void AmsPanel::start_operation(StepOperationType op_type, int target_slot) {
+    spdlog::info("[AmsPanel] Starting operation: type={}, target_slot={}",
+                 static_cast<int>(op_type), target_slot);
+
+    // Store target for pulse animation
+    target_load_slot_ = target_slot;
+
+    // Set ams_action to HEATING immediately - this triggers XML binding to hide buttons
+    // (Important for UI-managed preheat where backend hasn't started yet)
+    AmsState::instance().set_action(AmsAction::HEATING);
+
+    // Create step progress with correct steps for this operation type
+    recreate_step_progress_for_operation(op_type);
+
+    // Show step progress immediately
+    if (step_progress_container_) {
+        lv_obj_remove_flag(step_progress_container_, LV_OBJ_FLAG_HIDDEN);
+    }
+
+    AmsBackend* backend = AmsState::instance().get_backend();
+
+    if (op_type == StepOperationType::LOAD_SWAP && backend) {
+        // SWAP: Clear highlight on current slot (no pulse), pulse only target
+        int current = backend->get_system_info().current_slot;
+        if (current >= 0 && current < MAX_VISIBLE_SLOTS && slot_widgets_[current] &&
+            current != target_slot) {
+            // Forcibly clear highlight - don't pulse it
+            ui_ams_slot_clear_highlight(slot_widgets_[current]);
+        }
+        // Pulse the target slot
+        if (target_slot >= 0 && target_slot < MAX_VISIBLE_SLOTS && slot_widgets_[target_slot]) {
+            ui_ams_slot_set_pulsing(slot_widgets_[target_slot], true);
+        }
+    } else if (op_type == StepOperationType::UNLOAD) {
+        // UNLOAD only: Pulse the slot being unloaded
+        if (target_slot >= 0 && target_slot < MAX_VISIBLE_SLOTS && slot_widgets_[target_slot]) {
+            ui_ams_slot_set_pulsing(slot_widgets_[target_slot], true);
+        }
+    } else {
+        // LOAD_FRESH: Pulse the target slot
+        if (target_slot >= 0 && target_slot < MAX_VISIBLE_SLOTS && slot_widgets_[target_slot]) {
+            ui_ams_slot_set_pulsing(slot_widgets_[target_slot], true);
+        }
+    }
+}
+
 void AmsPanel::update_step_progress(AmsAction action) {
-    if (!step_progress_ || !step_progress_container_) {
+    if (!step_progress_container_) {
+        return;
+    }
+
+    // NOTE: Operation type is now set by start_operation() before backend calls.
+    // We only fall back to heuristic detection for operations started externally
+    // (e.g., gcode T commands, Mainsail/Fluidd UI).
+    if (action == AmsAction::HEATING && prev_ams_action_ == AmsAction::IDLE &&
+        target_load_slot_ < 0) {
+        // External operation - try to detect type from backend state
+        AmsBackend* backend = AmsState::instance().get_backend();
+        if (backend) {
+            AmsSystemInfo info = backend->get_system_info();
+            // If something is currently loaded, this will be a swap (cut first)
+            // Otherwise it's a fresh load
+            if (info.current_slot >= 0) {
+                recreate_step_progress_for_operation(StepOperationType::LOAD_SWAP);
+            } else {
+                recreate_step_progress_for_operation(StepOperationType::LOAD_FRESH);
+            }
+        } else {
+            recreate_step_progress_for_operation(StepOperationType::LOAD_FRESH);
+        }
+    } else if (action == AmsAction::UNLOADING && prev_ams_action_ != AmsAction::CUTTING) {
+        // Explicit unload (not part of a swap) - show unload steps
+        // For swap operations, UNLOADING follows CUTTING, so don't recreate
+        if (current_operation_type_ != StepOperationType::LOAD_SWAP) {
+            recreate_step_progress_for_operation(StepOperationType::UNLOAD);
+        }
+    }
+
+    if (!step_progress_) {
         return;
     }
 
     // Show/hide container based on action
     bool show_progress = (action == AmsAction::HEATING || action == AmsAction::LOADING ||
-                          action == AmsAction::CHECKING || action == AmsAction::CUTTING ||
-                          action == AmsAction::FORMING_TIP);
+                          action == AmsAction::PURGING || action == AmsAction::CUTTING ||
+                          action == AmsAction::FORMING_TIP || action == AmsAction::UNLOADING);
 
     if (show_progress) {
         lv_obj_remove_flag(step_progress_container_, LV_OBJ_FLAG_HIDDEN);
     } else {
+        // IDLE, ERROR, SELECTING, RESETTING, PAUSED - hide progress immediately
         lv_obj_add_flag(step_progress_container_, LV_OBJ_FLAG_HIDDEN);
+
+        // Stop pulse animation and reset target when operation completes
+        if (target_load_slot_ >= 0) {
+            set_slot_continuous_pulse(-1, false); // Stop all pulses
+            target_load_slot_ = -1;
+        }
+        return;
     }
 
-    // Update step progress based on action
-    switch (action) {
-    case AmsAction::HEATING:
-        // Step 0: Heat nozzle
-        ui_step_progress_set_current(step_progress_, 0);
-        break;
-
-    case AmsAction::LOADING:
-        // Step 1: Feed filament
-        ui_step_progress_set_current(step_progress_, 1);
-        break;
-
-    case AmsAction::CHECKING:
-    case AmsAction::CUTTING:
-    case AmsAction::FORMING_TIP:
-        // Step 2: Cutting/Tip forming/Verify
-        ui_step_progress_set_current(step_progress_, 2);
-        break;
-
-    case AmsAction::IDLE:
-        // If we were in a loading sequence, mark complete then hide
-        if (!lv_obj_has_flag(step_progress_container_, LV_OBJ_FLAG_HIDDEN)) {
-            ui_step_progress_set_current(step_progress_, 3);
-            // Hide after a brief delay to show completion
-            lv_obj_add_flag(step_progress_container_, LV_OBJ_FLAG_HIDDEN);
-        }
-        break;
-
-    case AmsAction::ERROR:
-        // Error case handled separately via error modal
-        lv_obj_add_flag(step_progress_container_, LV_OBJ_FLAG_HIDDEN);
-        break;
-
-    default:
-        // Other actions (UNLOADING, SELECTING, RESETTING, PAUSED) - hide progress
-        lv_obj_add_flag(step_progress_container_, LV_OBJ_FLAG_HIDDEN);
-        break;
+    // Get step index for current action and operation type
+    int step_index = get_step_index_for_action(action, current_operation_type_);
+    if (step_index >= 0) {
+        ui_step_progress_set_current(step_progress_, step_index);
     }
 }
 
@@ -1111,23 +1316,36 @@ void AmsPanel::update_slot_status(int slot_index) {
 
 void AmsPanel::update_action_display(AmsAction action) {
     // Action display is handled via bind_text to ams_action_detail
-    // This method can add visual feedback (progress indicators, etc.)
+    // This method handles visual feedback (progress indicators, canvas state)
 
-    lv_obj_t* progress = lv_obj_find_by_name(panel_, "action_progress");
-    if (progress) {
-        bool show_progress = (action == AmsAction::LOADING || action == AmsAction::UNLOADING ||
-                              action == AmsAction::SELECTING || action == AmsAction::RESETTING ||
-                              action == AmsAction::HEATING);
-
-        if (show_progress) {
-            lv_obj_remove_flag(progress, LV_OBJ_FLAG_HIDDEN);
-        } else {
-            lv_obj_add_flag(progress, LV_OBJ_FLAG_HIDDEN);
-        }
+    // Update nozzle heat glow on path canvas
+    if (path_canvas_) {
+        bool heating = (action == AmsAction::HEATING);
+        ui_filament_path_canvas_set_heat_active(path_canvas_, heating);
     }
 
     // Update step progress stepper
     update_step_progress(action);
+
+    // NOTE: Slot border pulsing is now handled by start_operation() for UI-initiated operations.
+    // For externally-triggered operations (gcode, other UI), we start pulsing here only if
+    // target_load_slot_ was not set by start_operation().
+    if (target_load_slot_ < 0) {
+        bool is_operation_active =
+            (action == AmsAction::LOADING || action == AmsAction::UNLOADING ||
+             action == AmsAction::HEATING || action == AmsAction::CUTTING ||
+             action == AmsAction::FORMING_TIP || action == AmsAction::PURGING);
+        if (is_operation_active) {
+            AmsBackend* backend = AmsState::instance().get_backend();
+            if (backend) {
+                AmsSystemInfo info = backend->get_system_info();
+                if (info.current_slot >= 0) {
+                    set_slot_continuous_pulse(info.current_slot, true);
+                    target_load_slot_ = info.current_slot; // Track so we don't restart
+                }
+            }
+        }
+    }
 
     // Handle error state - show error modal (only if not already visible)
     if (action == AmsAction::ERROR) {
@@ -1138,9 +1356,16 @@ void AmsPanel::update_action_display(AmsAction action) {
 }
 
 void AmsPanel::update_current_slot_highlight(int slot_index) {
+    // Check if this is an actual slot change (for pulse animation)
+    bool slot_changed = (slot_index != last_highlighted_slot_);
+
     // Remove highlight from all slots (set border opacity to 0)
     for (int i = 0; i < MAX_VISIBLE_SLOTS; ++i) {
         if (slot_widgets_[i]) {
+            // Cancel any running animation on this slot
+            if (slot_changed) {
+                lv_anim_delete(slot_widgets_[i], nullptr);
+            }
             lv_obj_remove_state(slot_widgets_[i], LV_STATE_CHECKED);
             lv_obj_set_style_border_opa(slot_widgets_[i], LV_OPA_0, 0);
         }
@@ -1149,11 +1374,60 @@ void AmsPanel::update_current_slot_highlight(int slot_index) {
     // Add highlight to current slot (show border)
     if (slot_index >= 0 && slot_index < MAX_VISIBLE_SLOTS && slot_widgets_[slot_index]) {
         lv_obj_add_state(slot_widgets_[slot_index], LV_STATE_CHECKED);
-        lv_obj_set_style_border_opa(slot_widgets_[slot_index], LV_OPA_100, 0);
+
+        // Pulse animation when slot changes (bright -> normal opacity)
+        if (slot_changed && SettingsManager::instance().get_animations_enabled()) {
+            // Start with bright border
+            lv_obj_set_style_border_opa(slot_widgets_[slot_index], LV_OPA_COVER, 0);
+
+            // Animate from bright (255) to normal (100% = 255, so we go to ~60%)
+            constexpr int32_t PULSE_START_OPA = 255;
+            constexpr int32_t PULSE_END_OPA = 153; // ~60% opacity for subtle sustained highlight
+            constexpr uint32_t PULSE_DURATION_MS = 400;
+
+            lv_anim_t pulse_anim;
+            lv_anim_init(&pulse_anim);
+            lv_anim_set_var(&pulse_anim, slot_widgets_[slot_index]);
+            lv_anim_set_values(&pulse_anim, PULSE_START_OPA, PULSE_END_OPA);
+            lv_anim_set_duration(&pulse_anim, PULSE_DURATION_MS);
+            lv_anim_set_path_cb(&pulse_anim, lv_anim_path_ease_out);
+            lv_anim_set_exec_cb(&pulse_anim, [](void* obj, int32_t value) {
+                lv_obj_set_style_border_opa(static_cast<lv_obj_t*>(obj),
+                                            static_cast<lv_opa_t>(value), 0);
+            });
+            lv_anim_start(&pulse_anim);
+
+            spdlog::debug("[AmsPanel] Started pulse animation on slot {}", slot_index);
+        } else {
+            // No animation - just set final opacity
+            lv_obj_set_style_border_opa(slot_widgets_[slot_index], LV_OPA_100, 0);
+        }
     }
+
+    // Track for next call
+    last_highlighted_slot_ = slot_index;
 
     // Update the "Currently Loaded" card in the right column
     update_current_loaded_display(slot_index);
+}
+
+void AmsPanel::set_slot_continuous_pulse(int slot_index, bool enable) {
+    // Stop all existing pulses first
+    for (int i = 0; i < MAX_VISIBLE_SLOTS; ++i) {
+        if (slot_widgets_[i]) {
+            ui_ams_slot_set_pulsing(slot_widgets_[i], false);
+        }
+    }
+
+    // Start pulse on target slot if enabled
+    if (enable && slot_index >= 0 && slot_index < MAX_VISIBLE_SLOTS && slot_widgets_[slot_index]) {
+        if (!SettingsManager::instance().get_animations_enabled()) {
+            // No animation - slot's static highlight will show
+            return;
+        }
+        ui_ams_slot_set_pulsing(slot_widgets_[slot_index], true);
+        spdlog::debug("[AmsPanel] Started continuous pulse animation on slot {}", slot_index);
+    }
 }
 
 void AmsPanel::update_current_loaded_display(int slot_index) {
@@ -1213,7 +1487,37 @@ void AmsPanel::on_path_slot_clicked(int slot_index, void* user_data) {
         return;
     }
 
-    AmsError error = backend->load_filament(slot_index);
+    AmsError error;
+
+    // If filament is already loaded from a DIFFERENT slot, use tool change (unload-then-load)
+    if (info.current_slot >= 0 && info.current_slot != slot_index) {
+        // Get the tool number for the target slot
+        const SlotInfo* slot_info = info.get_slot_global(slot_index);
+        if (slot_info && slot_info->mapped_tool >= 0) {
+            spdlog::info(
+                "[AmsPanel] Slot {} already loaded, swapping to slot {} via tool change T{}",
+                info.current_slot, slot_index, slot_info->mapped_tool);
+            // Set up step progress BEFORE backend call
+            self->start_operation(StepOperationType::LOAD_SWAP, slot_index);
+            error = backend->change_tool(slot_info->mapped_tool);
+        } else {
+            // Fallback: unload first, then load
+            spdlog::info("[AmsPanel] Slot {} already loaded, unloading first then loading {}",
+                         info.current_slot, slot_index);
+            self->start_operation(StepOperationType::UNLOAD, info.current_slot);
+            error = backend->unload_filament();
+            if (error.result == AmsResult::SUCCESS) {
+                // Note: The actual load will be triggered after unload completes
+                // For now, we'll rely on the user clicking again or the backend auto-loading
+                NOTIFY_INFO("Unloading... click again to load slot {}", slot_index + 1);
+            }
+        }
+    } else {
+        // Fresh load - nothing currently loaded or same slot
+        self->start_operation(StepOperationType::LOAD_FRESH, slot_index);
+        error = backend->load_filament(slot_index);
+    }
+
     if (error.result != AmsResult::SUCCESS) {
         NOTIFY_ERROR("Load failed: {}", error.user_msg);
     }
@@ -1342,6 +1646,12 @@ void AmsPanel::handle_unload() {
     if (!backend) {
         NOTIFY_WARNING("AMS not available");
         return;
+    }
+
+    // Get current slot for pulse animation target
+    AmsSystemInfo info = backend->get_system_info();
+    if (info.current_slot >= 0) {
+        start_operation(StepOperationType::UNLOAD, info.current_slot);
     }
 
     AmsError error = backend->unload_filament();
@@ -1741,6 +2051,14 @@ void AmsPanel::handle_load_with_preheat(int slot_index) {
         return;
     }
 
+    // Determine operation type BEFORE calling backend
+    AmsSystemInfo info = backend->get_system_info();
+    if (info.current_slot >= 0 && info.current_slot != slot_index) {
+        start_operation(StepOperationType::LOAD_SWAP, slot_index);
+    } else {
+        start_operation(StepOperationType::LOAD_FRESH, slot_index);
+    }
+
     // If backend handles heating automatically, just call load directly
     // Backend will also handle cooling after load completes
     if (backend->supports_auto_heat_on_load()) {
@@ -1775,6 +2093,9 @@ void AmsPanel::handle_load_with_preheat(int slot_index) {
         api_->set_temperature("extruder", target, []() {}, [](const MoonrakerError& /*err*/) {});
     }
 
+    // Show immediate visual feedback
+    show_preheat_feedback(slot_index, target);
+
     spdlog::info("[AmsPanel] Starting preheat to {}C for slot {} load", target, slot_index);
 }
 
@@ -1786,6 +2107,12 @@ void AmsPanel::check_pending_load() {
     // Get current temp in centidegrees, convert to degrees
     int current_centi = lv_subject_get_int(printer_state_.get_extruder_temp_subject());
     int current = current_centi / 10;
+
+    // Update display with current temperature while waiting
+    char temp_buf[32];
+    helix::ui::temperature::format_temperature_pair(current, pending_load_target_temp_, temp_buf,
+                                                    sizeof(temp_buf));
+    AmsState::instance().set_action_detail(temp_buf);
 
     constexpr int TEMP_THRESHOLD = 5;
 
@@ -1812,6 +2139,31 @@ void AmsPanel::handle_load_complete() {
         spdlog::info("[AmsPanel] Load complete, turning off heater (UI-initiated heat)");
         ui_initiated_heat_ = false;
     }
+}
+
+void AmsPanel::show_preheat_feedback(int slot_index, int target_temp) {
+    LV_UNUSED(slot_index);
+
+    // Get current temperature for display (convert centidegrees to degrees)
+    int current_centi = lv_subject_get_int(printer_state_.get_extruder_temp_subject());
+    int current_temp = current_centi / 10;
+
+    // Update status text via AmsState subject to show heating progress
+    // Format: "185 / 230°C" (context already shown in progress stepper)
+    char temp_buf[32];
+    helix::ui::temperature::format_temperature_pair(current_temp, target_temp, temp_buf,
+                                                    sizeof(temp_buf));
+    AmsState::instance().set_action_detail(temp_buf);
+
+    // Show step progress at step 0 (Heat nozzle)
+    if (step_progress_container_) {
+        lv_obj_remove_flag(step_progress_container_, LV_OBJ_FLAG_HIDDEN);
+    }
+    if (step_progress_) {
+        ui_step_progress_set_current(step_progress_, 0);
+    }
+
+    spdlog::debug("[AmsPanel] Showing preheat feedback: {}", temp_buf);
 }
 
 // ============================================================================

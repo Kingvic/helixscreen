@@ -133,8 +133,9 @@ class AmsPanel : public PanelBase {
 
     // === Dynamic Slot State ===
 
-    int current_slot_count_ = 0;    ///< Number of slots currently created
-    lv_obj_t* slot_grid_ = nullptr; ///< Container for dynamically created slots
+    int current_slot_count_ = 0;     ///< Number of slots currently created
+    lv_obj_t* slot_grid_ = nullptr;  ///< Container for dynamically created slots
+    int last_highlighted_slot_ = -1; ///< Previously highlighted slot (for pulse animation)
 
     // === Preheat State for Filament Loading ===
 
@@ -142,6 +143,20 @@ class AmsPanel : public PanelBase {
     int pending_load_target_temp_ = 0;            ///< Target temp for pending load (°C)
     bool ui_initiated_heat_ = false;              ///< True if UI heated for this load (for cooling)
     AmsAction prev_ams_action_ = AmsAction::IDLE; ///< Previous action for transition detection
+
+    // === Step Progress Operation Type ===
+
+    /// Operation types for dynamic step progress
+    enum class StepOperationType {
+        LOAD_FRESH, ///< Loading into empty toolhead (4 steps)
+        LOAD_SWAP,  ///< Loading while another filament is loaded (5 steps, includes cut/retract)
+        UNLOAD      ///< Explicit unload operation (4 steps)
+    };
+
+    StepOperationType current_operation_type_ =
+        StepOperationType::LOAD_FRESH; ///< Current operation
+    int current_step_count_ = 4;       ///< Steps in current
+    int target_load_slot_ = -1;        ///< Target slot for current operation (for pulse animation)
 
     // === Filament Path Canvas ===
 
@@ -168,6 +183,20 @@ class AmsPanel : public PanelBase {
     void update_endless_arrows_from_backend();
     void setup_step_progress();
     void update_step_progress(AmsAction action);
+    void recreate_step_progress_for_operation(StepOperationType op_type);
+    int get_step_index_for_action(AmsAction action, StepOperationType op_type);
+
+    /**
+     * @brief Start an operation with known type and target slot
+     *
+     * Called BEFORE backend operation to set up correct step progress
+     * and start pulse animation on target slot. This avoids heuristic
+     * detection which can fail due to brief IDLE states between phases.
+     *
+     * @param op_type The type of operation (LOAD_FRESH, LOAD_SWAP, UNLOAD)
+     * @param target_slot Slot index being loaded/unloaded
+     */
+    void start_operation(StepOperationType op_type, int target_slot);
 
     /**
      * @brief Create slot widgets dynamically based on slot count
@@ -189,6 +218,18 @@ class AmsPanel : public PanelBase {
     void update_current_slot_highlight(int slot_index);
     void update_current_loaded_display(int slot_index);
     void update_tray_size();
+
+    /**
+     * @brief Start or stop continuous border pulse animation on a slot
+     *
+     * During operations (loading/unloading), the active slot's border should
+     * pulse continuously to indicate activity. When operations complete,
+     * the pulse stops and border returns to static highlight.
+     *
+     * @param slot_index Slot to pulse (-1 to stop all pulses)
+     * @param enable True to start pulsing, false to stop
+     */
+    void set_slot_continuous_pulse(int slot_index, bool enable);
 
     // === Event Callbacks (static trampolines) ===
 
@@ -249,6 +290,18 @@ class AmsPanel : public PanelBase {
      * heater to save energy and prevent filament damage.
      */
     void handle_load_complete();
+
+    /**
+     * @brief Show visual feedback during UI-managed preheat
+     *
+     * Displays step progress at step 0 (Heat nozzle) and updates status text
+     * to show the heating target temperature. Called when handle_load_with_preheat()
+     * starts heating.
+     *
+     * @param slot_index Slot that will be loaded after preheat
+     * @param target_temp Target temperature in °C
+     */
+    void show_preheat_feedback(int slot_index, int target_temp);
 
     // === UI Module Helpers (internal, show modals with callbacks) ===
 

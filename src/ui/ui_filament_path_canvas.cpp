@@ -112,6 +112,11 @@ struct FilamentPathData {
     // Toolhead renderer style
     bool use_faceted_toolhead = false; // false = Bambu-style, true = faceted red style
 
+    // Heat glow state
+    bool heat_active = false;               // true when nozzle is actively heating
+    bool heat_pulse_active = false;         // Animation running
+    lv_opa_t heat_pulse_opa = LV_OPA_COVER; // Current heat glow opacity
+
     // Callbacks
     filament_path_slot_cb_t slot_callback = nullptr;
     void* slot_user_data = nullptr;
@@ -189,9 +194,11 @@ static FilamentPathData* get_data(lv_obj_t* obj) {
 // Uses ABSOLUTE positioning with dynamic slot width from AmsPanel:
 //   slot_center[i] = card_padding + slot_width/2 + i * (slot_width - overlap)
 // Both slot_width and overlap are set by AmsPanel to match actual slot layout.
+// NOTE: ams_unit_card has style_pad_all="#space_sm" which offsets slot_grid content.
+// path_container has no padding, so we must add card_padding to align with slots.
 static int32_t get_slot_x(int slot_index, int slot_count, int32_t slot_width, int32_t overlap) {
-    // Card padding where slot_grid lives (ams_unit_card has style_pad_all="#space_sm")
-    constexpr int32_t card_padding = 8;
+    // Card padding where slot_grid content starts (ams_unit_card has style_pad_all="#space_sm")
+    int32_t card_padding = theme_manager_get_spacing("space_sm");
 
     if (slot_count <= 1) {
         return card_padding + slot_width / 2;
@@ -216,6 +223,7 @@ static bool is_segment_active(PathSegment segment, PathSegment filament_segment)
 // Forward declarations for animation callbacks
 static void segment_anim_cb(void* var, int32_t value);
 static void error_pulse_anim_cb(void* var, int32_t value);
+static void heat_pulse_anim_cb(void* var, int32_t value);
 
 // Start segment transition animation
 static void start_segment_animation(lv_obj_t* obj, FilamentPathData* data, int from_segment,
@@ -364,6 +372,69 @@ static void error_pulse_anim_cb(void* var, int32_t value) {
         obj);
 }
 
+// Heat pulse animation constants (same timing as error pulse)
+static constexpr int HEAT_PULSE_DURATION_MS = 800;  // Heat pulse cycle duration
+static constexpr lv_opa_t HEAT_PULSE_OPA_MIN = 100; // Minimum opacity during heat pulse
+static constexpr lv_opa_t HEAT_PULSE_OPA_MAX = 255; // Maximum opacity during heat pulse
+
+// Start heat pulse animation
+static void start_heat_pulse(lv_obj_t* obj, FilamentPathData* data) {
+    if (!obj || !data || data->heat_pulse_active)
+        return;
+
+    data->heat_pulse_active = true;
+    data->heat_pulse_opa = HEAT_PULSE_OPA_MAX;
+
+    // Skip animation if disabled - just show static heat state
+    if (!SettingsManager::instance().get_animations_enabled()) {
+        lv_obj_invalidate(obj);
+        spdlog::trace("[FilamentPath] Animations disabled - showing static heat state");
+        return;
+    }
+
+    lv_anim_t anim;
+    lv_anim_init(&anim);
+    lv_anim_set_var(&anim, obj);
+    lv_anim_set_values(&anim, HEAT_PULSE_OPA_MIN, HEAT_PULSE_OPA_MAX);
+    lv_anim_set_duration(&anim, HEAT_PULSE_DURATION_MS);
+    lv_anim_set_repeat_count(&anim, LV_ANIM_REPEAT_INFINITE);
+    lv_anim_set_playback_duration(&anim, HEAT_PULSE_DURATION_MS);
+    lv_anim_set_path_cb(&anim, lv_anim_path_ease_in_out);
+    lv_anim_set_exec_cb(&anim, heat_pulse_anim_cb);
+    lv_anim_start(&anim);
+
+    spdlog::trace("[FilamentPath] Started heat pulse animation");
+}
+
+// Stop heat pulse animation
+static void stop_heat_pulse(lv_obj_t* obj, FilamentPathData* data) {
+    if (!obj || !data)
+        return;
+
+    lv_anim_delete(obj, heat_pulse_anim_cb);
+    data->heat_pulse_active = false;
+    data->heat_pulse_opa = LV_OPA_COVER;
+}
+
+// Heat pulse animation callback
+static void heat_pulse_anim_cb(void* var, int32_t value) {
+    lv_obj_t* obj = static_cast<lv_obj_t*>(var);
+    FilamentPathData* data = get_data(obj);
+    if (!data)
+        return;
+
+    data->heat_pulse_opa = static_cast<lv_opa_t>(value);
+    // Defer invalidation to avoid calling during render phase
+    ui_async_call(
+        [](void* obj_ptr) {
+            auto* obj = static_cast<lv_obj_t*>(obj_ptr);
+            if (lv_obj_is_valid(obj)) {
+                lv_obj_invalidate(obj);
+            }
+        },
+        obj);
+}
+
 // ============================================================================
 // Drawing Functions
 // ============================================================================
@@ -493,6 +564,42 @@ static void draw_filament_tip(lv_layer_t* layer, int32_t x, int32_t y, lv_color_
     // Inner core (bright)
     lv_color_t core_color = ph_lighten(color, 100);
     draw_sensor_dot(layer, x, y, core_color, true, radius);
+}
+
+// Draw heat glow effect around nozzle tip
+// Creates a pulsing orange/red glow halo to indicate heating
+static void draw_heat_glow(lv_layer_t* layer, int32_t cx, int32_t cy, int32_t radius,
+                           lv_opa_t pulse_opa) {
+    // Heat glow color - warm orange (#FF6B35) at full opacity
+    lv_color_t heat_color = lv_color_hex(0xFF6B35);
+
+    // Outer soft glow (larger, more transparent)
+    lv_draw_arc_dsc_t arc_dsc;
+    lv_draw_arc_dsc_init(&arc_dsc);
+    arc_dsc.center.x = cx;
+    arc_dsc.center.y = cy;
+    arc_dsc.start_angle = 0;
+    arc_dsc.end_angle = 360;
+
+    // Multiple rings for soft glow effect
+    // Outer ring (widest, most transparent)
+    arc_dsc.radius = static_cast<uint16_t>(radius + 8);
+    arc_dsc.width = 6;
+    arc_dsc.color = heat_color;
+    arc_dsc.opa = static_cast<lv_opa_t>(pulse_opa / 4);
+    lv_draw_arc(layer, &arc_dsc);
+
+    // Middle ring
+    arc_dsc.radius = static_cast<uint16_t>(radius + 4);
+    arc_dsc.width = 4;
+    arc_dsc.opa = static_cast<lv_opa_t>(pulse_opa / 2);
+    lv_draw_arc(layer, &arc_dsc);
+
+    // Inner ring (brightest)
+    arc_dsc.radius = static_cast<uint16_t>(radius + 1);
+    arc_dsc.width = 2;
+    arc_dsc.opa = pulse_opa;
+    lv_draw_arc(layer, &arc_dsc);
 }
 
 // ============================================================================
@@ -897,10 +1004,18 @@ static void filament_path_draw_cb(lv_event_t* e) {
                            noz_color, line_active);
 
         // Extruder/print head icon (responsive size)
+        // Draw nozzle first so heat glow can render on top
         if (data->use_faceted_toolhead) {
             draw_nozzle_faceted(layer, center_x, nozzle_y, noz_color, data->extruder_scale);
         } else {
             draw_nozzle_bambu(layer, center_x, nozzle_y, noz_color, data->extruder_scale);
+        }
+
+        // Draw heat glow around nozzle tip when heating (after nozzle so glow is visible)
+        if (data->heat_active) {
+            // Nozzle tip is at the bottom of the extruder
+            int32_t tip_y = nozzle_y + data->extruder_scale * 3; // Bottom of nozzle
+            draw_heat_glow(layer, center_x, tip_y, sensor_r, data->heat_pulse_opa);
         }
     }
 
@@ -1033,6 +1148,7 @@ static void filament_path_delete_cb(lv_event_t* e) {
         if (data) {
             lv_anim_delete(obj, segment_anim_cb);
             lv_anim_delete(obj, error_pulse_anim_cb);
+            lv_anim_delete(obj, heat_pulse_anim_cb);
         }
         s_registry.erase(it);
         // data automatically freed when unique_ptr goes out of scope
@@ -1391,6 +1507,26 @@ void ui_filament_path_canvas_set_faceted_toolhead(lv_obj_t* obj, bool faceted) {
     if (data->use_faceted_toolhead != faceted) {
         data->use_faceted_toolhead = faceted;
         spdlog::debug("[FilamentPath] Toolhead style: {}", faceted ? "faceted" : "bambu");
+        lv_obj_invalidate(obj);
+    }
+}
+
+void ui_filament_path_canvas_set_heat_active(lv_obj_t* obj, bool active) {
+    auto* data = get_data(obj);
+    if (!data)
+        return;
+
+    if (data->heat_active != active) {
+        data->heat_active = active;
+
+        if (active) {
+            start_heat_pulse(obj, data);
+            spdlog::debug("[FilamentPath] Heat glow: active");
+        } else {
+            stop_heat_pulse(obj, data);
+            spdlog::debug("[FilamentPath] Heat glow: inactive");
+        }
+
         lv_obj_invalidate(obj);
     }
 }

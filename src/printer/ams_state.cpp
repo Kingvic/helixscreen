@@ -422,6 +422,8 @@ void AmsState::sync_from_backend() {
 
     // Update system-level subjects
     lv_subject_set_int(&ams_type_, static_cast<int>(info.type));
+    spdlog::debug("[AmsState] sync_from_backend: action={} ({})", static_cast<int>(info.action),
+                  ams_action_to_string(info.action));
     lv_subject_set_int(&ams_action_, static_cast<int>(info.action));
 
     // Set system name from backend type_name or fallback to type string
@@ -622,6 +624,18 @@ void AmsState::sync_dryer_from_backend() {
     spdlog::trace("[AMS State] Synced dryer - supported={}, active={}, temp={}→{}°C, {}min left",
                   dryer.supported, dryer.active, static_cast<int>(dryer.current_temp_c),
                   static_cast<int>(dryer.target_temp_c), dryer.remaining_min);
+}
+
+void AmsState::set_action_detail(const std::string& detail) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    lv_subject_copy_string(&ams_action_detail_, detail.c_str());
+    spdlog::debug("[AMS State] Action detail set: {}", detail);
+}
+
+void AmsState::set_action(AmsAction action) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    lv_subject_set_int(&ams_action_, static_cast<int>(action));
+    spdlog::debug("[AMS State] Action set: {}", ams_action_to_string(action));
 }
 
 void AmsState::sync_current_loaded_from_backend() {

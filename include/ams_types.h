@@ -215,10 +215,11 @@ enum class AmsAction {
     RESETTING = 4,   ///< Resetting system (MMU_HOME for HH, AFC_RESET for AFC)
     FORMING_TIP = 5, ///< Forming filament tip (legacy, some systems still use)
     HEATING = 6,     ///< Heating for operation
-    CHECKING = 7,    ///< Checking slots
+    CHECKING = 7,    ///< Internal sensor verification (not shown in UI)
     PAUSED = 8,      ///< Operation paused (requires attention)
     ERROR = 9,       ///< Error state
-    CUTTING = 10     ///< Cutting filament before retraction (modern AMS)
+    CUTTING = 10,    ///< Cutting filament before retraction (modern AMS)
+    PURGING = 11     ///< Purging old filament color after load
 };
 
 /**
@@ -250,6 +251,8 @@ inline const char* ams_action_to_string(AmsAction action) {
         return "Paused";
     case AmsAction::ERROR:
         return "Error";
+    case AmsAction::PURGING:
+        return "Purging";
     default:
         return "Unknown";
     }
@@ -279,12 +282,66 @@ inline AmsAction ams_action_from_string(std::string_view action_str) {
         return AmsAction::HEATING;
     if (action_str == "Checking")
         return AmsAction::CHECKING;
+    if (action_str == "Purging")
+        return AmsAction::PURGING;
     // Happy Hare uses "Paused" for attention-required states
     if (action_str.find("Pause") != std::string_view::npos)
         return AmsAction::PAUSED;
     if (action_str.find("Error") != std::string_view::npos)
         return AmsAction::ERROR;
     return AmsAction::IDLE;
+}
+
+// ============================================================================
+// Tip Handling Method
+// ============================================================================
+
+/**
+ * @brief How the AMS handles filament tip during unload
+ *
+ * Different systems use different methods to prepare filament for retraction:
+ * - CUT: Physical cutter severs filament cleanly (Happy Hare with cutter, AFC)
+ * - TIP_FORM: Heat+retract sequence forms a tapered tip (Bambu AMS, some HH configs)
+ * - NONE: System doesn't actively manage tip (manual, or no retraction support)
+ */
+enum class TipMethod {
+    NONE = 0,    ///< No active tip handling
+    CUT = 1,     ///< Physical filament cutter
+    TIP_FORM = 2 ///< Heat and retract to form tapered tip
+};
+
+/**
+ * @brief Get string name for tip method
+ * @param method The tip method enum value
+ * @return Human-readable string for the method
+ */
+inline const char* tip_method_to_string(TipMethod method) {
+    switch (method) {
+    case TipMethod::NONE:
+        return "None";
+    case TipMethod::CUT:
+        return "Cutter";
+    case TipMethod::TIP_FORM:
+        return "Tip Forming";
+    }
+    return "Unknown";
+}
+
+/**
+ * @brief Get user-friendly step label for tip handling
+ * @param method The tip method enum value
+ * @return Label suitable for step progress display
+ */
+inline const char* tip_method_step_label(TipMethod method) {
+    switch (method) {
+    case TipMethod::CUT:
+        return "Cut & retract";
+    case TipMethod::TIP_FORM:
+        return "Form tip & retract";
+    case TipMethod::NONE:
+    default:
+        return "Retract";
+    }
 }
 
 // ============================================================================
@@ -583,6 +640,8 @@ struct AmsSystemInfo {
     bool supports_tool_mapping = false;
     bool supports_bypass = false;            ///< Has bypass selector position
     bool has_hardware_bypass_sensor = false; ///< true=auto-detect sensor, false=virtual/manual
+    TipMethod tip_method = TipMethod::CUT;   ///< How filament tip is handled during unload
+    bool supports_purge = false;             ///< Has purge capability after load
 
     // Tool-to-slot mapping (Happy Hare uses "gate" internally)
     std::vector<int> tool_to_slot_map; ///< tool_to_slot_map[tool] = slot

@@ -256,6 +256,17 @@ void ui_filament_path_canvas_set_bypass_callback(lv_obj_t* obj, filament_path_by
  */
 void ui_filament_path_canvas_set_faceted_toolhead(lv_obj_t* obj, bool faceted);
 
+/**
+ * @brief Set nozzle heat active state
+ *
+ * When heat is active, draws a pulsing orange/red glow around the nozzle tip
+ * to indicate the nozzle is heating. Uses an 800ms pulse cycle.
+ *
+ * @param obj The filament_path_canvas widget
+ * @param active true when nozzle is heating, false otherwise
+ */
+void ui_filament_path_canvas_set_heat_active(lv_obj_t* obj, bool active);
+
 #ifdef __cplusplus
 }
 #endif
