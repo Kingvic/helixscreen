@@ -47,6 +47,54 @@ translations:
 		exit 1; \
 	fi
 
+# Translation sync tool - manage translation string lifecycle
+TRANS_SYNC_SCRIPT := scripts/translation_sync.py
+
+# Sync translations: extract from XML/C++, merge new keys to YAML
+# Use translation-sync-dry-run first to preview changes
+.PHONY: translation-sync
+translation-sync:
+	$(ECHO) "$(CYAN)Syncing translation strings...$(RESET)"
+	$(Q)if [ -x "$(VENV_PYTHON_TRANS)" ]; then \
+		$(VENV_PYTHON_TRANS) $(TRANS_SYNC_SCRIPT) sync; \
+	else \
+		echo "$(RED)✗ Python venv not available - run 'make venv-setup'$(RESET)"; \
+		exit 1; \
+	fi
+
+# Preview sync without modifying files
+.PHONY: translation-sync-dry-run
+translation-sync-dry-run:
+	$(ECHO) "$(CYAN)Previewing translation sync...$(RESET)"
+	$(Q)if [ -x "$(VENV_PYTHON_TRANS)" ]; then \
+		$(VENV_PYTHON_TRANS) $(TRANS_SYNC_SCRIPT) sync --dry-run; \
+	else \
+		echo "$(RED)✗ Python venv not available - run 'make venv-setup'$(RESET)"; \
+		exit 1; \
+	fi
+
+# Show translation coverage statistics
+.PHONY: translation-coverage
+translation-coverage:
+	$(ECHO) "$(CYAN)Translation coverage report...$(RESET)"
+	$(Q)if [ -x "$(VENV_PYTHON_TRANS)" ]; then \
+		$(VENV_PYTHON_TRANS) $(TRANS_SYNC_SCRIPT) coverage --show-missing; \
+	else \
+		echo "$(RED)✗ Python venv not available - run 'make venv-setup'$(RESET)"; \
+		exit 1; \
+	fi
+
+# Find obsolete translation keys (not used in XML)
+.PHONY: translation-obsolete
+translation-obsolete:
+	$(ECHO) "$(CYAN)Finding obsolete translation keys...$(RESET)"
+	$(Q)if [ -x "$(VENV_PYTHON_TRANS)" ]; then \
+		$(VENV_PYTHON_TRANS) $(TRANS_SYNC_SCRIPT) obsolete; \
+	else \
+		echo "$(RED)✗ Python venv not available - run 'make venv-setup'$(RESET)"; \
+		exit 1; \
+	fi
+
 # Compile generated translation source
 # Uses SUBMODULE_CFLAGS since it's generated code
 $(OBJ_DIR)/generated/%.o: $(TRANS_GEN_DIR)/%.c

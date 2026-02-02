@@ -1,0 +1,6 @@
+locale: en
+translations:
+  "Print Files": "Print Files"
+  "Settings": "Settings"
+  "Existing Key": "Existing translation"
+  "Obsolete Key": "This key is not used in XML"
