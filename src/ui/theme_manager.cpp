@@ -1091,6 +1091,10 @@ void theme_manager_toggle_dark_mode() {
     // Force style refresh on entire widget tree for local/inline styles
     theme_manager_refresh_widget_tree(lv_screen_active());
 
+    // Apply palette colors to all widgets (labels, buttons, sliders, etc.)
+    // This updates C++-styled widgets that don't use shared LVGL styles
+    theme_apply_current_palette_to_tree(lv_screen_active());
+
     // Invalidate screen to trigger redraw
     lv_obj_invalidate(lv_screen_active());
 
@@ -1724,10 +1728,11 @@ void theme_apply_palette_to_widget(lv_obj_t* obj, const helix::ModePalette& pale
     if (lv_obj_check_type(obj, &lv_label_class)) {
         const lv_font_t* font = lv_obj_get_style_text_font(obj, LV_PART_MAIN);
 
-        // Icons (MDI font) get accent color
+        // Skip icons (MDI font) - they use the icon variant system with shared
+        // ThemeManager styles that auto-update on theme change. Setting inline
+        // colors here would override variant styles (muted, secondary, etc.)
+        // and HeatingIconAnimator's temperature-based colors.
         if (is_icon_font(font)) {
-            lv_color_t accent_color = theme_compute_more_saturated(primary, secondary);
-            lv_obj_set_style_text_color(obj, accent_color, LV_PART_MAIN);
             return;
         }
 
@@ -1910,7 +1915,9 @@ void theme_apply_current_palette_to_tree(lv_obj_t* root) {
     lv_color_t text_dark = text_dark_str ? theme_manager_parse_hex_color(text_dark_str)
                                          : theme_manager_parse_hex_color(palette.text.c_str());
 
-    spdlog::debug("[Theme] Applying current palette to tree root={}", lv_obj_get_name(root));
+    const char* root_name = lv_obj_get_name(root);
+    spdlog::debug("[Theme] Applying current palette to tree root={}",
+                  root_name ? root_name : "(screen)");
     theme_apply_palette_to_tree(root, palette, text_light, text_dark);
 }
 
