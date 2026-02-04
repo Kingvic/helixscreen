@@ -58,8 +58,19 @@ This directory contains research documentation on various 3D printers for HelixS
 | [ANYCUBIC_KOBRA_COREXY_RESEARCH.md](ANYCUBIC_KOBRA_COREXY_RESEARCH.md) | Kobra S1/3 series, ACE Pro, Rinkhals |
 | [CREALITY_K1_SERIES_RESEARCH.md](CREALITY_K1_SERIES_RESEARCH.md) | K1C, K1 Max, GuppyScreen |
 | [CREALITY_K2_PLUS_RESEARCH.md](CREALITY_K2_PLUS_RESEARCH.md) | K2 Plus, CFS multi-material |
+| [CREALITY_NEBULA_PAD_RESEARCH.md](CREALITY_NEBULA_PAD_RESEARCH.md) | Nebula Pad add-on touchscreen (competitor) |
 | [FLASHFORGE_AD5X_RESEARCH.md](FLASHFORGE_AD5X_RESEARCH.md) | AD5X, IFS multi-color, ZMOD |
 | [SNAPMAKER_U1_RESEARCH.md](SNAPMAKER_U1_RESEARCH.md) | U1 toolchanger, SnapSwap |
+
+## Competitor Devices (Add-on Touchscreens)
+
+| Device | Display | CPU | OS | Notes |
+|--------|---------|-----|-----|-------|
+| **Creality Nebula Pad** | 4.3" 480x272 resistive | Allwinner T113 (ARM) | Creality OS (proprietary) | Budget option, closed ecosystem |
+| **Creality Sonic Pad** | 7" 1024x600 capacitive | Allwinner H616 (ARM) | Klipper-based | More open, higher specs |
+| **BTT Pad 7** | 7" 1024x600 capacitive | Allwinner H616 (ARM) | Klipper + KlipperScreen | Open source friendly |
+
+These are direct competitors to HelixScreen as standalone touchscreen solutions for Klipper printers.
 
 ## Community Firmware Projects
 
