@@ -100,37 +100,34 @@ void update_button_text_contrast(lv_obj_t* btn) {
     // to maintain readability while indicating disabled
     lv_opa_t text_opa = is_disabled ? LV_OPA_70 : LV_OPA_COVER;
 
-    // Apply color and opacity to a label widget (skip semantic-colored icons)
-    auto apply_text_style = [&](lv_obj_t* obj) {
+    // Helper to set contrast color on a widget unconditionally
+    auto set_contrast = [&](lv_obj_t* obj) {
         if (!obj)
             return;
-        // Skip icon fonts that have semantic colors (e.g., warning, danger)
-        const lv_font_t* font = lv_obj_get_style_text_font(obj, LV_PART_MAIN);
-        if (is_mdi_icon_font(font)) {
-            // Only update icons using text-like colors (not semantic colors)
-            lv_color_t icon_color = lv_obj_get_style_text_color(obj, LV_PART_MAIN);
-            lv_color_t theme_text = theme_manager_get_color("text");
-            lv_color_t theme_muted = theme_manager_get_color("text_muted");
-            if (!lv_color_eq(icon_color, theme_text) && !lv_color_eq(icon_color, theme_muted))
-                return;
-        }
         lv_obj_set_style_text_color(obj, text_color, LV_PART_MAIN);
         lv_obj_set_style_text_opa(obj, text_opa, LV_PART_MAIN);
     };
 
-    // Apply to internal label and icon (standard ui_button with text= attr)
-    apply_text_style(data->label);
-    apply_text_style(data->icon);
+    // Button's own label and icon always get contrast colors -
+    // they're internal widgets that must match the button background
+    set_contrast(data->label);
+    set_contrast(data->icon);
 
     // Walk XML child labels for "shell" buttons (no text= attr) that use
-    // layout="column" with XML children (e.g., filament preset buttons)
+    // layout="column" with XML children (e.g., filament preset buttons).
+    // Skip icon-font children - they manage their own color via the variant
+    // system (e.g., nav bar icons with variant="primary"/"secondary")
+    // and should not be overridden by button contrast logic.
     if (!data->label && !data->icon) {
         uint32_t count = lv_obj_get_child_count(btn);
         for (uint32_t i = 0; i < count; i++) {
             lv_obj_t* child = lv_obj_get_child(btn, i);
-            if (lv_obj_check_type(child, &lv_label_class)) {
-                apply_text_style(child);
-            }
+            if (!lv_obj_check_type(child, &lv_label_class))
+                continue;
+            const lv_font_t* font = lv_obj_get_style_text_font(child, LV_PART_MAIN);
+            if (is_mdi_icon_font(font))
+                continue;
+            set_contrast(child);
         }
     }
 }
@@ -413,11 +410,17 @@ void* ui_button_create(lv_xml_parser_state_t* state, const char** attrs) {
     // Register event handlers
     lv_obj_add_event_cb(btn, button_style_changed_cb, LV_EVENT_STYLE_CHANGED, nullptr);
     lv_obj_add_event_cb(btn, button_style_changed_cb, LV_EVENT_STATE_CHANGED, nullptr);
-    lv_obj_add_event_cb(btn, button_style_changed_cb, LV_EVENT_CHILD_CHANGED, nullptr);
     lv_obj_add_event_cb(btn, button_delete_cb, LV_EVENT_DELETE, nullptr);
 
-    // Apply initial text contrast
+    // Apply initial text contrast for buttons with text=/icon= attrs
     update_button_text_contrast(btn);
+
+    // Defer a second pass for "shell" buttons whose XML children aren't
+    // created yet. By the time the async callback fires, children will have
+    // their fonts and variant styles applied, so contrast and icon-skip
+    // logic works correctly.
+    lv_async_call([](void* data) { update_button_text_contrast(static_cast<lv_obj_t*>(data)); },
+                  btn);
 
     const char* pos_name = icon_on_top      ? "top"
                            : icon_on_bottom ? "bottom"

@@ -495,24 +495,23 @@ static lv_theme_t* theme_init_lvgl(lv_display_t* display, const theme_palette_t*
 /**
  * @brief Update theme colors without full re-initialization
  */
-static void theme_update_colors(bool is_dark, const theme_palette_t* palette,
-                                int32_t border_opacity) {
+static void theme_update_colors(bool is_dark, int32_t border_opacity) {
     auto& tm = ThemeManager::instance();
     const auto& current = tm.current_palette();
 
-    // Convert and update both palettes
-    ThemePalette new_pal = convert_to_theme_palette(palette, current.border_radius,
-                                                    current.border_width, border_opacity);
+    // Build BOTH palettes from active_theme so each side keeps its own colors.
+    // The contrast system needs both palettes to detect text colors from either
+    // mode (e.g., recognizing dark-mode white as a text color after switching
+    // to light mode).
+    theme_palette_t dark_theme_pal = build_palette_from_mode(active_theme.dark);
+    theme_palette_t light_theme_pal = build_palette_from_mode(active_theme.light);
 
-    if (is_dark) {
-        // Update dark palette
-        ThemePalette light_pal = new_pal; // Keep symmetric for now
-        tm.set_palettes(light_pal, new_pal);
-    } else {
-        // Update light palette
-        ThemePalette dark_pal = new_pal;
-        tm.set_palettes(new_pal, dark_pal);
-    }
+    ThemePalette dark_pal = convert_to_theme_palette(&dark_theme_pal, current.border_radius,
+                                                     current.border_width, border_opacity);
+    ThemePalette light_pal = convert_to_theme_palette(&light_theme_pal, current.border_radius,
+                                                      current.border_width, border_opacity);
+
+    tm.set_palettes(light_pal, dark_pal);
 
     tm.set_dark_mode(is_dark);
     spdlog::debug("[Theme] Updated colors, dark_mode={}", is_dark);
@@ -1082,15 +1081,13 @@ void theme_manager_toggle_dark_mode() {
     use_dark_mode = new_use_dark_mode;
     spdlog::info("[Theme] Switching to {} mode", new_use_dark_mode ? "dark" : "light");
 
-    // Build palette from the new mode
+    // Log new mode's palette for debugging
     const helix::ModePalette& mode_palette = get_current_mode_palette();
-    theme_palette_t palette = build_palette_from_mode(mode_palette);
-
     spdlog::debug("[Theme] New colors: screen={}, card={}, text={}", mode_palette.screen_bg,
                   mode_palette.card_bg, mode_palette.text);
 
     // Update helix theme styles in-place (triggers lv_obj_report_style_change)
-    theme_update_colors(new_use_dark_mode, &palette, active_theme.properties.border_opacity);
+    theme_update_colors(new_use_dark_mode, active_theme.properties.border_opacity);
 
     // Re-register XML color constants with new dark mode value
     // This updates #screen_bg, #card_bg, etc. before the widget tree refresh
