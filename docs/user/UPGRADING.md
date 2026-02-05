@@ -13,12 +13,14 @@ curl -sSL https://raw.githubusercontent.com/prestonbrown/helixscreen/main/script
 
 **Adventurer 5M** (no HTTPS support - two-step process):
 ```bash
-# On your computer:
-wget https://github.com/prestonbrown/helixscreen/releases/latest/download/helixscreen-ad5m.tar.gz
-scp -O helixscreen-ad5m.tar.gz root@<printer-ip>:/data/
+# On your computer (replace vX.Y.Z with actual version):
+VERSION=vX.Y.Z  # Check latest at https://github.com/prestonbrown/helixscreen/releases/latest
+wget "https://github.com/prestonbrown/helixscreen/releases/download/${VERSION}/helixscreen-ad5m-${VERSION}.tar.gz"
+wget https://raw.githubusercontent.com/prestonbrown/helixscreen/main/scripts/install.sh
+scp -O helixscreen-ad5m-${VERSION}.tar.gz install.sh root@<printer-ip>:/data/
 
 # On the printer:
-sh /data/install.sh --local /data/helixscreen-ad5m.tar.gz --update
+sh /data/install.sh --local /data/helixscreen-ad5m-*.tar.gz --update
 ```
 
 This preserves your settings and updates to the latest version.

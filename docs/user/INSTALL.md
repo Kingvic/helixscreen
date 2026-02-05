@@ -188,20 +188,23 @@ The AD5M uses BusyBox which doesn't support HTTPS downloads directly. This is a 
 
 **Step 1: Download on your computer**
 
+Go to the [latest release page](https://github.com/prestonbrown/helixscreen/releases/latest) and download:
+- `helixscreen-ad5m-vX.Y.Z.tar.gz` (the AD5M release archive)
+- `install.sh` (the installer script, under "Assets")
+
+Or use the command line (replace `vX.Y.Z` with the actual version):
 ```bash
-# Download the latest release and installer
-wget https://github.com/prestonbrown/helixscreen/releases/latest/download/helixscreen-ad5m.tar.gz
+VERSION=vX.Y.Z  # Check latest at https://github.com/prestonbrown/helixscreen/releases/latest
+wget "https://github.com/prestonbrown/helixscreen/releases/download/${VERSION}/helixscreen-ad5m-${VERSION}.tar.gz"
 wget https://raw.githubusercontent.com/prestonbrown/helixscreen/main/scripts/install.sh
 ```
-
-Or download manually from: https://github.com/prestonbrown/helixscreen/releases/latest
 
 **Step 2: Copy to your printer**
 
 ```bash
 # AD5M requires -O flag for scp (BusyBox lacks sftp-server)
 # Note: Use /data/ not /tmp/ - AD5M's /tmp is a tiny tmpfs (~54MB)
-scp -O helixscreen-ad5m.tar.gz install.sh root@<printer-ip>:/data/
+scp -O helixscreen-ad5m-vX.Y.Z.tar.gz install.sh root@<printer-ip>:/data/
 ```
 
 **Step 3: SSH into the printer and run the installer**
@@ -211,7 +214,7 @@ scp -O helixscreen-ad5m.tar.gz install.sh root@<printer-ip>:/data/
 ssh root@<printer-ip>
 
 # Now on the printer, run the installer
-sh /data/install.sh --local /data/helixscreen-ad5m.tar.gz
+sh /data/install.sh --local /data/helixscreen-ad5m-vX.Y.Z.tar.gz
 ```
 
 The install script automatically detects your firmware (Forge-X or Klipper Mod) and installs to the correct location.
@@ -236,19 +239,20 @@ The install script automatically detects your firmware (Forge-X or Klipper Mod) 
 <summary>Forge-X Manual Installation</summary>
 
 ```bash
-# Download on your computer
-wget https://github.com/prestonbrown/helixscreen/releases/latest/download/helixscreen-ad5m.tar.gz
+# Download on your computer (replace vX.Y.Z with actual version)
+VERSION=vX.Y.Z
+wget "https://github.com/prestonbrown/helixscreen/releases/download/${VERSION}/helixscreen-ad5m-${VERSION}.tar.gz"
 
 # Copy to printer (AD5M requires scp -O for legacy protocol)
 # Note: Use /data/ not /tmp/ - AD5M's /tmp is a tiny tmpfs (~54MB)
-scp -O helixscreen-ad5m.tar.gz root@<printer-ip>:/data/
+scp -O helixscreen-ad5m-${VERSION}.tar.gz root@<printer-ip>:/data/
 
 # SSH into printer
 ssh root@<printer-ip>
 
 # Extract to /opt (Forge-X location)
 cd /opt
-gunzip -c /data/helixscreen-ad5m.tar.gz | tar xf -
+gunzip -c /data/helixscreen-ad5m-*.tar.gz | tar xf -
 
 # Stop GuppyScreen
 /opt/config/mod/.root/S80guppyscreen stop 2>/dev/null || true
@@ -262,7 +266,7 @@ chmod +x /etc/init.d/S90helixscreen
 /etc/init.d/S90helixscreen start
 
 # Clean up
-rm /data/helixscreen-ad5m.tar.gz
+rm /data/helixscreen-ad5m-*.tar.gz
 ```
 
 </details>
@@ -273,18 +277,19 @@ rm /data/helixscreen-ad5m.tar.gz
 > **Note:** Klipper Mod's `/tmp` is a small tmpfs (~54MB). The package is ~70MB, so we must use `/mnt/data` instead.
 
 ```bash
-# Download on your computer
-wget https://github.com/prestonbrown/helixscreen/releases/latest/download/helixscreen-ad5m.tar.gz
+# Download on your computer (replace vX.Y.Z with actual version)
+VERSION=vX.Y.Z
+wget "https://github.com/prestonbrown/helixscreen/releases/download/${VERSION}/helixscreen-ad5m-${VERSION}.tar.gz"
 
 # Copy to printer's data partition (NOT /tmp - it's too small!)
-scp -O helixscreen-ad5m.tar.gz root@<printer-ip>:/mnt/data/
+scp -O helixscreen-ad5m-${VERSION}.tar.gz root@<printer-ip>:/mnt/data/
 
 # SSH into printer
 ssh root@<printer-ip>
 
 # Extract to /root/printer_software (Klipper Mod location)
 cd /root/printer_software
-gunzip -c /mnt/data/helixscreen-ad5m.tar.gz | tar xf -
+gunzip -c /mnt/data/helixscreen-ad5m-*.tar.gz | tar xf -
 
 # Stop KlipperScreen
 /etc/init.d/S80klipperscreen stop 2>/dev/null || true
@@ -301,7 +306,7 @@ sed -i 's|DAEMON_DIR=.*|DAEMON_DIR="/root/printer_software/helixscreen"|' /etc/i
 /etc/init.d/S80helixscreen start
 
 # Clean up
-rm /mnt/data/helixscreen-ad5m.tar.gz
+rm /mnt/data/helixscreen-ad5m-*.tar.gz
 ```
 
 </details>
@@ -326,18 +331,23 @@ Use the touchscreen to complete the setup wizard. The printer should auto-detect
 
 ## First Boot & Setup Wizard
 
-When HelixScreen starts for the first time, a 7-step setup wizard guides you through configuration:
+When HelixScreen starts for the first time, a setup wizard guides you through configuration:
 
-### Step 1: Welcome
-Brief introduction to HelixScreen.
+### Step 1: Touchscreen Calibration
+Calibrate your touchscreen by tapping the targets. This ensures accurate touch input.
 
-### Step 2: WiFi Setup
-Connect to your wireless network. You can:
-- Select from detected networks
+> **Note:** This step may be skipped automatically for known tier-1 supported printers that ship with default calibration values. You can always recalibrate later from **Settings**.
+
+### Step 2: Language Selection
+Choose your preferred language.
+
+### Step 3: Network Setup
+Connect to your wireless network or configure Ethernet. You can:
+- Select from detected WiFi networks
 - Enter a hidden network name manually
-- Skip if using Ethernet
+- Skip if using Ethernet or already connected
 
-### Step 3: Moonraker Connection
+### Step 4: Moonraker Connection
 Enter your Moonraker host. For most setups:
 - **MainsailOS:** `localhost` or `127.0.0.1`
 - **AD5M:** `localhost`
@@ -345,29 +355,35 @@ Enter your Moonraker host. For most setups:
 
 The wizard will test the connection before proceeding.
 
-### Step 4: Printer Identification
+### Step 5: Printer Identification
 HelixScreen will try to identify your printer from its configuration. You can:
 - Confirm the detected printer type
 - Select from a database of 50+ printers
 - Enter custom settings
 
-### Step 5: Heater Selection
+### Step 6: Heater Selection
 Choose which heaters to display and control:
 - Hotend/nozzle heater
 - Bed heater
 - Chamber heater (if available)
 
-### Step 6: Fan Selection
+### Step 7: Fan Selection
 Select your cooling fans:
 - Part cooling fan
 - Hotend fan
 - Other auxiliary fans
 
-### Step 7: LED Selection (Optional)
+### Step 8: LED Selection (Optional)
 If your printer has controllable LEDs:
 - Chamber lights
 - Status LEDs
 - NeoPixel strips
+
+### Step 9: Input Shaper (Optional)
+Configure resonance compensation if your printer supports input shaping.
+
+### Step 10: Hardware Summary
+Review your configured hardware before completing setup.
 
 ### Completion
 After the wizard, you'll be taken to the home screen. Your settings are saved automatically.
@@ -524,7 +540,7 @@ chmod -x /etc/init.d/S99guppyscreen
 
 ### Check Current Version
 
-On the touchscreen: **Settings > About** shows the current version.
+On the touchscreen: **Settings** → scroll down to the bottom of the page to find the version number.
 
 Or via SSH, check the help output:
 ```bash
@@ -550,18 +566,33 @@ If you installed via the installer script, it automatically configures Moonraker
 
 The easiest way to update is using the install script with `--update`:
 
+**Raspberry Pi / Creality K1:**
 ```bash
-# All platforms (Pi, AD5M, K1)
 curl -sSL https://raw.githubusercontent.com/prestonbrown/helixscreen/main/scripts/install.sh | sh -s -- --update
+```
+
+**Adventurer 5M** (no HTTPS support - two-step process):
+```bash
+# On your computer (replace vX.Y.Z with actual version):
+VERSION=vX.Y.Z  # Check latest at https://github.com/prestonbrown/helixscreen/releases/latest
+wget "https://github.com/prestonbrown/helixscreen/releases/download/${VERSION}/helixscreen-ad5m-${VERSION}.tar.gz"
+wget https://raw.githubusercontent.com/prestonbrown/helixscreen/main/scripts/install.sh
+scp -O helixscreen-ad5m-${VERSION}.tar.gz install.sh root@<printer-ip>:/data/
+
+# On the printer:
+sh /data/install.sh --local /data/helixscreen-ad5m-*.tar.gz --update
 ```
 
 This preserves your configuration and updates to the latest version.
 
 ### Update to Specific Version
 
+**Raspberry Pi / Creality K1:**
 ```bash
 curl -sSL https://raw.githubusercontent.com/prestonbrown/helixscreen/main/scripts/install.sh | sh -s -- --update --version v1.2.0
 ```
+
+**Adventurer 5M:** Download the specific version tarball from [GitHub Releases](https://github.com/prestonbrown/helixscreen/releases), then use `--local` as shown above.
 
 ### Preserving Configuration
 
@@ -605,9 +636,14 @@ sudo systemctl restart moonraker
 
 The install script with `--uninstall` removes HelixScreen and **restores your previous UI** (GuppyScreen, KlipperScreen, etc.):
 
+**Raspberry Pi / Creality K1:**
 ```bash
-# All platforms (Pi, AD5M, K1)
 curl -sSL https://raw.githubusercontent.com/prestonbrown/helixscreen/main/scripts/install.sh | sh -s -- --uninstall
+```
+
+**Adventurer 5M** (use the install.sh already on the printer):
+```bash
+sh /data/install.sh --uninstall
 ```
 
 ### Manual Uninstall

@@ -82,11 +82,11 @@ setup_colors() {
 # Initialize colors immediately
 setup_colors
 
-# Logging functions
-log_info() { echo "${CYAN}[INFO]${NC} $1"; }
-log_success() { echo "${GREEN}[OK]${NC} $1"; }
-log_warn() { echo "${YELLOW}[WARN]${NC} $1"; }
-log_error() { echo "${RED}[ERROR]${NC} $1" >&2; }
+# Logging functions (use printf for BusyBox compatibility)
+log_info() { printf '%b[INFO]%b %s\n' "$CYAN" "$NC" "$1"; }
+log_success() { printf '%b[OK]%b %s\n' "$GREEN" "$NC" "$1"; }
+log_warn() { printf '%b[WARN]%b %s\n' "$YELLOW" "$NC" "$1"; }
+log_error() { printf '%b[ERROR]%b %s\n' "$RED" "$NC" "$1" >&2; }
 
 # Error handler - cleanup and report what went wrong
 # Usage: trap 'error_handler $LINENO' ERR
@@ -894,25 +894,25 @@ show_manual_install_instructions() {
     echo ""
     echo "  1. Download the release:"
     if [ "$version" = "latest" ]; then
-        echo "     ${CYAN}https://github.com/${GITHUB_REPO}/releases/latest${NC}"
+        printf '     %bhttps://github.com/%s/releases/latest%b\n' "$CYAN" "$GITHUB_REPO" "$NC"
     else
-        echo "     ${CYAN}https://github.com/${GITHUB_REPO}/releases/tag/${version}${NC}"
+        printf '     %bhttps://github.com/%s/releases/tag/%s%b\n' "$CYAN" "$GITHUB_REPO" "$version" "$NC"
     fi
     echo ""
-    echo "  2. Download: ${BOLD}helixscreen-${platform}.tar.gz${NC}"
+    printf '  2. Download: %bhelixscreen-%s.tar.gz%b\n' "$BOLD" "$platform" "$NC"
     echo ""
     echo "  3. Copy to this device (note: AD5M needs -O flag):"
     if [ "$platform" = "ad5m" ]; then
         # AD5M /tmp is a tiny tmpfs (~54MB), use /data/ instead
-        echo "     ${CYAN}scp -O helixscreen-${platform}.tar.gz root@<this-ip>:/data/${NC}"
+        printf '     %bscp -O helixscreen-%s.tar.gz root@<this-ip>:/data/%b\n' "$CYAN" "$platform" "$NC"
         echo ""
         echo "  4. Run the installer with the local file:"
-        echo "     ${CYAN}sh /data/install.sh --local /data/helixscreen-${platform}.tar.gz${NC}"
+        printf '     %bsh /data/install.sh --local /data/helixscreen-%s.tar.gz%b\n' "$CYAN" "$platform" "$NC"
     else
-        echo "     ${CYAN}scp helixscreen-${platform}.tar.gz root@<this-ip>:/tmp/${NC}"
+        printf '     %bscp helixscreen-%s.tar.gz root@<this-ip>:/tmp/%b\n' "$CYAN" "$platform" "$NC"
         echo ""
         echo "  4. Run the installer with the local file:"
-        echo "     ${CYAN}sh /tmp/install.sh --local /tmp/helixscreen-${platform}.tar.gz${NC}"
+        printf '     %bsh /tmp/install.sh --local /tmp/helixscreen-%s.tar.gz%b\n' "$CYAN" "$platform" "$NC"
     fi
     echo ""
     exit 1
@@ -1701,14 +1701,14 @@ main() {
     done
 
     echo ""
-    echo "${BOLD}========================================${NC}"
-    echo "${BOLD}       HelixScreen Installer${NC}"
-    echo "${BOLD}========================================${NC}"
+    printf '%b========================================%b\n' "$BOLD" "$NC"
+    printf '%b       HelixScreen Installer%b\n' "$BOLD" "$NC"
+    printf '%b========================================%b\n' "$BOLD" "$NC"
     echo ""
 
     # Detect platform
     platform=$(detect_platform)
-    log_info "Detected platform: ${BOLD}${platform}${NC}"
+    printf '%b[INFO]%b Detected platform: %b%s%b\n' "$CYAN" "$NC" "$BOLD" "$platform" "$NC"
 
     if [ "$platform" = "unsupported" ]; then
         log_error "Unsupported platform: $(uname -m)"
@@ -1808,9 +1808,9 @@ main() {
     cleanup_on_success
 
     echo ""
-    echo "${GREEN}${BOLD}========================================${NC}"
-    echo "${GREEN}${BOLD}    Installation Complete!${NC}"
-    echo "${GREEN}${BOLD}========================================${NC}"
+    printf '%b%b========================================%b\n' "$GREEN" "$BOLD" "$NC"
+    printf '%b%b    Installation Complete!%b\n' "$GREEN" "$BOLD" "$NC"
+    printf '%b%b========================================%b\n' "$GREEN" "$BOLD" "$NC"
     echo ""
     echo "HelixScreen ${version} installed to ${INSTALL_DIR}"
     echo ""

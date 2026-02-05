@@ -95,10 +95,9 @@ mkdir -p "$OUTPUT_DIR"
 package_platform() {
     local platform=$1
     local build_dir="${PROJECT_DIR}/build/${platform}"
-    # Use simple filename for GitHub releases/latest/download URL pattern
-    # Version is tracked in the VERSION file inside the tarball and git tag
+    # Include version in filename to match install.sh and release.yml expectations
     local pkg_dir="${OUTPUT_DIR}/helixscreen"
-    local tarball="${OUTPUT_DIR}/helixscreen-${platform}.tar.gz"
+    local tarball="${OUTPUT_DIR}/helixscreen-${platform}-${VERSION}.tar.gz"
 
     log_info "Packaging ${platform}..."
 

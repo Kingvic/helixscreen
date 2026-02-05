@@ -276,15 +276,16 @@ ps --no-headers -o comm 1
 
 3. **Download and copy from your computer** (AD5M lacks HTTPS support):
    ```bash
-   # On your computer:
-   wget https://github.com/prestonbrown/helixscreen/releases/latest/download/helixscreen-ad5m.tar.gz
+   # On your computer (replace vX.Y.Z with actual version):
+   VERSION=vX.Y.Z
+   wget "https://github.com/prestonbrown/helixscreen/releases/download/${VERSION}/helixscreen-ad5m-${VERSION}.tar.gz"
    wget https://raw.githubusercontent.com/prestonbrown/helixscreen/main/scripts/install.sh
-   scp -O helixscreen-ad5m.tar.gz install.sh root@<printer-ip>:/data/
+   scp -O helixscreen-ad5m-${VERSION}.tar.gz install.sh root@<printer-ip>:/data/
    ```
 
 4. **Run installer on printer:**
    ```bash
-   sh /data/install.sh --local /data/helixscreen-ad5m.tar.gz
+   sh /data/install.sh --local /data/helixscreen-ad5m-*.tar.gz
    ```
 
 5. **Verify installation:**
@@ -335,14 +336,16 @@ ps --no-headers -o comm 1
 
 1. **Download new release and copy** (same two-step process):
    ```bash
-   # On your computer:
-   wget https://github.com/prestonbrown/helixscreen/releases/latest/download/helixscreen-ad5m.tar.gz
-   scp -O helixscreen-ad5m.tar.gz root@<printer-ip>:/data/
+   # On your computer (replace vX.Y.Z with actual version):
+   VERSION=vX.Y.Z
+   wget "https://github.com/prestonbrown/helixscreen/releases/download/${VERSION}/helixscreen-ad5m-${VERSION}.tar.gz"
+   wget https://raw.githubusercontent.com/prestonbrown/helixscreen/main/scripts/install.sh
+   scp -O helixscreen-ad5m-${VERSION}.tar.gz install.sh root@<printer-ip>:/data/
    ```
 
 2. **Run with --update:**
    ```bash
-   sh /data/install.sh --local /data/helixscreen-ad5m.tar.gz --update
+   sh /data/install.sh --local /data/helixscreen-ad5m-*.tar.gz --update
    ```
 
 3. **Verify config preserved:**
@@ -394,15 +397,16 @@ ps --no-headers -o comm 1
 
 3. **Download and copy from your computer** (AD5M lacks HTTPS support):
    ```bash
-   # On your computer:
-   wget https://github.com/prestonbrown/helixscreen/releases/latest/download/helixscreen-ad5m.tar.gz
+   # On your computer (replace vX.Y.Z with actual version):
+   VERSION=vX.Y.Z
+   wget "https://github.com/prestonbrown/helixscreen/releases/download/${VERSION}/helixscreen-ad5m-${VERSION}.tar.gz"
    wget https://raw.githubusercontent.com/prestonbrown/helixscreen/main/scripts/install.sh
-   scp -O helixscreen-ad5m.tar.gz install.sh root@<printer-ip>:/data/
+   scp -O helixscreen-ad5m-${VERSION}.tar.gz install.sh root@<printer-ip>:/mnt/data/
    ```
 
 4. **Run installer on printer:**
    ```bash
-   sh /data/install.sh --local /data/helixscreen-ad5m.tar.gz
+   sh /mnt/data/install.sh --local /mnt/data/helixscreen-ad5m-*.tar.gz
    ```
 
 5. **Verify installation:**
