@@ -105,6 +105,7 @@ static const IconMapping ICON_MAP[] = {
     {"fan",                "\xF3\xB0\x88\x90"},  // F0210 fan
     {"fan_off",            "\xF3\xB0\xA0\x9D"},  // F081D fan-off
     {"filament",           "\xF3\xB0\xB9\x9B"},  // F0E5B printer-3d-nozzle
+    {"filament_alert",     "\xF3\xB1\x87\x80"},  // F11C0 printer-3d-nozzle-alert
     {"fine_tune",          "\xF3\xB0\x98\xAE"},  // F062E tune
     {"fire",               "\xF3\xB0\x88\xB8"},  // F0238 fire
     {"flash",              "\xF3\xB0\x89\x81"},  // F0241 flash (lightning bolt)

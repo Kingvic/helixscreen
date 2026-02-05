@@ -215,6 +215,7 @@ MDI_ICONS+=",0xF1A56"    # lightbulb-on-90
 MDI_ICONS+=",0xF06E8"    # lightbulb-on (100%)
 
 MDI_ICONS+=",0xF0E5B"    # printer-3d-nozzle (extruder)
+MDI_ICONS+=",0xF11C0"    # printer-3d-nozzle-alert (filament sensor empty)
 MDI_ICONS+=",0xF0EC7"    # rotate-3d (orbit/3D view rotation)
 MDI_ICONS+=",0xF0F85"    # speedometer-medium (speed-up)
 MDI_ICONS+=",0xF0F86"    # speedometer-slow (speed-down)

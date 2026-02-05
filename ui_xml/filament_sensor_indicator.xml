@@ -1,23 +1,22 @@
 <?xml version="1.0"?>
 <!-- Copyright (C) 2025-2026 356C LLC -->
 <!-- SPDX-License-Identifier: GPL-3.0-or-later -->
-<!-- Filament sensor indicator - colored dot showing sensor state -->
-<!-- Green=detected(1), Red=empty(0), Hidden=no sensor(-1) or disabled -->
+<!-- Filament sensor indicator - nozzle icon showing sensor state -->
+<!-- Green nozzle=detected(1), Red nozzle-alert=empty(0), Hidden=no sensor(-1) or disabled -->
 <component>
-  <!-- Local style definitions referencing global tokens -->
-  <styles>
-    <style name="filament_loaded" bg_color="#success"/>
-    <style name="filament_empty" bg_color="#danger"/>
-  </styles>
   <view name="filament_sensor_indicator"
-        extends="lv_obj" width="16" height="16" style_radius="1000" style_border_width="0" style_bg_opa="255"
-        scrollable="false">
+        extends="lv_obj" width="content" height="content" style_pad_all="0" scrollable="false">
     <!-- Hidden when no sensor (value=-1) -->
     <bind_flag_if_eq subject="filament_runout_detected" flag="hidden" ref_value="-1"/>
     <!-- Hidden when master disabled -->
     <bind_flag_if_eq subject="filament_master_enabled" flag="hidden" ref_value="0"/>
-    <!-- Color bindings based on state -->
-    <bind_style name="filament_loaded" subject="filament_runout_detected" ref_value="1"/>
-    <bind_style name="filament_empty" subject="filament_runout_detected" ref_value="0"/>
+    <!-- Loaded: green nozzle -->
+    <icon src="filament" size="sm" variant="success">
+      <bind_flag_if_not_eq subject="filament_runout_detected" flag="hidden" ref_value="1"/>
+    </icon>
+    <!-- Empty: red nozzle-alert -->
+    <icon src="filament_alert" size="sm" variant="danger">
+      <bind_flag_if_not_eq subject="filament_runout_detected" flag="hidden" ref_value="0"/>
+    </icon>
   </view>
 </component>
