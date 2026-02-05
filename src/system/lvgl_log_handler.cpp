@@ -234,6 +234,11 @@ void lvgl_log_callback(lv_log_level_t level, const char* buf) {
           msg.find("which is less than") != std::string::npos) &&
          (msg.find("ver. res") != std::string::npos || msg.find("hor. res") != std::string::npos));
 
+    // Downgrade missing translation warnings to debug level
+    // Expected when languages have incomplete translations - not actionable at runtime
+    bool is_missing_translation = (level == LV_LOG_LEVEL_WARN &&
+                                   msg.find("language is missing from tag") != std::string::npos);
+
     // Route to appropriate spdlog level
     switch (level) {
     case LV_LOG_LEVEL_TRACE:
@@ -243,7 +248,7 @@ void lvgl_log_callback(lv_log_level_t level, const char* buf) {
         spdlog::info("[LVGL] {}", msg);
         break;
     case LV_LOG_LEVEL_WARN:
-        if (is_scroll_boundary_warning) {
+        if (is_scroll_boundary_warning || is_missing_translation) {
             spdlog::debug("[LVGL] {}", msg);
         } else {
             spdlog::warn("[LVGL] {}", msg);
