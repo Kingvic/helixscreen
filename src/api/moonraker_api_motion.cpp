@@ -244,8 +244,14 @@ void MoonrakerAPI::set_fan_speed(const std::string& fan, double speed, SuccessCa
         // Part cooling fan uses M106
         gcode << "M106 S" << fan_value;
     } else {
-        // Generic fans use SET_FAN_SPEED
-        gcode << "SET_FAN_SPEED FAN=" << fan << " SPEED=" << (speed / 100.0);
+        // Generic fans use SET_FAN_SPEED with just the fan name (strip Klipper type prefix)
+        // e.g., "fan_generic Fanm106" -> "Fanm106", "fan_generic chamber_fan" -> "chamber_fan"
+        std::string fan_name = fan;
+        size_t space_pos = fan_name.find(' ');
+        if (space_pos != std::string::npos) {
+            fan_name = fan_name.substr(space_pos + 1);
+        }
+        gcode << "SET_FAN_SPEED FAN=" << fan_name << " SPEED=" << (speed / 100.0);
     }
 
     spdlog::info("[Moonraker API] Setting {} speed to {}%", fan, speed);

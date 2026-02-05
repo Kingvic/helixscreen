@@ -896,3 +896,162 @@ TEST_CASE("Fan characterization: fan with unusual name format", "[characterizati
         REQUIRE(state.get_fans()[0].is_controllable == false);
     }
 }
+
+// ============================================================================
+// FanRoleConfig Tests - Configured fan role classification and naming
+// ============================================================================
+
+TEST_CASE("Fan role config: configured part fan classified as PART_COOLING", "[fan][role_config]") {
+    lv_init_safe();
+
+    PrinterState& state = get_printer_state();
+    state.reset_for_testing();
+    state.init_subjects(false);
+
+    helix::FanRoleConfig roles;
+    roles.part_fan = "fan_generic Fanm106";
+
+    state.init_fans(
+        {"fan", "fan_generic Fanm106", "heater_fan heat_fan", "fan_generic chamber_fan"}, roles);
+
+    const auto& fans = state.get_fans();
+
+    SECTION("canonical 'fan' is still PART_COOLING") {
+        REQUIRE(fans[0].type == helix::FanType::PART_COOLING);
+    }
+
+    SECTION("configured part fan is classified as PART_COOLING") {
+        REQUIRE(fans[1].type == helix::FanType::PART_COOLING);
+        REQUIRE(fans[1].is_controllable == true);
+    }
+
+    SECTION("other fans retain normal classification") {
+        REQUIRE(fans[2].type == helix::FanType::HEATER_FAN);
+        REQUIRE(fans[3].type == helix::FanType::GENERIC_FAN);
+    }
+}
+
+TEST_CASE("Fan role config: display name overrides from configured roles",
+          "[fan][role_config][display_name]") {
+    lv_init_safe();
+
+    PrinterState& state = get_printer_state();
+    state.reset_for_testing();
+    state.init_subjects(false);
+
+    helix::FanRoleConfig roles;
+    roles.part_fan = "fan_generic Fanm106";
+    roles.hotend_fan = "heater_fan heat_fan";
+    roles.chamber_fan = "fan_generic chamber_fan";
+    roles.exhaust_fan = "fan_generic external_fan";
+
+    state.init_fans({"fan", "fan_generic Fanm106", "heater_fan heat_fan", "fan_generic chamber_fan",
+                     "fan_generic external_fan", "controller_fan driver_fan"},
+                    roles);
+
+    const auto& fans = state.get_fans();
+
+    SECTION("canonical 'fan' uses direct mapping, not role override") {
+        // "fan" has a direct mapping to "Part Cooling Fan" in device_display_name
+        REQUIRE(fans[0].display_name == "Part Cooling Fan");
+    }
+
+    SECTION("configured part fan gets 'Part Fan' display name") {
+        REQUIRE(fans[1].display_name == "Part Fan");
+    }
+
+    SECTION("configured hotend fan gets 'Hotend Fan' display name") {
+        REQUIRE(fans[2].display_name == "Hotend Fan");
+    }
+
+    SECTION("configured chamber fan gets 'Chamber Fan' display name") {
+        REQUIRE(fans[3].display_name == "Chamber Fan");
+    }
+
+    SECTION("configured exhaust fan gets 'Exhaust Fan' display name") {
+        REQUIRE(fans[4].display_name == "Exhaust Fan");
+    }
+
+    SECTION("unconfigured fan uses auto-generated display name") {
+        // "controller_fan driver_fan" not in any role config -> auto-generated
+        REQUIRE(fans[5].display_name == "Driver Fan");
+    }
+}
+
+TEST_CASE("Fan role config: empty roles uses default behavior", "[fan][role_config]") {
+    lv_init_safe();
+
+    PrinterState& state = get_printer_state();
+    state.reset_for_testing();
+    state.init_subjects(false);
+
+    // Default-constructed FanRoleConfig has empty strings
+    helix::FanRoleConfig roles;
+
+    state.init_fans({"fan", "fan_generic Fanm106"}, roles);
+
+    const auto& fans = state.get_fans();
+
+    SECTION("without role config, fan_generic is GENERIC_FAN") {
+        REQUIRE(fans[1].type == helix::FanType::GENERIC_FAN);
+    }
+
+    SECTION("without role config, fan_generic gets auto-generated name") {
+        REQUIRE(fans[1].display_name == "Fanm106 Fan");
+    }
+}
+
+TEST_CASE("Fan role config: configured part fan updates hero slider subject",
+          "[fan][role_config][update]") {
+    lv_init_safe();
+
+    PrinterState& state = get_printer_state();
+    state.reset_for_testing();
+    state.init_subjects(false);
+
+    helix::FanRoleConfig roles;
+    roles.part_fan = "fan_generic Fanm106";
+
+    state.init_fans({"fan_generic Fanm106"}, roles);
+
+    SECTION("configured part fan speed updates main fan_speed subject") {
+        json status = {{"fan_generic Fanm106", {{"speed", 0.69}}}};
+        state.update_from_status(status);
+
+        // Main hero slider subject should reflect configured part fan speed
+        REQUIRE(lv_subject_get_int(state.get_fan_speed_subject()) == 69);
+    }
+
+    SECTION("per-fan subject also updates") {
+        json status = {{"fan_generic Fanm106", {{"speed", 0.42}}}};
+        state.update_from_status(status);
+
+        REQUIRE(lv_subject_get_int(state.get_fan_speed_subject("fan_generic Fanm106")) == 42);
+    }
+}
+
+TEST_CASE("Fan role config: canonical 'fan' part_fan does not create redundant override",
+          "[fan][role_config]") {
+    lv_init_safe();
+
+    PrinterState& state = get_printer_state();
+    state.reset_for_testing();
+    state.init_subjects(false);
+
+    // When the configured part fan IS the canonical "fan", don't add a role override
+    // (it already has a direct mapping to "Part Cooling Fan")
+    helix::FanRoleConfig roles;
+    roles.part_fan = "fan";
+
+    state.init_fans({"fan"}, roles);
+
+    const auto& fans = state.get_fans();
+
+    SECTION("canonical fan keeps direct mapping name") {
+        REQUIRE(fans[0].display_name == "Part Cooling Fan");
+    }
+
+    SECTION("still classified as PART_COOLING") {
+        REQUIRE(fans[0].type == helix::FanType::PART_COOLING);
+    }
+}

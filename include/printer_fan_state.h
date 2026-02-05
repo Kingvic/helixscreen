@@ -11,14 +11,33 @@
 
 #include "hv/json.hpp"
 
+class Config;
+
 namespace helix {
 
 /// Fan type classification for display and control
 enum class FanType {
-    PART_COOLING,   ///< Main part cooling fan ("fan")
+    PART_COOLING,   ///< Main part cooling fan ("fan" or configured part fan)
     HEATER_FAN,     ///< Hotend cooling fan (auto-controlled, not user-adjustable)
     CONTROLLER_FAN, ///< Electronics cooling (auto-controlled)
     GENERIC_FAN     ///< User-controllable generic fan (fan_generic)
+};
+
+/**
+ * @brief Wizard-configured fan role assignments
+ *
+ * Maps fan roles to Moonraker object names. Used to:
+ * - Correctly classify the configured part fan (even if it's a fan_generic)
+ * - Override display names with role-based names for configured fans
+ */
+struct FanRoleConfig {
+    std::string part_fan;    ///< Configured part cooling fan object name
+    std::string hotend_fan;  ///< Configured hotend fan object name
+    std::string chamber_fan; ///< Configured chamber fan object name
+    std::string exhaust_fan; ///< Configured exhaust fan object name
+
+    /// Build from wizard config. Returns empty roles if config is null.
+    static FanRoleConfig from_config(Config* config);
 };
 
 /**
@@ -76,8 +95,9 @@ class PrinterFanState {
     /**
      * @brief Initialize fan tracking from discovered fan objects
      * @param fan_objects List of Moonraker fan object names
+     * @param roles Wizard-configured fan role assignments (for naming and classification)
      */
-    void init_fans(const std::vector<std::string>& fan_objects);
+    void init_fans(const std::vector<std::string>& fan_objects, const FanRoleConfig& roles = {});
 
     /**
      * @brief Update speed for a specific fan (called during status updates)
@@ -114,11 +134,14 @@ class PrinterFanState {
     }
 
   private:
-    /// Classify fan type from object name
-    static FanType classify_fan_type(const std::string& object_name);
+    /// Classify fan type from object name (considers configured part fan)
+    FanType classify_fan_type(const std::string& object_name) const;
 
     /// Check if fan type is user-controllable
     static bool is_fan_controllable(FanType type);
+
+    /// Get role-based display name override, or empty string if none
+    std::string get_role_display_name(const std::string& object_name) const;
 
     SubjectManager subjects_;
     bool subjects_initialized_ = false;
@@ -132,6 +155,11 @@ class PrinterFanState {
 
     // Fan metadata
     std::vector<FanInfo> fans_;
+
+    // Configured fan roles from wizard config
+    FanRoleConfig roles_;
+    /// Maps configured fan object names to role display names
+    std::unordered_map<std::string, std::string> role_display_names_;
 };
 
 } // namespace helix

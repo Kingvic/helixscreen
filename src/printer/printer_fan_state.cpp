@@ -10,6 +10,7 @@
 
 #include "printer_fan_state.h"
 
+#include "config.h"
 #include "device_display_name.h"
 #include "state/subject_macros.h"
 #include "unit_conversions.h"
@@ -17,6 +18,18 @@
 #include <spdlog/spdlog.h>
 
 namespace helix {
+
+FanRoleConfig FanRoleConfig::from_config(Config* config) {
+    FanRoleConfig roles;
+    if (!config) {
+        return roles;
+    }
+    roles.part_fan = config->get<std::string>(config->df() + "fans/part", "fan");
+    roles.hotend_fan = config->get<std::string>(config->df() + "fans/hotend", "");
+    roles.chamber_fan = config->get<std::string>(config->df() + "fans/chamber", "");
+    roles.exhaust_fan = config->get<std::string>(config->df() + "fans/exhaust", "");
+    return roles;
+}
 
 void PrinterFanState::init_subjects(bool register_xml) {
     if (subjects_initialized_) {
@@ -57,9 +70,11 @@ void PrinterFanState::update_from_status(const nlohmann::json& status) {
     // Update main part-cooling fan speed
     if (status.contains("fan")) {
         const auto& fan = status["fan"];
+        spdlog::debug("[PrinterFanState] Received fan status update: {}", fan.dump());
 
         if (fan.contains("speed") && fan["speed"].is_number()) {
             int speed_pct = units::json_to_percent(fan, "speed");
+            spdlog::debug("[PrinterFanState] Fan speed update: {}%", speed_pct);
             lv_subject_set_int(&fan_speed_, speed_pct);
 
             // Also update multi-fan tracking
@@ -77,6 +92,13 @@ void PrinterFanState::update_from_status(const nlohmann::json& status) {
             if (value.is_object() && value.contains("speed") && value["speed"].is_number()) {
                 double speed = value["speed"].get<double>();
                 update_fan_speed(key, speed);
+
+                // If this is the configured part fan, also update the main fan_speed_ subject
+                // so the hero slider tracks the actual part fan speed
+                if (!roles_.part_fan.empty() && key == roles_.part_fan) {
+                    int speed_pct = units::json_to_percent(value, "speed");
+                    lv_subject_set_int(&fan_speed_, speed_pct);
+                }
             }
         }
     }
@@ -104,10 +126,15 @@ void PrinterFanState::reset_for_testing() {
     subjects_initialized_ = false;
 }
 
-FanType PrinterFanState::classify_fan_type(const std::string& object_name) {
+FanType PrinterFanState::classify_fan_type(const std::string& object_name) const {
     if (object_name == "fan") {
         return FanType::PART_COOLING;
-    } else if (object_name.rfind("heater_fan ", 0) == 0) {
+    }
+    // Check if this fan is the wizard-configured part cooling fan
+    if (!roles_.part_fan.empty() && object_name == roles_.part_fan) {
+        return FanType::PART_COOLING;
+    }
+    if (object_name.rfind("heater_fan ", 0) == 0) {
         return FanType::HEATER_FAN;
     } else if (object_name.rfind("controller_fan ", 0) == 0) {
         return FanType::CONTROLLER_FAN;
@@ -116,11 +143,20 @@ FanType PrinterFanState::classify_fan_type(const std::string& object_name) {
     }
 }
 
+std::string PrinterFanState::get_role_display_name(const std::string& object_name) const {
+    auto it = role_display_names_.find(object_name);
+    if (it != role_display_names_.end()) {
+        return it->second;
+    }
+    return {};
+}
+
 bool PrinterFanState::is_fan_controllable(FanType type) {
     return type == FanType::PART_COOLING || type == FanType::GENERIC_FAN;
 }
 
-void PrinterFanState::init_fans(const std::vector<std::string>& fan_objects) {
+void PrinterFanState::init_fans(const std::vector<std::string>& fan_objects,
+                                const FanRoleConfig& roles) {
     // Deinit existing per-fan subjects before clearing (unique_ptr handles memory)
     for (auto& [name, subject_ptr] : fan_speed_subjects_) {
         if (subject_ptr) {
@@ -128,6 +164,30 @@ void PrinterFanState::init_fans(const std::vector<std::string>& fan_objects) {
         }
     }
     fan_speed_subjects_.clear();
+
+    // Store configured fan roles for classification and naming
+    roles_ = roles;
+    role_display_names_.clear();
+
+    // Build role-based display name overrides for configured fans.
+    // Configured fans use their role name; unconfigured fans use auto-generated names.
+    if (!roles_.part_fan.empty() && roles_.part_fan != "fan") {
+        role_display_names_[roles_.part_fan] = "Part Fan";
+    }
+    if (!roles_.hotend_fan.empty()) {
+        role_display_names_[roles_.hotend_fan] = "Hotend Fan";
+    }
+    if (!roles_.chamber_fan.empty()) {
+        role_display_names_[roles_.chamber_fan] = "Chamber Fan";
+    }
+    if (!roles_.exhaust_fan.empty()) {
+        role_display_names_[roles_.exhaust_fan] = "Exhaust Fan";
+    }
+
+    spdlog::debug("[PrinterFanState] Fan role config: part='{}' hotend='{}' chamber='{}' "
+                  "exhaust='{}' ({} display overrides)",
+                  roles_.part_fan, roles_.hotend_fan, roles_.chamber_fan, roles_.exhaust_fan,
+                  role_display_names_.size());
 
     fans_.clear();
     fans_.reserve(fan_objects.size());
@@ -139,7 +199,12 @@ void PrinterFanState::init_fans(const std::vector<std::string>& fan_objects) {
     for (const auto& obj_name : fan_objects) {
         FanInfo info;
         info.object_name = obj_name;
-        info.display_name = get_display_name(obj_name, DeviceType::FAN);
+
+        // Use role-based display name if configured, otherwise auto-generate
+        std::string role_name = get_role_display_name(obj_name);
+        info.display_name =
+            role_name.empty() ? get_display_name(obj_name, DeviceType::FAN) : role_name;
+
         info.type = classify_fan_type(obj_name);
         info.is_controllable = is_fan_controllable(info.type);
         info.speed_percent = 0;
