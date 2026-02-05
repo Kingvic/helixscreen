@@ -481,11 +481,8 @@ lv_color_t theme_manager_get_contrast_text(lv_color_t bg_color);
  *
  * @param obj Widget to style
  * @param palette Colors to apply
- * @param text_light Light text color (for contrast on dark backgrounds)
- * @param text_dark Dark text color (for contrast on light backgrounds)
  */
-void theme_apply_palette_to_widget(lv_obj_t* obj, const helix::ModePalette& palette,
-                                   lv_color_t text_light, lv_color_t text_dark);
+void theme_apply_palette_to_widget(lv_obj_t* obj, const helix::ModePalette& palette);
 
 /**
  * @brief Apply palette colors to all widgets in a tree
@@ -495,11 +492,8 @@ void theme_apply_palette_to_widget(lv_obj_t* obj, const helix::ModePalette& pale
  *
  * @param root Root widget of the tree to style
  * @param palette Colors to apply
- * @param text_light Light text color (for button contrast)
- * @param text_dark Dark text color (for button contrast)
  */
-void theme_apply_palette_to_tree(lv_obj_t* root, const helix::ModePalette& palette,
-                                 lv_color_t text_light, lv_color_t text_dark);
+void theme_apply_palette_to_tree(lv_obj_t* root, const helix::ModePalette& palette);
 
 /**
  * @brief Apply palette to any open dropdown lists on the screen

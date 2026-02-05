@@ -41,28 +41,32 @@ static const lv_font_t* get_button_icon_font() {
 }
 
 /**
- * @brief Update button label and icon text color based on button bg luminance
+ * @brief Check if a font is one of the MDI icon fonts
  *
- * Computes luminance using standard formula:
- *   L = (299*R + 587*G + 114*B) / 1000
+ * NOTE: Duplicates is_icon_font() in theme_manager.cpp (both are file-local static).
+ * If new icon font sizes are added, update both.
+ */
+static bool is_mdi_icon_font(const lv_font_t* font) {
+    if (!font)
+        return false;
+    return font == &mdi_icons_16 || font == &mdi_icons_24 || font == &mdi_icons_32 ||
+           font == &mdi_icons_48 || font == &mdi_icons_64;
+}
+
+/**
+ * @brief Update button text color for contrast against the button background
  *
- * If L < 128 (dark bg): use light text color
- * If L >= 128 (light bg): use dark text color
+ * Handles both internal label/icon (from text= attr) and XML child labels
+ * (from layout="column" buttons with text_body/text_small children).
+ * Uses theme_manager_get_contrast_text() to pick dark vs light text.
  *
  * @param btn The button widget
  */
 void update_button_text_contrast(lv_obj_t* btn) {
-    // Get user data to find icon and label
     // Check magic to ensure user_data hasn't been overwritten (e.g., by Modal::wire_button)
     UiButtonData* data = static_cast<UiButtonData*>(lv_obj_get_user_data(btn));
     if (!data || data->magic != UiButtonData::MAGIC) {
         // Normal for buttons whose user_data was repurposed (e.g., Modal::wire_button)
-        return;
-    }
-
-    // Need at least one of icon or label to update
-    if (!data->label && !data->icon) {
-        // Normal during creation sequence - label/icon not yet attached
         return;
     }
 
@@ -96,16 +100,39 @@ void update_button_text_contrast(lv_obj_t* btn) {
     // to maintain readability while indicating disabled
     lv_opa_t text_opa = is_disabled ? LV_OPA_70 : LV_OPA_COVER;
 
-    // Apply color and opacity to label and icon
+    // Apply color and opacity to a label widget (skip semantic-colored icons)
     auto apply_text_style = [&](lv_obj_t* obj) {
-        if (obj) {
-            lv_obj_set_style_text_color(obj, text_color, LV_PART_MAIN);
-            lv_obj_set_style_text_opa(obj, text_opa, LV_PART_MAIN);
+        if (!obj)
+            return;
+        // Skip icon fonts that have semantic colors (e.g., warning, danger)
+        const lv_font_t* font = lv_obj_get_style_text_font(obj, LV_PART_MAIN);
+        if (is_mdi_icon_font(font)) {
+            // Only update icons using text-like colors (not semantic colors)
+            lv_color_t icon_color = lv_obj_get_style_text_color(obj, LV_PART_MAIN);
+            lv_color_t theme_text = theme_manager_get_color("text");
+            lv_color_t theme_muted = theme_manager_get_color("text_muted");
+            if (!lv_color_eq(icon_color, theme_text) && !lv_color_eq(icon_color, theme_muted))
+                return;
         }
+        lv_obj_set_style_text_color(obj, text_color, LV_PART_MAIN);
+        lv_obj_set_style_text_opa(obj, text_opa, LV_PART_MAIN);
     };
 
+    // Apply to internal label and icon (standard ui_button with text= attr)
     apply_text_style(data->label);
     apply_text_style(data->icon);
+
+    // Walk XML child labels for "shell" buttons (no text= attr) that use
+    // layout="column" with XML children (e.g., filament preset buttons)
+    if (!data->label && !data->icon) {
+        uint32_t count = lv_obj_get_child_count(btn);
+        for (uint32_t i = 0; i < count; i++) {
+            lv_obj_t* child = lv_obj_get_child(btn, i);
+            if (lv_obj_check_type(child, &lv_label_class)) {
+                apply_text_style(child);
+            }
+        }
+    }
 }
 
 /**
@@ -386,6 +413,7 @@ void* ui_button_create(lv_xml_parser_state_t* state, const char** attrs) {
     // Register event handlers
     lv_obj_add_event_cb(btn, button_style_changed_cb, LV_EVENT_STYLE_CHANGED, nullptr);
     lv_obj_add_event_cb(btn, button_style_changed_cb, LV_EVENT_STATE_CHANGED, nullptr);
+    lv_obj_add_event_cb(btn, button_style_changed_cb, LV_EVENT_CHILD_CHANGED, nullptr);
     lv_obj_add_event_cb(btn, button_delete_cb, LV_EVENT_DELETE, nullptr);
 
     // Apply initial text contrast

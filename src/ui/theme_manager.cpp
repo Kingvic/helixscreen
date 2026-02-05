@@ -1621,19 +1621,18 @@ static bool is_icon_font(const lv_font_t* font);
 
 /**
  * Helper to update button label text with contrast-aware color
- * text_light = dark text for light backgrounds
- * text_dark = light text for dark backgrounds
+ *
+ * Uses theme_manager_get_contrast_text() which correctly picks dark text
+ * (from light palette) for light backgrounds, and light text (from dark
+ * palette) for dark backgrounds.
  */
-static void apply_button_text_contrast(lv_obj_t* btn, lv_color_t text_light, lv_color_t text_dark) {
+static void apply_button_text_contrast(lv_obj_t* btn) {
     if (!btn)
         return;
 
-    // Get button's background color
+    // Get button's background color and pick contrast text via theme system
     lv_color_t bg_color = lv_obj_get_style_bg_color(btn, LV_PART_MAIN);
-    uint8_t lum = lv_color_luminance(bg_color);
-
-    // Pick text color based on luminance (same threshold as text_button component)
-    lv_color_t text_color = (lum > 140) ? text_light : text_dark;
+    lv_color_t text_color = theme_manager_get_contrast_text(bg_color);
 
     // Check for disabled state - use muted color
     bool btn_disabled = lv_obj_has_state(btn, LV_STATE_DISABLED);
@@ -1646,10 +1645,15 @@ static void apply_button_text_contrast(lv_obj_t* btn, lv_color_t text_light, lv_
     lv_color_t current_text = theme_manager_get_color("text");
     lv_color_t current_muted = theme_manager_get_color("text_muted");
 
+    // Also check contrast text from both palettes for icon detection
+    auto& tm = ThemeManager::instance();
+    lv_color_t dark_text = tm.dark_palette().text;
+    lv_color_t light_text = tm.light_palette().text;
+
     // Helper lambda to check if icon color is a "text-like" color that should get contrast
     auto is_text_variant_color = [&](lv_color_t c) {
         return lv_color_eq(c, current_text) || lv_color_eq(c, current_muted) ||
-               lv_color_eq(c, text_light) || lv_color_eq(c, text_dark);
+               lv_color_eq(c, dark_text) || lv_color_eq(c, light_text);
     };
 
     // Update all label children in the button
@@ -1747,8 +1751,7 @@ static bool is_inside_dialog(lv_obj_t* obj) {
     return false;
 }
 
-void theme_apply_palette_to_widget(lv_obj_t* obj, const helix::ModePalette& palette,
-                                   lv_color_t text_light, lv_color_t text_dark) {
+void theme_apply_palette_to_widget(lv_obj_t* obj, const helix::ModePalette& palette) {
     if (!obj)
         return;
 
@@ -1823,7 +1826,7 @@ void theme_apply_palette_to_widget(lv_obj_t* obj, const helix::ModePalette& pale
         }
 
         lv_obj_set_style_border_color(obj, border, LV_PART_MAIN);
-        apply_button_text_contrast(obj, text_light, text_dark);
+        apply_button_text_contrast(obj);
         return;
     }
 
@@ -1932,19 +1935,18 @@ void theme_apply_palette_to_widget(lv_obj_t* obj, const helix::ModePalette& pale
     }
 }
 
-void theme_apply_palette_to_tree(lv_obj_t* root, const helix::ModePalette& palette,
-                                 lv_color_t text_light, lv_color_t text_dark) {
+void theme_apply_palette_to_tree(lv_obj_t* root, const helix::ModePalette& palette) {
     if (!root)
         return;
 
     // Apply to this widget
-    theme_apply_palette_to_widget(root, palette, text_light, text_dark);
+    theme_apply_palette_to_widget(root, palette);
 
     // Recurse into children
     uint32_t child_count = lv_obj_get_child_count(root);
     for (uint32_t i = 0; i < child_count; i++) {
         lv_obj_t* child = lv_obj_get_child(root, i);
-        theme_apply_palette_to_tree(child, palette, text_light, text_dark);
+        theme_apply_palette_to_tree(child, palette);
     }
 }
 
@@ -1955,18 +1957,10 @@ void theme_apply_current_palette_to_tree(lv_obj_t* root) {
     // Get the active palette based on current mode
     const helix::ModePalette& palette = use_dark_mode ? active_theme.dark : active_theme.light;
 
-    // Get text contrast colors from globals
-    const char* text_light_str = lv_xml_get_const(nullptr, "text_light");
-    const char* text_dark_str = lv_xml_get_const(nullptr, "text_dark");
-    lv_color_t text_light = text_light_str ? theme_manager_parse_hex_color(text_light_str)
-                                           : theme_manager_parse_hex_color(palette.text.c_str());
-    lv_color_t text_dark = text_dark_str ? theme_manager_parse_hex_color(text_dark_str)
-                                         : theme_manager_parse_hex_color(palette.text.c_str());
-
     const char* root_name = lv_obj_get_name(root);
     spdlog::debug("[Theme] Applying current palette to tree root={}",
                   root_name ? root_name : "(screen)");
-    theme_apply_palette_to_tree(root, palette, text_light, text_dark);
+    theme_apply_palette_to_tree(root, palette);
 }
 
 void theme_apply_palette_to_screen_dropdowns(const helix::ModePalette& palette) {
@@ -1984,14 +1978,6 @@ void theme_apply_palette_to_screen_dropdowns(const helix::ModePalette& palette) 
     // Text color for selected based on accent luminance
     uint8_t lum = lv_color_luminance(dropdown_accent);
     lv_color_t selected_text = (lum > 140) ? lv_color_black() : lv_color_white();
-
-    // Get text_light/text_dark for button contrast
-    const char* text_light_str = lv_xml_get_const(nullptr, "text_light");
-    const char* text_dark_str = lv_xml_get_const(nullptr, "text_dark");
-    lv_color_t text_light = text_light_str ? theme_manager_parse_hex_color(text_light_str)
-                                           : theme_manager_parse_hex_color(palette.text.c_str());
-    lv_color_t text_dark = text_dark_str ? theme_manager_parse_hex_color(text_dark_str)
-                                         : theme_manager_parse_hex_color(palette.text.c_str());
 
     lv_obj_t* screen = lv_screen_active();
     uint32_t child_count = lv_obj_get_child_count(screen);
@@ -2020,7 +2006,7 @@ void theme_apply_palette_to_screen_dropdowns(const helix::ModePalette& palette) 
 
         // Apply palette to this popup and all its children
         spdlog::debug("[Theme] Applying palette to screen popup: {}", name ? name : "(unnamed)");
-        theme_apply_palette_to_tree(child, palette, text_light, text_dark);
+        theme_apply_palette_to_tree(child, palette);
     }
 }
 

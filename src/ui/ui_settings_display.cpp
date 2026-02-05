@@ -26,9 +26,6 @@
 
 namespace helix::settings {
 
-// Forward declaration for use before definition
-static void update_button_text_contrast(lv_obj_t* btn, lv_color_t text_light, lv_color_t text_dark);
-
 // ============================================================================
 // SINGLETON ACCESSOR
 // ============================================================================
