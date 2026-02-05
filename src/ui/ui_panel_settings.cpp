@@ -635,23 +635,8 @@ void SettingsPanel::populate_info_rows() {
         }
     }
 
-    // === Total Print Hours (from Moonraker history totals) ===
-    if (api_) {
-        api_->get_history_totals(
-            [this](const PrintHistoryTotals& totals) {
-                // Format total_time (seconds) as hours
-                std::string formatted = helix::fmt::duration(static_cast<int>(totals.total_time));
-                ui_queue_update([this, formatted]() {
-                    if (subjects_initialized_) {
-                        lv_subject_copy_string(&print_hours_value_subject_, formatted.c_str());
-                        spdlog::debug("[{}]   ✓ Print hours: {}", get_name(), formatted);
-                    }
-                });
-            },
-            [this](const MoonrakerError& err) {
-                spdlog::warn("[{}] Failed to fetch print hours: {}", get_name(), err.message);
-            });
-    }
+    // Print hours: fetched on-demand via fetch_print_hours() after connection is live.
+    // Called from discovery complete callback and on notify_history_changed events.
 
     // === MCU Version Rows (dynamic, created from discovery data) ===
     if (api_) {
@@ -695,6 +680,30 @@ void SettingsPanel::populate_info_rows() {
             }
         }
     }
+}
+
+// ============================================================================
+// LIVE DATA FETCHING
+// ============================================================================
+
+void SettingsPanel::fetch_print_hours() {
+    if (!api_ || !subjects_initialized_) {
+        return;
+    }
+
+    api_->get_history_totals(
+        [this](const PrintHistoryTotals& totals) {
+            std::string formatted = helix::fmt::duration(static_cast<int>(totals.total_time));
+            ui_queue_update([this, formatted]() {
+                if (subjects_initialized_) {
+                    lv_subject_copy_string(&print_hours_value_subject_, formatted.c_str());
+                    spdlog::debug("[{}] Print hours updated: {}", get_name(), formatted);
+                }
+            });
+        },
+        [this](const MoonrakerError& err) {
+            spdlog::warn("[{}] Failed to fetch print hours: {}", get_name(), err.message);
+        });
 }
 
 // ============================================================================

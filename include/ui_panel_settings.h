@@ -174,6 +174,16 @@ class SettingsPanel : public PanelBase {
     void populate_info_rows();
     void show_restart_prompt();
 
+  public:
+    /**
+     * @brief Fetch print hours from Moonraker history totals
+     *
+     * Called after discovery completes (connection is live) and on
+     * notify_history_changed events. Updates print_hours_value_subject_.
+     */
+    void fetch_print_hours();
+
+  private:
     //
     // === Event Handlers ===
     //
