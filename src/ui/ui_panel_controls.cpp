@@ -877,33 +877,30 @@ void ControlsPanel::handle_secondary_fans_clicked() {
 void ControlsPanel::handle_home_all() {
     spdlog::debug("[{}] Home All clicked", get_name());
     if (api_) {
-        api_->home_axes(
-            "XYZ", []() { NOTIFY_SUCCESS("Homing started"); },
-            [](const MoonrakerError& err) {
-                NOTIFY_ERROR("Homing failed: {}", err.user_message());
-            });
+        NOTIFY_INFO("Homing all axes...");
+        api_->home_axes("XYZ", nullptr, [](const MoonrakerError& err) {
+            NOTIFY_ERROR("Homing failed: {}", err.user_message());
+        });
     }
 }
 
 void ControlsPanel::handle_home_xy() {
     spdlog::debug("[{}] Home XY clicked", get_name());
     if (api_) {
-        api_->home_axes(
-            "XY", []() { NOTIFY_SUCCESS("Homing XY started"); },
-            [](const MoonrakerError& err) {
-                NOTIFY_ERROR("Homing failed: {}", err.user_message());
-            });
+        NOTIFY_INFO("Homing XY...");
+        api_->home_axes("XY", nullptr, [](const MoonrakerError& err) {
+            NOTIFY_ERROR("Homing failed: {}", err.user_message());
+        });
     }
 }
 
 void ControlsPanel::handle_home_z() {
     spdlog::debug("[{}] Home Z clicked", get_name());
     if (api_) {
-        api_->home_axes(
-            "Z", []() { NOTIFY_SUCCESS("Homing Z started"); },
-            [](const MoonrakerError& err) {
-                NOTIFY_ERROR("Homing failed: {}", err.user_message());
-            });
+        NOTIFY_INFO("Homing Z...");
+        api_->home_axes("Z", nullptr, [](const MoonrakerError& err) {
+            NOTIFY_ERROR("Homing failed: {}", err.user_message());
+        });
     }
 }
 
