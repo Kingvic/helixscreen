@@ -33,6 +33,10 @@ static void* ui_card_xml_create(lv_xml_parser_state_t* state, const char** attrs
     lv_obj_remove_style(obj, nullptr, LV_PART_MAIN);
     lv_obj_add_style(obj, ThemeManager::instance().get_style(StyleRole::Card), LV_PART_MAIN);
 
+    // Restore content sizing that was lost when we removed theme styles above
+    // (theme applies ObjBase with LV_SIZE_CONTENT, but remove_style strips it)
+    lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+
     // Disabled state: 50% opacity for visual feedback
     lv_obj_set_style_opa(obj, LV_OPA_50, LV_PART_MAIN | LV_STATE_DISABLED);
 
