@@ -129,3 +129,17 @@ INIT_SCRIPT="config/helixscreen.init"
     grep -q 'restart' "$INIT_SCRIPT"
     grep -q 'status)' "$INIT_SCRIPT"
 }
+
+# --- Bundle integrity tests ---
+
+@test "bundled installer passes syntax check" {
+    sh -n scripts/install.sh
+}
+
+@test "bundled installer contains configure_platform" {
+    grep -q 'configure_platform' scripts/install.sh
+}
+
+@test "bundled installer contains deploy_platform_hooks" {
+    grep -q 'deploy_platform_hooks' scripts/install.sh
+}

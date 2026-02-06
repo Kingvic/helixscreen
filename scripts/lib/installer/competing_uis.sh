@@ -3,7 +3,7 @@
 # Module: competing_uis
 # Stop competing screen UIs (GuppyScreen, KlipperScreen, Xorg, stock FlashForge UI)
 #
-# Reads: INIT_SYSTEM, PREVIOUS_UI_SCRIPT, SUDO
+# Reads: AD5M_FIRMWARE, INIT_SYSTEM, PREVIOUS_UI_SCRIPT, SUDO
 # Writes: (none)
 
 # Source guard
@@ -14,21 +14,20 @@ _HELIX_COMPETING_UIS_SOURCED=1
 # Includes: GuppyScreen (AD5M/K1), Grumpyscreen (K1/Simple AF), KlipperScreen, FeatherScreen
 COMPETING_UIS="guppyscreen GuppyScreen grumpyscreen Grumpyscreen KlipperScreen klipperscreen featherscreen FeatherScreen"
 
-# Stop competing screen UIs (GuppyScreen, KlipperScreen, Xorg, etc.)
-stop_competing_uis() {
-    log_info "Checking for competing screen UIs..."
-
-    found_any=false
-
+# Stop ForgeX-specific competing UIs (stock FlashForge firmware UI)
+stop_forgex_competing_uis() {
     # Stop stock FlashForge firmware UI (AD5M/Adventurer 5M)
     # ffstartup-arm is the startup manager that launches firmwareExe (the stock Qt UI)
     if [ -f /opt/PROGRAM/ffstartup-arm ]; then
         log_info "Stopping stock FlashForge UI..."
-        kill_process_by_name firmwareExe ffstartup-arm || true  # Don't fail if processes not running
+        kill_process_by_name firmwareExe ffstartup-arm || true
         found_any=true
     fi
+}
 
-    # On Klipper Mod, stop Xorg first (required for framebuffer access)
+# Stop Klipper Mod-specific competing UIs (Xorg, KlipperScreen)
+stop_kmod_competing_uis() {
+    # Stop Xorg first (required for framebuffer access)
     # Xorg takes over /dev/fb0 layer, preventing direct framebuffer rendering
     if [ -x "/etc/init.d/S40xorg" ]; then
         log_info "Stopping Xorg (Klipper Mod display server)..."
@@ -36,11 +35,34 @@ stop_competing_uis() {
         # Disable Xorg init script (non-destructive, reversible)
         $SUDO chmod -x /etc/init.d/S40xorg 2>/dev/null || true
         # Kill any remaining Xorg processes
-        kill_process_by_name Xorg X || true  # Don't fail if processes not running
+        kill_process_by_name Xorg X || true
         found_any=true
     fi
 
-    # First, handle the specific previous UI if we know it (for clean reversibility)
+    # Kill python processes running KlipperScreen (common on Klipper Mod)
+    # BusyBox ps doesn't support 'aux', use portable approach
+    # shellcheck disable=SC2009
+    for pid in $(ps -ef 2>/dev/null | grep -E 'KlipperScreen.*screen\.py' | grep -v grep | awk '{print $2}'); do
+        log_info "Killing KlipperScreen python process (PID $pid)..."
+        $SUDO kill "$pid" 2>/dev/null || true
+        found_any=true
+    done
+}
+
+# Stop competing screen UIs (GuppyScreen, KlipperScreen, Xorg, etc.)
+# Dispatches platform-specific logic, then runs generic UI stopping
+stop_competing_uis() {
+    log_info "Checking for competing screen UIs..."
+
+    found_any=false
+
+    # Platform-specific competing UI handling
+    case "$AD5M_FIRMWARE" in
+        forge_x)    stop_forgex_competing_uis ;;
+        klipper_mod) stop_kmod_competing_uis ;;
+    esac
+
+    # Handle the specific previous UI if we know it (for clean reversibility)
     if [ -n "$PREVIOUS_UI_SCRIPT" ] && [ -x "$PREVIOUS_UI_SCRIPT" ] 2>/dev/null; then
         log_info "Stopping previous UI: $PREVIOUS_UI_SCRIPT"
         $SUDO "$PREVIOUS_UI_SCRIPT" stop 2>/dev/null || true
@@ -82,15 +104,6 @@ stop_competing_uis() {
             log_info "Killed remaining $ui processes"
             found_any=true
         fi
-    done
-
-    # Also kill python processes running KlipperScreen (common on Klipper Mod)
-    # BusyBox ps doesn't support 'aux', use portable approach
-    # shellcheck disable=SC2009
-    for pid in $(ps -ef 2>/dev/null | grep -E 'KlipperScreen.*screen\.py' | grep -v grep | awk '{print $2}'); do
-        log_info "Killing KlipperScreen python process (PID $pid)..."
-        $SUDO kill "$pid" 2>/dev/null || true
-        found_any=true
     done
 
     if [ "$found_any" = true ]; then

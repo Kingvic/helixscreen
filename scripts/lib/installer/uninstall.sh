@@ -83,37 +83,9 @@ uninstall() {
         restored_ui="GuppyScreen (/etc/init.d/S99guppyscreen)"
     fi
 
-    if [ -z "$restored_ui" ]; then
-        # Forge-X - restore GuppyScreen and stock UI settings
-        # Restore ForgeX display mode to GUPPY (from HEADLESS or STOCK)
-        if [ -f "/opt/config/mod_data/variables.cfg" ]; then
-            if grep -q "display[[:space:]]*=[[:space:]]*'HEADLESS'" "/opt/config/mod_data/variables.cfg"; then
-                log_info "Restoring ForgeX display mode to GUPPY..."
-                $SUDO sed -i "s/display[[:space:]]*=[[:space:]]*'HEADLESS'/display = 'GUPPY'/" "/opt/config/mod_data/variables.cfg"
-            elif grep -q "display[[:space:]]*=[[:space:]]*'STOCK'" "/opt/config/mod_data/variables.cfg"; then
-                log_info "Restoring ForgeX display mode to GUPPY..."
-                $SUDO sed -i "s/display[[:space:]]*=[[:space:]]*'STOCK'/display = 'GUPPY'/" "/opt/config/mod_data/variables.cfg"
-            fi
-        fi
-        # Restore stock FlashForge UI in auto_run.sh
-        restore_stock_firmware_ui || true
-        # Remove HelixScreen patch from screen.sh
-        unpatch_forgex_screen_sh || true
-        # Re-enable GuppyScreen and tslib init scripts
-        if [ -f "/opt/config/mod/.root/S80guppyscreen" ]; then
-            $SUDO chmod +x "/opt/config/mod/.root/S80guppyscreen" 2>/dev/null || true
-            restored_ui="GuppyScreen (/opt/config/mod/.root/S80guppyscreen)"
-        fi
-        if [ -f "/opt/config/mod/.root/S35tslib" ]; then
-            $SUDO chmod +x "/opt/config/mod/.root/S35tslib" 2>/dev/null || true
-        fi
-        # Clean up any leftover backup files from manual patches
-        for backup_file in /opt/config/mod/.shell/*.helix-backup /opt/config/mod/.shell/*.bak; do
-            if [ -f "$backup_file" ] 2>/dev/null; then
-                log_info "Removing leftover backup: $backup_file"
-                $SUDO rm -f "$backup_file"
-            fi
-        done
+    # ForgeX - restore GuppyScreen and stock UI settings
+    if [ -z "$restored_ui" ] && [ "$AD5M_FIRMWARE" = "forge_x" ]; then
+        uninstall_forgex
     fi
 
     # Clean up helixscreen cache directories
