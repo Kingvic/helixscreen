@@ -842,11 +842,16 @@ void HomePanel::reload_from_config() {
         }
     }
 
-    // Update printer type/host overlay (hidden for localhost)
+    // Update printer type/host overlay
+    // Always visible (even for localhost) to maintain consistent flex layout.
+    // Hidden flag removes elements from flex, causing printer image to scale differently.
     std::string host = config->get<std::string>(helix::wizard::MOONRAKER_HOST, "");
 
     if (host.empty() || host == "127.0.0.1" || host == "localhost") {
-        lv_subject_set_int(&printer_info_visible_, 0);
+        // Space keeps the text_small at its font height for consistent layout
+        std::strncpy(printer_type_buffer_, " ", sizeof(printer_type_buffer_) - 1);
+        lv_subject_copy_string(&printer_type_subject_, printer_type_buffer_);
+        lv_subject_set_int(&printer_info_visible_, 1);
     } else {
         std::strncpy(printer_type_buffer_, printer_type.empty() ? "Printer" : printer_type.c_str(),
                      sizeof(printer_type_buffer_) - 1);
