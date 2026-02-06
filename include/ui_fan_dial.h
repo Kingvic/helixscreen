@@ -105,6 +105,8 @@ class FanDial {
     static void label_anim_exec_cb(void* var, int32_t value);
     static void anim_completed_cb(lv_anim_t* anim);
 
+    void update_knob_glow(int percent);
+
     lv_obj_t* root_ = nullptr;
     lv_obj_t* arc_ = nullptr;
     lv_obj_t* speed_label_ = nullptr;

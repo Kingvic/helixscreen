@@ -8,10 +8,12 @@
 #include "format_utils.h"
 #include "lvgl/src/xml/lv_xml.h"
 #include "settings_manager.h"
+#include "theme_manager.h"
 #include "ui/ui_event_trampoline.h"
 
 #include <spdlog/spdlog.h>
 
+#include <algorithm>
 #include <cstdio>
 #include <utility>
 
@@ -58,6 +60,7 @@ FanDial::FanDial(lv_obj_t* parent, const std::string& name, const std::string& f
     // Set initial speed display and button states
     update_speed_label(initial_speed);
     update_button_states(initial_speed);
+    update_knob_glow(initial_speed);
 
     spdlog::debug("[FanDial] Created '{}' (id={}) with initial speed {}%", name, fan_id,
                   initial_speed);
@@ -174,6 +177,7 @@ void FanDial::set_speed(int percent) {
     // Update label and button states
     update_speed_label(percent);
     update_button_states(percent);
+    update_knob_glow(percent);
 
     syncing_ = false;
 
@@ -205,6 +209,42 @@ void FanDial::update_button_states(int percent) {
     }
 }
 
+void FanDial::update_knob_glow(int percent) {
+    if (!arc_)
+        return;
+
+    if (percent > 0) {
+        // Color gradient: tertiary → secondary → primary (shifts with speed)
+        lv_color_t color;
+        if (percent <= 50) {
+            uint8_t mix = static_cast<uint8_t>(percent * 255 / 50);
+            color = lv_color_mix(theme_manager_get_color("secondary"),
+                                 theme_manager_get_color("tertiary"), mix);
+        } else {
+            uint8_t mix = static_cast<uint8_t>((percent - 50) * 255 / 50);
+            color = lv_color_mix(theme_manager_get_color("primary"),
+                                 theme_manager_get_color("secondary"), mix);
+        }
+
+        // Quadratic opacity: 0%→0, 50%→35, 100%→140
+        constexpr int MAX_OPA = 140;
+        int opa = (percent * percent * MAX_OPA) / 10000;
+
+        // Knob shadow — scale with actual arc indicator width
+        int32_t arc_w = lv_obj_get_style_arc_width(arc_, LV_PART_INDICATOR);
+        int shadow_w = (arc_w * 2 + (percent * arc_w * 8) / 100) / 10;
+        int spread = (shadow_w * percent) / 500;
+        lv_obj_set_style_shadow_width(arc_, shadow_w, LV_PART_KNOB);
+        lv_obj_set_style_shadow_spread(arc_, spread, LV_PART_KNOB);
+        lv_obj_set_style_shadow_color(arc_, color, LV_PART_KNOB);
+        int knob_opa = std::min(opa + 60, 255);
+        lv_obj_set_style_shadow_opa(arc_, static_cast<lv_opa_t>(knob_opa), LV_PART_KNOB);
+    } else {
+        lv_obj_set_style_shadow_width(arc_, 0, LV_PART_KNOB);
+        lv_obj_set_style_shadow_opa(arc_, LV_OPA_TRANSP, LV_PART_KNOB);
+    }
+}
+
 void FanDial::update_speed_label(int percent) {
     if (!speed_label_)
         return;
@@ -231,6 +271,7 @@ void FanDial::handle_arc_changed() {
     current_speed_ = value;
     update_speed_label(value);
     update_button_states(value);
+    update_knob_glow(value);
 
     if (on_speed_changed_) {
         on_speed_changed_(fan_id_, value);
@@ -241,9 +282,10 @@ void FanDial::handle_arc_changed() {
 
 void FanDial::label_anim_exec_cb(void* var, int32_t value) {
     auto* self = static_cast<FanDial*>(var);
-    // Update arc position, label text, and button states together
+    // Update arc position, label text, button states, and knob glow together
     self->update_speed_label(static_cast<int>(value));
     self->update_button_states(static_cast<int>(value));
+    self->update_knob_glow(static_cast<int>(value));
     if (self->arc_) {
         lv_arc_set_value(self->arc_, static_cast<int32_t>(value));
     }
