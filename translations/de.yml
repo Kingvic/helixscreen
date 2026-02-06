@@ -161,6 +161,7 @@ translations:
   "Connected (%s)": "Verbunden (%s)"
   "Connected (no discovery)": "Verbunden (keine Erkennung)"
   "Connected, discovering...": "Verbunden, wird erkannt..."
+  "Connected!": "Verbunden!"
   "Connected! Discovering printer...": "Verbunden! Drucker wird erkannt..."
   "Connecting": "Verbinde"
   "Connecting to network...": "Verbinde mit Netzwerk..."

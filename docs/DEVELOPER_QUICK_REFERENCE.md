@@ -489,4 +489,5 @@ style_flex_cross_place="center"
 - **[DEVELOPMENT.md](DEVELOPMENT.md)** - Build system and daily workflow
 - **[MOONRAKER_ARCHITECTURE.md](MOONRAKER_ARCHITECTURE.md)** - WebSocket API integration
 - **[TESTING.md](TESTING.md)** - Test infrastructure and Catch2 usage
+- **[TRANSLATION_SYSTEM.md](TRANSLATION_SYSTEM.md)** - i18n system, YAML workflow, adding translations
 - **[plans/](plans/)** - Active implementation plans and technical debt tracker

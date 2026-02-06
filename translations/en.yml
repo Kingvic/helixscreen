@@ -159,6 +159,7 @@ translations:
   "Connect": "Connect"
   "Connected": "Connected"
   "Connected (%s)": "Connected (%s)"
+  "Connected!": "Connected!"
   "Connected! Discovering printer...": "Connected! Discovering printer..."
   "Connected (no discovery)": "Connected (no discovery)"
   "Connected, discovering...": "Connected, discovering..."

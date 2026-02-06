@@ -161,6 +161,7 @@ translations:
   "Connected (%s)": "Conectado (%s)"
   "Connected (no discovery)": "Conectado (sin descubrimiento)"
   "Connected, discovering...": "Conectado, descubriendo..."
+  "Connected!": "¡Conectado!"
   "Connected! Discovering printer...": "¡Conectado! Descubriendo impresora..."
   "Connecting": "Conectando"
   "Connecting to network...": "Conectando a la red..."
