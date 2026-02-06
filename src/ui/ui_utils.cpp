@@ -34,7 +34,7 @@ std::string get_filename_basename(const std::string& path) {
 
 std::string strip_gcode_extension(const std::string& filename) {
     // Common G-code extensions (case-insensitive check)
-    static const std::vector<std::string> extensions = {".gcode", ".gco", ".g"};
+    static const std::vector<std::string> extensions = {".gcode", ".gco", ".g", ".3mf"};
 
     for (const auto& ext : extensions) {
         if (filename.size() > ext.size()) {
