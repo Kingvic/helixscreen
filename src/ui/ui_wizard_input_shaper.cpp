@@ -6,6 +6,7 @@
 #include "ui_wizard_helpers.h"
 
 #include "calibration_types.h"
+#include "config.h"
 #include "input_shaper_calibrator.h"
 #include "lvgl/lvgl.h"
 #include "printer_state.h"
@@ -390,6 +391,13 @@ bool WizardInputShaperStep::is_validated() const {
 // ============================================================================
 
 bool WizardInputShaperStep::should_skip() const {
+    // Gate behind beta features - input shaper calibration is experimental
+    Config* config = Config::get_instance();
+    if (config && !config->is_beta_features_enabled()) {
+        spdlog::info("[{}] Beta features disabled, skipping step", get_name());
+        return true;
+    }
+
     bool has_accel = has_accelerometer();
 
     if (!has_accel) {
