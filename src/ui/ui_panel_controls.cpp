@@ -90,7 +90,7 @@ ControlsPanel::~ControlsPanel() {
 
 void ControlsPanel::set_temp_control_panel(TempControlPanel* temp_panel) {
     temp_control_panel_ = temp_panel;
-    spdlog::debug("[{}] TempControlPanel reference set", get_name());
+    spdlog::trace("[{}] TempControlPanel reference set", get_name());
 }
 
 // ============================================================================
@@ -261,7 +261,7 @@ void ControlsPanel::init_subjects() {
     lv_xml_register_event_cb(nullptr, "on_controls_cooling", on_cooling_clicked);
 
     subjects_initialized_ = true;
-    spdlog::debug("[{}] Dashboard subjects initialized", get_name());
+    spdlog::trace("[{}] Dashboard subjects initialized", get_name());
 }
 
 void ControlsPanel::deinit_subjects() {
@@ -302,7 +302,7 @@ void ControlsPanel::setup(lv_obj_t* panel, lv_obj_t* parent_screen) {
         macro_4_slot_ =
             slot4_name.empty() ? std::nullopt : StandardMacros::slot_from_name(slot4_name);
 
-        spdlog::debug(
+        spdlog::trace(
             "[{}] Quick buttons configured: slot1='{}', slot2='{}', slot3='{}', slot4='{}'",
             get_name(), slot1_name, slot2_name, slot3_name, slot4_name);
     } else {
@@ -359,7 +359,7 @@ void ControlsPanel::on_activate() {
     // This ensures button labels reflect auto-detected macros, not just fallbacks
     refresh_macro_buttons();
 
-    spdlog::debug("[{}] Panel activated, refreshed fans, temps, and macro buttons", get_name());
+    spdlog::trace("[{}] Panel activated, refreshed fans, temps, and macro buttons", get_name());
 }
 
 // ============================================================================
@@ -385,7 +385,7 @@ void ControlsPanel::setup_card_handlers() {
         return;
     }
 
-    spdlog::debug("[{}] V2 card navigation handlers validated (wired via XML event_cb)",
+    spdlog::trace("[{}] V2 card navigation handlers validated (wired via XML event_cb)",
                   get_name());
 }
 
@@ -461,7 +461,7 @@ void ControlsPanel::register_observers() {
                                             self->update_controls_z_offset_display(offset_microns);
                                         });
 
-    spdlog::debug("[{}] Observers registered for dashboard live data", get_name());
+    spdlog::trace("[{}] Observers registered for dashboard live data", get_name());
 }
 
 // ============================================================================
@@ -527,12 +527,12 @@ void ControlsPanel::update_macro_button(StandardMacros& macros,
     const auto& info = macros.get(*slot);
     if (info.is_empty()) {
         lv_subject_set_int(&visible_subject, 0);
-        spdlog::debug("[{}] Macro {} slot '{}' is empty, hiding button", get_name(), button_num,
+        spdlog::trace("[{}] Macro {} slot '{}' is empty, hiding button", get_name(), button_num,
                       info.slot_name);
     } else {
         lv_subject_set_int(&visible_subject, 1);
         lv_subject_copy_string(&name_subject, info.display_name.c_str());
-        spdlog::debug("[{}] Macro {}: '{}' → {}", get_name(), button_num, info.display_name,
+        spdlog::trace("[{}] Macro {}: '{}' → {}", get_name(), button_num, info.display_name,
                       info.get_macro());
     }
 }
@@ -705,7 +705,7 @@ void ControlsPanel::populate_secondary_fans() {
     // Subscribe to per-fan speed subjects for reactive updates
     subscribe_to_secondary_fan_speeds();
 
-    spdlog::debug("[{}] Populated {} secondary fans ({} visible, {} additional)", get_name(),
+    spdlog::trace("[{}] Populated {} secondary fans ({} visible, {} additional)", get_name(),
                   secondary_fans.size(), visible_count, additional);
 }
 
@@ -721,7 +721,7 @@ void ControlsPanel::update_z_offset_delta_display(int delta_microns) {
     }
     lv_subject_copy_string(&z_offset_delta_display_subject_, z_offset_delta_display_buf_);
 
-    spdlog::debug("[{}] Z-offset delta display updated: '{}'", get_name(),
+    spdlog::trace("[{}] Z-offset delta display updated: '{}'", get_name(),
                   z_offset_delta_display_buf_);
 }
 
@@ -1357,7 +1357,7 @@ void ControlsPanel::subscribe_to_secondary_fan_speeds() {
         }
     }
 
-    spdlog::debug("[{}] Subscribed to {} secondary fan speed subjects", get_name(),
+    spdlog::trace("[{}] Subscribed to {} secondary fan speed subjects", get_name(),
                   secondary_fan_observers_.size());
 }
 
@@ -1406,7 +1406,8 @@ void ControlsPanel::populate_secondary_temps() {
         }
     }
 
-    constexpr int max_visible = 2;
+    // Dashboard shows only the overflow link - full list is on the temp panel
+    constexpr int max_visible = 0;
     int visible_count = 0;
 
     for (const auto& sensor : visible) {
@@ -1475,7 +1476,7 @@ void ControlsPanel::populate_secondary_temps() {
                               LV_FLEX_ALIGN_CENTER);
 
         char more_buf[48];
-        std::snprintf(more_buf, sizeof(more_buf), "%d additional sensor%s", additional,
+        std::snprintf(more_buf, sizeof(more_buf), "%d more sensor%s", additional,
                       additional == 1 ? "" : "s");
         lv_obj_t* more_label = lv_label_create(more_row);
         lv_label_set_text(more_label, more_buf);
@@ -1499,7 +1500,7 @@ void ControlsPanel::populate_secondary_temps() {
 
     subscribe_to_secondary_temp_subjects();
 
-    spdlog::debug("[{}] Populated {} secondary temp sensors ({} visible, {} additional)",
+    spdlog::trace("[{}] Populated {} secondary temp sensors ({} visible, {} additional)",
                   get_name(), visible.size(), visible_count, additional);
 }
 
@@ -1536,7 +1537,7 @@ void ControlsPanel::subscribe_to_secondary_temp_subjects() {
         }
     }
 
-    spdlog::debug("[{}] Subscribed to {} secondary temp sensor subjects", get_name(),
+    spdlog::trace("[{}] Subscribed to {} secondary temp sensor subjects", get_name(),
                   secondary_temp_observers_.size());
 }
 

@@ -128,7 +128,7 @@
             <!-- Nozzle section (clickable) -->
             <lv_obj name="btn_nozzle_temp"
                     width="100%" flex_flow="row" style_flex_main_place="space_between" style_flex_cross_place="center"
-                    style_margin_top="#space_sm" clickable="true" scrollable="false">
+                    style_margin_top="#space_xs" clickable="true" scrollable="false">
               <event_cb trigger="clicked" callback="on_nozzle_temp_clicked"/>
               <text_small text="Nozzle:" translation_tag="Nozzle:"/>
               <lv_obj width="content" height="content" flex_flow="row" style_pad_all="0"
@@ -142,7 +142,7 @@
             </lv_obj>
             <text_small name="nozzle_status"
                         width="100%" bind_text="controls_nozzle_status" style_text_color="#text"
-                        style_text_align="right" style_margin_bottom="#space_xs"/>
+                        style_text_align="right"/>
             <!-- Bed section (clickable) -->
             <lv_obj name="btn_bed_temp"
                     width="100%" flex_flow="row" style_flex_main_place="space_between" style_flex_cross_place="center"
@@ -159,12 +159,11 @@
               </lv_obj>
             </lv_obj>
             <text_small name="bed_status"
-                        width="100%" bind_text="controls_bed_status" style_text_color="#text" style_text_align="right"
-                        style_margin_bottom="#space_xs"/>
+                        width="100%" bind_text="controls_bed_status" style_text_color="#text" style_text_align="right"/>
             <!-- Chamber section (visible only if printer has chamber sensor) -->
             <lv_obj name="chamber_section"
                     width="100%" flex_flow="row" style_flex_main_place="space_between" style_flex_cross_place="center"
-                    style_margin_top="#space_xs" hidden="true">
+                    hidden="true">
               <bind_flag_if_eq subject="printer_has_chamber_sensor" flag="hidden" ref_value="0"/>
               <text_small text="Chamber:" translation_tag="Chamber:"/>
               <temp_display name="chamber_temp_display" size="md" show_target="false" bind_current="chamber_temp"/>
@@ -172,7 +171,7 @@
             <!-- Secondary temperature sensors list (populated dynamically) -->
             <lv_obj name="secondary_temps_list"
                     width="100%" height="content" style_pad_all="0" scrollable="false" flex_flow="column"
-                    style_pad_gap="#space_xxs" style_pad_top="#space_xs">
+                    style_pad_gap="#space_xxs" style_pad_top="#space_xxs">
               <!-- Dynamic temp sensor rows will be added here by C++ -->
             </lv_obj>
           </ui_card>
