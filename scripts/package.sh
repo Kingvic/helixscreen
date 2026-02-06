@@ -187,10 +187,10 @@ package_platform() {
     # Create version file
     echo "$VERSION" > "$pkg_dir/VERSION"
 
-    # Create tarball
+    # Create tarball with root ownership (avoid macOS uid leaking into package)
     # Use different compression based on platform (BusyBox tar doesn't support some options)
     cd "$OUTPUT_DIR"
-    tar czf "$tarball" "$(basename "$pkg_dir")"
+    COPYFILE_DISABLE=1 tar czf "$tarball" --owner=0 --group=0 "$(basename "$pkg_dir")"
 
     # Cleanup extracted directory
     rm -rf "$pkg_dir"

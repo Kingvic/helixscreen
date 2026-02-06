@@ -500,6 +500,9 @@ define deploy-common
 	@if [ -d build/assets/images/printers/prerendered ]; then \
 		rsync $(DEPLOY_RSYNC_FLAGS) build/assets/images/printers/prerendered/ $(1):$(2)/assets/images/printers/prerendered/; \
 	fi
+	@# Fix ownership - rsync preserves macOS uid:gid which prevents writes on target
+	@echo "$(DIM)Fixing file ownership...$(RESET)"
+	@ssh $(1) "if [ \$$(id -u) -ne 0 ]; then sudo chown -R \$$(id -u):\$$(id -g) $(2); else chown -R \$$(id -u):\$$(id -g) $(2)/config 2>/dev/null || true; fi"
 endef
 
 # =============================================================================
