@@ -1355,7 +1355,7 @@ void Application::setup_discovery_callbacks() {
             auto validation_result = validator.validate(Config::get_instance(), c->hardware);
             get_printer_state().set_hardware_validation_result(validation_result);
 
-            if (validation_result.has_issues()) {
+            if (validation_result.has_issues() && !Config::get_instance()->is_wizard_required()) {
                 validator.notify_user(validation_result);
             }
 
