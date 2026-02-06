@@ -404,25 +404,25 @@ TEST_CASE_METHOD(TouchCalibrationPanelTestFixture,
 TEST_CASE_METHOD(TouchCalibrationPanelTestFixture,
                  "TouchCalibrationPanel: get_target_position returns correct inset points",
                  "[touch-calibration][targets]") {
-    SECTION("Step 0: 15% from left, 30% from top") {
-        // 800 * 0.15 = 120, 480 * 0.30 = 144
+    SECTION("Step 0: 15% from left, 18% from top") {
+        // 800 * 0.15 = 120, 480 * 0.18 = 86
         Point target = panel_->get_target_position(0);
         REQUIRE(target.x == 120);
-        REQUIRE(target.y == 144);
+        REQUIRE(target.y == 86);
     }
 
-    SECTION("Step 1: center X, 75% from top") {
-        // 800 * 0.50 = 400, 480 * 0.75 = 360
+    SECTION("Step 1: center X, 85% from top") {
+        // 800 * 0.50 = 400, 480 * 0.85 = 408
         Point target = panel_->get_target_position(1);
         REQUIRE(target.x == 400);
-        REQUIRE(target.y == 360);
+        REQUIRE(target.y == 408);
     }
 
-    SECTION("Step 2: 85% from left, 25% from top") {
-        // 800 * 0.85 = 680, 480 * 0.25 = 120
+    SECTION("Step 2: 85% from left, 18% from top") {
+        // 800 * 0.85 = 680, 480 * 0.18 = 86
         Point target = panel_->get_target_position(2);
         REQUIRE(target.x == 680);
-        REQUIRE(target.y == 120);
+        REQUIRE(target.y == 86);
     }
 }
 
@@ -445,11 +445,11 @@ TEST_CASE_METHOD(TouchCalibrationPanelTestFixture,
     TouchCalibrationPanel panel_1024;
     panel_1024.set_screen_size(1024, 600);
 
-    // Step 0: 15% from left, 30% from top
-    // 1024 * 0.15 = 153.6 -> 153, 600 * 0.30 = 180
+    // Step 0: 15% from left, 18% from top
+    // 1024 * 0.15 = 153.6 -> 153, 600 * 0.18 = 108
     Point target = panel_1024.get_target_position(0);
     REQUIRE(target.x == 153);
-    REQUIRE(target.y == 180);
+    REQUIRE(target.y == 108);
 }
 
 // ============================================================================
@@ -465,9 +465,9 @@ TEST_CASE_METHOD(TouchCalibrationPanelTestFixture,
 
     Point target_after = panel_->get_target_position(0);
 
-    // 1280 * 0.15 = 192, 720 * 0.30 = 216
+    // 1280 * 0.15 = 192, 720 * 0.18 = 129
     REQUIRE(target_after.x == 192);
-    REQUIRE(target_after.y == 216);
+    REQUIRE(target_after.y == 129);
     REQUIRE(target_after.x != target_before.x);
     REQUIRE(target_after.y != target_before.y);
 }
@@ -553,19 +553,19 @@ TEST_CASE_METHOD(TouchCalibrationPanelTestFixture,
     Point target2 = panel_->get_target_position(2);
 
     // 1024 * 0.15 = 153.6 -> 153
-    // 600 * 0.30 = 180
+    // 600 * 0.18 = 108
     REQUIRE(target0.x == 153);
-    REQUIRE(target0.y == 180);
+    REQUIRE(target0.y == 108);
 
     // 1024 * 0.50 = 512
-    // 600 * 0.75 = 450
+    // 600 * 0.85 = 510
     REQUIRE(target1.x == 512);
-    REQUIRE(target1.y == 450);
+    REQUIRE(target1.y == 510);
 
     // 1024 * 0.85 = 870.4 -> 870
-    // 600 * 0.25 = 150
+    // 600 * 0.18 = 108
     REQUIRE(target2.x == 870);
-    REQUIRE(target2.y == 150);
+    REQUIRE(target2.y == 108);
 }
 
 TEST_CASE_METHOD(TouchCalibrationPanelTestFixture,
@@ -577,7 +577,7 @@ TEST_CASE_METHOD(TouchCalibrationPanelTestFixture,
     // Original targets for 800x480
     Point orig0 = panel_->get_target_position(0);
     REQUIRE(orig0.x == 120); // 800 * 0.15
-    REQUIRE(orig0.y == 144); // 480 * 0.30
+    REQUIRE(orig0.y == 86);  // 480 * 0.18
 
     // Change screen size mid-calibration
     panel_->set_screen_size(1920, 1080);
@@ -585,7 +585,7 @@ TEST_CASE_METHOD(TouchCalibrationPanelTestFixture,
     // get_target_position should now return values for new size
     Point new0 = panel_->get_target_position(0);
     REQUIRE(new0.x == 288); // 1920 * 0.15
-    REQUIRE(new0.y == 324); // 1080 * 0.30
+    REQUIRE(new0.y == 194); // 1080 * 0.18
 }
 
 // ============================================================================
