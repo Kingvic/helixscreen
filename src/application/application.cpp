@@ -55,6 +55,7 @@
 #include "ui_panel_calibration_pid.h"
 #include "ui_panel_calibration_zoffset.h"
 #include "ui_panel_extrusion.h"
+#include "ui_panel_filament.h"
 #include "ui_panel_gcode_test.h"
 #include "ui_panel_glyphs.h"
 #include "ui_panel_history_dashboard.h"
@@ -1364,6 +1365,29 @@ void Application::setup_discovery_callbacks() {
 
             // Auto-detect printer type if not already set (e.g., fresh install with preset)
             PrinterDetector::auto_detect_and_save(c->hardware, Config::get_instance());
+
+            // Fetch safety limits and build volume from Klipper config (stepper ranges,
+            // min_extrude_temp, max_temp, etc.) — runs for ALL discovery completions
+            // (normal startup AND post-wizard) so we don't duplicate this in callers
+            if (c->api) {
+                MoonrakerAPI* api_ptr = c->api;
+                api_ptr->update_safety_limits_from_printer(
+                    [api_ptr]() {
+                        const auto& limits = api_ptr->get_safety_limits();
+                        int min_extrude = static_cast<int>(limits.min_extrude_temp_celsius);
+                        int max_temp = static_cast<int>(limits.max_temperature_celsius);
+                        int min_temp = static_cast<int>(limits.min_temperature_celsius);
+
+                        ui_queue_update([min_temp, max_temp, min_extrude]() {
+                            get_global_filament_panel().set_limits(min_temp, max_temp, min_extrude);
+                            spdlog::info("[Application] Safety limits propagated to panels");
+                        });
+                    },
+                    [](const MoonrakerError& err) {
+                        spdlog::warn("[Application] Failed to fetch safety limits: {}",
+                                     err.message);
+                    });
+            }
 
             // Detect helix_print plugin during discovery (not UI-initiated)
             // This ensures plugin status is known early for UI gating

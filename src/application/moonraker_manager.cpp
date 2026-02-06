@@ -16,8 +16,6 @@
 #include "ui_emergency_stop.h"
 #include "ui_error_reporting.h"
 #include "ui_modal.h"
-#include "ui_panel_filament.h"
-#include "ui_update_queue.h"
 
 #include "abort_manager.h"
 #include "ams_state.h"
@@ -148,30 +146,9 @@ int MoonrakerManager::connect(const std::string& websocket_url, const std::strin
                 // (These are temp files created when modifying G-code for prints)
                 helix::cleanup_stale_helix_temp_files(api);
 
-                // Fetch safety limits from Klipper config (min_extrude_temp, max_temp, etc.)
-                // and propagate to UI panels
-                if (api) {
-                    api->update_safety_limits_from_printer(
-                        [api]() {
-                            // Propagate limits to panels
-                            const auto& limits = api->get_safety_limits();
-                            int min_extrude = static_cast<int>(limits.min_extrude_temp_celsius);
-                            int max_temp = static_cast<int>(limits.max_temperature_celsius);
-                            int min_temp = static_cast<int>(limits.min_temperature_celsius);
-
-                            ui_queue_update([min_temp, max_temp, min_extrude]() {
-                                get_global_filament_panel().set_limits(min_temp, max_temp,
-                                                                       min_extrude);
-                                spdlog::info(
-                                    "[MoonrakerManager] Safety limits propagated to panels");
-                            });
-                        },
-                        [](const MoonrakerError& err) {
-                            spdlog::warn("[MoonrakerManager] Failed to fetch safety limits: {}",
-                                         err.message);
-                            // Panels will use their default values (170°C)
-                        });
-                }
+                // Safety limits + build volume now fetched in
+                // Application::setup_discovery_callbacks() on_discovery_complete,
+                // so all discovery paths (startup + post-wizard) share one call.
 
                 // Trigger macro analysis after discovery
                 if (macro_mgr) {
