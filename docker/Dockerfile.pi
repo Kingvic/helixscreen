@@ -5,20 +5,21 @@
 # Build: docker build -t helixscreen/toolchain-pi -f Dockerfile.pi .
 # Usage: docker run --rm -v $(pwd):/src -w /src helixscreen/toolchain-pi
 #
-# Target: Raspberry Pi / BTT Pi running Mainsail OS or similar (Debian Bookworm, aarch64)
+# Target: Raspberry Pi / BTT Pi running Klipper (Debian Bullseye or Bookworm, aarch64)
 #   - CPU: Cortex-A72 / Cortex-A76 (armv8-a)
 #   - Display: DRM/KMS (libdrm + libinput)
-#   - C Library: glibc 2.36 (Debian Bookworm)
+#   - C Library: glibc 2.31 (Debian Bullseye)
 #
-# Strategy: Debian cross-compiler for glibc ABI compatibility with target system.
-# Dynamic linking — binary requires target system libraries at runtime.
-# This ensures the binary works on any Debian Bookworm aarch64 system.
+# Strategy: Build against Bullseye (oldest supported) for maximum compatibility.
+# glibc is forward-compatible, so a Bullseye-built binary runs on Bookworm too.
+# OpenSSL is statically linked to avoid soname mismatches across Debian versions
+# (Bullseye ships libssl.so.1.1, Bookworm ships libssl.so.3).
 #
 # Note: Uses Debian's aarch64-linux-gnu toolchain (NOT ARM's standalone toolchain)
 # because dynamic linking requires matching the target's glibc version exactly.
 # ARM's standalone toolchain is used for static builds (see Dockerfile.ad5m).
 
-FROM debian:bookworm-slim
+FROM debian:bullseye-slim
 
 LABEL maintainer="HelixScreen <dev@helixscreen.io>"
 LABEL description="Cross-compilation toolchain for Raspberry Pi (aarch64)"
@@ -51,13 +52,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Specifically excluded (not linked, would only bloat the image):
 #   - libgbm-dev:arm64, libgles2-mesa-dev:arm64, libegl1-mesa-dev:arm64
 #     (LVGL uses software rendering, not GPU — DRM/KMS is display-only)
+#   - libfmt-dev:arm64 (spdlog bundles its own fmt — external fmt causes soname
+#     mismatches across Debian versions: Bullseye=libfmt.so.7, Bookworm=libfmt.so.9)
+#
+# Note: libssl-dev provides static archives (.a) used for static linking of OpenSSL.
 RUN dpkg --add-architecture arm64 && apt-get update && apt-get install -y --no-install-recommends \
     libc6-dev:arm64 \
-    libstdc++-12-dev:arm64 \
+    libstdc++-10-dev:arm64 \
     libdrm-dev:arm64 \
     libinput-dev:arm64 \
     libudev-dev:arm64 \
-    libfmt-dev:arm64 \
     libssl-dev:arm64 \
     libsystemd-dev:arm64 \
     && rm -rf /var/lib/apt/lists/*
@@ -93,8 +97,9 @@ RUN aarch64-linux-gnu-gcc --version && \
     aarch64-linux-gnu-gcc-ranlib --version && \
     echo "✓ Toolchain verification passed (including LTO support)" && \
     echo "" && \
-    echo "NOTE: This toolchain uses DYNAMIC linking." && \
-    echo "Binary requires target system libraries at runtime."
+    echo "NOTE: This toolchain uses DYNAMIC linking (Bullseye base)." && \
+    echo "OpenSSL is statically linked. Other libs are dynamic." && \
+    echo "Binary runs on both Debian Bullseye and Bookworm aarch64."
 
 # Default command: build for Pi
 # SKIP_OPTIONAL_DEPS=1 runs minimal dependency check (skips npm, clang-format, etc.)

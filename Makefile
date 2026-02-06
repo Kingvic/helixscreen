@@ -335,7 +335,14 @@ ifneq ($(CROSS_COMPILE),)
     # Cross-compiling: check if target fmt library exists (installed via libfmt-dev:arm64 etc.)
     FMT_TARGET_LIB := $(shell ls /usr/lib/$(TARGET_TRIPLE)/libfmt.so 2>/dev/null || ls /usr/lib/$(TARGET_TRIPLE)/libfmt.a 2>/dev/null)
     ifneq ($(FMT_TARGET_LIB),)
-        FMT_LIBS := -lfmt
+        ifeq ($(PLATFORM_TARGET),pi)
+            # Pi: skip external fmt — spdlog bundles its own, and linking against
+            # system libfmt causes soname mismatches across Debian versions
+            # (Bullseye ships libfmt.so.7, Bookworm ships libfmt.so.9)
+            FMT_LIBS :=
+        else
+            FMT_LIBS := -lfmt
+        endif
     else
         # No target fmt - build will fail if spdlog requires it
         FMT_LIBS :=
@@ -433,7 +440,13 @@ ifneq ($(CROSS_COMPILE),)
         LDFLAGS := -L/usr/lib/$(TARGET_TRIPLE) $(LIBHV_LIBS) $(TINYGL_LIB) $(FMT_LIBS) $(WPA_CLIENT_LIB) $(LIBNL_LIBS) $(SYSTEMD_LIBS) -ldl -lm -lpthread
     endif
     ifeq ($(ENABLE_SSL),yes)
-        LDFLAGS += -lssl -lcrypto
+        ifeq ($(PLATFORM_TARGET),pi)
+            # Pi: static-link OpenSSL to avoid libssl soname mismatch across Debian versions
+            # (Bullseye has libssl.so.1.1, Bookworm has libssl.so.3)
+            LDFLAGS += -Wl,-Bstatic -lssl -lcrypto -Wl,-Bdynamic
+        else
+            LDFLAGS += -lssl -lcrypto
+        endif
     endif
     # Add target-specific linker flags (e.g., -lstdc++fs for GCC 8)
     LDFLAGS += $(TARGET_LDFLAGS)
