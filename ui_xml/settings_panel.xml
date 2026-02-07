@@ -159,13 +159,6 @@
                           description="View installed plugins and status"
                           description_tag="View installed plugins and status" callback="on_plugins_clicked"/>
     </beta_feature>
-    <!-- Software Update -->
-    <setting_info_row name="row_update_version" label="Current Version" label_tag="Current Version" icon="info">
-      <text_muted name="value" bind_text="update_current_version"/>
-    </setting_info_row>
-    <setting_action_row name="row_check_updates"
-                        label="Check for Updates" label_tag="Check for Updates" icon="refresh"
-                        bind_description="update_version_text" callback="on_check_updates_clicked"/>
     <!-- Update Channel (gated by beta_features) -->
     <lv_obj name="container_update_channel" width="100%" style_pad_all="0">
       <bind_flag_if_eq subject="show_beta_features" flag="hidden" ref_value="0"/>
@@ -201,10 +194,10 @@
       </lv_obj>
       <event_cb trigger="clicked" callback="on_version_clicked"/>
     </ui_button>
-    <!-- Check for Updates -->
+    <!-- Check for Updates (reactive description shows available version) -->
     <setting_action_row name="row_check_updates"
                         label="Check for Updates" label_tag="Check for Updates" icon="refresh"
-                        description="" callback="on_check_updates_clicked"/>
+                        bind_description="update_version_text" callback="on_check_updates_clicked"/>
     <!-- Printer Name -->
     <setting_info_row name="row_printer" label="Printer" label_tag="Printer" icon="printer_3d">
       <text_muted name="value" bind_text="printer_value"/>
