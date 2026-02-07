@@ -28,7 +28,7 @@ HelixScreen is an **add-on** to existing Klipper installations. We don't ship cu
 
 ### What the Installer Does
 
-1. Detects platform (Pi vs AD5M) and firmware variant (ForgeX vs Klipper Mod)
+1. Detects platform (Pi vs Pi32 vs AD5M vs K1) and firmware variant (ForgeX vs Klipper Mod)
 2. Downloads the correct release tarball from GitHub
 3. Stops competing UIs (GuppyScreen, KlipperScreen, etc.)
 4. Extracts to the appropriate install directory
@@ -39,10 +39,13 @@ HelixScreen is an **add-on** to existing Klipper installations. We don't ship cu
 
 | Platform | Firmware | Install Dir | Init Script | Service Type |
 |----------|----------|-------------|-------------|--------------|
-| Pi (all) | - | `/opt/helixscreen` | `/etc/systemd/system/helixscreen.service` | systemd |
+| Pi 64-bit (aarch64) | - | `/opt/helixscreen` | `/etc/systemd/system/helixscreen.service` | systemd |
+| Pi 32-bit (armv7l) | - | `/opt/helixscreen` | `/etc/systemd/system/helixscreen.service` | systemd |
 | AD5M | ForgeX | `/opt/helixscreen` | `/etc/init.d/S90helixscreen` | SysV |
 | AD5M | Klipper Mod | `/root/printer_software/helixscreen` | `/etc/init.d/S80helixscreen` | SysV |
 | K1 | Simple AF | `/usr/data/helixscreen` | `/etc/init.d/S99helixscreen` | SysV |
+
+> **Note:** Both 32-bit and 64-bit Pi use the same install paths and systemd service. The installer auto-detects architecture via `uname -m` and downloads the matching binary (`helixscreen-pi-*.tar.gz` for 64-bit, `helixscreen-pi32-*.tar.gz` for 32-bit).
 
 ---
 

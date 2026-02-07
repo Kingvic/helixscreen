@@ -60,37 +60,38 @@ git push origin v1.2.0
 │                     Tag Push (v1.2.0)                       │
 └─────────────────────┬───────────────────────────────────────┘
                       │
-         ┌────────────┼────────────┐
-         │            │            │
-         ▼            ▼            ▼
-┌────────────┐ ┌────────────┐ ┌────────────┐
-│  build-pi  │ │ build-ad5m │ │  build-k1  │
-│ (45 min)   │ │ (45 min)   │ │ (45 min)   │
-│            │ │            │ │            │
-│ • Docker   │ │ • Docker   │ │ • Docker   │
-│ • aarch64  │ │ • armv7l   │ │ • mips32   │
-│ • Package  │ │ • Package  │ │ • Package  │
-└─────┬──────┘ └─────┬──────┘ └─────┬──────┘
-      │              │              │
-      └──────────────┼──────────────┘
-                      │
-                      ▼
-           ┌──────────────────┐
-           │     release      │
-           │                  │
-           │ • Download both  │
-           │   artifacts      │
-           │ • Extract version│
-           │ • Generate notes │
-           │ • Create release │
-           └──────────────────┘
+    ┌────────────┼────────────┼────────────┐
+    │            │            │            │
+    ▼            ▼            ▼            ▼
+┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐
+│ build-pi │ │build-pi32│ │build-ad5m│ │ build-k1 │
+│ (45 min) │ │ (45 min) │ │ (45 min) │ │ (45 min) │
+│          │ │          │ │          │ │          │
+│ • Docker │ │ • Docker │ │ • Docker │ │ • Docker │
+│ • arm64  │ │ • armhf  │ │ • armv7l │ │ • mips32 │
+│ • Package│ │ • Package│ │ • Package│ │ • Package│
+└────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘
+     │            │            │            │
+     └────────────┼────────────┼────────────┘
+                  │
+                  ▼
+       ┌──────────────────┐
+       │     release      │
+       │                  │
+       │ • Download all   │
+       │   artifacts      │
+       │ • Extract version│
+       │ • Generate notes │
+       │ • Create release │
+       └──────────────────┘
 ```
 
 ### Build Artifacts
 
 | Platform | Artifact Name | Contents |
 |----------|---------------|----------|
-| Raspberry Pi | `helixscreen-pi-v{version}.tar.gz` | aarch64 binary, assets, configs |
+| Raspberry Pi (64-bit) | `helixscreen-pi-v{version}.tar.gz` | aarch64 binary, assets, configs |
+| Raspberry Pi (32-bit) | `helixscreen-pi32-v{version}.tar.gz` | armhf binary, assets, configs |
 | AD5M | `helixscreen-ad5m-v{version}.tar.gz` | armv7l binary (static), assets, configs |
 | K1/Simple AF | `helixscreen-k1-v{version}.tar.gz` | MIPS32 binary (static, musl), assets, configs |
 

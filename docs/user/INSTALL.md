@@ -54,6 +54,7 @@ After installation, the setup wizard will guide you through initial configuratio
 - **Hardware:**
   - Raspberry Pi 3, 4, or 5 (Pi 3 is minimum, Pi 4/5 recommended)
   - Raspberry Pi Zero 2 W also supported
+  - Both **64-bit** and **32-bit** Raspberry Pi OS / MainsailOS supported
   - Touchscreen display (HDMI, DSI, or SPI)
   - Network connection (Ethernet or WiFi)
 
@@ -62,6 +63,8 @@ After installation, the setup wizard will guide you through initial configuratio
   - Klipper running and printing works via Mainsail web interface
   - SSH access to your Pi
   - About 100MB free disk space
+
+> **32-bit vs 64-bit:** The installer automatically detects your OS architecture and downloads the correct binary. If you're unsure which you have, run `uname -m` — `aarch64` means 64-bit, `armv7l` means 32-bit.
 
 ### Adventurer 5M / 5M Pro
 
@@ -159,7 +162,7 @@ curl -sSL https://raw.githubusercontent.com/prestonbrown/helixscreen/main/script
 ```
 
 The installer automatically:
-1. Detects your platform and Klipper ecosystem
+1. Detects your platform, architecture (32-bit or 64-bit), and Klipper ecosystem
 2. Downloads the correct release
 3. Stops any competing UIs (KlipperScreen, etc.)
 4. Installs to `~/helixscreen` (if Klipper ecosystem detected) or `/opt/helixscreen` (fallback)

@@ -125,7 +125,7 @@ Beta status. Core features work, but we're seeking testers. Suitable for enthusi
 HelixScreen uses LVGL 9's declarative XML—change layouts without recompiling. ~10MB RAM vs ~50MB for KlipperScreen. See the [comparison table](#why-helixscreen).
 
 **Which printers are supported?**
-Any Klipper + Moonraker printer. Currently tested on Voron 2.4, Voron 0.2, FlashForge Adventurer 5M Pro, and Doron Velta. The wizard auto-discovers your printer's capabilities.
+Any Klipper + Moonraker printer. Currently tested on Voron 2.4, Voron 0.2, FlashForge Adventurer 5M Pro, and Doron Velta. Both 32-bit and 64-bit Raspberry Pi OS are supported. The wizard auto-discovers your printer's capabilities.
 
 **What screen sizes are supported?**
 800×480 and up (including 1024×600) work well. Smaller displays like 480×320 are a work-in-progress — they'll run but may have some layout overlap issues.

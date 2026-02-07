@@ -238,7 +238,8 @@ See `docs/IDEAS.md` § "Design Philosophy: Local vs Remote UI" for full rational
 
 | Platform | Architecture | Status |
 |----------|--------------|--------|
-| **Raspberry Pi 4/5** | aarch64 | Docker cross-compile |
+| **Raspberry Pi 4/5 (64-bit)** | aarch64 | Docker cross-compile |
+| **Raspberry Pi (32-bit)** | armv7-a (armhf) | Docker cross-compile |
 | **BTT Pad** | aarch64 | Same as Pi |
 | **Adventurer 5M** | armv7-a | Static linking (glibc 2.25) |
 | **macOS** | x86_64/ARM64 | SDL2 development |

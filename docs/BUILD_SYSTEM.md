@@ -11,8 +11,11 @@ HelixScreen supports cross-compilation for embedded ARM targets using Docker-bas
 ### Quick Start
 
 ```bash
-# Build for Raspberry Pi (aarch64/ARM64)
+# Build for Raspberry Pi 64-bit (aarch64/ARM64)
 make pi-docker
+
+# Build for Raspberry Pi 32-bit (armhf/armv7l)
+make pi32-docker
 
 # Build for Flashforge Adventurer 5M (armv7-a/ARM32)
 make ad5m-docker
@@ -21,9 +24,10 @@ make ad5m-docker
 make k1-docker
 
 # Verify the binaries
-file build/pi/bin/helix-screen    # ELF 64-bit LSB, ARM aarch64
-file build/ad5m/bin/helix-screen  # ELF 32-bit LSB, ARM EABI5
-file build/k1/bin/helix-screen    # ELF 32-bit LSB, MIPS32
+file build/pi/bin/helix-screen     # ELF 64-bit LSB, ARM aarch64
+file build/pi32/bin/helix-screen   # ELF 32-bit LSB, ARM, EABI5
+file build/ad5m/bin/helix-screen   # ELF 32-bit LSB, ARM, EABI5
+file build/k1/bin/helix-screen     # ELF 32-bit LSB, MIPS32
 ```
 
 Docker images are **automatically built** on first use - no manual setup required!
@@ -32,16 +36,17 @@ Docker images are **automatically built** on first use - no manual setup require
 
 | Target | Command | Architecture | Display | Output Directory |
 |--------|---------|--------------|---------|------------------|
-| **Raspberry Pi** | `make pi-docker` | aarch64 (ARM64) | DRM/fbdev | `build/pi/` |
+| **Raspberry Pi (64-bit)** | `make pi-docker` | aarch64 (ARM64) | DRM/fbdev | `build/pi/` |
+| **Raspberry Pi (32-bit)** | `make pi32-docker` | armv7-a (armhf) | DRM/fbdev | `build/pi32/` |
 | **Adventurer 5M** | `make ad5m-docker` | armv7-a (hard-float) | fbdev | `build/ad5m/` |
 | **Creality K1** | `make k1-docker` | MIPS32r2 (musl) | fbdev | `build/k1/` |
 | **Native (SDL)** | `make` | Host architecture | SDL2 | `build/` |
 
 ### How It Works
 
-1. **Docker Toolchains**: Each target has a Dockerfile (`docker/Dockerfile.pi`, `docker/Dockerfile.ad5m`) that contains the cross-compiler, sysroot libraries, and build tools.
+1. **Docker Toolchains**: Each target has a Dockerfile (`docker/Dockerfile.pi`, `docker/Dockerfile.pi32`, `docker/Dockerfile.ad5m`, etc.) that contains the cross-compiler, sysroot libraries, and build tools.
 
-2. **Auto-Build Images**: When you run `make pi-docker` or `make ad5m-docker`, the build system automatically:
+2. **Auto-Build Images**: When you run `make pi-docker`, `make pi32-docker`, or `make ad5m-docker`, the build system automatically:
    - Checks if the Docker image exists
    - Builds the image if missing (takes 2-5 minutes first time)
    - Runs the cross-compilation inside the container
@@ -49,20 +54,22 @@ Docker images are **automatically built** on first use - no manual setup require
 3. **Volume Mounting**: Your source code is mounted into the container, so compiled binaries appear directly in your `build/` directory.
 
 4. **Display Backend Selection**: Cross-compilation automatically selects the appropriate display backend:
-   - **Pi**: DRM (preferred) with fbdev fallback
+   - **Pi / Pi32**: DRM (preferred) with fbdev fallback
    - **AD5M**: fbdev (800×480 framebuffer)
 
 ### Build Targets
 
 ```bash
 # Docker-based builds (recommended - no toolchain installation needed)
-make pi-docker           # Raspberry Pi via Docker
+make pi-docker           # Raspberry Pi 64-bit via Docker
+make pi32-docker         # Raspberry Pi 32-bit via Docker
 make ad5m-docker         # Adventurer 5M via Docker
 make k1-docker           # Creality K1 series via Docker
 make docker-toolchains   # Pre-build all Docker images
 
 # Direct cross-compilation (requires toolchain installed on host)
-make pi                  # Raspberry Pi (needs aarch64-linux-gnu-gcc)
+make pi                  # Raspberry Pi 64-bit (needs aarch64-linux-gnu-gcc)
+make pi32                # Raspberry Pi 32-bit (needs arm-linux-gnueabihf-gcc)
 make ad5m                # Adventurer 5M (needs arm-linux-gnueabihf-gcc)
 make k1                  # Creality K1 (needs Bootlin mips32el-musl toolchain)
 
@@ -72,12 +79,20 @@ make cross-info          # Show cross-compilation help
 
 ### Target Specifications
 
-#### Raspberry Pi (Mainsail OS)
+#### Raspberry Pi 64-bit (Mainsail OS)
 - **CPU**: Cortex-A72/A76 (64-bit ARM)
-- **Toolchain**: `aarch64-linux-gnu-gcc` (GCC 12+)
-- **Display**: DRM preferred (hardware acceleration), fbdev fallback
+- **Toolchain**: `aarch64-linux-gnu-gcc` (GCC 10+)
+- **Display**: DRM preferred, fbdev fallback
 - **Input**: libinput for touch
-- **Docker Image**: `helixscreen/toolchain-pi` (Debian Bookworm)
+- **Docker Image**: `helixscreen/toolchain-pi` (Debian Bullseye)
+
+#### Raspberry Pi 32-bit (Mainsail OS)
+- **CPU**: Cortex-A7/A53/A72 in 32-bit mode (armv7-a, hard-float + NEON)
+- **Toolchain**: `arm-linux-gnueabihf-gcc` (GCC 10+)
+- **Display**: DRM preferred, fbdev fallback
+- **Input**: libinput for touch
+- **Docker Image**: `helixscreen/toolchain-pi32` (Debian Bullseye)
+- **Coverage**: Pi 2, 3, 4, 5 running 32-bit Raspberry Pi OS / MainsailOS
 
 #### Flashforge Adventurer 5M
 - **CPU**: Cortex-A7 (32-bit ARM, hard-float)
@@ -101,7 +116,8 @@ make cross-info          # Show cross-compilation help
 
 ```
 docker/
-├── Dockerfile.pi      # Pi toolchain (Debian Bookworm, GCC 12)
+├── Dockerfile.pi      # Pi 64-bit toolchain (Debian Bullseye, GCC 10)
+├── Dockerfile.pi32    # Pi 32-bit toolchain (Debian Bullseye, GCC 10)
 ├── Dockerfile.ad5m    # AD5M toolchain (Debian Buster, GCC 8)
 └── Dockerfile.k1      # K1 toolchain (Bootlin mips32el-musl, GCC 12)
 ```
@@ -117,7 +133,7 @@ The Dockerfiles handle:
 Cross-compilation is handled by `mk/cross.mk`, which defines:
 
 ```makefile
-# Set target platform (native, pi, ad5m)
+# Set target platform (native, pi, pi32, ad5m, k1)
 PLATFORM_TARGET ?= native
 
 # Cross-compiler configuration

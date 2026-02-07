@@ -103,6 +103,8 @@ We recommend it for enthusiasts comfortable with:
 
 **Memory:** 1GB minimum, 2GB+ recommended.
 
+**32-bit and 64-bit:** Both are supported. The installer automatically detects your architecture (`uname -m`) and downloads the correct binary — `aarch64` gets the 64-bit build, `armv7l` gets the 32-bit build. No manual selection needed.
+
 ### Can I run HelixScreen alongside KlipperScreen/GuppyScreen?
 
 **Not on the same display.** Both compete for the framebuffer. The HelixScreen installer automatically disables any existing screen UI.
