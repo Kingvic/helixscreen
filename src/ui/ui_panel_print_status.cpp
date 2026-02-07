@@ -199,6 +199,10 @@ void PrintStatusPanel::init_subjects() {
                               subjects_);
     UI_MANAGED_SUBJECT_STRING(bed_temp_subject_, bed_temp_buf_, "0 / 0°C", "bed_temp_text",
                               subjects_);
+    UI_MANAGED_SUBJECT_STRING(nozzle_status_subject_, nozzle_status_buf_, "Off",
+                              "print_nozzle_status", subjects_);
+    UI_MANAGED_SUBJECT_STRING(bed_status_subject_, bed_status_buf_, "Off", "print_bed_status",
+                              subjects_);
     UI_MANAGED_SUBJECT_STRING(speed_subject_, speed_buf_, "100%", "print_speed_text", subjects_);
     UI_MANAGED_SUBJECT_STRING(flow_subject_, flow_buf_, "100%", "print_flow_text", subjects_);
     // Pause button icon - MDI icons (pause=F03E4, play=F040A)
@@ -693,6 +697,16 @@ void PrintStatusPanel::update_all_displays() {
     format_temperature_pair(centi_to_degrees(bed_current_), centi_to_degrees(bed_target_),
                             bed_temp_buf_, sizeof(bed_temp_buf_));
     lv_subject_copy_string(&bed_temp_subject_, bed_temp_buf_);
+
+    // Heater status text (Off / Heating... / Ready)
+    auto nozzle_heater = helix::fmt::heater_display(nozzle_current_, nozzle_target_);
+    std::snprintf(nozzle_status_buf_, sizeof(nozzle_status_buf_), "%s",
+                  nozzle_heater.status.c_str());
+    lv_subject_copy_string(&nozzle_status_subject_, nozzle_status_buf_);
+
+    auto bed_heater = helix::fmt::heater_display(bed_current_, bed_target_);
+    std::snprintf(bed_status_buf_, sizeof(bed_status_buf_), "%s", bed_heater.status.c_str());
+    lv_subject_copy_string(&bed_status_subject_, bed_status_buf_);
 
     // Speeds
     helix::fmt::format_percent(speed_percent_, speed_buf_, sizeof(speed_buf_));

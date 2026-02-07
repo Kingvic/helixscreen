@@ -284,6 +284,8 @@ class PrintStatusPanel : public OverlayBase {
     lv_subject_t remaining_subject_;
     lv_subject_t nozzle_temp_subject_;
     lv_subject_t bed_temp_subject_;
+    lv_subject_t nozzle_status_subject_;
+    lv_subject_t bed_status_subject_;
     lv_subject_t speed_subject_;
     lv_subject_t flow_subject_;
     lv_subject_t pause_button_subject_;
@@ -305,6 +307,8 @@ class PrintStatusPanel : public OverlayBase {
     char remaining_buf_[32] = "0h 00m";
     char nozzle_temp_buf_[32] = "0 / 0°C";
     char bed_temp_buf_[32] = "0 / 0°C";
+    char nozzle_status_buf_[16] = "Off";
+    char bed_status_buf_[16] = "Off";
     char speed_buf_[32] = "100%";
     char flow_buf_[32] = "100%";
     char pause_button_buf_[32] = "\xF3\xB0\x8F\xA4"; // MDI pause icon (F03E4)
