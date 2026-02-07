@@ -114,7 +114,7 @@ void ExcludeObjectsListOverlay::show(lv_obj_t* parent_screen, MoonrakerAPI* api,
     NavigationManager::instance().register_overlay_instance(overlay_root_, this);
 
     // Push onto navigation stack (on_activate will populate the list)
-    ui_nav_push_overlay(overlay_root_);
+    ui_nav_push_overlay(overlay_root_, false /* hide_previous */);
 }
 
 // ============================================================================
