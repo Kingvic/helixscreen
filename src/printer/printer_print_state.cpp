@@ -58,10 +58,11 @@ void PrinterPrintState::init_subjects(bool register_xml) {
     INIT_SUBJECT_INT(print_layer_current, 0, subjects_, register_xml);
     INIT_SUBJECT_INT(print_layer_total, 0, subjects_, register_xml);
 
-    // Print time tracking subjects
+    // Print time tracking subjects (NOT XML-registered: formatted STRING subjects
+    // in PrintStatusPanel own the XML bindings for print_elapsed/print_remaining)
     INIT_SUBJECT_INT(print_duration, 0, subjects_, register_xml);
-    INIT_SUBJECT_INT(print_elapsed, 0, subjects_, register_xml);
-    INIT_SUBJECT_INT(print_time_left, 0, subjects_, register_xml);
+    INIT_SUBJECT_INT(print_elapsed, 0, subjects_, false);
+    INIT_SUBJECT_INT(print_time_left, 0, subjects_, false);
 
     // Print start progress subjects
     INIT_SUBJECT_INT(print_start_phase, static_cast<int>(PrintStartPhase::IDLE), subjects_,
@@ -117,33 +118,16 @@ void PrinterPrintState::reset_for_new_print() {
     lv_subject_set_int(&print_duration_, 0);
     lv_subject_set_int(&print_elapsed_, 0);
     lv_subject_set_int(&print_time_left_, 0);
+    estimated_print_time_ = 0;
     spdlog::debug("[PrinterPrintState] Reset print progress for new print");
 }
 
 void PrinterPrintState::update_from_status(const nlohmann::json& status) {
-    // Update print progress
-    if (status.contains("virtual_sdcard")) {
-        const auto& sdcard = status["virtual_sdcard"];
-
-        if (sdcard.contains("progress") && sdcard["progress"].is_number()) {
-            int progress_pct = helix::units::json_to_percent(sdcard, "progress");
-
-            // Guard: Don't reset progress to 0 in terminal print states (Complete/Cancelled/Error)
-            // This preserves the 100% display when a print finishes successfully
-            auto current_state = static_cast<PrintJobState>(lv_subject_get_int(&print_state_enum_));
-            bool is_terminal_state = (current_state == PrintJobState::COMPLETE ||
-                                      current_state == PrintJobState::CANCELLED ||
-                                      current_state == PrintJobState::ERROR);
-
-            // Allow updates except: progress going backward in terminal state
-            int current_progress = lv_subject_get_int(&print_progress_);
-            if (!is_terminal_state || progress_pct >= current_progress) {
-                lv_subject_set_int(&print_progress_, progress_pct);
-            }
-        }
-    }
-
-    // Update print state
+    // IMPORTANT: Process print_stats BEFORE virtual_sdcard.
+    // The print_state_enum_ observer fires synchronously and reads print_progress_
+    // for mid-print detection (should_start_print_collector). If virtual_sdcard is
+    // processed first, progress is already non-zero when the observer fires, causing
+    // false mid-print detection and preventing the print start collector from activating.
     if (status.contains("print_stats")) {
         const auto& stats = status["print_stats"];
 
@@ -252,15 +236,43 @@ void PrinterPrintState::update_from_status(const nlohmann::json& status) {
             int total_elapsed = static_cast<int>(stats["total_duration"].get<double>());
             lv_subject_set_int(&print_elapsed_, total_elapsed);
 
-            // Estimate remaining from progress: elapsed * (1 - progress) / progress
-            // Requires >= 5% progress to avoid noisy estimates at low progress values
+            // Estimate remaining from progress using print_duration (actual print time),
+            // NOT total_duration (which includes prep/preheat and inflates the estimate)
+            int print_time = lv_subject_get_int(&print_duration_);
             int progress = lv_subject_get_int(&print_progress_);
-            if (progress >= 5 && progress < 100) {
-                int remaining = static_cast<int>(static_cast<double>(total_elapsed) *
-                                                 (100 - progress) / progress);
+            if (progress >= 5 && progress < 100 && print_time > 0) {
+                int remaining =
+                    static_cast<int>(static_cast<double>(print_time) * (100 - progress) / progress);
+                lv_subject_set_int(&print_time_left_, remaining);
+            } else if (progress > 0 && progress < 100 && print_time == 0 &&
+                       estimated_print_time_ > 0) {
+                // Fallback: use slicer estimate when print_duration hasn't started yet
+                int remaining = estimated_print_time_ * (100 - progress) / 100;
                 lv_subject_set_int(&print_time_left_, remaining);
             } else if (progress >= 100) {
                 lv_subject_set_int(&print_time_left_, 0);
+            }
+        }
+    }
+
+    // Update print progress (virtual_sdcard) - processed AFTER print_stats
+    if (status.contains("virtual_sdcard")) {
+        const auto& sdcard = status["virtual_sdcard"];
+
+        if (sdcard.contains("progress") && sdcard["progress"].is_number()) {
+            int progress_pct = helix::units::json_to_percent(sdcard, "progress");
+
+            // Guard: Don't reset progress to 0 in terminal print states (Complete/Cancelled/Error)
+            // This preserves the 100% display when a print finishes successfully
+            auto current_state = static_cast<PrintJobState>(lv_subject_get_int(&print_state_enum_));
+            bool is_terminal_state = (current_state == PrintJobState::COMPLETE ||
+                                      current_state == PrintJobState::CANCELLED ||
+                                      current_state == PrintJobState::ERROR);
+
+            // Allow updates except: progress going backward in terminal state
+            int current_progress = lv_subject_get_int(&print_progress_);
+            if (!is_terminal_state || progress_pct >= current_progress) {
+                lv_subject_set_int(&print_progress_, progress_pct);
             }
         }
     }
@@ -380,6 +392,15 @@ void PrinterPrintState::set_preprint_remaining_seconds(int seconds) {
 
 void PrinterPrintState::set_preprint_elapsed_seconds(int seconds) {
     lv_subject_set_int(&preprint_elapsed_, std::max(0, seconds));
+}
+
+void PrinterPrintState::set_estimated_print_time(int seconds) {
+    estimated_print_time_ = std::max(0, seconds);
+    spdlog::debug("[PrinterPrintState] Slicer estimated print time: {}s", estimated_print_time_);
+}
+
+int PrinterPrintState::get_estimated_print_time() const {
+    return estimated_print_time_;
 }
 
 void PrinterPrintState::set_print_in_progress_internal(bool in_progress) {
