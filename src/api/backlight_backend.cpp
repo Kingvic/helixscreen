@@ -311,15 +311,25 @@ class BacklightBackendAllwinner : public BacklightBackend {
         unsigned long args[4] = {0, 0, 0, 0};
 
         if (brightness == 0) {
-            // Disable backlight for 0% brightness
-            int ret = ioctl(fd.get(), DISP_LCD_BACKLIGHT_DISABLE, args);
+            // Set PWM duty cycle to 0 first - on some Allwinner variants (AD5M),
+            // BACKLIGHT_DISABLE alone doesn't control the PWM output
+            args[1] = 0;
+            int ret = ioctl(fd.get(), DISP_LCD_SET_BRIGHTNESS, args);
+            if (ret < 0) {
+                int err = errno;
+                spdlog::warn("[Backlight-Allwinner] ioctl SET_BRIGHTNESS(0) failed: {}",
+                             strerror(err));
+            }
+
+            // Also disable backlight via dedicated ioctl (may control enable GPIO)
+            args[1] = 0;
+            ret = ioctl(fd.get(), DISP_LCD_BACKLIGHT_DISABLE, args);
             if (ret < 0) {
                 int err = errno;
                 spdlog::warn("[Backlight-Allwinner] ioctl BACKLIGHT_DISABLE failed: {}",
                              strerror(err));
-                return false;
             }
-            spdlog::debug("[Backlight-Allwinner] Backlight disabled");
+            spdlog::debug("[Backlight-Allwinner] Backlight disabled (PWM=0 + DISABLE)");
         } else {
             // Enable backlight first (required on AD5M before SET_BRIGHTNESS works)
             int ret = ioctl(fd.get(), DISP_LCD_BACKLIGHT_ENABLE, args);
