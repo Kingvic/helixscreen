@@ -87,6 +87,26 @@ SPLASH_BIN="${BIN_DIR}/helix-splash"
 MAIN_BIN="${BIN_DIR}/helix-screen"
 WATCHDOG_BIN="${BIN_DIR}/helix-watchdog"
 
+# Derive the install root (parent of bin/)
+INSTALL_DIR="$(cd "${BIN_DIR}/.." && pwd)"
+
+# Ensure SSL certificate verification works for HTTPS requests (e.g., update checker).
+# Static glibc builds embed OpenSSL with compiled-in cert paths from the Docker build
+# container, which don't exist on the target device. Set SSL_CERT_FILE to a valid path.
+if [ -z "${SSL_CERT_FILE:-}" ]; then
+    for _cert_path in \
+        /etc/ssl/certs/ca-certificates.crt \
+        /etc/pki/tls/certs/ca-bundle.crt \
+        /etc/ssl/cert.pem \
+        "${INSTALL_DIR}/certs/ca-certificates.crt"; do
+        if [ -f "$_cert_path" ]; then
+            export SSL_CERT_FILE="$_cert_path"
+            break
+        fi
+    done
+    unset _cert_path
+fi
+
 # Log function (must be defined before first use)
 # Uses stderr to avoid polluting stdout which could be captured unexpectedly
 log() {

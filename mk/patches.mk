@@ -19,7 +19,10 @@ LVGL_PATCHED_FILES := \
 
 # Files modified by libhv patches
 LIBHV_PATCHED_FILES := \
-	http/client/requests.h
+	http/client/requests.h \
+	base/hsocket.c \
+	base/dns_resolv.c \
+	base/dns_resolv.h
 
 # ============================================================================
 # PATCH STAMP FILE - Skip checking if patches haven't changed
@@ -175,5 +178,17 @@ $(PATCHES_STAMP): $(PATCH_FILES) $(LVGL_HEAD) $(LIBHV_HEAD)
 			cp "$(LIBHV_DIR)/http/client/requests.h" "$(LIBHV_DIR)/include/hv/requests.h" && \
 			echo "$(GREEN)✓ Patched header synced$(RESET)"; \
 		fi \
+	fi
+	$(Q)if git -C $(LIBHV_DIR) diff --quiet base/hsocket.c 2>/dev/null && \
+	    [ ! -f "$(LIBHV_DIR)/base/dns_resolv.c" ]; then \
+		echo "$(YELLOW)→ Applying libhv DNS resolver fallback patch...$(RESET)"; \
+		if git -C $(LIBHV_DIR) apply --check ../../patches/libhv-dns-resolver-fallback.patch 2>/dev/null; then \
+			git -C $(LIBHV_DIR) apply ../../patches/libhv-dns-resolver-fallback.patch && \
+			echo "$(GREEN)✓ DNS resolver fallback patch applied$(RESET)"; \
+		else \
+			echo "$(YELLOW)⚠ Cannot apply patch (already applied or conflicts)$(RESET)"; \
+		fi \
+	else \
+		echo "$(GREEN)✓ libhv DNS resolver fallback patch already applied$(RESET)"; \
 	fi
 	@touch $@
