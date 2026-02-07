@@ -689,12 +689,15 @@ void PrintStatusPanel::update_all_displays() {
                   total_layers_);
     lv_subject_copy_string(&layer_text_subject_, layer_text_buf_);
 
-    // Time displays
-    format_time(elapsed_seconds_, elapsed_buf_, sizeof(elapsed_buf_));
-    lv_subject_copy_string(&elapsed_subject_, elapsed_buf_);
+    // Time displays - during Preparing, the preprint observers own these
+    if (current_state_ != PrintState::Preparing) {
+        int total_elapsed = preprint_elapsed_seconds_ + elapsed_seconds_;
+        format_time(total_elapsed, elapsed_buf_, sizeof(elapsed_buf_));
+        lv_subject_copy_string(&elapsed_subject_, elapsed_buf_);
 
-    format_time(remaining_seconds_, remaining_buf_, sizeof(remaining_buf_));
-    lv_subject_copy_string(&remaining_subject_, remaining_buf_);
+        format_time(remaining_seconds_, remaining_buf_, sizeof(remaining_buf_));
+        lv_subject_copy_string(&remaining_subject_, remaining_buf_);
+    }
 
     // Use centralized temperature formatting with em dash for heater-off state
     format_temperature_pair(centi_to_degrees(nozzle_current_), centi_to_degrees(nozzle_target_),
