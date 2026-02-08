@@ -1373,3 +1373,114 @@ TEST_CASE("AFC bowden slider max accommodates real bowden length",
         }
     }
 }
+
+// ============================================================================
+// Phase 3: New Device Actions & Commands Tests
+// ============================================================================
+//
+// Tests for new maintenance section, LED/mode toggles, and maintenance commands.
+// ============================================================================
+
+TEST_CASE("AFC device sections include maintenance and led",
+          "[ams][afc][device_sections][phase3]") {
+    AmsBackendAfcTestHelper helper;
+
+    auto sections = helper.get_device_sections();
+
+    bool has_maintenance = false;
+    bool has_led = false;
+    for (const auto& section : sections) {
+        if (section.id == "maintenance")
+            has_maintenance = true;
+        if (section.id == "led")
+            has_led = true;
+    }
+    REQUIRE(has_maintenance);
+    REQUIRE(has_led);
+}
+
+TEST_CASE("AFC device action test_lanes dispatches gcode", "[ams][afc][device_actions][phase3]") {
+    AmsBackendAfcTestHelper helper;
+    helper.initialize_test_lanes_with_slots(4);
+
+    auto result = helper.execute_device_action("test_lanes");
+
+    REQUIRE(result.success());
+    REQUIRE(helper.has_gcode("AFC_TEST_LANES"));
+}
+
+TEST_CASE("AFC device action change_blade dispatches gcode", "[ams][afc][device_actions][phase3]") {
+    AmsBackendAfcTestHelper helper;
+    helper.initialize_test_lanes_with_slots(4);
+
+    auto result = helper.execute_device_action("change_blade");
+
+    REQUIRE(result.success());
+    REQUIRE(helper.has_gcode("AFC_CHANGE_BLADE"));
+}
+
+TEST_CASE("AFC device action park dispatches gcode", "[ams][afc][device_actions][phase3]") {
+    AmsBackendAfcTestHelper helper;
+    helper.initialize_test_lanes_with_slots(4);
+
+    auto result = helper.execute_device_action("park");
+
+    REQUIRE(result.success());
+    REQUIRE(helper.has_gcode("AFC_PARK"));
+}
+
+TEST_CASE("AFC device action brush dispatches gcode", "[ams][afc][device_actions][phase3]") {
+    AmsBackendAfcTestHelper helper;
+    helper.initialize_test_lanes_with_slots(4);
+
+    auto result = helper.execute_device_action("brush");
+
+    REQUIRE(result.success());
+    REQUIRE(helper.has_gcode("AFC_BRUSH"));
+}
+
+TEST_CASE("AFC device action reset_motor dispatches gcode", "[ams][afc][device_actions][phase3]") {
+    AmsBackendAfcTestHelper helper;
+    helper.initialize_test_lanes_with_slots(4);
+
+    auto result = helper.execute_device_action("reset_motor");
+
+    REQUIRE(result.success());
+    REQUIRE(helper.has_gcode("AFC_RESET_MOTOR_TIME"));
+}
+
+TEST_CASE("AFC device action led toggle on when off", "[ams][afc][device_actions][phase3]") {
+    AmsBackendAfcTestHelper helper;
+    helper.initialize_test_lanes_with_slots(4);
+
+    // LED is off, toggling should turn it on
+    helper.feed_afc_state({{"led_state", false}});
+
+    auto result = helper.execute_device_action("led_toggle");
+
+    REQUIRE(result.success());
+    REQUIRE(helper.has_gcode("TURN_ON_AFC_LED"));
+}
+
+TEST_CASE("AFC device action led toggle off when on", "[ams][afc][device_actions][phase3]") {
+    AmsBackendAfcTestHelper helper;
+    helper.initialize_test_lanes_with_slots(4);
+
+    // LED is on, toggling should turn it off
+    helper.feed_afc_state({{"led_state", true}});
+
+    auto result = helper.execute_device_action("led_toggle");
+
+    REQUIRE(result.success());
+    REQUIRE(helper.has_gcode("TURN_OFF_AFC_LED"));
+}
+
+TEST_CASE("AFC device action quiet_mode dispatches gcode", "[ams][afc][device_actions][phase3]") {
+    AmsBackendAfcTestHelper helper;
+    helper.initialize_test_lanes_with_slots(4);
+
+    auto result = helper.execute_device_action("quiet_mode");
+
+    REQUIRE(result.success());
+    REQUIRE(helper.has_gcode("AFC_QUIET_MODE"));
+}

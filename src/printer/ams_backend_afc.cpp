@@ -1625,7 +1625,9 @@ AmsError AmsBackendAfc::reset_endless_spool() {
 
 std::vector<helix::printer::DeviceSection> AmsBackendAfc::get_device_sections() const {
     return {{"calibration", "Calibration", "wrench", 0},
-            {"speed", "Speed Settings", "speedometer", 1}};
+            {"speed", "Speed Settings", "speedometer", 1},
+            {"maintenance", "Maintenance", "wrench-outline", 2},
+            {"led", "LED & Modes", "lightbulb-outline", 3}};
 }
 
 std::vector<helix::printer::DeviceAction> AmsBackendAfc::get_device_actions() const {
@@ -1692,6 +1694,106 @@ std::vector<helix::printer::DeviceAction> AmsBackendAfc::get_device_actions() co
                          "x",
                          -1,
                          true,
+                         ""},
+            // Maintenance section
+            DeviceAction{"test_lanes",
+                         "Test All Lanes",
+                         "test-tube",
+                         "maintenance",
+                         "Run test sequence on all lanes",
+                         ActionType::BUTTON,
+                         {},
+                         {},
+                         0,
+                         0,
+                         "",
+                         -1,
+                         true,
+                         ""},
+            DeviceAction{"change_blade",
+                         "Change Blade",
+                         "box-cutter",
+                         "maintenance",
+                         "Initiate blade change procedure",
+                         ActionType::BUTTON,
+                         {},
+                         {},
+                         0,
+                         0,
+                         "",
+                         -1,
+                         true,
+                         ""},
+            DeviceAction{"park",
+                         "Park",
+                         "parking",
+                         "maintenance",
+                         "Park the AFC system",
+                         ActionType::BUTTON,
+                         {},
+                         {},
+                         0,
+                         0,
+                         "",
+                         -1,
+                         true,
+                         ""},
+            DeviceAction{"brush",
+                         "Clean Brush",
+                         "broom",
+                         "maintenance",
+                         "Run brush cleaning sequence",
+                         ActionType::BUTTON,
+                         {},
+                         {},
+                         0,
+                         0,
+                         "",
+                         -1,
+                         true,
+                         ""},
+            DeviceAction{"reset_motor",
+                         "Reset Motor Timer",
+                         "timer-refresh",
+                         "maintenance",
+                         "Reset motor run-time counter",
+                         ActionType::BUTTON,
+                         {},
+                         {},
+                         0,
+                         0,
+                         "",
+                         -1,
+                         true,
+                         ""},
+            // LED & Modes section
+            DeviceAction{"led_toggle",
+                         afc_led_state_ ? "Turn Off LEDs" : "Turn On LEDs",
+                         afc_led_state_ ? "lightbulb-off" : "lightbulb-on",
+                         "led",
+                         "Toggle AFC LED strip",
+                         ActionType::BUTTON,
+                         {},
+                         {},
+                         0,
+                         0,
+                         "",
+                         -1,
+                         true,
+                         ""},
+            DeviceAction{"quiet_mode",
+                         "Toggle Quiet Mode",
+                         "volume-off",
+                         "led",
+                         "Enable/disable quiet operation mode",
+                         ActionType::BUTTON,
+                         {},
+                         {},
+                         0,
+                         0,
+                         "",
+                         -1,
+                         true,
                          ""}};
 }
 
@@ -1746,6 +1848,21 @@ AmsError AmsBackendAfc::execute_device_action(const std::string& action_id, cons
             return AmsError(AmsResult::WRONG_STATE, "Invalid speed multiplier type",
                             "Invalid value type", "Provide a numeric value");
         }
+    } else if (action_id == "test_lanes") {
+        return execute_gcode("AFC_TEST_LANES");
+    } else if (action_id == "change_blade") {
+        return execute_gcode("AFC_CHANGE_BLADE");
+    } else if (action_id == "park") {
+        return execute_gcode("AFC_PARK");
+    } else if (action_id == "brush") {
+        return execute_gcode("AFC_BRUSH");
+    } else if (action_id == "reset_motor") {
+        return execute_gcode("AFC_RESET_MOTOR_TIME");
+    } else if (action_id == "led_toggle") {
+        std::lock_guard<std::recursive_mutex> lock(mutex_);
+        return execute_gcode(afc_led_state_ ? "TURN_OFF_AFC_LED" : "TURN_ON_AFC_LED");
+    } else if (action_id == "quiet_mode") {
+        return execute_gcode("AFC_QUIET_MODE");
     }
 
     return AmsErrorHelper::not_supported("Unknown action: " + action_id);
