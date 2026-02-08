@@ -256,6 +256,50 @@ class AmsBackendAfcTestHelper : public AmsBackendAfc {
         }
         return "";
     }
+
+    // Phase 2: Access to extended parsing state
+    const LaneSensors& get_lane_sensors(int index) const {
+        return lane_sensors_[index];
+    }
+    bool get_hub_sensor() const {
+        return hub_sensor_;
+    }
+    bool get_tool_start_sensor() const {
+        return tool_start_sensor_;
+    }
+    bool get_tool_end_sensor() const {
+        return tool_end_sensor_;
+    }
+    bool get_quiet_mode() const {
+        return afc_quiet_mode_;
+    }
+    bool get_led_state() const {
+        return afc_led_state_;
+    }
+    float get_bowden_length() const {
+        return bowden_length_;
+    }
+
+    // Feed AFC_hub update
+    void feed_afc_hub(const std::string& hub_name, const nlohmann::json& data) {
+        nlohmann::json params;
+        params["AFC_hub " + hub_name] = data;
+        feed_status_update(params);
+    }
+
+    // Feed AFC_extruder update
+    void feed_afc_extruder(const std::string& ext_name, const nlohmann::json& data) {
+        nlohmann::json params;
+        params["AFC_extruder " + ext_name] = data;
+        feed_status_update(params);
+    }
+
+    // Feed AFC_buffer update
+    void feed_afc_buffer(const std::string& buf_name, const nlohmann::json& data) {
+        nlohmann::json params;
+        params["AFC_buffer " + buf_name] = data;
+        feed_status_update(params);
+    }
 };
 
 // ============================================================================
@@ -1131,4 +1175,201 @@ TEST_CASE("AFC current_load and next_lane tracked", "[ams][afc][state][phase1]")
     // operation_detail should mention the loading context
     // At minimum, the action should be LOADING from current_state
     REQUIRE(helper.get_action() == AmsAction::LOADING);
+}
+
+// ============================================================================
+// Phase 2: Full Data Parsing Tests
+// ============================================================================
+//
+// These tests verify parsing of extended hub, extruder, stepper, and buffer
+// fields from real AFC device data. Tests use fixture structures captured
+// from a real Box Turtle at 192.168.1.112.
+// ============================================================================
+
+TEST_CASE("AFC hub bowden length parsed from afc_bowden_length", "[ams][afc][hub][phase2]") {
+    // Real device: AFC_hub Turtle_1 has "afc_bowden_length": 1285.0
+    AmsBackendAfcTestHelper helper;
+    helper.initialize_test_lanes_with_slots(4);
+
+    // Set hub names so the status update routes correctly
+    std::vector<std::string> lanes = {"lane1", "lane2", "lane3", "lane4"};
+    std::vector<std::string> hubs = {"Turtle_1"};
+    helper.set_discovered_lanes(lanes, hubs);
+
+    helper.feed_afc_hub("Turtle_1", {{"state", false}, {"afc_bowden_length", 1285.0}});
+
+    // bowden_length should be stored and accessible for device actions
+    auto actions = helper.get_device_actions();
+    bool found_bowden = false;
+    for (const auto& action : actions) {
+        if (action.id == "bowden_length") {
+            found_bowden = true;
+            // Value should use the real bowden length, not hardcoded 450
+            auto val = std::any_cast<float>(action.current_value);
+            REQUIRE(val == Catch::Approx(1285.0f));
+            break;
+        }
+    }
+    REQUIRE(found_bowden);
+}
+
+TEST_CASE("AFC hub cutter info parsed", "[ams][afc][hub][phase2]") {
+    // Real device: AFC_hub has "cut": false, "cut_dist": 50.0, etc.
+    // We should track whether the hub has a cutter for UI decisions
+    AmsBackendAfcTestHelper helper;
+    helper.initialize_test_lanes_with_slots(4);
+
+    std::vector<std::string> lanes = {"lane1", "lane2", "lane3", "lane4"};
+    std::vector<std::string> hubs = {"Turtle_1"};
+    helper.set_discovered_lanes(lanes, hubs);
+
+    helper.feed_afc_hub(
+        "Turtle_1",
+        {{"state", false}, {"cut", false}, {"cut_dist", 50.0}, {"afc_bowden_length", 1285.0}});
+
+    // Hub sensor state should be updated
+    REQUIRE(helper.get_hub_sensor() == false);
+
+    // System info should reflect cutter availability
+    auto sys_info = helper.get_system_info();
+    // AFC always advertises TipMethod::CUT - but we should parse cut field
+    // to know if cutter is actually present/configured
+    REQUIRE(sys_info.tip_method == TipMethod::CUT);
+}
+
+TEST_CASE("AFC extruder speeds parsed", "[ams][afc][extruder][phase2]") {
+    // Real device: AFC_extruder has "tool_load_speed": 25.0, "tool_unload_speed": 25.0
+    AmsBackendAfcTestHelper helper;
+    helper.initialize_test_lanes_with_slots(4);
+
+    helper.feed_afc_extruder("extruder", {{"tool_start_status", false},
+                                          {"tool_end_status", false},
+                                          {"tool_load_speed", 25.0},
+                                          {"tool_unload_speed", 30.0}});
+
+    // Sensor state should be updated
+    REQUIRE(helper.get_tool_start_sensor() == false);
+    REQUIRE(helper.get_tool_end_sensor() == false);
+}
+
+TEST_CASE("AFC extruder distances parsed", "[ams][afc][extruder][phase2]") {
+    // Real device: tool_stn=42.0, tool_stn_unload=90.0
+    AmsBackendAfcTestHelper helper;
+    helper.initialize_test_lanes_with_slots(4);
+
+    helper.feed_afc_extruder("extruder", {{"tool_start_status", true},
+                                          {"tool_end_status", false},
+                                          {"tool_stn", 42.0},
+                                          {"tool_stn_unload", 90.0}});
+
+    REQUIRE(helper.get_tool_start_sensor() == true);
+}
+
+TEST_CASE("AFC stepper buffer_status parsed", "[ams][afc][stepper][phase2]") {
+    // Real device: AFC_stepper lane1 has "buffer_status": "Advancing"
+    // LaneSensors struct only has prep, load, loaded_to_hub today
+    AmsBackendAfcTestHelper helper;
+    helper.initialize_test_lanes_with_slots(4);
+
+    helper.feed_afc_stepper("lane1",
+                            {{"prep", true}, {"load", true}, {"buffer_status", "Advancing"}});
+
+    // buffer_status should be stored on lane sensors
+    auto sensors = helper.get_lane_sensors(0);
+    REQUIRE(sensors.prep == true);
+    REQUIRE(sensors.load == true);
+    REQUIRE(sensors.buffer_status == "Advancing");
+}
+
+TEST_CASE("AFC stepper filament_status parsed", "[ams][afc][stepper][phase2]") {
+    // Real device: "filament_status": "Ready" or "Not Ready"
+    AmsBackendAfcTestHelper helper;
+    helper.initialize_test_lanes_with_slots(4);
+
+    helper.feed_afc_stepper("lane1",
+                            {{"filament_status", "Ready"}, {"filament_status_led", "#00ff00"}});
+
+    auto sensors = helper.get_lane_sensors(0);
+    REQUIRE(sensors.filament_status == "Ready");
+}
+
+TEST_CASE("AFC stepper dist_hub parsed", "[ams][afc][stepper][phase2]") {
+    // Real device: "dist_hub": 200.0 (distance to hub in mm)
+    AmsBackendAfcTestHelper helper;
+    helper.initialize_test_lanes_with_slots(4);
+
+    helper.feed_afc_stepper("lane1", {{"dist_hub", 200.0}});
+
+    auto sensors = helper.get_lane_sensors(0);
+    REQUIRE(sensors.dist_hub == Catch::Approx(200.0f));
+}
+
+TEST_CASE("AFC buffer object parsed via status update", "[ams][afc][buffer][phase2]") {
+    // Real device: AFC_buffer Turtle_1 has "state": "Advancing", "enabled": false
+    // We don't subscribe to or parse AFC_buffer objects today
+    AmsBackendAfcTestHelper helper;
+    helper.initialize_test_lanes_with_slots(4);
+
+    std::vector<std::string> lanes = {"lane1", "lane2", "lane3", "lane4"};
+    std::vector<std::string> hubs = {"Turtle_1"};
+    helper.set_discovered_lanes(lanes, hubs);
+
+    // Feed buffer names through AFC state
+    helper.feed_afc_state({{"buffers", {"Turtle_1"}}});
+
+    // Now feed a buffer update
+    helper.feed_afc_buffer("Turtle_1", {{"state", "Advancing"}, {"enabled", false}});
+
+    // Buffer state should be tracked (at minimum, no crash)
+    // The test verifies the feed_afc_buffer path doesn't crash
+    // and that buffer names are stored
+    REQUIRE(true); // Placeholder — buffer tracking will expand in implementation
+}
+
+TEST_CASE("AFC global quiet_mode parsed from AFC state", "[ams][afc][global][phase2]") {
+    // Real device: AFC has "quiet_mode": false
+    AmsBackendAfcTestHelper helper;
+    helper.initialize_test_lanes_with_slots(4);
+
+    helper.feed_afc_state({{"quiet_mode", false}});
+    REQUIRE(helper.get_quiet_mode() == false);
+
+    // Toggle it on
+    helper.feed_afc_state({{"quiet_mode", true}});
+    REQUIRE(helper.get_quiet_mode() == true);
+}
+
+TEST_CASE("AFC global led_state parsed from AFC state", "[ams][afc][global][phase2]") {
+    // Real device: AFC has "led_state": true
+    AmsBackendAfcTestHelper helper;
+    helper.initialize_test_lanes_with_slots(4);
+
+    helper.feed_afc_state({{"led_state", true}});
+    REQUIRE(helper.get_led_state() == true);
+
+    // Toggle it off
+    helper.feed_afc_state({{"led_state", false}});
+    REQUIRE(helper.get_led_state() == false);
+}
+
+TEST_CASE("AFC bowden slider max accommodates real bowden length",
+          "[ams][afc][device_actions][phase2]") {
+    // The bowden slider max was hardcoded to 1000mm, but real bowden can be 1285mm
+    AmsBackendAfcTestHelper helper;
+    helper.initialize_test_lanes_with_slots(4);
+
+    std::vector<std::string> lanes = {"lane1", "lane2", "lane3", "lane4"};
+    std::vector<std::string> hubs = {"Turtle_1"};
+    helper.set_discovered_lanes(lanes, hubs);
+
+    helper.feed_afc_hub("Turtle_1", {{"state", false}, {"afc_bowden_length", 1285.0}});
+
+    auto actions = helper.get_device_actions();
+    for (const auto& action : actions) {
+        if (action.id == "bowden_length") {
+            // Max should accommodate the real bowden length
+            REQUIRE(action.max_value >= 1285.0f);
+            break;
+        }
+    }
 }

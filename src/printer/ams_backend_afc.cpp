@@ -8,6 +8,7 @@
 #include <spdlog/fmt/fmt.h>
 #include <spdlog/spdlog.h>
 
+#include <algorithm>
 #include <sstream>
 
 // ============================================================================
@@ -410,6 +411,15 @@ void AmsBackendAfc::handle_status_update(const nlohmann::json& notification) {
             parse_afc_extruder(params["AFC_extruder extruder"]);
             state_changed = true;
         }
+
+        // Parse AFC_buffer objects for buffer state (informational only for now)
+        for (const auto& buf_name : buffer_names_) {
+            std::string key = "AFC_buffer " + buf_name;
+            if (params.contains(key) && params[key].is_object()) {
+                spdlog::trace("[AMS AFC] Buffer {} update received", buf_name);
+                // Don't set state_changed — no state is actually stored yet
+            }
+        }
     }
 
     if (state_changed) {
@@ -521,6 +531,24 @@ void AmsBackendAfc::parse_afc_state(const nlohmann::json& afc_data) {
         spdlog::debug("[AMS AFC] Discovered {} hubs", hub_names_.size());
     }
 
+    // Extract buffer names from AFC.buffers array
+    if (afc_data.contains("buffers") && afc_data["buffers"].is_array()) {
+        buffer_names_.clear();
+        for (const auto& buf : afc_data["buffers"]) {
+            if (buf.is_string()) {
+                buffer_names_.push_back(buf.get<std::string>());
+            }
+        }
+    }
+
+    // Parse global quiet_mode and LED state
+    if (afc_data.contains("quiet_mode") && afc_data["quiet_mode"].is_boolean()) {
+        afc_quiet_mode_ = afc_data["quiet_mode"].get<bool>();
+    }
+    if (afc_data.contains("led_state") && afc_data["led_state"].is_boolean()) {
+        afc_led_state_ = afc_data["led_state"].get<bool>();
+    }
+
     // Parse error state
     if (afc_data.contains("error_state") && afc_data["error_state"].is_boolean()) {
         error_state_ = afc_data["error_state"].get<bool>();
@@ -583,6 +611,15 @@ void AmsBackendAfc::parse_afc_stepper(const std::string& lane_name, const nlohma
     }
     if (data.contains("loaded_to_hub") && data["loaded_to_hub"].is_boolean()) {
         sensors.loaded_to_hub = data["loaded_to_hub"].get<bool>();
+    }
+    if (data.contains("buffer_status") && data["buffer_status"].is_string()) {
+        sensors.buffer_status = data["buffer_status"].get<std::string>();
+    }
+    if (data.contains("filament_status") && data["filament_status"].is_string()) {
+        sensors.filament_status = data["filament_status"].get<std::string>();
+    }
+    if (data.contains("dist_hub") && data["dist_hub"].is_number()) {
+        sensors.dist_hub = data["dist_hub"].get<float>();
     }
 
     // Get slot info for filament data update
@@ -701,6 +738,13 @@ void AmsBackendAfc::parse_afc_hub(const nlohmann::json& data) {
     if (data.contains("state") && data["state"].is_boolean()) {
         hub_sensor_ = data["state"].get<bool>();
         spdlog::trace("[AMS AFC] Hub sensor: {}", hub_sensor_);
+    }
+
+    // Store bowden length from hub — in multi-hub setups, all hubs share the same
+    // bowden tube to the toolhead so last-writer-wins is acceptable here
+    if (data.contains("afc_bowden_length") && data["afc_bowden_length"].is_number()) {
+        bowden_length_ = data["afc_bowden_length"].get<float>();
+        spdlog::trace("[AMS AFC] Hub bowden length: {}mm", bowden_length_);
     }
 }
 
@@ -1585,6 +1629,7 @@ std::vector<helix::printer::DeviceSection> AmsBackendAfc::get_device_sections() 
 }
 
 std::vector<helix::printer::DeviceAction> AmsBackendAfc::get_device_actions() const {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     using helix::printer::ActionType;
     using helix::printer::DeviceAction;
 
@@ -1611,10 +1656,10 @@ std::vector<helix::printer::DeviceAction> AmsBackendAfc::get_device_actions() co
                          "calibration",
                          "Distance from hub to toolhead",
                          ActionType::SLIDER,
-                         450.0f, // default value
-                         {},     // no options
+                         bowden_length_, // current value from hub
+                         {},             // no options
                          100.0f,
-                         1000.0f, // min/max mm
+                         std::max(2000.0f, bowden_length_ * 1.5f), // dynamic max
                          "mm",
                          -1, // system-wide
                          true,
@@ -1662,13 +1707,16 @@ AmsError AmsBackendAfc::execute_device_action(const std::string& action_id, cons
         }
         try {
             float length = std::any_cast<float>(value);
-            if (length < 100.0f || length > 1000.0f) {
-                return AmsError(AmsResult::WRONG_STATE, "Bowden length must be 100-1000mm",
-                                "Invalid value", "Enter a length between 100 and 1000mm");
+            std::lock_guard<std::recursive_mutex> lock(mutex_);
+            float max_len = std::max(2000.0f, bowden_length_ * 1.5f);
+            if (length < 100.0f || length > max_len) {
+                return AmsError(AmsResult::WRONG_STATE,
+                                fmt::format("Bowden length must be 100-{:.0f}mm", max_len),
+                                "Invalid value",
+                                fmt::format("Enter a length between 100 and {:.0f}mm", max_len));
             }
             // AFC uses SET_BOWDEN_LENGTH UNIT={unit_name} LENGTH={mm}
             // For simplicity, we'll use the first unit
-            std::lock_guard<std::recursive_mutex> lock(mutex_);
             if (!system_info_.units.empty()) {
                 std::string unit_name = system_info_.units[0].name;
                 return execute_gcode("SET_BOWDEN_LENGTH UNIT=" + unit_name +
