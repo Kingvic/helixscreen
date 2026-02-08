@@ -1652,6 +1652,14 @@ int Application::main_loop() {
     m_timeout_check_interval = static_cast<uint32_t>(
         m_config->get<int>(m_config->df() + "moonraker_timeout_check_interval_ms", 2000));
 
+    // fbdev self-heal: periodic full-screen invalidation to overwrite any kernel
+    // console text that bleeds through LVGL's partial render. KDSETMODE KD_GRAPHICS
+    // is the primary defense; this is belt-and-suspenders for robustness.
+    bool needs_fb_self_heal =
+        m_display->backend() && m_display->backend()->type() == DisplayBackendType::FBDEV;
+    uint32_t last_fb_selfheal_tick = start_time;
+    static constexpr uint32_t FB_SELFHEAL_INTERVAL_MS = 10000; // 10 seconds
+
     // Configure main loop handler
     helix::application::MainLoopHandler::Config loop_config;
     loop_config.screenshot_enabled = m_args.screenshot_enabled;
@@ -1688,6 +1696,13 @@ int Application::main_loop() {
 
         // Check display sleep
         m_display->check_display_sleep();
+
+        // Periodic full-screen invalidation on fbdev (self-heal kernel console bleed-through)
+        if (needs_fb_self_heal &&
+            (current_tick - last_fb_selfheal_tick) >= FB_SELFHEAL_INTERVAL_MS) {
+            lv_obj_invalidate(lv_screen_active());
+            last_fb_selfheal_tick = current_tick;
+        }
 
         // Run LVGL tasks
         lv_timer_handler();

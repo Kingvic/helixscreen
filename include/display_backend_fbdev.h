@@ -63,7 +63,7 @@ class DisplayBackendFbdev : public DisplayBackend {
      */
     DisplayBackendFbdev(const std::string& fb_device, const std::string& touch_device);
 
-    ~DisplayBackendFbdev() override = default;
+    ~DisplayBackendFbdev() override;
 
     // Display creation
     lv_display_t* create_display(int width, int height) override;
@@ -145,6 +145,27 @@ class DisplayBackendFbdev : public DisplayBackend {
 
     /// Whether the detected touch device needs calibration (false for USB HID)
     bool needs_calibration_ = true;
+
+    /// TTY file descriptor for KDSETMODE console suppression (-1 = not acquired)
+    int tty_fd_ = -1;
+
+    /**
+     * @brief Suppress kernel console text output to framebuffer
+     *
+     * Switches the VT to KD_GRAPHICS mode so the kernel stops rendering
+     * dmesg/undervoltage warnings directly to /dev/fb0. Without this,
+     * kernel messages bleed through in areas LVGL hasn't repainted
+     * (due to partial render mode).
+     */
+    void suppress_console();
+
+    /**
+     * @brief Restore kernel console text output
+     *
+     * Switches VT back to KD_TEXT mode and closes the tty fd.
+     * Called by destructor to ensure console is restored on exit.
+     */
+    void restore_console();
 
     /**
      * @brief Auto-detect touch input device

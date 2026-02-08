@@ -20,6 +20,7 @@
 #include <fcntl.h>
 #include <fstream>
 #include <linux/fb.h>
+#include <linux/kd.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
@@ -212,6 +213,10 @@ void calibrated_read_cb(lv_indev_t* indev, lv_indev_data_t* data) {
 
 DisplayBackendFbdev::DisplayBackendFbdev() = default;
 
+DisplayBackendFbdev::~DisplayBackendFbdev() {
+    restore_console();
+}
+
 DisplayBackendFbdev::DisplayBackendFbdev(const std::string& fb_device,
                                          const std::string& touch_device)
     : fb_device_(fb_device), touch_device_(touch_device) {}
@@ -294,6 +299,10 @@ lv_display_t* DisplayBackendFbdev::create_display(int width, int height) {
         spdlog::info("[Fbdev Backend] Using detected color format ({}bpp)",
                      lv_color_format_get_size(detected_format) * 8);
     }
+
+    // Suppress kernel console output to framebuffer.
+    // Prevents dmesg/undervoltage warnings from bleeding through LVGL's partial repaints.
+    suppress_console();
 
     spdlog::info("[Fbdev Backend] Framebuffer display created: {}x{} on {}", width, height,
                  fb_device_);
@@ -454,6 +463,43 @@ std::string DisplayBackendFbdev::auto_detect_touch_device() const {
 
     spdlog::info("[Fbdev Backend] Found touchscreen: {} ({})", best_device, best_name);
     return best_device;
+}
+
+void DisplayBackendFbdev::suppress_console() {
+    // Switch the VT to KD_GRAPHICS mode so the kernel stops rendering console text
+    // (dmesg, undervoltage warnings, etc.) directly to the framebuffer.
+    // LVGL uses partial render mode and only repaints dirty regions, so any kernel
+    // text written to /dev/fb0 persists in areas that haven't been invalidated.
+    // This is the standard approach used by X11, Weston, and other fbdev applications.
+    static const char* tty_paths[] = {"/dev/tty0", "/dev/tty1", "/dev/tty", nullptr};
+
+    for (int i = 0; tty_paths[i] != nullptr; ++i) {
+        tty_fd_ = open(tty_paths[i], O_RDWR | O_CLOEXEC);
+        if (tty_fd_ >= 0) {
+            if (ioctl(tty_fd_, KDSETMODE, KD_GRAPHICS) == 0) {
+                spdlog::info("[Fbdev Backend] Console suppressed via KDSETMODE KD_GRAPHICS on {}",
+                             tty_paths[i]);
+                return;
+            }
+            spdlog::debug("[Fbdev Backend] KDSETMODE failed on {}: {}", tty_paths[i],
+                          strerror(errno));
+            close(tty_fd_);
+            tty_fd_ = -1;
+        }
+    }
+
+    spdlog::warn("[Fbdev Backend] Could not suppress console — kernel messages may bleed through");
+}
+
+void DisplayBackendFbdev::restore_console() {
+    if (tty_fd_ >= 0) {
+        if (ioctl(tty_fd_, KDSETMODE, KD_TEXT) != 0) {
+            spdlog::warn("[Fbdev Backend] KDSETMODE KD_TEXT failed: {}", strerror(errno));
+        }
+        close(tty_fd_);
+        tty_fd_ = -1;
+        spdlog::debug("[Fbdev Backend] Console restored to KD_TEXT mode");
+    }
 }
 
 bool DisplayBackendFbdev::clear_framebuffer(uint32_t color) {
