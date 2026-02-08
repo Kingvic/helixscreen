@@ -59,7 +59,8 @@
         <bind_flag_if_not_eq subject="download_status" flag="hidden" ref_value="4"/>
         <spinner size="lg"/>
         <text_heading text="Installing..." translation_tag="Installing..."/>
-        <text_muted text="Do not power off your printer." translation_tag="Do not power off your printer."/>
+        <text_muted text="Do not power off your printer." translation_tag="Do not power off your printer."
+                   width="100%" style_text_align="center"/>
       </lv_obj>
 
       <!-- COMPLETE state (5) -->
