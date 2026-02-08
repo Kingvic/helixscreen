@@ -481,11 +481,6 @@ void EmergencyStopOverlay::set_require_confirmation(bool /* require */) {
     // No-op in tests
 }
 
-// Stub for app_request_restart_for_theme (tests don't restart)
-void app_request_restart_for_theme() {
-    spdlog::debug("[Test Stub] app_request_restart_for_theme called - no-op in tests");
-}
-
 // Text input widget implementation for tests
 // This is a full implementation, not a stub, because tests need to actually
 // test the text_input widget's placeholder and max_length attributes.

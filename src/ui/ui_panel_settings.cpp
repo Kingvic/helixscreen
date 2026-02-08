@@ -80,9 +80,6 @@ SettingsPanel::~SettingsPanel() {
         if (factory_reset_dialog_) {
             nav.unregister_overlay_close_callback(factory_reset_dialog_);
         }
-        if (theme_restart_dialog_) {
-            nav.unregister_overlay_close_callback(theme_restart_dialog_);
-        }
     }
     // Note: Don't log here - spdlog may be destroyed during static destruction
 }
@@ -307,21 +304,6 @@ static void on_update_restart(lv_event_t* /*e*/) {
 // MODAL DIALOG STATIC CALLBACKS (XML event_cb)
 // ============================================================================
 
-static void on_theme_restart_confirm(lv_event_t* e) {
-    (void)e;
-    spdlog::info("[SettingsPanel] User confirmed theme restart");
-    app_request_restart_for_theme();
-}
-
-static void on_theme_restart_dismiss(lv_event_t* e) {
-    (void)e;
-    spdlog::info("[SettingsPanel] User dismissed theme restart");
-    auto& panel = get_global_settings_panel();
-    if (panel.theme_restart_dialog_) {
-        ui_nav_go_back(); // Animation + callback will handle cleanup
-    }
-}
-
 static void on_factory_reset_confirm(lv_event_t* e) {
     (void)e;
     spdlog::info("[SettingsPanel] User confirmed factory reset");
@@ -461,8 +443,6 @@ void SettingsPanel::init_subjects() {
     lv_xml_register_event_cb(nullptr, "on_restart_now_clicked", on_restart_now_clicked);
 
     // Register modal dialog callbacks (self-contained XML components)
-    lv_xml_register_event_cb(nullptr, "on_theme_restart_confirm", on_theme_restart_confirm);
-    lv_xml_register_event_cb(nullptr, "on_theme_restart_dismiss", on_theme_restart_dismiss);
     lv_xml_register_event_cb(nullptr, "on_factory_reset_confirm", on_factory_reset_confirm);
     lv_xml_register_event_cb(nullptr, "on_factory_reset_cancel", on_factory_reset_cancel);
     lv_xml_register_event_cb(nullptr, "on_header_back_clicked", on_header_back_clicked);
@@ -883,11 +863,9 @@ void SettingsPanel::populate_led_dropdown() {
 void SettingsPanel::handle_dark_mode_changed(bool enabled) {
     spdlog::info("[{}] Dark mode toggled: {}", get_name(), enabled ? "ON" : "OFF");
 
-    // Save the setting to config (will be applied on next app launch)
+    // Save the setting and apply live
     SettingsManager::instance().set_dark_mode(enabled);
-
-    // Show dialog informing user that restart is required
-    show_theme_restart_dialog();
+    theme_manager_apply_theme(theme_manager_get_active_theme(), enabled);
 }
 
 void SettingsPanel::handle_animations_changed(bool enabled) {
@@ -898,40 +876,6 @@ void SettingsPanel::handle_animations_changed(bool enabled) {
 void SettingsPanel::handle_gcode_3d_changed(bool enabled) {
     spdlog::info("[{}] G-code 3D preview toggled: {}", get_name(), enabled ? "ON" : "OFF");
     SettingsManager::instance().set_gcode_3d_enabled(enabled);
-}
-
-void SettingsPanel::show_theme_restart_dialog() {
-    // Create dialog on first use (lazy initialization)
-    if (!theme_restart_dialog_ && parent_screen_) {
-        spdlog::debug("[{}] Creating theme restart dialog...", get_name());
-
-        // Create self-contained theme_restart_modal component
-        // Callbacks are already wired via XML event_cb elements
-        theme_restart_dialog_ =
-            static_cast<lv_obj_t*>(lv_xml_create(parent_screen_, "theme_restart_modal", nullptr));
-
-        if (theme_restart_dialog_) {
-            // Start hidden
-            lv_obj_add_flag(theme_restart_dialog_, LV_OBJ_FLAG_HIDDEN);
-
-            // Register close callback to delete dialog when animation completes
-            NavigationManager::instance().register_overlay_close_callback(
-                theme_restart_dialog_, [this]() {
-                    lv_obj_safe_delete(theme_restart_dialog_);
-                    theme_restart_dialog_ = nullptr;
-                });
-
-            spdlog::info("[{}] Theme restart dialog created", get_name());
-        } else {
-            spdlog::error("[{}] Failed to create theme restart dialog", get_name());
-            return;
-        }
-    }
-
-    // Show the dialog via navigation stack
-    if (theme_restart_dialog_) {
-        ui_nav_push_overlay(theme_restart_dialog_);
-    }
 }
 
 void SettingsPanel::handle_display_sleep_changed(int index) {

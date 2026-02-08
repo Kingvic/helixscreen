@@ -156,18 +156,6 @@ void app_request_quit();
 void app_request_restart();
 
 /**
- * @brief Request application restart for theme change
- *
- * Like app_request_restart(), but modifies arguments for theme switch:
- * - Removes any --dark or --light flags (so saved config is used)
- * - Replaces -p/--panel argument with "-p settings" (return to settings)
- * - Preserves all other arguments (--test, -s, -v, etc.)
- *
- * Call this after saving the new theme to config.
- */
-void app_request_restart_for_theme();
-
-/**
  * @brief Request application restart with service-awareness
  *
  * Detects whether the app is running under systemd (INVOCATION_ID env var)

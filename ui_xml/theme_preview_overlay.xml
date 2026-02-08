@@ -156,7 +156,7 @@
         <text_small name="preview_bg_description"
                     text="Surfaces inherit app background tokens for light and dark modes." translation_tag="Surfaces inherit app background tokens for light and dark modes." long_mode="wrap"/>
       </ui_card>
-      <info_note icon="info" text="Theme changes apply after restart." translation_tag="Theme changes apply after restart."/>
+      <!-- <info_note icon="info" text="Theme changes apply after restart." translation_tag="Theme changes apply after restart."/> -->
     </lv_obj>
   </view>
 </component>

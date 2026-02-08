@@ -178,7 +178,7 @@ class SettingsPanel : public PanelBase {
     // Note: Bed mesh panel managed by get_global_bed_mesh_panel()
     // Note: Z-Offset calibration panel managed by get_global_zoffset_cal_panel()
     // Note: PID calibration panel managed by get_global_pid_cal_panel()
-    // Note: factory_reset_dialog_ and theme_restart_dialog_ are public (for static callbacks)
+    // Note: factory_reset_dialog_ is public (for static callbacks)
 
     // Note: Machine Limits overlay is now managed by MachineLimitsOverlay class
     // See ui_settings_machine_limits.h
@@ -236,7 +236,6 @@ class SettingsPanel : public PanelBase {
     void handle_touch_calibration_clicked();
     void handle_restart_helix_clicked();
     void handle_factory_reset_clicked();
-    void show_theme_restart_dialog();
     // Note: populate_sensor_list() moved to SensorSettingsOverlay
     // Note: populate_macro_dropdowns() moved to MacroButtonsOverlay
     // Note: populate_hardware_issues() moved to HardwareHealthOverlay
@@ -259,7 +258,6 @@ class SettingsPanel : public PanelBase {
     void hide_update_download_modal();
 
     // Dialog pointers accessible to static callbacks
-    lv_obj_t* theme_restart_dialog_ = nullptr;
     lv_obj_t* factory_reset_dialog_ = nullptr;
 
   public:

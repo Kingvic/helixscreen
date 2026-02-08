@@ -261,7 +261,6 @@ void register_xml_components() {
     register_settings_panel_callbacks(); // Register callbacks before XML parse [L013]
     lv_xml_register_component_from_file("A:ui_xml/settings_panel.xml");
     lv_xml_register_component_from_file("A:ui_xml/restart_prompt_dialog.xml");
-    lv_xml_register_component_from_file("A:ui_xml/theme_restart_modal.xml");
     lv_xml_register_component_from_file("A:ui_xml/factory_reset_modal.xml");
     lv_xml_register_component_from_file("A:ui_xml/update_download_modal.xml");
     lv_xml_register_component_from_file("A:ui_xml/change_host_modal.xml");
