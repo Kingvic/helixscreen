@@ -312,8 +312,8 @@ void ToastManager::create_toast_internal(ToastSeverity severity, const char* mes
     // Create toast via XML component
     const char* attrs[] = {"message", message, nullptr};
 
-    lv_obj_t* screen = lv_screen_active();
-    active_toast_ = static_cast<lv_obj_t*>(lv_xml_create(screen, "toast_notification", attrs));
+    lv_obj_t* layer = lv_layer_top();
+    active_toast_ = static_cast<lv_obj_t*>(lv_xml_create(layer, "toast_notification", attrs));
 
     if (!active_toast_) {
         spdlog::error("[ToastManager] Failed to create toast notification widget");
