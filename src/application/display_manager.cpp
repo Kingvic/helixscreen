@@ -461,6 +461,12 @@ void DisplayManager::wake_display() {
             m_backend->unblank_display();
         }
 
+        // Force full screen repaint after unblank. Some HDMI hardware clears
+        // framebuffer memory during FBIOBLANK, and LVGL's dirty region tracking
+        // doesn't know the buffer was wiped — without this, only dynamic regions
+        // get redrawn, leaving static UI elements corrupted. (#19)
+        lv_obj_invalidate(lv_screen_active());
+
         // Reset LVGL's inactivity timer so we don't immediately go back to sleep.
         // When touch is absorbed by sleep_aware_read_cb, LVGL doesn't register activity,
         // so without this the display would wake and immediately sleep again.
