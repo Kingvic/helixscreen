@@ -308,17 +308,21 @@ detect_klipper_user() {
         return 0
     fi
 
-    # 3. printer_data directory scan
+    # 3. printer_*_data directory scan (supports names like printer_Ender5Plus_data)
     local pd_dir
-    for pd_dir in /home/*/printer_data; do
+    for pd_dir in /home/*/printer_*_data; do
         [ -d "$pd_dir" ] || continue
-        local pd_user
-        pd_user=$(echo "$pd_dir" | sed 's|^/home/||;s|/printer_data$||')
-        if [ -n "$pd_user" ] && id "$pd_user" >/dev/null 2>&1; then
-            KLIPPER_USER="$pd_user"
-            KLIPPER_HOME="/home/$pd_user"
-            log_info "Klipper user (printer_data): $KLIPPER_USER"
-            return 0
+    
+        # Prefer instances that look like a real Klipper/Mainsail/Fluidd tree
+        if [ -d "$pd_dir/config" ] && [ -f "$pd_dir/config/printer.cfg" ]; then
+            local pd_user
+            pd_user="$(echo "$pd_dir" | sed -E 's|^/home/([^/]+)/.*$|\1|')"
+            if [ -n "$pd_user" ] && id "$pd_user" >/dev/null 2>&1; then
+                KLIPPER_USER="$pd_user"
+                KLIPPER_HOME="/home/$pd_user"
+                log_info "Klipper user (printer_*_data w/ printer.cfg): $KLIPPER_USER"
+                return 0
+            fi
         fi
     done
 
