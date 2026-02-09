@@ -113,3 +113,4 @@ dist/
 .worktrees/
 # CJK source fonts (too large, download from GitHub notofonts/noto-cjk)
 assets/fonts/NotoSansCJK*.otf
+.bash-git-rc
