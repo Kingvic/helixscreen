@@ -24,10 +24,11 @@
 // ============================================================================
 
 struct ZOffsetIndicatorData {
-    int32_t current_pos = 0;   // Current animated position (0.1 micron units for smooth anim)
-    int32_t target_pos = 0;    // Target position (0.1 micron units)
-    int32_t arrow_opacity = 0; // 0-255, animated for direction flash
-    int arrow_direction = 0;   // +1 (farther/up) or -1 (closer/down)
+    int32_t current_pos = 0;    // Current animated position (0.1 micron units for smooth anim)
+    int32_t target_pos = 0;     // Target position (0.1 micron units)
+    int32_t arrow_progress = 0; // 0-255, draw-in progress (base to tip)
+    int32_t arrow_opacity = 0;  // 0-255, overall opacity (for fade-out phase)
+    int arrow_direction = 0;    // +1 (farther/up) or -1 (closer/down)
     bool use_faceted_toolhead = false; // Which nozzle renderer to use
 };
 
@@ -86,7 +87,9 @@ static int32_t microns_to_y(int microns, int range_microns, int32_t scale_top,
 // ============================================================================
 
 static void position_anim_cb(void* var, int32_t value);
-static void arrow_anim_cb(void* var, int32_t value);
+static void arrow_progress_anim_cb(void* var, int32_t value);
+static void arrow_opacity_anim_cb(void* var, int32_t value);
+static void on_draw_in_complete(lv_anim_t* anim);
 
 // ============================================================================
 // Drawing
@@ -205,31 +208,80 @@ static void indicator_draw_cb(lv_event_t* e) {
     tri_dsc.p[2].y = marker_y + tri_size;
     lv_draw_triangle(layer, &tri_dsc);
 
-    // --- Nozzle icon to the right of the scale ---
+    // --- Nozzle icon to the right of the scale (fixed at vertical center) ---
     int32_t nozzle_cx = coords.x1 + (w * 5) / 8;
+    int32_t nozzle_y = (scale_top + scale_bottom) / 2;
     int32_t nozzle_scale = LV_CLAMP(5, h / 10, 12);
     lv_color_t nozzle_color = theme_manager_get_color("text");
 
     if (data->use_faceted_toolhead) {
-        draw_nozzle_faceted(layer, nozzle_cx, marker_y, nozzle_color, nozzle_scale);
+        draw_nozzle_faceted(layer, nozzle_cx, nozzle_y, nozzle_color, nozzle_scale);
     } else {
-        draw_nozzle_bambu(layer, nozzle_cx, marker_y, nozzle_color, nozzle_scale);
+        draw_nozzle_bambu(layer, nozzle_cx, nozzle_y, nozzle_color, nozzle_scale);
     }
 
-    // --- Direction arrow flash (to the right of nozzle) ---
-    if (data->arrow_opacity > 0) {
-        lv_draw_label_dsc_t arrow_dsc;
-        lv_draw_label_dsc_init(&arrow_dsc);
-        arrow_dsc.color = text_color;
-        arrow_dsc.opa = static_cast<lv_opa_t>(data->arrow_opacity);
-        arrow_dsc.align = LV_TEXT_ALIGN_CENTER;
-        arrow_dsc.font = font;
-        arrow_dsc.text = (data->arrow_direction > 0) ? LV_SYMBOL_UP : LV_SYMBOL_DOWN;
-
+    // --- Direction arrow flash (shaft + V-head, drawn from base to tip) ---
+    if (data->arrow_opacity > 0 && data->arrow_progress > 0) {
         int32_t arrow_x = nozzle_cx + nozzle_scale * 4;
-        lv_area_t arrow_area = {arrow_x - 10, marker_y - font_h / 2, arrow_x + 10,
-                                marker_y + font_h / 2};
-        lv_draw_label(layer, &arrow_dsc, &arrow_area);
+        int32_t arrow_len = LV_MAX(14, h / 6);
+        int32_t head_len = LV_MAX(5, arrow_len / 3);
+        int32_t shaft_width = 2;
+        lv_opa_t opa = static_cast<lv_opa_t>(data->arrow_opacity);
+
+        // Arrow runs from base to tip along the Y axis
+        int32_t base_y, tip_y;
+        if (data->arrow_direction > 0) {
+            base_y = nozzle_y + arrow_len / 2;
+            tip_y = nozzle_y - arrow_len / 2;
+        } else {
+            base_y = nozzle_y - arrow_len / 2;
+            tip_y = nozzle_y + arrow_len / 2;
+        }
+
+        // Progress determines how far the arrow has drawn from base toward tip
+        int32_t progress = data->arrow_progress; // 0-255
+        int32_t current_tip_y = base_y + (tip_y - base_y) * progress / 255;
+
+        // Shaft line
+        lv_draw_line_dsc_t shaft_dsc;
+        lv_draw_line_dsc_init(&shaft_dsc);
+        shaft_dsc.color = text_color;
+        shaft_dsc.opa = opa;
+        shaft_dsc.width = shaft_width;
+        shaft_dsc.round_start = true;
+        shaft_dsc.round_end = true;
+        shaft_dsc.p1.x = arrow_x;
+        shaft_dsc.p1.y = base_y;
+        shaft_dsc.p2.x = arrow_x;
+        shaft_dsc.p2.y = current_tip_y;
+        lv_draw_line(layer, &shaft_dsc);
+
+        // Arrowhead V at current tip (grows in as progress increases)
+        if (progress > 40) {
+            int32_t head_progress = (progress - 40) * 255 / 215; // 0-255 over remaining range
+            int32_t head_size = head_len * head_progress / 255;
+            // Head arms point back toward the base
+            int32_t head_dy = (data->arrow_direction > 0) ? head_size : -head_size;
+
+            lv_draw_line_dsc_t head_dsc;
+            lv_draw_line_dsc_init(&head_dsc);
+            head_dsc.color = text_color;
+            head_dsc.opa = opa;
+            head_dsc.width = shaft_width;
+            head_dsc.round_start = true;
+            head_dsc.round_end = true;
+
+            // Left arm
+            head_dsc.p1.x = arrow_x;
+            head_dsc.p1.y = current_tip_y;
+            head_dsc.p2.x = arrow_x - head_size;
+            head_dsc.p2.y = current_tip_y + head_dy;
+            lv_draw_line(layer, &head_dsc);
+
+            // Right arm
+            head_dsc.p2.x = arrow_x + head_size;
+            lv_draw_line(layer, &head_dsc);
+        }
     }
 }
 
@@ -256,15 +308,14 @@ static void position_anim_cb(void* var, int32_t value) {
         obj);
 }
 
-static void arrow_anim_cb(void* var, int32_t value) {
+static void arrow_progress_anim_cb(void* var, int32_t value) {
     lv_obj_t* obj = static_cast<lv_obj_t*>(var);
     auto* data = static_cast<ZOffsetIndicatorData*>(lv_obj_get_user_data(obj));
     if (!data)
         return;
 
-    data->arrow_opacity = value;
+    data->arrow_progress = value;
 
-    // Defer invalidation to avoid calling during render phase
     ui_async_call(
         [](void* obj_ptr) {
             auto* o = static_cast<lv_obj_t*>(obj_ptr);
@@ -275,6 +326,40 @@ static void arrow_anim_cb(void* var, int32_t value) {
         obj);
 }
 
+static void arrow_opacity_anim_cb(void* var, int32_t value) {
+    lv_obj_t* obj = static_cast<lv_obj_t*>(var);
+    auto* data = static_cast<ZOffsetIndicatorData*>(lv_obj_get_user_data(obj));
+    if (!data)
+        return;
+
+    data->arrow_opacity = value;
+
+    ui_async_call(
+        [](void* obj_ptr) {
+            auto* o = static_cast<lv_obj_t*>(obj_ptr);
+            if (lv_obj_is_valid(o)) {
+                lv_obj_invalidate(o);
+            }
+        },
+        obj);
+}
+
+/// Called when draw-in animation completes; starts the fade-out phase
+static void on_draw_in_complete(lv_anim_t* anim) {
+    lv_obj_t* obj = static_cast<lv_obj_t*>(anim->var);
+    if (!lv_obj_is_valid(obj))
+        return;
+
+    lv_anim_t fade;
+    lv_anim_init(&fade);
+    lv_anim_set_var(&fade, obj);
+    lv_anim_set_values(&fade, 255, 0);
+    lv_anim_set_duration(&fade, 400);
+    lv_anim_set_path_cb(&fade, lv_anim_path_ease_in);
+    lv_anim_set_exec_cb(&fade, arrow_opacity_anim_cb);
+    lv_anim_start(&fade);
+}
+
 // ============================================================================
 // Delete Callback
 // ============================================================================
@@ -282,7 +367,8 @@ static void arrow_anim_cb(void* var, int32_t value) {
 static void indicator_delete_cb(lv_event_t* e) {
     lv_obj_t* obj = (lv_obj_t*)lv_event_get_target(e);
     lv_anim_delete(obj, position_anim_cb);
-    lv_anim_delete(obj, arrow_anim_cb);
+    lv_anim_delete(obj, arrow_progress_anim_cb);
+    lv_anim_delete(obj, arrow_opacity_anim_cb);
     auto* data = static_cast<ZOffsetIndicatorData*>(lv_obj_get_user_data(obj));
     delete data;
     lv_obj_set_user_data(obj, nullptr);
@@ -333,21 +419,28 @@ void ui_z_offset_indicator_flash_direction(lv_obj_t* obj, int direction) {
 
     data->arrow_direction = direction;
 
-    // Stop any existing arrow animation
-    lv_anim_delete(obj, arrow_anim_cb);
+    // Stop any existing arrow animations
+    lv_anim_delete(obj, arrow_progress_anim_cb);
+    lv_anim_delete(obj, arrow_opacity_anim_cb);
 
     if (SettingsManager::instance().get_animations_enabled()) {
-        lv_anim_t anim;
-        lv_anim_init(&anim);
-        lv_anim_set_var(&anim, obj);
-        lv_anim_set_values(&anim, 255, 0); // Fade from full opacity to transparent
-        lv_anim_set_duration(&anim, 400);
-        lv_anim_set_path_cb(&anim, lv_anim_path_ease_in);
-        lv_anim_set_exec_cb(&anim, arrow_anim_cb);
-        lv_anim_start(&anim);
+        // Phase 1: draw-in (base to tip)
+        data->arrow_opacity = 255;
+        data->arrow_progress = 0;
+
+        lv_anim_t draw_in;
+        lv_anim_init(&draw_in);
+        lv_anim_set_var(&draw_in, obj);
+        lv_anim_set_values(&draw_in, 0, 255);
+        lv_anim_set_duration(&draw_in, 250);
+        lv_anim_set_path_cb(&draw_in, lv_anim_path_linear);
+        lv_anim_set_exec_cb(&draw_in, arrow_progress_anim_cb);
+        lv_anim_set_completed_cb(&draw_in, on_draw_in_complete);
+        lv_anim_start(&draw_in);
     } else {
         // No animation - skip arrow entirely
         data->arrow_opacity = 0;
+        data->arrow_progress = 0;
     }
 
     spdlog::trace("[ZOffsetIndicator] Flash direction: {}", direction > 0 ? "up" : "down");
