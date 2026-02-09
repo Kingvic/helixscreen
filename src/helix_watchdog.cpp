@@ -22,6 +22,7 @@
 #include "ui_fonts.h"
 
 #include "backlight_backend.h"
+#include "config.h"
 #include "display_backend.h"
 #include "logging_init.h"
 
@@ -594,6 +595,9 @@ static DialogChoice show_crash_dialog(int width, int height, const CrashInfo& cr
     int auto_restart_sec = read_auto_restart_timeout();
 
     spdlog::info("[Watchdog] Showing crash dialog (auto_restart={}s)", auto_restart_sec);
+
+    // Initialize config so touch calibration data is available
+    Config::get_instance()->init("config/helixconfig.json");
 
     // Initialize LVGL
     lv_init();
