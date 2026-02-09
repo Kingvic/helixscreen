@@ -214,8 +214,14 @@ void app_request_restart() {
 }
 
 void app_request_restart_service() {
+    // Under any supervisor (systemd or watchdog), just exit cleanly.
+    // The supervisor will restart us — forking a new child ourselves would
+    // create two instances running simultaneously.
     if (getenv("INVOCATION_ID")) {
         spdlog::info("[App Globals] Running under systemd - quitting for service restart");
+        app_request_quit();
+    } else if (getenv("HELIX_SUPERVISED")) {
+        spdlog::info("[App Globals] Running under watchdog - quitting for supervised restart");
         app_request_quit();
     } else {
         app_request_restart();
