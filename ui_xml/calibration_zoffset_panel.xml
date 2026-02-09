@@ -66,12 +66,25 @@
         <bind_flag_if_not_eq subject="zoffset_cal_state" flag="hidden" ref_value="2"/>
         <!-- Z Position + Indicator side by side -->
         <lv_obj width="100%" flex_grow="1" style_pad_all="0" flex_flow="row" style_pad_gap="#space_md" scrollable="false">
-          <!-- Current Z Position Display (left) -->
+          <!-- Z Position Display (left) -->
           <lv_obj flex_grow="1" height="100%"
                   style_bg_color="#section_bg_color" style_radius="#border_radius" style_pad_all="#space_md"
-                  flex_flow="column" style_flex_main_place="center" style_flex_cross_place="center" scrollable="false">
-            <text_small text="Current Z Position" translation_tag="Current Z Position"/>
-            <lv_label name="z_position_display" text="Z: 0.000" translation_tag="Z: 0.000" style_text_font="montserrat_28"/>
+                  flex_flow="row" style_flex_main_place="center" style_flex_cross_place="center"
+                  style_pad_gap="#space_md" scrollable="false">
+            <!-- Saved Z-Offset (left side) -->
+            <lv_obj flex_grow="1" height="content" style_pad_all="0" flex_flow="column"
+                    style_flex_cross_place="center" style_pad_gap="#space_xs" scrollable="false">
+              <text_small text="Saved Z-Offset" translation_tag="Saved Z-Offset" style_text_color="#text_muted"/>
+              <text_heading name="saved_z_offset_display" text=""/>
+            </lv_obj>
+            <!-- Vertical divider -->
+            <divider_vertical height="80%"/>
+            <!-- Current Z Position (right side) -->
+            <lv_obj flex_grow="1" height="content" style_pad_all="0" flex_flow="column"
+                    style_flex_cross_place="center" style_pad_gap="#space_xs" scrollable="false">
+              <text_small text="Current Z Position" translation_tag="Current Z Position" style_text_color="#text_muted"/>
+              <text_heading name="z_position_display" text="Z: 0.000" translation_tag="Z: 0.000"/>
+            </lv_obj>
           </lv_obj>
           <!-- Vertical meter indicator (right) -->
           <z_offset_indicator name="z_offset_indicator" flex_grow="1" height="100%"/>
@@ -80,41 +93,49 @@
         <text_small width="100%"
                     text="Move paper back and forth while adjusting. Stop when paper catches slightly but still slides." translation_tag="Move paper back and forth while adjusting. Stop when paper catches slightly but still slides."
                     style_text_align="center"/>
-        <!-- Adjustment Buttons Grid -->
+        <!-- Adjustment Buttons Grid (Mainsail-style: top=farther, bottom=closer) -->
         <lv_obj width="100%"
                 height="content" style_pad_all="0" flex_flow="column" style_pad_gap="#space_sm" scrollable="false">
-          <!-- Row 1: Large adjustments -->
+          <!-- Row 1: Farther from bed (positive Z) — smallest to largest -->
           <lv_obj width="100%"
-                  height="content" style_pad_all="0" flex_flow="row" style_flex_main_place="center" style_pad_gap="#space_sm"
-                  scrollable="false">
-            <ui_button name="btn_z_down_1" flex_grow="1" text="-1mm" translation_tag="-1mm">
-              <event_cb trigger="clicked" callback="on_zoffset_z_down_1"/>
+                  height="content" style_pad_all="0" flex_flow="row" style_flex_main_place="center"
+                  style_flex_cross_place="center" style_pad_gap="#space_sm" scrollable="false">
+            <text_small text="Farther" translation_tag="Farther" width="60"/>
+            <ui_button name="btn_z_up_0005" flex_grow="1" text="+.005">
+              <event_cb trigger="clicked" callback="on_zoffset_z_up_0005"/>
             </ui_button>
-            <ui_button name="btn_z_down_01" flex_grow="1" text="-0.1mm" translation_tag="-0.1mm">
-              <event_cb trigger="clicked" callback="on_zoffset_z_down_01"/>
+            <ui_button name="btn_z_up_001" flex_grow="1" text="+.01">
+              <event_cb trigger="clicked" callback="on_zoffset_z_up_001"/>
             </ui_button>
-            <ui_button name="btn_z_up_01" flex_grow="1" text="+0.1mm" translation_tag="+0.1mm">
+            <ui_button name="btn_z_up_005" flex_grow="1" text="+.05">
+              <event_cb trigger="clicked" callback="on_zoffset_z_up_005"/>
+            </ui_button>
+            <ui_button name="btn_z_up_01" flex_grow="1" text="+.1">
               <event_cb trigger="clicked" callback="on_zoffset_z_up_01"/>
             </ui_button>
-            <ui_button name="btn_z_up_1" flex_grow="1" text="+1mm" translation_tag="+1mm">
+            <ui_button name="btn_z_up_1" flex_grow="1" text="+1">
               <event_cb trigger="clicked" callback="on_zoffset_z_up_1"/>
             </ui_button>
           </lv_obj>
-          <!-- Row 2: Fine adjustments -->
+          <!-- Row 2: Closer to bed (negative Z) — smallest to largest magnitude -->
           <lv_obj width="100%"
-                  height="content" style_pad_all="0" flex_flow="row" style_flex_main_place="center" style_pad_gap="#space_sm"
-                  scrollable="false">
-            <ui_button name="btn_z_down_001" flex_grow="1" text="-0.01mm" translation_tag="-0.01mm">
+                  height="content" style_pad_all="0" flex_flow="row" style_flex_main_place="center"
+                  style_flex_cross_place="center" style_pad_gap="#space_sm" scrollable="false">
+            <text_small text="Closer" translation_tag="Closer" width="60"/>
+            <ui_button name="btn_z_down_0005" flex_grow="1" text="-.005">
+              <event_cb trigger="clicked" callback="on_zoffset_z_down_0005"/>
+            </ui_button>
+            <ui_button name="btn_z_down_001" flex_grow="1" text="-.01">
               <event_cb trigger="clicked" callback="on_zoffset_z_down_001"/>
             </ui_button>
-            <ui_button name="btn_z_down_005" flex_grow="1" text="-0.05mm" translation_tag="-0.05mm">
+            <ui_button name="btn_z_down_005" flex_grow="1" text="-.05">
               <event_cb trigger="clicked" callback="on_zoffset_z_down_005"/>
             </ui_button>
-            <ui_button name="btn_z_up_005" flex_grow="1" text="+0.05mm" translation_tag="+0.05mm">
-              <event_cb trigger="clicked" callback="on_zoffset_z_up_005"/>
+            <ui_button name="btn_z_down_01" flex_grow="1" text="-.1">
+              <event_cb trigger="clicked" callback="on_zoffset_z_down_01"/>
             </ui_button>
-            <ui_button name="btn_z_up_001" flex_grow="1" text="+0.01mm" translation_tag="+0.01mm">
-              <event_cb trigger="clicked" callback="on_zoffset_z_up_001"/>
+            <ui_button name="btn_z_down_1" flex_grow="1" text="-1">
+              <event_cb trigger="clicked" callback="on_zoffset_z_down_1"/>
             </ui_button>
           </lv_obj>
         </lv_obj>

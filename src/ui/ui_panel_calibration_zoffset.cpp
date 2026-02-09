@@ -52,6 +52,7 @@ ZOffsetCalibrationPanel::~ZOffsetCalibrationPanel() {
     // Clear widget pointers (owned by LVGL)
     overlay_root_ = nullptr;
     parent_screen_ = nullptr;
+    saved_z_offset_display_ = nullptr;
     z_position_display_ = nullptr;
     final_offset_label_ = nullptr;
     error_message_ = nullptr;
@@ -92,6 +93,8 @@ void ZOffsetCalibrationPanel::init_subjects() {
         lv_xml_register_event_cb(nullptr, "on_zoffset_z_down_01", on_z_down_01);
         lv_xml_register_event_cb(nullptr, "on_zoffset_z_down_005", on_z_down_005);
         lv_xml_register_event_cb(nullptr, "on_zoffset_z_down_001", on_z_down_001);
+        lv_xml_register_event_cb(nullptr, "on_zoffset_z_down_0005", on_z_down_0005);
+        lv_xml_register_event_cb(nullptr, "on_zoffset_z_up_0005", on_z_up_0005);
         lv_xml_register_event_cb(nullptr, "on_zoffset_z_up_001", on_z_up_001);
         lv_xml_register_event_cb(nullptr, "on_zoffset_z_up_005", on_z_up_005);
         lv_xml_register_event_cb(nullptr, "on_zoffset_z_up_01", on_z_up_01);
@@ -145,6 +148,7 @@ void ZOffsetCalibrationPanel::setup_widgets() {
     // Event handlers are registered via init_subjects() before XML creation
 
     // Find display elements (for programmatic updates not covered by subject bindings)
+    saved_z_offset_display_ = lv_obj_find_by_name(overlay_root_, "saved_z_offset_display");
     z_position_display_ = lv_obj_find_by_name(overlay_root_, "z_position_display");
     final_offset_label_ = lv_obj_find_by_name(overlay_root_, "final_offset_label");
     error_message_ = lv_obj_find_by_name(overlay_root_, "error_message");
@@ -161,10 +165,24 @@ void ZOffsetCalibrationPanel::setup_widgets() {
         [](ZOffsetCalibrationPanel* self, int is_active) {
             spdlog::debug("[ZOffsetCal] manual_probe_active changed: {}", is_active);
 
-            if (is_active && self->state_ == State::PROBING) {
-                // Klipper has entered manual probe mode - transition to ADJUSTING
-                spdlog::info("[ZOffsetCal] PROBE_CALIBRATE complete, entering adjustment phase");
+            if (is_active && (self->state_ == State::PROBING || self->state_ == State::IDLE)) {
+                // Klipper is in manual probe mode — either we initiated it (PROBING)
+                // or it was already active when we opened (IDLE, e.g. started from Mainsail)
+                spdlog::info("[ZOffsetCal] Manual probe active, entering adjustment phase "
+                             "(was {})",
+                             self->state_ == State::PROBING ? "PROBING" : "IDLE");
                 self->set_state(State::ADJUSTING);
+
+                // Populate saved z-offset display (snapshot value before calibration)
+                if (self->saved_z_offset_display_) {
+                    PrinterState& state = get_printer_state();
+                    int saved_microns = state.get_configured_z_offset_microns();
+                    char buf[32];
+                    snprintf(buf, sizeof(buf), "%.3f mm", saved_microns / 1000.0);
+                    lv_label_set_text(self->saved_z_offset_display_, buf);
+                    spdlog::debug("[ZOffsetCal] Saved z-offset: {} microns ({} mm)", saved_microns,
+                                  saved_microns / 1000.0);
+                }
             } else if (!is_active && self->state_ == State::ADJUSTING) {
                 // Manual probe mode ended externally (G28 from console, printer error, ABORT from
                 // macros) The state should already have been changed by button handlers for
@@ -223,7 +241,19 @@ void ZOffsetCalibrationPanel::on_activate() {
 
     spdlog::debug("[ZOffsetCal] on_activate()");
 
-    // Reset to idle state
+    // If manual probe is already active (e.g., started from Mainsail before HelixScreen
+    // launched), skip to ADJUSTING with the current Z position instead of resetting to IDLE
+    auto& ps = get_printer_state();
+    if (lv_subject_get_int(ps.get_manual_probe_active_subject()) == 1) {
+        spdlog::info("[ZOffsetCal] Manual probe already active, resuming in ADJUSTING state");
+        int z_microns = lv_subject_get_int(ps.get_manual_probe_z_position_subject());
+        current_z_ = z_microns / 1000.0f;
+        set_state(State::ADJUSTING);
+        update_z_position(current_z_);
+        return;
+    }
+
+    // Normal activation: reset to idle state
     set_state(State::IDLE);
 
     // Reset Z position display and tracking
@@ -246,10 +276,16 @@ void ZOffsetCalibrationPanel::on_activate() {
 void ZOffsetCalibrationPanel::on_deactivate() {
     spdlog::debug("[ZOffsetCal] on_deactivate()");
 
-    // If calibration is in progress, abort it
+    // If calibration is in progress, abort it — but NOT during app shutdown
+    // (shutdown calls on_deactivate on all overlays; we don't want to cancel
+    // an in-progress calibration just because the UI is restarting)
     if (state_ == State::ADJUSTING || state_ == State::PROBING) {
-        spdlog::info("[ZOffsetCal] Aborting calibration on deactivate");
-        send_abort();
+        if (!NavigationManager::instance().is_shutting_down()) {
+            spdlog::info("[ZOffsetCal] Aborting calibration on deactivate");
+            send_abort();
+        } else {
+            spdlog::info("[ZOffsetCal] Skipping abort during app shutdown");
+        }
     }
 
     // Call base class
@@ -273,6 +309,7 @@ void ZOffsetCalibrationPanel::cleanup() {
 
     // Clear references
     parent_screen_ = nullptr;
+    saved_z_offset_display_ = nullptr;
     z_position_display_ = nullptr;
     final_offset_label_ = nullptr;
     error_message_ = nullptr;
@@ -636,6 +673,20 @@ void ZOffsetCalibrationPanel::on_z_down_001(lv_event_t* e) {
     (void)e;
     LVGL_SAFE_EVENT_CB_BEGIN("[ZOffsetCal] on_z_down_001");
     get_global_zoffset_cal_panel().handle_z_adjust(-0.01f);
+    LVGL_SAFE_EVENT_CB_END();
+}
+
+void ZOffsetCalibrationPanel::on_z_down_0005(lv_event_t* e) {
+    (void)e;
+    LVGL_SAFE_EVENT_CB_BEGIN("[ZOffsetCal] on_z_down_0005");
+    get_global_zoffset_cal_panel().handle_z_adjust(-0.005f);
+    LVGL_SAFE_EVENT_CB_END();
+}
+
+void ZOffsetCalibrationPanel::on_z_up_0005(lv_event_t* e) {
+    (void)e;
+    LVGL_SAFE_EVENT_CB_BEGIN("[ZOffsetCal] on_z_up_0005");
+    get_global_zoffset_cal_panel().handle_z_adjust(0.005f);
     LVGL_SAFE_EVENT_CB_END();
 }
 

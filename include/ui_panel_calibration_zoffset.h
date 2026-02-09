@@ -155,6 +155,8 @@ class ZOffsetCalibrationPanel : public OverlayBase {
     static void on_z_down_01(lv_event_t* e);
     static void on_z_down_005(lv_event_t* e);
     static void on_z_down_001(lv_event_t* e);
+    static void on_z_down_0005(lv_event_t* e);
+    static void on_z_up_0005(lv_event_t* e);
     static void on_z_up_001(lv_event_t* e);
     static void on_z_up_005(lv_event_t* e);
     static void on_z_up_01(lv_event_t* e);
@@ -192,6 +194,7 @@ class ZOffsetCalibrationPanel : public OverlayBase {
     void handle_retry_clicked();
 
     // Interactive elements
+    lv_obj_t* saved_z_offset_display_ = nullptr;
     lv_obj_t* z_position_display_ = nullptr;
     lv_obj_t* final_offset_label_ = nullptr;
     lv_obj_t* error_message_ = nullptr;
