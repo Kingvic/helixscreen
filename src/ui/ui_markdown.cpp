@@ -19,13 +19,6 @@
 
 namespace {
 
-/// User data attached to each ui_markdown widget for RAII cleanup
-struct UiMarkdownData {
-    static constexpr uint32_t MAGIC = 0x4D444F57; // "MDOW"
-    uint32_t magic{MAGIC};
-    lv_markdown_style_t style{};
-};
-
 /**
  * @brief Build a theme-aware markdown style from current design tokens
  */
@@ -79,38 +72,22 @@ void markdown_text_observer_cb(lv_observer_t* observer, lv_subject_t* subject) {
 }
 
 /**
- * @brief Delete callback — frees UiMarkdownData
- */
-void markdown_delete_cb(lv_event_t* e) {
-    lv_obj_t* obj = lv_event_get_target_obj(e);
-    auto* data = static_cast<UiMarkdownData*>(lv_obj_get_user_data(obj));
-    if (data && data->magic == UiMarkdownData::MAGIC) {
-        delete data;
-        lv_obj_set_user_data(obj, nullptr);
-    }
-}
-
-/**
  * @brief XML create callback for <ui_markdown> widget
  *
- * Creates a markdown viewer with theme-aware styling and RAII cleanup.
+ * Creates a markdown viewer with theme-aware styling.
+ * Note: lv_markdown_create() owns user_data for its internal lv_markdown_data_t.
+ * lv_markdown_set_style() copies into that internal data, so no wrapper storage needed.
  */
 void* ui_markdown_create(lv_xml_parser_state_t* state, const char** /*attrs*/) {
     lv_obj_t* parent = static_cast<lv_obj_t*>(lv_xml_state_get_parent(state));
 
-    // Create the underlying markdown widget
+    // Create the underlying markdown widget (sets up its own user_data internally)
     lv_obj_t* obj = lv_markdown_create(parent);
 
-    // Build theme-aware style and apply it
-    auto* data = new UiMarkdownData{};
-    build_theme_style(data->style);
-    lv_markdown_set_style(obj, &data->style);
-
-    // Store user data for cleanup
-    lv_obj_set_user_data(obj, data);
-
-    // Register delete callback for RAII cleanup
-    lv_obj_add_event_cb(obj, markdown_delete_cb, LV_EVENT_DELETE, nullptr);
+    // Build theme-aware style and apply — style is copied into the widget's internal data
+    lv_markdown_style_t style{};
+    build_theme_style(style);
+    lv_markdown_set_style(obj, &style);
 
     spdlog::trace("[ui_markdown] Created markdown widget");
     return obj;

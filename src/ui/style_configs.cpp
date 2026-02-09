@@ -137,6 +137,14 @@ void configure_button_ghost(lv_style_t* s, const ThemePalette& p) {
     lv_style_set_bg_opa(s, LV_OPA_0);
 }
 
+void configure_button_outline(lv_style_t* s, const ThemePalette& p) {
+    lv_style_set_bg_opa(s, LV_OPA_0);
+    lv_style_set_border_color(s, p.primary);
+    lv_style_set_border_width(s, 1);
+    lv_style_set_border_opa(s, LV_OPA_COVER);
+    lv_style_set_text_color(s, p.primary);
+}
+
 void configure_button_success(lv_style_t* s, const ThemePalette& p) {
     lv_style_set_bg_color(s, p.success);
     lv_style_set_bg_opa(s, LV_OPA_COVER);

@@ -125,6 +125,86 @@ bool parse_github_release(const json& j, UpdateChecker::ReleaseInfo& info, std::
 }
 
 /**
+ * @brief Extract a version's section from CHANGELOG.md content
+ *
+ * Parses Keep a Changelog format: finds "## [version]" header and returns
+ * everything until the next "## [" header or end of content.
+ */
+std::string extract_changelog_section(const std::string& changelog, const std::string& version) {
+    // Find "## [version]" (with or without 'v' prefix)
+    std::string needle_bare = "## [" + version + "]";
+    std::string needle_v = "## [v" + version + "]";
+
+    size_t start = changelog.find(needle_bare);
+    if (start == std::string::npos) {
+        start = changelog.find(needle_v);
+    }
+    if (start == std::string::npos) {
+        return "";
+    }
+
+    // Skip past the header line
+    size_t content_start = changelog.find('\n', start);
+    if (content_start == std::string::npos) {
+        return "";
+    }
+    content_start++; // skip the newline
+
+    // Find the next "## [" section header
+    size_t end = changelog.find("\n## [", content_start);
+    if (end == std::string::npos) {
+        end = changelog.size();
+    }
+
+    // Trim leading/trailing whitespace
+    std::string section = changelog.substr(content_start, end - content_start);
+    while (!section.empty() && (section.front() == '\n' || section.front() == '\r')) {
+        section.erase(section.begin());
+    }
+    while (!section.empty() && (section.back() == '\n' || section.back() == '\r')) {
+        section.pop_back();
+    }
+    return section;
+}
+
+/**
+ * @brief Fetch changelog for a version from CHANGELOG.md on GitHub
+ *
+ * Fetches the raw CHANGELOG.md from the repo's default branch and extracts
+ * the section for the given version. Best-effort: returns empty on failure.
+ */
+std::string fetch_changelog_for_version(const std::string& version) {
+    if (version.empty())
+        return "";
+
+    std::string url =
+        "https://raw.githubusercontent.com/prestonbrown/helixscreen/main/CHANGELOG.md";
+
+    auto req = std::make_shared<HttpRequest>();
+    req->method = HTTP_GET;
+    req->url = url;
+    req->timeout = HTTP_TIMEOUT_SECONDS;
+    req->headers["User-Agent"] = std::string("HelixScreen/") + HELIX_VERSION;
+
+    spdlog::debug("[UpdateChecker] Fetching CHANGELOG.md for v{}", version);
+    auto resp = requests::request(req);
+
+    if (!resp || resp->status_code != 200) {
+        spdlog::debug("[UpdateChecker] CHANGELOG.md fetch failed (HTTP {})",
+                      resp ? resp->status_code : 0);
+        return "";
+    }
+
+    auto section = extract_changelog_section(resp->body, version);
+    if (section.empty()) {
+        spdlog::debug("[UpdateChecker] No changelog section found for v{}", version);
+    } else {
+        spdlog::debug("[UpdateChecker] Got changelog for v{} ({} bytes)", version, section.size());
+    }
+    return section;
+}
+
+/**
  * @brief Parse ReleaseInfo from GitHub API JSON response string
  */
 bool parse_github_release(const std::string& json_str, UpdateChecker::ReleaseInfo& info,
@@ -1223,6 +1303,13 @@ static void on_update_notify_dismiss(lv_event_t* e) {
     LVGL_SAFE_EVENT_CB_END();
 }
 
+static void on_update_notify_close(lv_event_t* /*e*/) {
+    LVGL_SAFE_EVENT_CB_BEGIN("[UpdateChecker] on_update_notify_close");
+    spdlog::info("[UpdateChecker] User closed update notification (remind later)");
+    UpdateChecker::instance().hide_update_notification();
+    LVGL_SAFE_EVENT_CB_END();
+}
+
 static void on_update_toggle_changelog(lv_event_t* /*e*/) {
     LVGL_SAFE_EVENT_CB_BEGIN("[UpdateChecker] on_update_toggle_changelog");
     auto* subject = UpdateChecker::instance().changelog_visible_subject();
@@ -1239,6 +1326,7 @@ static void register_notify_callbacks() {
     lv_xml_register_event_cb(nullptr, "on_update_notify_install", on_update_notify_install);
     lv_xml_register_event_cb(nullptr, "on_update_notify_ignore", on_update_notify_ignore);
     lv_xml_register_event_cb(nullptr, "on_update_notify_dismiss", on_update_notify_dismiss);
+    lv_xml_register_event_cb(nullptr, "on_update_notify_close", on_update_notify_close);
     lv_xml_register_event_cb(nullptr, "on_update_toggle_changelog", on_update_toggle_changelog);
     s_notify_callbacks_registered = true;
     spdlog::debug("[UpdateChecker] Notification callbacks registered");
@@ -1338,8 +1426,13 @@ bool UpdateChecker::fetch_r2_manifest(const std::string& channel, ReleaseInfo& i
 }
 
 bool UpdateChecker::fetch_stable_release(ReleaseInfo& info, std::string& error) {
-    // Try R2 CDN first
+    // Try R2 CDN first (manifest has version/assets, but notes may be sparse)
     if (fetch_r2_manifest("stable", info, error)) {
+        // Enrich with full changelog from CHANGELOG.md on GitHub
+        auto changelog = fetch_changelog_for_version(info.version);
+        if (!changelog.empty()) {
+            info.release_notes = std::move(changelog);
+        }
         return true;
     }
     spdlog::debug("[UpdateChecker] R2 stable fetch failed ({}), falling back to GitHub", error);
@@ -1377,8 +1470,13 @@ bool UpdateChecker::fetch_stable_release(ReleaseInfo& info, std::string& error) 
 }
 
 bool UpdateChecker::fetch_beta_release(ReleaseInfo& info, std::string& error) {
-    // Try R2 CDN first
+    // Try R2 CDN first (manifest has version/assets, but notes may be sparse)
     if (fetch_r2_manifest("beta", info, error)) {
+        // Enrich with full changelog from CHANGELOG.md on GitHub
+        auto changelog = fetch_changelog_for_version(info.version);
+        if (!changelog.empty()) {
+            info.release_notes = std::move(changelog);
+        }
         return true;
     }
     spdlog::debug("[UpdateChecker] R2 beta fetch failed ({}), falling back to GitHub", error);

@@ -206,13 +206,13 @@ lv_obj_t* create_button_icon(lv_obj_t* btn, const char* icon_name) {
  *
  * Creates a semantic button with:
  * - lv_button as base widget
- * - Shared style based on variant (primary/secondary/danger/ghost)
+ * - Shared style based on variant (primary/secondary/danger/ghost/outline)
  * - Optional icon with auto-contrast
  * - Child lv_label with text attribute
  * - LV_EVENT_STYLE_CHANGED handler for auto-contrast updates
  *
  * Attributes:
- * - variant: Button style (primary/secondary/danger/success/tertiary/warning/ghost)
+ * - variant: Button style (primary/secondary/danger/success/tertiary/warning/ghost/outline)
  * - text: Button label text
  * - icon: Optional icon name (e.g., "settings", "heat_wave")
  * - icon_position: "left" (default) or "right"
@@ -262,6 +262,8 @@ void* ui_button_create(lv_xml_parser_state_t* state, const char** attrs) {
         style = tm.get_style(StyleRole::ButtonWarning);
     } else if (strcmp(variant_str, "ghost") == 0) {
         style = tm.get_style(StyleRole::ButtonGhost);
+    } else if (strcmp(variant_str, "outline") == 0) {
+        style = tm.get_style(StyleRole::ButtonOutline);
     } else {
         spdlog::warn("[ui_button] Unknown variant '{}', defaulting to primary", variant_str);
         style = tm.get_style(StyleRole::ButtonPrimary);
