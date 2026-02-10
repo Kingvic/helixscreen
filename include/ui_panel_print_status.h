@@ -390,6 +390,9 @@ class PrintStatusPanel : public OverlayBase {
     // Print cancelled badge (animated on print cancel)
     lv_obj_t* cancel_badge_ = nullptr;
 
+    // Print error badge (animated on print error)
+    lv_obj_t* error_badge_ = nullptr;
+
     // Header bar (for e-stop visibility control)
     lv_obj_t* overlay_header_ = nullptr;
 
@@ -417,11 +420,15 @@ class PrintStatusPanel : public OverlayBase {
     void load_thumbnail_for_file(const std::string& filename); ///< Fetch and display thumbnail
     void
     load_gcode_for_viewing(const std::string& filename); ///< Download and load G-code into viewer
-    void update_button_states();    ///< Enable/disable buttons based on current print state
-    void update_objects_text();     ///< Update "X of Y obj" display from exclude state
+    void update_button_states(); ///< Enable/disable buttons based on current print state
+    void update_objects_text();  ///< Update "X of Y obj" display from exclude state
+    void animate_badge_pop_in(lv_obj_t* badge, const char* label); ///< Pop-in animation for badges
     void animate_print_complete();  ///< Celebratory animation when print finishes
     void animate_print_cancelled(); ///< Warning animation when print is cancelled
+    void animate_print_error();     ///< Error animation when print fails
     void cleanup_temp_gcode();      ///< Remove temp G-code file downloaded for viewing
+    void apply_filament_color_override(
+        uint32_t color_rgb); ///< Apply AMS/Spoolman filament color to gcode viewer
 
     static void format_time(int seconds, char* buf, size_t buf_size);
 
@@ -493,6 +500,7 @@ class PrintStatusPanel : public OverlayBase {
     ObserverGuard preprint_elapsed_observer_;
     ObserverGuard exclude_objects_observer_;
     ObserverGuard excluded_objects_version_observer_;
+    ObserverGuard ams_color_observer_; ///< Tracks AMS/Spoolman filament color for gcode viewer
 
     //
     // === Exclude Object Manager ===

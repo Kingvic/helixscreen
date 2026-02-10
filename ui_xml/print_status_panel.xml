@@ -3,6 +3,16 @@
 <!-- SPDX-License-Identifier: GPL-3.0-or-later -->
 <component>
   <!-- overlay_bg and overlay_text are theme-aware pairs defined in globals.xml -->
+  <consts>
+    <!-- metadata_clip_height: Clip container for print status metadata overlay -->
+    <px name="metadata_clip_height_small" value="95"/>
+    <px name="metadata_clip_height_medium" value="105"/>
+    <px name="metadata_clip_height_large" value="113"/>
+    <!-- metadata_overlay_height: Inner metadata overlay (slightly taller than clip) -->
+    <px name="metadata_overlay_height_small" value="101"/>
+    <px name="metadata_overlay_height_medium" value="111"/>
+    <px name="metadata_overlay_height_large" value="119"/>
+  </consts>
   <styles>
     <!-- Fully transparent but still takes up layout space -->
     <style name="invisible" opa="0"/>
@@ -85,9 +95,8 @@
         <!-- Hidden by default. Binding removes hidden ONLY when outcome == COMPLETE (1) -->
         <lv_obj name="print_complete_overlay"
                 width="100%" height="100%" align="center" style_radius="0" style_pad_all="#space_lg"
-                style_pad_bottom="115" flex_flow="column"
-                style_flex_main_place="center" style_flex_cross_place="center" style_flex_track_place="center"
-                style_pad_gap="#space_sm" scrollable="false" hidden="true">
+                style_pad_bottom="115" flex_flow="column" style_flex_main_place="center" style_flex_cross_place="center"
+                style_flex_track_place="center" style_pad_gap="#space_sm" scrollable="false" hidden="true">
           <bind_flag_if_not_eq subject="print_outcome" flag="hidden" ref_value="1"/>
           <!-- Green success badge with checkmark (animated on appearance) -->
           <!-- Uses ui_button for auto-contrast text via update_button_text_contrast() -->
@@ -102,9 +111,8 @@
         <!-- Hidden by default. Binding removes hidden ONLY when outcome == CANCELLED (2) -->
         <lv_obj name="print_cancelled_overlay"
                 width="100%" height="100%" align="center" style_radius="0" style_pad_all="#space_lg"
-                style_pad_bottom="115" flex_flow="column"
-                style_flex_main_place="center" style_flex_cross_place="center" style_flex_track_place="center"
-                style_pad_gap="#space_sm" scrollable="false" hidden="true">
+                style_pad_bottom="115" flex_flow="column" style_flex_main_place="center" style_flex_cross_place="center"
+                style_flex_track_place="center" style_pad_gap="#space_sm" scrollable="false" hidden="true">
           <bind_flag_if_not_eq subject="print_outcome" flag="hidden" ref_value="2"/>
           <!-- Orange warning badge with cancel icon (animated on appearance) -->
           <!-- Uses ui_button for auto-contrast text via update_button_text_contrast() -->
@@ -115,14 +123,32 @@
                      style_pad_bottom="#space_sm"/>
         </lv_obj>
 
+        <!-- PRINT ERROR OVERLAY: Shown when print fails with error -->
+        <!-- Hidden by default. Binding removes hidden ONLY when outcome == ERROR (3) -->
+        <lv_obj name="print_error_overlay"
+                width="100%" height="100%" align="center" style_radius="0" style_pad_all="#space_lg"
+                style_pad_bottom="115" flex_flow="column" style_flex_main_place="center" style_flex_cross_place="center"
+                style_flex_track_place="center" style_pad_gap="#space_sm" scrollable="false" hidden="true">
+          <bind_flag_if_not_eq subject="print_outcome" flag="hidden" ref_value="3"/>
+          <!-- Red danger badge with alert icon (animated on appearance) -->
+          <!-- Uses ui_button for auto-contrast text via update_button_text_contrast() -->
+          <ui_button name="error_badge"
+                     width="content" height="content" variant="danger" icon="alert_circle" text="Print Failed"
+                     translation_tag="Print Failed" clickable="false" focusable="false" style_radius="#space_lg"
+                     style_pad_left="#space_md" style_pad_right="#space_md" style_pad_top="#space_sm"
+                     style_pad_bottom="#space_sm"/>
+        </lv_obj>
+
         <!-- Metadata container - fixed height at bottom, overlaying thumbnail -->
         <lv_obj name="metadata_clip"
-                width="100%" height="103" style_radius="0" style_pad_all="0" align="bottom_mid" scrollable="false">
+                width="100%" height="#metadata_clip_height" style_radius="0" style_pad_all="0" align="bottom_mid"
+                scrollable="false">
           <!-- Inner overlay with semi-transparent background and rounded corners -->
           <lv_obj name="metadata_overlay"
-                  width="100%" height="109" align="bottom_mid" style_bg_opa="160" style_radius="#border_radius"
-                  style_pad_left="#space_sm" style_pad_right="#space_sm" style_pad_top="#space_md"
-                  style_pad_bottom="#space_sm" style_pad_gap="#space_xs" flex_flow="column" scrollable="false">
+                  width="100%" height="#metadata_overlay_height" align="bottom_mid" style_bg_opa="160"
+                  style_radius="#border_radius" style_pad_left="#space_sm" style_pad_right="#space_sm"
+                  style_pad_top="#space_md" style_pad_bottom="#space_md" style_pad_gap="#space_xs" flex_flow="column"
+                  scrollable="false">
             <!-- Print Progress Bar (invisible during pre-print operations, but keeps layout space) -->
             <lv_bar name="print_progress"
                     width="100%" height="#space_md" style_bg_opa="255" style_bg_color="#overlay_bg"
@@ -176,7 +202,7 @@
 
         <!-- Nozzle Temperature Card -->
         <ui_card name="nozzle_temp_card"
-                 width="100%" height="80" style_radius="#border_radius" flex_flow="column"
+                 width="100%" height="#temp_card_height" style_radius="#border_radius" flex_flow="column"
                  style_flex_main_place="center" style_flex_cross_place="start" style_pad_left="#space_md"
                  style_pad_gap="#space_xxs">
           <event_cb trigger="clicked" callback="on_print_status_nozzle_clicked"/>
@@ -192,7 +218,7 @@
 
         <!-- Bed Temperature Card -->
         <ui_card name="bed_temp_card"
-                 width="100%" height="80" style_radius="#border_radius" flex_flow="column"
+                 width="100%" height="#temp_card_height" style_radius="#border_radius" flex_flow="column"
                  style_flex_main_place="center" style_flex_cross_place="start" style_pad_left="#space_md"
                  style_pad_gap="#space_xxs">
           <event_cb trigger="clicked" callback="on_print_status_bed_clicked"/>
@@ -265,18 +291,18 @@
                        height="#button_height_lg" flex_grow="1" icon="tune" text="Tune" translation_tag="Tune">
               <event_cb trigger="clicked" callback="on_print_status_tune"/>
             </ui_button>
-            <!-- Cancel button: hidden when outcome == CANCELLED (2) -->
+            <!-- Cancel button: visible only during active print (outcome == NONE/0) -->
             <ui_button name="btn_cancel"
                        height="#button_height_lg" flex_grow="1" variant="danger" icon="stop" text="Cancel"
                        translation_tag="Cancel">
-              <bind_flag_if_eq subject="print_outcome" flag="hidden" ref_value="2"/>
+              <bind_flag_if_not_eq subject="print_outcome" flag="hidden" ref_value="0"/>
               <event_cb trigger="clicked" callback="on_print_status_cancel"/>
             </ui_button>
-            <!-- Reprint button: shown only when outcome == CANCELLED (2) -->
+            <!-- Reprint button: shown for any terminal state (complete/cancelled/error) -->
             <ui_button name="btn_reprint"
                        height="#button_height_lg" flex_grow="1" icon="refresh" text="Reprint" translation_tag="Reprint"
                        hidden="true">
-              <bind_flag_if_not_eq subject="print_outcome" flag="hidden" ref_value="2"/>
+              <bind_flag_if_eq subject="print_outcome" flag="hidden" ref_value="0"/>
               <event_cb trigger="clicked" callback="on_print_status_reprint"/>
             </ui_button>
           </lv_obj>

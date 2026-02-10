@@ -134,17 +134,31 @@ static void indicator_draw_cb(lv_event_t* e) {
     // Auto-range: pick scale that fits the current value
     const auto& scale = pick_scale_range(current_microns);
 
-    // Layout: scale on left ~30%, nozzle on right ~70%
+    // Layout: measure widest label, position scale just right of labels, nozzle in remaining space
     int32_t margin_v = h / 10;
     int32_t scale_top = coords.y1 + margin_v;
     int32_t scale_bottom = coords.y1 + h - margin_v;
-    int32_t scale_x = coords.x1 + w / 4;
 
     lv_color_t muted_color = theme_manager_get_color("text_muted");
     lv_color_t text_color = theme_manager_get_color("text");
     lv_color_t primary_color = theme_manager_get_color("primary");
     const lv_font_t* font = lv_font_get_default();
     int32_t font_h = lv_font_get_line_height(font);
+
+    // Measure widest label to position scale dynamically
+    int32_t max_label_w = 0;
+    for (int tick_val = -scale.range_microns; tick_val <= scale.range_microns;
+         tick_val += scale.tick_step) {
+        const char* label = format_tick_label(tick_val, scale.decimal_places);
+        lv_point_t txt_size;
+        lv_text_get_size(&txt_size, label, font, 0, 0, LV_COORD_MAX, LV_TEXT_FLAG_NONE);
+        if (txt_size.x > max_label_w)
+            max_label_w = txt_size.x;
+    }
+
+    int32_t tick_half_w = w / 16;
+    int32_t label_pad = 4;
+    int32_t scale_x = coords.x1 + max_label_w + label_pad + tick_half_w + label_pad;
 
     // --- Vertical scale line ---
     lv_draw_line_dsc_t line_dsc;
@@ -160,9 +174,7 @@ static void indicator_draw_cb(lv_event_t* e) {
     lv_draw_line(layer, &line_dsc);
 
     // --- Tick marks and labels ---
-    int32_t tick_half_w = w / 16;
-
-    // Reset the label buffer pool for this frame
+    // (tick_half_w already computed above for scale_x positioning)
     for (int tick_val = -scale.range_microns; tick_val <= scale.range_microns;
          tick_val += scale.tick_step) {
         int32_t y = microns_to_y(tick_val, scale.range_microns, scale_top, scale_bottom);
@@ -208,8 +220,8 @@ static void indicator_draw_cb(lv_event_t* e) {
     tri_dsc.p[2].y = marker_y + tri_size;
     lv_draw_triangle(layer, &tri_dsc);
 
-    // --- Nozzle icon to the right of the scale (fixed at vertical center) ---
-    int32_t nozzle_cx = coords.x1 + (w * 5) / 8;
+    // --- Nozzle icon centered in space right of scale (fixed at vertical center) ---
+    int32_t nozzle_cx = (scale_x + coords.x1 + w) / 2;
     int32_t nozzle_y = (scale_top + scale_bottom) / 2;
     int32_t nozzle_scale = LV_CLAMP(5, h / 10, 12);
     lv_color_t nozzle_color = theme_manager_get_color("text");
@@ -461,8 +473,8 @@ static void* z_offset_indicator_xml_create(lv_xml_parser_state_t* state, const c
         return nullptr;
     }
 
-    // Set default size (height is a fallback — prefer flex_grow in XML for responsiveness)
-    lv_obj_set_size(obj, LV_PCT(100), LV_PCT(15));
+    // Default: full width, full parent height (stretches to sibling-driven row height)
+    lv_obj_set_size(obj, LV_PCT(100), LV_PCT(100));
     lv_obj_remove_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
 
     // Remove default styles and make transparent

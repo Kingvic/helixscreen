@@ -319,8 +319,13 @@ static CrashInfo run_child_process(const WatchdogArgs& args, pid_t splash_pid) {
         arg_strings.push_back("--splash-pid=" + std::to_string(splash_pid));
     }
 
-    // Add remaining child args
+    // Add remaining child args, but skip any --splash-pid from the original
+    // launcher invocation — the watchdog manages splash PIDs itself and the
+    // original PID is stale on restart.
     for (const auto& arg : args.child_args) {
+        if (arg.rfind("--splash-pid=", 0) == 0) {
+            continue;
+        }
         arg_strings.push_back(arg);
     }
 
@@ -347,7 +352,10 @@ static CrashInfo run_child_process(const WatchdogArgs& args, pid_t splash_pid) {
     }
 
     if (child_pid == 0) {
-        // Child process: exec helix-screen
+        // Child process: set supervisor env var so app knows not to fork on restart
+        setenv("HELIX_SUPERVISED", "1", 1);
+
+        // exec helix-screen
         execv(args.child_binary.c_str(), child_argv.data());
         // If we get here, exec failed
         fprintf(stderr, "[Watchdog] execv failed: %s\n", strerror(errno));

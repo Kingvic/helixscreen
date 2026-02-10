@@ -257,10 +257,36 @@ detect_platform() {
             is_pi=true
         fi
         if [ "$is_pi" = true ]; then
-            if [ "$arch" = "aarch64" ]; then
+            # Detect actual userspace bitness, not just kernel arch.
+            # Many Pi systems run 64-bit kernel with 32-bit userspace,
+            # which makes uname -m report aarch64 even though only
+            # 32-bit binaries can execute.
+            local userspace_bits
+            userspace_bits=$(getconf LONG_BIT 2>/dev/null || echo "")
+            if [ "$userspace_bits" = "64" ]; then
                 echo "pi"
-            else
+            elif [ "$userspace_bits" = "32" ]; then
+                if [ "$arch" = "aarch64" ]; then
+                    log_warn "64-bit kernel with 32-bit userspace detected — using pi32 build"
+                fi
                 echo "pi32"
+            else
+                # getconf unavailable — fall back to checking system binary
+                if file /usr/bin/id 2>/dev/null | grep -q "64-bit"; then
+                    echo "pi"
+                elif file /usr/bin/id 2>/dev/null | grep -q "32-bit"; then
+                    if [ "$arch" = "aarch64" ]; then
+                        log_warn "64-bit kernel with 32-bit userspace detected — using pi32 build"
+                    fi
+                    echo "pi32"
+                else
+                    # Last resort: trust kernel arch
+                    if [ "$arch" = "aarch64" ]; then
+                        echo "pi"
+                    else
+                        echo "pi32"
+                    fi
+                fi
             fi
             return
         fi
@@ -486,6 +512,63 @@ set_install_paths() {
         detect_klipper_user
         detect_pi_install_dir
     fi
+}
+
+# Create symlink from printer_data/config/helixscreen → INSTALL_DIR/config
+# Allows Mainsail/Fluidd users to edit HelixScreen config from the web UI.
+# Only applies to Pi/Klipper platforms where printer_data exists.
+# Gracefully skips if printer_data/config doesn't exist or permissions fail.
+# Reads: KLIPPER_HOME, INSTALL_DIR
+setup_config_symlink() {
+    # Only proceed if we have a Klipper home and install directory
+    if [ -z "${KLIPPER_HOME:-}" ] || [ -z "${INSTALL_DIR:-}" ]; then
+        return 0
+    fi
+
+    local config_dir="${KLIPPER_HOME}/printer_data/config"
+    local symlink_path="${config_dir}/helixscreen"
+    local target="${INSTALL_DIR}/config"
+
+    # Skip if printer_data/config doesn't exist
+    if [ ! -d "$config_dir" ]; then
+        log_info "No printer_data/config found, skipping config symlink"
+        return 0
+    fi
+
+    # Skip if target config directory doesn't exist
+    if [ ! -d "$target" ]; then
+        log_warn "Install config directory not found: $target"
+        return 0
+    fi
+
+    # Check if symlink already exists
+    if [ -L "$symlink_path" ]; then
+        local current_target
+        current_target=$(readlink "$symlink_path" 2>/dev/null || echo "")
+        if [ "$current_target" = "$target" ]; then
+            log_info "Config symlink already exists and is correct"
+            return 0
+        fi
+        # Wrong target — update it
+        log_info "Updating config symlink (was: $current_target)"
+        $SUDO rm -f "$symlink_path"
+    elif [ -e "$symlink_path" ]; then
+        # Something exists but isn't a symlink — don't destroy it
+        log_warn "Config symlink path already exists as a regular file/directory: $symlink_path"
+        log_warn "Skipping symlink creation to avoid data loss"
+        return 0
+    fi
+
+    # Create the symlink
+    if $SUDO ln -s "$target" "$symlink_path" 2>/dev/null; then
+        log_success "Config symlink: $symlink_path → $target"
+        log_info "You can now edit HelixScreen config from Mainsail/Fluidd"
+    else
+        log_warn "Could not create config symlink (permission denied?)"
+        log_warn "To create manually: ln -s $target $symlink_path"
+    fi
+
+    return 0
 }
 
 # ============================================
@@ -1764,29 +1847,6 @@ install_service_systemd() {
     $SUDO sed -i "s|@@INSTALL_DIR@@|${install_dir}|g" "$service_dest" 2>/dev/null || \
     $SUDO sed -i '' "s|@@INSTALL_DIR@@|${install_dir}|g" "$service_dest" 2>/dev/null || true
 
-    # Filter SupplementaryGroups to only groups that exist on this system.
-    # The template lists the ideal set (video input render) but not all systems
-    # have every group (e.g. 'render' is missing on older Pi OS installs).
-    local desired_groups existing_groups=""
-    desired_groups=$(grep '^SupplementaryGroups=' "$service_dest" 2>/dev/null | sed 's/^SupplementaryGroups=//')
-    if [ -n "$desired_groups" ]; then
-        for grp in $desired_groups; do
-            if getent group "$grp" >/dev/null 2>&1; then
-                existing_groups="${existing_groups:+$existing_groups }$grp"
-            else
-                log_info "Group '$grp' not found on this system, skipping"
-            fi
-        done
-        if [ -n "$existing_groups" ]; then
-            $SUDO sed -i "s|^SupplementaryGroups=.*|SupplementaryGroups=$existing_groups|" "$service_dest" 2>/dev/null || \
-            $SUDO sed -i '' "s|^SupplementaryGroups=.*|SupplementaryGroups=$existing_groups|" "$service_dest" 2>/dev/null || true
-        else
-            # No matching groups — remove the directive entirely
-            $SUDO sed -i '/^SupplementaryGroups=/d' "$service_dest" 2>/dev/null || \
-            $SUDO sed -i '' '/^SupplementaryGroups=/d' "$service_dest" 2>/dev/null || true
-        fi
-    fi
-
     if ! $SUDO systemctl daemon-reload; then
         log_error "Failed to reload systemd daemon."
         exit 1
@@ -1906,15 +1966,14 @@ deploy_platform_hooks() {
     log_info "Deployed platform hooks: $platform"
 }
 
-# Fix ownership of config directory for non-root Klipper users
-# Binaries stay root-owned for security; only config needs user write access
+# Fix ownership of install directory for non-root Klipper users
+# The entire directory must be user-owned so Moonraker's zip updater
+# can extract updates without root privileges (see GitHub issue #29)
 fix_install_ownership() {
     local user="${KLIPPER_USER:-}"
     if [ -n "$user" ] && [ "$user" != "root" ] && [ -d "$INSTALL_DIR" ]; then
-        log_info "Setting ownership to ${user}..."
-        if [ -d "${INSTALL_DIR}/config" ]; then
-            $SUDO chown -R "${user}:${user}" "${INSTALL_DIR}/config"
-        fi
+        log_info "Setting ownership of ${INSTALL_DIR} to ${user}..."
+        $SUDO chown -R "${user}:${user}" "${INSTALL_DIR}"
     fi
 }
 
@@ -2638,6 +2697,9 @@ main() {
     fix_install_ownership
     install_service "$platform"
     install_platform_hooks
+
+    # Symlink config into printer_data (Pi/Klipper only - enables web UI editing)
+    setup_config_symlink
 
     # Configure Moonraker update_manager (Pi only - enables web UI updates)
     configure_moonraker_updates "$platform"

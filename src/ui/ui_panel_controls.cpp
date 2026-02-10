@@ -21,12 +21,14 @@
 #include "ui_settings_sensors.h"
 #include "ui_subject_registry.h"
 #include "ui_toast.h"
+#include "ui_update_queue.h"
 
 #include "app_globals.h"
 #include "format_utils.h"
 #include "lvgl/src/others/translation/lv_translation.h"
 #include "moonraker_api.h"
 #include "observer_factory.h"
+#include "operation_timeout_guard.h"
 #include "printer_state.h"
 #include "standard_macros.h"
 #include "static_panel_registry.h"
@@ -43,6 +45,7 @@
 
 #include <algorithm> // std::clamp
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <memory>
 
@@ -166,6 +169,9 @@ void ControlsPanel::init_subjects() {
     UI_MANAGED_SUBJECT_STRING(macro_3_name_, macro_3_name_buf_, "", "macro_3_name", subjects_);
     UI_MANAGED_SUBJECT_STRING(macro_4_name_, macro_4_name_buf_, "", "macro_4_name", subjects_);
 
+    // Operation timeout guard (disables buttons while homing/QGL/Z-tilt in progress)
+    operation_guard_.init_subject("controls_operation_in_progress", subjects_);
+
     // Z-offset display subject for live tuning
     std::strcpy(controls_z_offset_buf_, "+0.000mm");
     UI_MANAGED_SUBJECT_STRING(controls_z_offset_subject_, controls_z_offset_buf_, "+0.000mm",
@@ -230,11 +236,8 @@ void ControlsPanel::init_subjects() {
     lv_xml_register_event_cb(nullptr, "on_controls_qgl", on_qgl);
     lv_xml_register_event_cb(nullptr, "on_controls_z_tilt", on_z_tilt);
 
-    // Quick Actions: Macro buttons
-    lv_xml_register_event_cb(nullptr, "on_controls_macro_1", on_macro_1);
-    lv_xml_register_event_cb(nullptr, "on_controls_macro_2", on_macro_2);
-    lv_xml_register_event_cb(nullptr, "on_controls_macro_3", on_macro_3);
-    lv_xml_register_event_cb(nullptr, "on_controls_macro_4", on_macro_4);
+    // Quick Actions: Macro buttons (unified callback with user_data index)
+    lv_xml_register_event_cb(nullptr, "on_controls_macro", on_macro);
 
     // Speed/Flow override buttons
     lv_xml_register_event_cb(nullptr, "on_controls_speed_up", on_speed_up);
@@ -1003,51 +1006,126 @@ void ControlsPanel::handle_secondary_fans_clicked() {
 
 void ControlsPanel::handle_home_all() {
     spdlog::debug("[{}] Home All clicked", get_name());
+    if (operation_guard_.is_active()) {
+        NOTIFY_WARNING("Operation already in progress");
+        return;
+    }
     if (api_) {
+        operation_guard_.begin(30000, [] { NOTIFY_WARNING("Homing timed out"); });
         NOTIFY_INFO("Homing all axes...");
-        api_->home_axes("XYZ", nullptr, [](const MoonrakerError& err) {
-            NOTIFY_ERROR("Homing failed: {}", err.user_message());
-        });
+        api_->home_axes(
+            "XYZ",
+            [this]() {
+                ui_async_call(
+                    [](void* ud) { static_cast<ControlsPanel*>(ud)->operation_guard_.end(); },
+                    this);
+            },
+            [this](const MoonrakerError& err) {
+                ui_async_call(
+                    [](void* ud) { static_cast<ControlsPanel*>(ud)->operation_guard_.end(); },
+                    this);
+                NOTIFY_ERROR("Homing failed: {}", err.user_message());
+            });
     }
 }
 
 void ControlsPanel::handle_home_xy() {
     spdlog::debug("[{}] Home XY clicked", get_name());
+    if (operation_guard_.is_active()) {
+        NOTIFY_WARNING("Operation already in progress");
+        return;
+    }
     if (api_) {
+        operation_guard_.begin(30000, [] { NOTIFY_WARNING("Homing timed out"); });
         NOTIFY_INFO("Homing XY...");
-        api_->home_axes("XY", nullptr, [](const MoonrakerError& err) {
-            NOTIFY_ERROR("Homing failed: {}", err.user_message());
-        });
+        api_->home_axes(
+            "XY",
+            [this]() {
+                ui_async_call(
+                    [](void* ud) { static_cast<ControlsPanel*>(ud)->operation_guard_.end(); },
+                    this);
+            },
+            [this](const MoonrakerError& err) {
+                ui_async_call(
+                    [](void* ud) { static_cast<ControlsPanel*>(ud)->operation_guard_.end(); },
+                    this);
+                NOTIFY_ERROR("Homing failed: {}", err.user_message());
+            });
     }
 }
 
 void ControlsPanel::handle_home_z() {
     spdlog::debug("[{}] Home Z clicked", get_name());
+    if (operation_guard_.is_active()) {
+        NOTIFY_WARNING("Operation already in progress");
+        return;
+    }
     if (api_) {
+        operation_guard_.begin(30000, [] { NOTIFY_WARNING("Homing timed out"); });
         NOTIFY_INFO("Homing Z...");
-        api_->home_axes("Z", nullptr, [](const MoonrakerError& err) {
-            NOTIFY_ERROR("Homing failed: {}", err.user_message());
-        });
+        api_->home_axes(
+            "Z",
+            [this]() {
+                ui_async_call(
+                    [](void* ud) { static_cast<ControlsPanel*>(ud)->operation_guard_.end(); },
+                    this);
+            },
+            [this](const MoonrakerError& err) {
+                ui_async_call(
+                    [](void* ud) { static_cast<ControlsPanel*>(ud)->operation_guard_.end(); },
+                    this);
+                NOTIFY_ERROR("Homing failed: {}", err.user_message());
+            });
     }
 }
 
 void ControlsPanel::handle_qgl() {
     spdlog::debug("[{}] QGL clicked", get_name());
+    if (operation_guard_.is_active()) {
+        NOTIFY_WARNING("Operation already in progress");
+        return;
+    }
     if (api_) {
+        operation_guard_.begin(180000, [] { NOTIFY_WARNING("QGL timed out"); });
         NOTIFY_INFO("Quad Gantry Level started...");
         api_->execute_gcode(
-            "QUAD_GANTRY_LEVEL", []() { NOTIFY_SUCCESS("Quad Gantry Level complete"); },
-            [](const MoonrakerError& err) { NOTIFY_ERROR("QGL failed: {}", err.user_message()); });
+            "QUAD_GANTRY_LEVEL",
+            [this]() {
+                ui_async_call(
+                    [](void* ud) { static_cast<ControlsPanel*>(ud)->operation_guard_.end(); },
+                    this);
+                NOTIFY_SUCCESS("Quad Gantry Level complete");
+            },
+            [this](const MoonrakerError& err) {
+                ui_async_call(
+                    [](void* ud) { static_cast<ControlsPanel*>(ud)->operation_guard_.end(); },
+                    this);
+                NOTIFY_ERROR("QGL failed: {}", err.user_message());
+            });
     }
 }
 
 void ControlsPanel::handle_z_tilt() {
     spdlog::debug("[{}] Z-Tilt clicked", get_name());
+    if (operation_guard_.is_active()) {
+        NOTIFY_WARNING("Operation already in progress");
+        return;
+    }
     if (api_) {
+        operation_guard_.begin(180000, [] { NOTIFY_WARNING("Z-Tilt timed out"); });
         NOTIFY_INFO("Z-Tilt Adjust started...");
         api_->execute_gcode(
-            "Z_TILT_ADJUST", []() { NOTIFY_SUCCESS("Z-Tilt Adjust complete"); },
-            [](const MoonrakerError& err) {
+            "Z_TILT_ADJUST",
+            [this]() {
+                ui_async_call(
+                    [](void* ud) { static_cast<ControlsPanel*>(ud)->operation_guard_.end(); },
+                    this);
+                NOTIFY_SUCCESS("Z-Tilt Adjust complete");
+            },
+            [this](const MoonrakerError& err) {
+                ui_async_call(
+                    [](void* ud) { static_cast<ControlsPanel*>(ud)->operation_guard_.end(); },
+                    this);
                 NOTIFY_ERROR("Z-Tilt failed: {}", err.user_message());
             });
     }
@@ -1076,26 +1154,12 @@ void ControlsPanel::execute_macro(size_t index) {
 
     NOTIFY_INFO("Running {}...", info.display_name);
     if (!StandardMacros::instance().execute(
-            *slot, api_,
-            [name = info.display_name]() { NOTIFY_SUCCESS("{} complete", name); },
+            *slot, api_, [name = info.display_name]() { NOTIFY_SUCCESS("{} complete", name); },
             [](const MoonrakerError& err) {
                 NOTIFY_ERROR("Macro failed: {}", err.user_message());
             })) {
         NOTIFY_WARNING("{} macro not configured", info.display_name);
     }
-}
-
-void ControlsPanel::handle_macro_1() {
-    execute_macro(0);
-}
-void ControlsPanel::handle_macro_2() {
-    execute_macro(1);
-}
-void ControlsPanel::handle_macro_3() {
-    execute_macro(2);
-}
-void ControlsPanel::handle_macro_4() {
-    execute_macro(3);
 }
 
 // ============================================================================
@@ -1183,8 +1247,17 @@ void ControlsPanel::handle_flow_up() {
     api_->execute_gcode(
         gcode,
         [this, new_flow]() {
-            helix::fmt::format_percent(new_flow, flow_override_buf_, sizeof(flow_override_buf_));
-            lv_subject_copy_string(&flow_override_subject_, flow_override_buf_);
+            struct Ctx {
+                ControlsPanel* panel;
+                int flow;
+            };
+            auto ctx = std::make_unique<Ctx>(Ctx{this, new_flow});
+            ui_queue_update<Ctx>(std::move(ctx), [](Ctx* c) {
+                helix::fmt::format_percent(c->flow, c->panel->flow_override_buf_,
+                                           sizeof(c->panel->flow_override_buf_));
+                lv_subject_copy_string(&c->panel->flow_override_subject_,
+                                       c->panel->flow_override_buf_);
+            });
         },
         [](const MoonrakerError& err) {
             NOTIFY_ERROR("Flow change failed: {}", err.user_message());
@@ -1208,8 +1281,17 @@ void ControlsPanel::handle_flow_down() {
     api_->execute_gcode(
         gcode,
         [this, new_flow]() {
-            helix::fmt::format_percent(new_flow, flow_override_buf_, sizeof(flow_override_buf_));
-            lv_subject_copy_string(&flow_override_subject_, flow_override_buf_);
+            struct Ctx {
+                ControlsPanel* panel;
+                int flow;
+            };
+            auto ctx = std::make_unique<Ctx>(Ctx{this, new_flow});
+            ui_queue_update<Ctx>(std::move(ctx), [](Ctx* c) {
+                helix::fmt::format_percent(c->flow, c->panel->flow_override_buf_,
+                                           sizeof(c->panel->flow_override_buf_));
+                lv_subject_copy_string(&c->panel->flow_override_subject_,
+                                       c->panel->flow_override_buf_);
+            });
         },
         [](const MoonrakerError& err) {
             NOTIFY_ERROR("Flow change failed: {}", err.user_message());
@@ -1347,11 +1429,17 @@ PANEL_TRAMPOLINE(ControlsPanel, get_global_controls_panel, home_xy)
 PANEL_TRAMPOLINE(ControlsPanel, get_global_controls_panel, home_z)
 PANEL_TRAMPOLINE(ControlsPanel, get_global_controls_panel, qgl)
 PANEL_TRAMPOLINE(ControlsPanel, get_global_controls_panel, z_tilt)
-PANEL_TRAMPOLINE(ControlsPanel, get_global_controls_panel, macro_1)
+// Unified macro callback - extracts index from user_data
+void ControlsPanel::on_macro(lv_event_t* e) {
+    LVGL_SAFE_EVENT_CB_BEGIN("[ControlsPanel] on_macro");
+    const char* index_str = static_cast<const char*>(lv_event_get_user_data(e));
+    if (index_str) {
+        size_t index = strtoul(index_str, nullptr, 10);
+        get_global_controls_panel().execute_macro(index);
+    }
+    LVGL_SAFE_EVENT_CB_END();
+}
 
-PANEL_TRAMPOLINE(ControlsPanel, get_global_controls_panel, macro_2)
-PANEL_TRAMPOLINE(ControlsPanel, get_global_controls_panel, macro_3)
-PANEL_TRAMPOLINE(ControlsPanel, get_global_controls_panel, macro_4)
 PANEL_TRAMPOLINE(ControlsPanel, get_global_controls_panel, speed_up)
 PANEL_TRAMPOLINE(ControlsPanel, get_global_controls_panel, speed_down)
 PANEL_TRAMPOLINE(ControlsPanel, get_global_controls_panel, flow_up)

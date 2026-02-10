@@ -78,10 +78,36 @@ detect_platform() {
             is_pi=true
         fi
         if [ "$is_pi" = true ]; then
-            if [ "$arch" = "aarch64" ]; then
+            # Detect actual userspace bitness, not just kernel arch.
+            # Many Pi systems run 64-bit kernel with 32-bit userspace,
+            # which makes uname -m report aarch64 even though only
+            # 32-bit binaries can execute.
+            local userspace_bits
+            userspace_bits=$(getconf LONG_BIT 2>/dev/null || echo "")
+            if [ "$userspace_bits" = "64" ]; then
                 echo "pi"
-            else
+            elif [ "$userspace_bits" = "32" ]; then
+                if [ "$arch" = "aarch64" ]; then
+                    log_warn "64-bit kernel with 32-bit userspace detected — using pi32 build"
+                fi
                 echo "pi32"
+            else
+                # getconf unavailable — fall back to checking system binary
+                if file /usr/bin/id 2>/dev/null | grep -q "64-bit"; then
+                    echo "pi"
+                elif file /usr/bin/id 2>/dev/null | grep -q "32-bit"; then
+                    if [ "$arch" = "aarch64" ]; then
+                        log_warn "64-bit kernel with 32-bit userspace detected — using pi32 build"
+                    fi
+                    echo "pi32"
+                else
+                    # Last resort: trust kernel arch
+                    if [ "$arch" = "aarch64" ]; then
+                        echo "pi"
+                    else
+                        echo "pi32"
+                    fi
+                fi
             fi
             return
         fi
@@ -303,4 +329,61 @@ set_install_paths() {
         detect_klipper_user
         detect_pi_install_dir
     fi
+}
+
+# Create symlink from printer_data/config/helixscreen → INSTALL_DIR/config
+# Allows Mainsail/Fluidd users to edit HelixScreen config from the web UI.
+# Only applies to Pi/Klipper platforms where printer_data exists.
+# Gracefully skips if printer_data/config doesn't exist or permissions fail.
+# Reads: KLIPPER_HOME, INSTALL_DIR
+setup_config_symlink() {
+    # Only proceed if we have a Klipper home and install directory
+    if [ -z "${KLIPPER_HOME:-}" ] || [ -z "${INSTALL_DIR:-}" ]; then
+        return 0
+    fi
+
+    local config_dir="${KLIPPER_HOME}/printer_data/config"
+    local symlink_path="${config_dir}/helixscreen"
+    local target="${INSTALL_DIR}/config"
+
+    # Skip if printer_data/config doesn't exist
+    if [ ! -d "$config_dir" ]; then
+        log_info "No printer_data/config found, skipping config symlink"
+        return 0
+    fi
+
+    # Skip if target config directory doesn't exist
+    if [ ! -d "$target" ]; then
+        log_warn "Install config directory not found: $target"
+        return 0
+    fi
+
+    # Check if symlink already exists
+    if [ -L "$symlink_path" ]; then
+        local current_target
+        current_target=$(readlink "$symlink_path" 2>/dev/null || echo "")
+        if [ "$current_target" = "$target" ]; then
+            log_info "Config symlink already exists and is correct"
+            return 0
+        fi
+        # Wrong target — update it
+        log_info "Updating config symlink (was: $current_target)"
+        $SUDO rm -f "$symlink_path"
+    elif [ -e "$symlink_path" ]; then
+        # Something exists but isn't a symlink — don't destroy it
+        log_warn "Config symlink path already exists as a regular file/directory: $symlink_path"
+        log_warn "Skipping symlink creation to avoid data loss"
+        return 0
+    fi
+
+    # Create the symlink
+    if $SUDO ln -s "$target" "$symlink_path" 2>/dev/null; then
+        log_success "Config symlink: $symlink_path → $target"
+        log_info "You can now edit HelixScreen config from Mainsail/Fluidd"
+    else
+        log_warn "Could not create config symlink (permission denied?)"
+        log_warn "To create manually: ln -s $target $symlink_path"
+    fi
+
+    return 0
 }

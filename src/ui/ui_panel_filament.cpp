@@ -110,6 +110,8 @@ FilamentPanel::FilamentPanel(PrinterState& printer_state, MoonrakerAPI* api)
 FilamentPanel::~FilamentPanel() {
     deinit_subjects();
 
+    // Guard destructor handles timer cleanup automatically
+
     // Clean up warning dialogs if open (prevents memory leak and use-after-free)
     if (lv_is_initialized()) {
         if (load_warning_dialog_) {
@@ -164,8 +166,7 @@ void FilamentPanel::init_subjects() {
                                   "filament_bed_target", subjects_);
 
         // Operation in progress subject (for disabling buttons during filament ops)
-        UI_MANAGED_SUBJECT_INT(operation_in_progress_subject_, 0, "filament_operation_in_progress",
-                               subjects_);
+        operation_guard_.init_subject("filament_operation_in_progress", subjects_);
 
         // Cooldown button visibility (1 when nozzle target > 0)
         UI_MANAGED_SUBJECT_INT(nozzle_heating_subject_, 0, "filament_nozzle_heating", subjects_);
@@ -381,19 +382,30 @@ void FilamentPanel::check_and_auto_select_preset() {
 }
 
 void FilamentPanel::update_all_temps() {
-    // Unified update handler for temperature observer bundle
-    // Called on UI thread after any temperature value changes
-    // Guard against async callbacks firing after display destruction
+    // Unified update handler for temperature observer bundle.
+    // Called on UI thread after any temperature value changes.
     if (!panel_ || !lv_obj_is_valid(panel_))
         return;
+
+    // Always update current-temp-dependent displays
     update_left_card_temps();
     update_temp_display();
-    update_material_temp_display();
     update_warning_text();
     update_safety_state();
     update_status();
-    check_and_auto_select_preset();
-    lv_subject_set_int(&nozzle_heating_subject_, nozzle_target_ > 0 ? 1 : 0);
+
+    // Only update target-dependent displays when targets actually changed.
+    // Current temps change frequently during heating (~1Hz × 4 subjects),
+    // but preset matching and material display only depend on targets.
+    bool targets_changed =
+        (nozzle_target_ != prev_nozzle_target_ || bed_target_ != prev_bed_target_);
+    if (targets_changed) {
+        prev_nozzle_target_ = nozzle_target_;
+        prev_bed_target_ = bed_target_;
+        update_material_temp_display();
+        check_and_auto_select_preset();
+        lv_subject_set_int(&nozzle_heating_subject_, nozzle_target_ > 0 ? 1 : 0);
+    }
 }
 
 // ============================================================================
@@ -575,10 +587,7 @@ void FilamentPanel::update_status_icon_for_state() {
     }
 }
 
-void FilamentPanel::set_operation_in_progress(bool in_progress) {
-    operation_in_progress_ = in_progress;
-    lv_subject_set_int(&operation_in_progress_subject_, in_progress ? 1 : 0);
-}
+// set_operation_in_progress removed — replaced by OperationTimeoutGuard
 
 void FilamentPanel::handle_purge_amount_select(int amount) {
     purge_amount_ = amount;
@@ -590,7 +599,7 @@ void FilamentPanel::handle_purge_amount_select(int amount) {
 }
 
 void FilamentPanel::handle_load_button() {
-    if (operation_in_progress_) {
+    if (operation_guard_.is_active()) {
         NOTIFY_WARNING("Operation already in progress");
         return;
     }
@@ -618,7 +627,7 @@ void FilamentPanel::handle_load_button() {
 }
 
 void FilamentPanel::handle_unload_button() {
-    if (operation_in_progress_) {
+    if (operation_guard_.is_active()) {
         NOTIFY_WARNING("Operation already in progress");
         return;
     }
@@ -651,7 +660,7 @@ void FilamentPanel::handle_purge_button() {
         return;
     }
 
-    if (operation_in_progress_) {
+    if (operation_guard_.is_active()) {
         NOTIFY_WARNING("Operation already in progress");
         return;
     }
@@ -679,7 +688,8 @@ void FilamentPanel::handle_purge_button() {
 
     // Fallback: inline G-code (M83 = relative extrusion, G1 E{amount} F300)
     // Note: FilamentPanel is a global singleton, so `this` capture is safe [L012]
-    set_operation_in_progress(true);
+    operation_guard_.begin(OPERATION_TIMEOUT_MS,
+                           [this] { NOTIFY_WARNING("Filament operation timed out"); });
     spdlog::info("[{}] No purge macro configured, using inline G-code ({}mm)", get_name(),
                  purge_amount_);
     std::string gcode = fmt::format("M83\nG1 E{} F300", purge_amount_);
@@ -688,21 +698,13 @@ void FilamentPanel::handle_purge_button() {
     api_->execute_gcode(
         gcode,
         [this, amount = purge_amount_]() {
-            ui_async_call(
-                [](void* ud) {
-                    auto* self = static_cast<FilamentPanel*>(ud);
-                    self->set_operation_in_progress(false);
-                },
-                this);
+            ui_async_call([](void* ud) { static_cast<FilamentPanel*>(ud)->operation_guard_.end(); },
+                          this);
             NOTIFY_SUCCESS("Purge complete ({}mm)", amount);
         },
         [this](const MoonrakerError& error) {
-            ui_async_call(
-                [](void* ud) {
-                    auto* self = static_cast<FilamentPanel*>(ud);
-                    self->set_operation_in_progress(false);
-                },
-                this);
+            ui_async_call([](void* ud) { static_cast<FilamentPanel*>(ud)->operation_guard_.end(); },
+                          this);
             NOTIFY_ERROR("Purge failed: {}", error.user_message());
         });
 }
@@ -856,19 +858,11 @@ void FilamentPanel::on_cooldown_clicked(lv_event_t* e) {
 void FilamentPanel::handle_cooldown() {
     spdlog::info("[{}] Cooldown requested - turning off heaters", get_name());
 
-    // Turn off nozzle heater
     if (api_) {
-        api_->set_temperature(
-            "extruder", 0.0, []() { NOTIFY_SUCCESS("Nozzle heater off"); },
+        api_->execute_gcode(
+            "TURN_OFF_HEATERS", []() { NOTIFY_SUCCESS("Heaters off"); },
             [](const MoonrakerError& error) {
-                NOTIFY_ERROR("Failed to turn off nozzle: {}", error.user_message());
-            });
-
-        // Also turn off bed heater for full cooldown
-        api_->set_temperature(
-            "heater_bed", 0.0, []() { NOTIFY_SUCCESS("Bed heater off"); },
-            [](const MoonrakerError& error) {
-                NOTIFY_ERROR("Failed to turn off bed: {}", error.user_message());
+                NOTIFY_ERROR("Failed to turn off heaters: {}", error.user_message());
             });
     }
 
@@ -964,22 +958,21 @@ void FilamentPanel::execute_load() {
         return;
     }
 
-    set_operation_in_progress(true);
+    operation_guard_.begin(OPERATION_TIMEOUT_MS,
+                           [this] { NOTIFY_WARNING("Filament operation timed out"); });
     spdlog::info("[{}] Loading filament via StandardMacros: {}", get_name(), info.get_macro());
     NOTIFY_INFO("Loading filament...");
     // FilamentPanel is a global singleton, so `this` capture is safe [L012]
     StandardMacros::instance().execute(
         StandardMacroSlot::LoadFilament, api_,
         [this]() {
-            ui_async_call(
-                [](void* ud) { static_cast<FilamentPanel*>(ud)->set_operation_in_progress(false); },
-                this);
+            ui_async_call([](void* ud) { static_cast<FilamentPanel*>(ud)->operation_guard_.end(); },
+                          this);
             NOTIFY_SUCCESS("Filament loaded");
         },
         [this](const MoonrakerError& error) {
-            ui_async_call(
-                [](void* ud) { static_cast<FilamentPanel*>(ud)->set_operation_in_progress(false); },
-                this);
+            ui_async_call([](void* ud) { static_cast<FilamentPanel*>(ud)->operation_guard_.end(); },
+                          this);
             NOTIFY_ERROR("Filament load failed: {}", error.user_message());
         });
 }
@@ -992,22 +985,21 @@ void FilamentPanel::execute_unload() {
         return;
     }
 
-    set_operation_in_progress(true);
+    operation_guard_.begin(OPERATION_TIMEOUT_MS,
+                           [this] { NOTIFY_WARNING("Filament operation timed out"); });
     spdlog::info("[{}] Unloading filament via StandardMacros: {}", get_name(), info.get_macro());
     NOTIFY_INFO("Unloading filament...");
     // FilamentPanel is a global singleton, so `this` capture is safe [L012]
     StandardMacros::instance().execute(
         StandardMacroSlot::UnloadFilament, api_,
         [this]() {
-            ui_async_call(
-                [](void* ud) { static_cast<FilamentPanel*>(ud)->set_operation_in_progress(false); },
-                this);
+            ui_async_call([](void* ud) { static_cast<FilamentPanel*>(ud)->operation_guard_.end(); },
+                          this);
             NOTIFY_SUCCESS("Filament unloaded");
         },
         [this](const MoonrakerError& error) {
-            ui_async_call(
-                [](void* ud) { static_cast<FilamentPanel*>(ud)->set_operation_in_progress(false); },
-                this);
+            ui_async_call([](void* ud) { static_cast<FilamentPanel*>(ud)->operation_guard_.end(); },
+                          this);
             NOTIFY_ERROR("Filament unload failed: {}", error.user_message());
         });
 }

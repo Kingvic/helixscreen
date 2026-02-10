@@ -421,8 +421,16 @@ void* ui_button_create(lv_xml_parser_state_t* state, const char** attrs) {
     // created yet. By the time the async callback fires, children will have
     // their fonts and variant styles applied, so contrast and icon-skip
     // logic works correctly.
-    lv_async_call([](void* data) { update_button_text_contrast(static_cast<lv_obj_t*>(data)); },
-                  btn);
+    // Check lv_obj_is_valid() in case button is deleted before callback executes
+    // (e.g., cooldown button on filament panel during rapid navigation).
+    lv_async_call(
+        [](void* data) {
+            auto* obj = static_cast<lv_obj_t*>(data);
+            if (lv_obj_is_valid(obj)) {
+                update_button_text_contrast(obj);
+            }
+        },
+        btn);
 
     const char* pos_name = icon_on_top      ? "top"
                            : icon_on_bottom ? "bottom"
